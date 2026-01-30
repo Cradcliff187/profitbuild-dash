@@ -1,157 +1,74 @@
 
 
-# Add "Total Invoiced" Metric to Dashboard
+# Add PTO Project Constants to WeekView.tsx
 
 ## Overview
-Add a new "Total Invoiced" metric to both the Project Status Card and Work Order Status Card on the dashboard. This metric shows the actual revenue received (invoiced) for active and completed projects/work orders, displayed directly below the "Completed Value" row.
+Add a constant array and helper function to identify PTO/Overhead projects that don't have traditional start/end times.
 
-## Data Source
+## File to Modify
 
-According to the KPI Guide (`src/lib/kpi-definitions/revenue-kpis.ts` and `project-kpis.ts`):
-- **Field**: `reporting.project_financials.total_invoiced`
-- **Formula**: `SUM(project_revenues.amount) for direct + SUM(revenue_splits.split_amount) for splits`
-- **Purpose**: Shows actual revenue received (not contract value)
+**File:** `src/components/time-tracker/WeekView.tsx`
 
-For the dashboard, we'll query `project_revenues` table directly with `is_split = false` to get direct invoices, since split revenues are allocated to specific projects via `revenue_splits`.
+## Change Details
 
-## Files to Modify
+**Location:** After line 10 (after imports, before the `formatTime` function)
 
-| File | Changes |
-|------|---------|
-| `src/pages/Dashboard.tsx` | Add state variables, update queries, pass new props |
-| `src/components/dashboard/ProjectStatusCard.tsx` | Add new prop and display row |
-| `src/components/dashboard/WorkOrderStatusCard.tsx` | Add new prop and display row |
-
----
-
-## Changes by File
-
-### 1. Dashboard.tsx
-
-**Add new state variables** (around line 55):
+**Code to Add:**
 ```typescript
-const [totalInvoiced, setTotalInvoiced] = useState(0);
-const [workOrderTotalInvoiced, setWorkOrderTotalInvoiced] = useState(0);
+// PTO/Overhead project numbers that don't have traditional start/end times
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
+const isPTOProject = (projectNumber: string): boolean => {
+  return PTO_PROJECT_NUMBERS.includes(projectNumber);
+};
 ```
 
-**Update `loadFinancialMetrics()` function** (around line 329):
-
-After fetching active and completed projects, query `project_revenues` to get total invoiced amounts:
-
+## Current File Structure (lines 1-12)
 ```typescript
-// Get all construction project IDs (active + completed)
-const allProjectIds = [
-  ...(activeProjects?.map(p => p.id) || []),
-  ...(completedProjects?.map(p => p.id) || [])
-];
+import { useState, useEffect } from 'react';
+import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-if (allProjectIds.length > 0) {
-  // Query direct revenues (not split)
-  const { data: revenues, error: revenueError } = await supabase
-    .from('project_revenues')
-    .select('amount')
-    .in('project_id', allProjectIds)
-    .eq('is_split', false);
+// ← INSERT NEW CODE HERE
 
-  if (!revenueError && revenues) {
-    const totalInvoicedAmount = revenues.reduce((sum, r) => sum + (r.amount || 0), 0);
-    setTotalInvoiced(totalInvoicedAmount);
-  }
-}
+const formatTime = (dateString: string | null | undefined): string | null => {
+  // ...existing code
 ```
 
-**Update `loadWorkOrderStatusCounts()` function** (around line 175):
-
-Add similar query for work order invoiced amounts:
-
+## After Change (lines 1-18)
 ```typescript
-// After loading work order data, calculate total invoiced
-const workOrderIds = data?.map(wo => wo.id) || [];
-if (workOrderIds.length > 0) {
-  const { data: woRevenues, error: woRevenueError } = await supabase
-    .from('project_revenues')
-    .select('amount')
-    .in('project_id', workOrderIds)
-    .eq('is_split', false);
+import { useState, useEffect } from 'react';
+import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-  if (!woRevenueError && woRevenues) {
-    const woInvoicedTotal = woRevenues.reduce((sum, r) => sum + (r.amount || 0), 0);
-    setWorkOrderTotalInvoiced(woInvoicedTotal);
-  }
-}
+// PTO/Overhead project numbers that don't have traditional start/end times
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
+const isPTOProject = (projectNumber: string): boolean => {
+  return PTO_PROJECT_NUMBERS.includes(projectNumber);
+};
+
+const formatTime = (dateString: string | null | undefined): string | null => {
+  // ...existing code
 ```
 
-**Pass new props to status cards** (around line 429-445):
-```tsx
-<ProjectStatusCard 
-  // ... existing props
-  totalInvoiced={totalInvoiced}
-/>
-
-<WorkOrderStatusCard
-  // ... existing props
-  totalInvoiced={workOrderTotalInvoiced}
-/>
-```
+## Purpose
+This constant and helper function will be used later to:
+- Skip displaying start/end times for PTO entries
+- Handle PTO entries differently in time calculations
+- Identify when an entry is for sick leave, vacation, or holiday
 
 ---
 
-### 2. ProjectStatusCard.tsx
+## Note: Existing Build Errors
 
-**Update interface** (line 12):
-```typescript
-interface ProjectStatusCardProps {
-  statusCounts: ProjectStatusCount[];
-  activeContractValue: number;
-  activeEstimatedCosts: number;
-  completedContractValue: number;
-  activeProjectedMargin: number;
-  activeProjectedMarginPercent: number;
-  totalInvoiced: number;  // ← ADD
-}
-```
-
-**Add display row after "Completed Value"** (after line 93):
-```tsx
-<div className="flex items-start gap-1.5">
-  <DollarSign className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
-  <div className="flex-1 min-w-0">
-    <div className="text-[10px] text-muted-foreground">Total Invoiced</div>
-    <div className="text-xs font-semibold truncate">{formatCurrency(totalInvoiced)}</div>
-  </div>
-</div>
-```
-
----
-
-### 3. WorkOrderStatusCard.tsx
-
-Same pattern as ProjectStatusCard:
-- Add `totalInvoiced: number` to props interface
-- Add display row after "Completed WO Value"
-
----
-
-## Visual Result
-
-The Project Status card will display:
-
-```
-Active Contract Value       $XXX,XXX
-Active Est. Costs           $XXX,XXX
-Active Projected Margin     $XXX,XXX (XX.X%)
-Completed Value             $XXX,XXX ← green
-Total Invoiced              $XXX,XXX ← NEW
-```
-
-Same pattern for Work Order Status card.
-
----
-
-## Technical Notes
-
-- Queries `project_revenues` directly with `is_split = false` filter
-- Aggregates invoiced amounts for all construction projects (active + completed)
-- No RPC call needed - simple table query with `.in()` filter
-- Consistent with existing dashboard query patterns
+There are separate build errors related to `adjusted_est_margin` not existing on multiple types. These are unrelated to this change and would need to be addressed separately by adding `adjusted_est_margin` to the `Project` interface in `src/types/project.ts` (similar to how we added `actual_margin` earlier).
 
