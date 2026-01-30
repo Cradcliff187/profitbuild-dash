@@ -70,7 +70,7 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
         contracted_amount: 0,
         total_invoiced: 0,
         original_margin: 0,
-        projected_margin: 0,
+        adjusted_est_margin: 0,
         actual_margin: 0,
         margin_change: 0,
       };
@@ -80,14 +80,14 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
       contracted_amount: acc.contracted_amount + project.contracted_amount,
       total_invoiced: acc.total_invoiced + project.total_invoiced,
       original_margin: acc.original_margin + project.original_margin,
-      projected_margin: acc.projected_margin + project.projected_margin,
+      adjusted_est_margin: acc.adjusted_est_margin + (project.adjusted_est_margin ?? project.projected_margin ?? 0),
       actual_margin: acc.actual_margin + project.actual_margin,
       margin_change: acc.margin_change + (project.actual_margin - project.original_margin),
     }), {
       contracted_amount: 0,
       total_invoiced: 0,
       original_margin: 0,
-      projected_margin: 0,
+      adjusted_est_margin: 0,
       actual_margin: 0,
       margin_change: 0,
     });
@@ -209,11 +209,11 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Projected Margin</div>
-                          <div className="font-semibold font-mono">{formatCurrency(project.projected_margin)}</div>
+                          <div className="text-muted-foreground">Adj. Est. Margin</div>
+                          <div className="font-semibold font-mono">{formatCurrency((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0)}</div>
                           <div className="text-[10px] text-muted-foreground">
                             {project.contracted_amount > 0 
-                              ? ((project.projected_margin / project.contracted_amount) * 100).toFixed(1)
+                              ? (((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0) / project.contracted_amount * 100).toFixed(1)
                               : '0.0'}%
                           </div>
                         </div>
@@ -277,11 +277,11 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
               </TableHead>
               <TableHead 
                 className="text-right cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('projected_margin')}
+                onClick={() => handleSort('adjusted_est_margin')}
               >
                 <div className="flex items-center justify-end">
-                  Projected Margin
-                  {renderSortIcon('projected_margin')}
+                  Adj. Est. Margin
+                  {renderSortIcon('adjusted_est_margin')}
                 </div>
               </TableHead>
               <TableHead className="text-right text-xs text-muted-foreground">
@@ -346,11 +346,11 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
                       : '0.0'}%
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">
-                    {formatCurrency(project.projected_margin)}
+                    {formatCurrency((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0)}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground">
                     {project.contracted_amount > 0 
-                      ? ((project.projected_margin / project.contracted_amount) * 100).toFixed(1)
+                      ? (((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0) / project.contracted_amount * 100).toFixed(1)
                       : '0.0'}%
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">
@@ -388,11 +388,11 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
                   : '0.0'}%
               </TableCell>
               <TableCell className="text-right font-mono text-xs font-medium">
-                {formatCurrency(totals.projected_margin)}
+                {formatCurrency(totals.adjusted_est_margin)}
               </TableCell>
               <TableCell className="text-right text-xs font-medium text-muted-foreground">
                 {totals.contracted_amount > 0 
-                  ? ((totals.projected_margin / totals.contracted_amount) * 100).toFixed(1)
+                  ? ((totals.adjusted_est_margin / totals.contracted_amount) * 100).toFixed(1)
                   : '0.0'}%
               </TableCell>
               <TableCell className="text-right font-mono text-xs font-medium">

@@ -148,7 +148,7 @@ export const WorkOrdersTableView = ({
       costsLabel: "Adj. Est. Costs",
       costsValue: workOrder.adjusted_est_costs ?? 0,
       marginLabel: "Proj. Margin",
-      marginValue: workOrder.projected_margin ?? 0,
+      marginValue: workOrder.adjusted_est_margin ?? workOrder.projected_margin ?? 0,
       marginPct: workOrder.margin_percentage ?? 0,
       isEstimate: false,
     };
@@ -164,9 +164,9 @@ export const WorkOrdersTableView = ({
     { key: "do_not_exceed", label: "Do Not Exceed", required: false, sortable: true },
     { key: "original_est_costs", label: "Original Est. Costs", required: false, sortable: true },
     { key: "adjusted_est_costs", label: "Adjusted Est. Costs", required: false, sortable: true },
-    { key: "projected_margin", label: "Projected Margin ($)", required: false, sortable: true },
-    { key: "current_margin", label: "Current Margin ($)", required: false, sortable: true },
-    { key: "margin_percentage", label: "Projected Margin %", required: false, sortable: true },
+    { key: "adjusted_est_margin", label: "Adj. Est. Margin ($)", required: false, sortable: true },
+    { key: "actual_margin", label: "Actual Margin ($)", required: false, sortable: true },
+    { key: "margin_percentage", label: "Adj. Est. Margin %", required: false, sortable: true },
     { key: "has_estimate", label: "Has Estimate", required: false, sortable: true },
     { key: "total_expenses", label: "Actual Expenses", required: false, sortable: true },
     { key: "start_date", label: "Start Date", required: false, sortable: true },
@@ -184,8 +184,8 @@ export const WorkOrdersTableView = ({
     do_not_exceed: "w-32",
     original_est_costs: "w-36",
     adjusted_est_costs: "w-36",
-    projected_margin: "w-36",
-    current_margin: "w-36",
+    adjusted_est_margin: "w-36",
+    actual_margin: "w-36",
     margin_percentage: "w-32",
     has_estimate: "w-24",
     total_expenses: "w-28",
@@ -200,8 +200,8 @@ export const WorkOrdersTableView = ({
     do_not_exceed: "text-right",
     original_est_costs: "text-right",
     adjusted_est_costs: "text-right",
-    projected_margin: "text-right",
-    current_margin: "text-right",
+    adjusted_est_margin: "text-right",
+    actual_margin: "text-right",
     margin_percentage: "text-right",
     total_expenses: "text-right",
     start_date: "text-right",
@@ -219,9 +219,9 @@ export const WorkOrdersTableView = ({
     do_not_exceed: "Do Not Exceed",
     original_est_costs: "Original Est. Costs",
     adjusted_est_costs: "Adjusted Est. Costs",
-    projected_margin: "Projected Margin ($)",
-    current_margin: "Current Margin ($)",
-    margin_percentage: "Projected Margin %",
+    adjusted_est_margin: "Adj. Est. Margin ($)",
+    actual_margin: "Actual Margin ($)",
+    margin_percentage: "Adj. Est. Margin %",
     has_estimate: "Has Estimate",
     total_expenses: "Actual Expenses",
     start_date: "Start Date",
@@ -732,7 +732,7 @@ export const WorkOrdersTableView = ({
                             </TableCell>
                           );
                         }
-                        case "projected_margin": {
+                        case "adjusted_est_margin": {
                           const display = getFinancialDisplayValues(workOrder);
                           const hasMargin = display.marginValue !== null && display.marginValue !== undefined;
                           return (
@@ -759,14 +759,16 @@ export const WorkOrdersTableView = ({
                             </TableCell>
                           );
                         }
-                        case "current_margin":
+                        case "actual_margin": {
+                          const value = workOrder.actual_margin ?? workOrder.current_margin;
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
-                              {workOrder.current_margin !== null && workOrder.current_margin !== undefined 
-                                ? formatCurrency(workOrder.current_margin) 
+                              {value !== null && value !== undefined 
+                                ? formatCurrency(value) 
                                 : "—"}
                             </TableCell>
                           );
+                        }
                         case "margin_percentage": {
                           const display = getFinancialDisplayValues(workOrder);
                           const hasPct = display.marginPct !== null && display.marginPct !== undefined;

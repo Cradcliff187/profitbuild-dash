@@ -52,8 +52,8 @@ const columnDefinitions = [
   { key: "do_not_exceed", label: "Do Not Exceed", required: false, sortable: true },
   { key: "original_est_costs", label: "Original Est. Costs", required: false, sortable: true },
   { key: "adjusted_est_costs", label: "Adjusted Est. Costs", required: false, sortable: true },
-  { key: "projected_margin", label: "Projected Margin ($)", required: false, sortable: true },
-  { key: "current_margin", label: "Current Margin ($)", required: false, sortable: true },
+  { key: "adjusted_est_margin", label: "Adj. Est. Margin ($)", required: false, sortable: true },
+  { key: "actual_margin", label: "Actual Margin ($)", required: false, sortable: true },
   { key: "margin_percentage", label: "Projected Margin %", required: false, sortable: true },
   { key: "has_estimate", label: "Has Estimate", required: false, sortable: true },
   { key: "total_expenses", label: "Actual Expenses", required: false, sortable: true },
@@ -95,8 +95,8 @@ const WorkOrders = () => {
       "contracted_amount",
       "do_not_exceed",
       "adjusted_est_costs",
-      "projected_margin",
-      "current_margin",
+      "adjusted_est_margin",
+      "actual_margin",
       "margin_percentage",
       "has_estimate",
       "total_expenses",
@@ -578,13 +578,13 @@ const WorkOrders = () => {
           aValue = a.do_not_exceed || 0;
           bValue = b.do_not_exceed || 0;
           break;
-        case 'projected_margin':
-          aValue = a.projected_margin || 0;
-          bValue = b.projected_margin || 0;
+        case 'adjusted_est_margin':
+          aValue = a.adjusted_est_margin ?? a.projected_margin ?? 0;
+          bValue = b.adjusted_est_margin ?? b.projected_margin ?? 0;
           break;
-        case 'current_margin':
-          aValue = a.current_margin || 0;
-          bValue = b.current_margin || 0;
+        case 'actual_margin':
+          aValue = a.actual_margin ?? a.current_margin ?? 0;
+          bValue = b.actual_margin ?? b.current_margin ?? 0;
           break;
         case 'adjusted_est_costs':
           aValue = a.adjusted_est_costs || 0;

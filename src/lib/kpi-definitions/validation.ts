@@ -19,6 +19,9 @@ import { quoteKPIs } from './quote-kpis';
 import { revenueKPIs } from './revenue-kpis';
 import { changeOrderKPIs } from './change-order-kpis';
 import { workOrderKPIs } from './work-order-kpis';
+import { viewKPIs } from './view-kpis';
+import { timeEntryKPIs } from './time-entry-kpis';
+import { payeeKPIs } from './payee-kpis';
 import { deprecatedKPIs } from './deprecated-kpis';
 import { semanticMappings } from './semantic-mappings';
 import { businessRules } from './business-rules';
@@ -33,6 +36,9 @@ function getAllKPIs(): KPIMeasure[] {
     ...revenueKPIs,
     ...changeOrderKPIs,
     ...workOrderKPIs,
+    ...viewKPIs,
+    ...timeEntryKPIs,
+    ...payeeKPIs,
     ...deprecatedKPIs,
   ];
 }

@@ -8,7 +8,7 @@
  * @lastUpdated 2026-01-30
  *
  * CHANGELOG v2.0.0:
- * - Updated margin concept default to adjusted_est_margin (was current_margin)
+ * - Updated margin concept to default to adjusted_est_margin (was current_margin)
  * - Added adjusted_est_margin to profit disambiguation
  * - Marked current_margin as deprecated in disambiguation
  * - Added new employee/worker concepts
@@ -30,6 +30,7 @@ export const semanticMappings: SemanticMapping[] = [
       actual_margin: 'Use when user asks about REAL/ACTUAL/TRUE profit (total_invoiced - total_expenses). This is realized profit.',
       adjusted_est_margin: 'Use when user asks about EXPECTED/PROJECTED/FORECAST profit (contracted_amount - adjusted_est_costs)',
       original_margin: 'Use when user asks about ORIGINAL/BASELINE profit estimate from initial approved estimate',
+      // REMOVED: current_margin - deprecated
     }
   },
   {
@@ -37,12 +38,13 @@ export const semanticMappings: SemanticMapping[] = [
     aliases: ['markup', 'spread', 'profit margin'],
     description: 'Difference between revenue and costs',
     kpiIds: ['adjusted_est_margin', 'actual_margin', 'margin_percentage', 'original_margin'],
-    defaultKpiId: 'adjusted_est_margin',
+    defaultKpiId: 'adjusted_est_margin', // CHANGED from current_margin
     disambiguation: {
       adjusted_est_margin: 'Default - expected margin based on current estimates (contracted - adjusted costs)',
       actual_margin: 'Real margin - actual invoiced minus actual expenses',
       margin_percentage: 'When user asks for percentage/percent',
       original_margin: 'Baseline margin from original estimate',
+      // NOTE: current_margin is DEPRECATED - do not use
     }
   },
   {
@@ -130,7 +132,7 @@ export const semanticMappings: SemanticMapping[] = [
   },
 
   // ==========================================================================
-  // EMPLOYEE / WORKER CONCEPTS
+  // EMPLOYEE / WORKER CONCEPTS - NEW
   // ==========================================================================
   {
     concept: 'employee',

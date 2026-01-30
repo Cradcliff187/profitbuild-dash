@@ -25,6 +25,9 @@ import { quoteKPIs } from '../src/lib/kpi-definitions/quote-kpis';
 import { revenueKPIs } from '../src/lib/kpi-definitions/revenue-kpis';
 import { changeOrderKPIs } from '../src/lib/kpi-definitions/change-order-kpis';
 import { workOrderKPIs } from '../src/lib/kpi-definitions/work-order-kpis';
+import { viewKPIs } from '../src/lib/kpi-definitions/view-kpis';
+import { timeEntryKPIs } from '../src/lib/kpi-definitions/time-entry-kpis';
+import { payeeKPIs } from '../src/lib/kpi-definitions/payee-kpis';
 import { deprecatedKPIs } from '../src/lib/kpi-definitions/deprecated-kpis';
 import { semanticMappings } from '../src/lib/kpi-definitions/semantic-mappings';
 import { businessRules } from '../src/lib/kpi-definitions/business-rules';
@@ -41,6 +44,9 @@ const allKPIs = [
   ...revenueKPIs,
   ...changeOrderKPIs,
   ...workOrderKPIs,
+  ...viewKPIs,
+  ...timeEntryKPIs,
+  ...payeeKPIs,
   ...deprecatedKPIs,
 ];
 
@@ -87,8 +93,7 @@ function buildDisambiguationGuide(): string[] {
   // Margin disambiguation
   guides.push('MARGIN DISAMBIGUATION:');
   guides.push('- "profit", "real profit", "actual profit" → actual_margin (total_invoiced - total_expenses)');
-  guides.push('- "margin", "expected margin" → current_margin (contracted_amount - total_expenses)');
-  guides.push('- "projected margin", "forecast" → projected_margin (contracted_amount - adjusted_est_costs)');
+  guides.push('- "margin", "expected margin", "projected margin", "forecast" → adjusted_est_margin (contracted_amount - adjusted_est_costs)');
   guides.push('- "original margin", "baseline" → original_margin (contracted_amount - original_est_costs)');
   guides.push('');
 
@@ -166,6 +171,9 @@ function generateOutputFile(): string {
     revenue: revenueKPIs.length,
     change_order: changeOrderKPIs.length,
     work_order: workOrderKPIs.length,
+    view: viewKPIs.length,
+    time_entry: timeEntryKPIs.length,
+    payee: payeeKPIs.length,
     deprecated: deprecatedKPIs.length,
     total: allKPIs.length,
   };
@@ -190,6 +198,9 @@ function generateOutputFile(): string {
  * - Revenue: ${kpiCounts.revenue}
  * - Change Order: ${kpiCounts.change_order}
  * - Work Order: ${kpiCounts.work_order}
+ * - View: ${kpiCounts.view}
+ * - Time Entry: ${kpiCounts.time_entry}
+ * - Payee: ${kpiCounts.payee}
  * - Deprecated: ${kpiCounts.deprecated}
  * - TOTAL: ${kpiCounts.total}
  */
@@ -247,6 +258,9 @@ function main() {
   console.log(`   - Revenue KPIs: ${revenueKPIs.length}`);
   console.log(`   - Change Order KPIs: ${changeOrderKPIs.length}`);
   console.log(`   - Work Order KPIs: ${workOrderKPIs.length}`);
+  console.log(`   - View KPIs: ${viewKPIs.length}`);
+  console.log(`   - Time Entry KPIs: ${timeEntryKPIs.length}`);
+  console.log(`   - Payee KPIs: ${payeeKPIs.length}`);
   console.log(`   - Deprecated KPIs: ${deprecatedKPIs.length}`);
   console.log(`   - Semantic Mappings: ${semanticMappings.length}`);
   console.log(`   - Business Rules: ${businessRules.length}`);

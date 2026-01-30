@@ -10,7 +10,8 @@ export function calculateProjectProfit(
   expenses: Expense[],
   storedProjectData?: {
     contracted_amount?: number | null;
-    current_margin?: number | null;
+    actual_margin?: number | null;
+    adjusted_est_margin?: number | null;
     margin_percentage?: number | null;
     total_accepted_quotes?: number | null;
   }
@@ -24,14 +25,12 @@ export function calculateProjectProfit(
   
   // NOTE: This function uses pre-calculated values from stored project data
   // For accurate split-aware calculations, use calculateProjectProfitAsync
-  const actualExpenses = storedProjectData?.current_margin 
-    ? ((storedProjectData.contracted_amount || 0) - storedProjectData.current_margin)
-    : expenses.filter(e => e.project_id === estimate.project_id).reduce((sum, e) => sum + e.amount, 0);
+  const actualExpenses = expenses.filter(e => e.project_id === estimate.project_id).reduce((sum, e) => sum + e.amount, 0);
   
   // Use stored data if available, otherwise calculate
   const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;
   const estimatedProfit = quoteTotal - estimate.total_amount;
-  const actualProfit = storedProjectData?.current_margin ?? (quoteTotal - actualExpenses);
+  const actualProfit = storedProjectData?.actual_margin ?? (quoteTotal - actualExpenses);
   const profitMargin = storedProjectData?.margin_percentage ?? (quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0);
   const profitVariance = actualProfit - estimatedProfit;
   
@@ -70,7 +69,8 @@ export async function calculateProjectProfitAsync(
   expenses: Expense[],
   storedProjectData?: {
     contracted_amount?: number | null;
-    current_margin?: number | null;
+    actual_margin?: number | null;
+    adjusted_est_margin?: number | null;
     margin_percentage?: number | null;
     total_accepted_quotes?: number | null;
   }
@@ -89,7 +89,7 @@ export async function calculateProjectProfitAsync(
   // Use stored data if available, otherwise calculate
   const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;
   const estimatedProfit = quoteTotal - estimate.total_amount;
-  const actualProfit = storedProjectData?.current_margin ?? (quoteTotal - actualExpenses);
+  const actualProfit = storedProjectData?.actual_margin ?? (quoteTotal - actualExpenses);
   const profitMargin = storedProjectData?.margin_percentage ?? (quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0);
   const profitVariance = actualProfit - estimatedProfit;
   
@@ -179,7 +179,8 @@ export function calculateProfitAnalytics(
     const project = projects?.find(p => p.id === estimate.project_id);
     const storedProjectData = project ? {
       contracted_amount: project.contracted_amount,
-      current_margin: project.current_margin,
+      actual_margin: project.actual_margin,
+      adjusted_est_margin: project.adjusted_est_margin,
       margin_percentage: project.margin_percentage,
       total_accepted_quotes: project.total_accepted_quotes,
     } : undefined;

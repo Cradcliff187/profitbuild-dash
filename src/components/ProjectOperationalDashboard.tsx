@@ -164,6 +164,28 @@ export function ProjectOperationalDashboard({
       const estimatedCosts = currentEstimate?.total_cost ?? 0;
       const estimatedMargin = estimateValue - estimatedCosts;
       const estimatedMarginPct = estimateValue > 0 ? (estimatedMargin / estimateValue) * 100 : 0;
+      
+      // If project has adjusted values from quotes/COs, use those
+      const contractValue = project.contracted_amount ?? 0;
+      const adjustedEstCosts = project.adjusted_est_costs ?? 0;
+      const adjustedMargin = project.adjusted_est_margin ?? project.projected_margin ?? 0;
+      const adjustedMarginPct = contractValue > 0 ? (adjustedMargin / contractValue) * 100 : 0;
+      
+      if (contractValue > 0 || adjustedEstCosts > 0) {
+        return {
+          label1: 'Contract Value',
+          value1: contractValue || estimateValue,
+          label2: 'Adj. Est. Costs',
+          value2: adjustedEstCosts || estimatedCosts,
+          marginLabel: 'Adj. Est. Margin',
+          marginValue: adjustedMargin || estimatedMargin,
+          marginPct: adjustedMarginPct || estimatedMarginPct,
+          showBudgetStatus: false,
+          showVariance: false,
+        };
+      }
+      
+      // Fallback: pure estimate view
       return {
         label1: 'Estimate Value',
         value1: estimateValue,
@@ -177,23 +199,21 @@ export function ProjectOperationalDashboard({
       };
     }
 
-    if (status === 'complete') {
-      const contractValue = project.contracted_amount ?? 0;
-      const actualExpenses = (project as any).total_expenses
-        ?? expenses?.reduce((sum, e) => sum + ((e as any).display_amount ?? e.amount ?? 0), 0)
-        ?? 0;
-      const actualMargin = (project as any).actual_margin ?? contractValue - actualExpenses;
-      const actualMarginPct = contractValue > 0 ? (actualMargin / contractValue) * 100 : 0;
+    if (status === 'complete' || status === 'cancelled') {
+      const totalInvoiced = (project as any).total_invoiced ?? 0;
+      const totalExpenses = (project as any).total_expenses ?? 0;
+      const actualMargin = project.actual_margin ?? 0;
+      const actualMarginPct = totalInvoiced > 0 ? (actualMargin / totalInvoiced) * 100 : 0;
       const originalMargin = project.original_margin ?? 0;
       const varianceAmount = actualMargin - originalMargin;
       const variancePct = originalMargin !== 0
         ? ((actualMargin - originalMargin) / Math.abs(originalMargin)) * 100
         : 0;
       return {
-        label1: 'Contract Value',
-        value1: contractValue,
-        label2: 'Actual Expenses',
-        value2: actualExpenses,
+        label1: 'Total Invoiced',
+        value1: totalInvoiced,
+        label2: 'Total Expenses',
+        value2: totalExpenses,
         marginLabel: 'Actual Margin',
         marginValue: actualMargin,
         marginPct: actualMarginPct,
@@ -208,10 +228,10 @@ export function ProjectOperationalDashboard({
     return {
       label1: 'Contract Value',
       value1: project.contracted_amount ?? 0,
-      label2: 'Adjusted Est. Cost',
+      label2: 'Adjusted Est. Costs',
       value2: project.adjusted_est_costs ?? 0,
-      marginLabel: 'Projected Margin',
-      marginValue: project.projected_margin ?? 0,
+      marginLabel: 'Adj. Est. Margin',
+      marginValue: project.adjusted_est_margin ?? project.projected_margin ?? 0,
       marginPct: project.margin_percentage ?? 0,
       showBudgetStatus: true,
       showVariance: false,

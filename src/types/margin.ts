@@ -1,3 +1,12 @@
+/**
+ * @deprecated This file is deprecated. Use database fields directly.
+ * Margin calculations are now handled by PostgreSQL triggers.
+ * Access margins directly from project records:
+ * - project.actual_margin
+ * - project.adjusted_est_margin
+ * - project.original_margin
+ * - project.margin_percentage
+ */
 import { Project } from './project';
 import { Expense } from './expense';
 import { Estimate } from './estimate';
@@ -17,13 +26,18 @@ export interface ProjectMargin {
 }
 
 /**
- * Calculate project margin data from project, expenses, and estimates
+ * @deprecated Use project.actual_margin and project.adjusted_est_margin directly from database
  */
 export const calculateProjectMargin = (
   project: Project,
   expenses: Expense[] = [],
   estimates: Estimate[] = []
 ): ProjectMargin => {
+  if (typeof console !== 'undefined' && console.warn) {
+    console.warn(
+      'calculateProjectMargin is deprecated. Use database fields directly (project.actual_margin, project.adjusted_est_margin).'
+    );
+  }
   const projectExpenses = expenses.filter(exp => exp.project_id === project.id);
   const totalExpenses = projectExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
   
@@ -34,7 +48,7 @@ export const calculateProjectMargin = (
   
   const contractedAmount = project.contracted_amount || 0;
   const totalAcceptedQuotes = project.total_accepted_quotes || 0;
-  const currentMargin = project.current_margin || (contractedAmount - totalExpenses);
+  const currentMargin = project.actual_margin ?? project.current_margin ?? (contractedAmount - totalExpenses);
   const marginPercentage = project.margin_percentage || 
     (contractedAmount > 0 ? (currentMargin / contractedAmount) * 100 : 0);
   

@@ -48,7 +48,7 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'client_name', label: 'Client', type: 'text', group: 'project_info', dataSource: 'clients', allowedOperators: ['equals', 'in', 'contains'] },
     { key: 'status', label: 'Status', type: 'text', group: 'status', enumValues: [...Constants.public.Enums.project_status], allowedOperators: ['equals', 'not_equals', 'in'] },
     { key: 'contracted_amount', label: 'Contract Amount (Estimated)', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Total contract value including approved estimates and change orders (estimated revenue)' },
-    { key: 'current_margin', label: 'Current Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
+    { key: 'actual_margin', label: 'Actual Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'margin_percentage', label: 'Margin %', type: 'percent', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'total_expenses', label: 'Total Expenses', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
     { key: 'target_margin', label: 'Target Margin', type: 'currency', group: 'financial', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'] },
@@ -158,8 +158,8 @@ export const AVAILABLE_FIELDS: Record<string, FieldMetadata[]> = {
     { key: 'estimate_number', label: 'Estimate #', type: 'text', group: 'project_info', helpText: 'Approved estimate for this project' },
     { key: 'description', label: 'Description', type: 'text', group: 'project_info', allowedOperators: ['equals', 'contains'] },
     { key: 'approval_status', label: 'Approval Status', type: 'text', group: 'status', enumValues: ['pending', 'approved', 'rejected'], allowedOperators: ['equals', 'not_equals', 'in'], helpText: 'Expense approval status' },
-    { key: 'start_time', label: 'Start Time', type: 'text', group: 'time', helpText: 'Start time (for internal labor with time tracking)' },
-    { key: 'end_time', label: 'End Time', type: 'text', group: 'time', helpText: 'End time (for internal labor with time tracking)' }
+    { key: 'start_time', label: 'Start Time', type: 'date', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'Start time (for internal labor with time tracking)' },
+    { key: 'end_time', label: 'End Time', type: 'date', group: 'time', allowedOperators: ['equals', 'greater_than', 'less_than', 'between'], helpText: 'End time (for internal labor with time tracking)' }
   ],
   internal_labor_hours: [
     { key: 'project_id', label: 'Project ID', type: 'text', group: 'project_info' }, // Added for internal use
@@ -222,7 +222,7 @@ const DEFAULT_SORT_COLUMNS: Record<string, string> = {
 export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: ReportConfig, fields: ReportField[]) => void }) {
   const [step, setStep] = useState(1);
   const [dataSource, setDataSource] = useState<ReportConfig['data_source']>('projects');
-  const [selectedFields, setSelectedFields] = useState<string[]>(['project_number', 'project_name', 'contracted_amount', 'current_margin']);
+  const [selectedFields, setSelectedFields] = useState<string[]>(['project_number', 'project_name', 'contracted_amount', 'adjusted_est_margin']);
   const [filters, setFilters] = useState<ReportFilter[]>([]);
   const [sortBy, setSortBy] = useState(DEFAULT_SORT_COLUMNS['projects'] || 'created_at');
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');

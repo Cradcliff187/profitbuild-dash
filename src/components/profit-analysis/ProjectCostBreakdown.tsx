@@ -109,8 +109,8 @@ export function ProjectCostBreakdown({ project, open, onClose }: Props) {
             </h3>
             <MarginComparisonBars
               originalMargin={project.original_margin || 0}
-              projectedMargin={project.projected_margin || 0}
-              currentMargin={project.current_margin || 0}
+              projectedMargin={project.adjusted_est_margin ?? project.projected_margin ?? 0}
+              currentMargin={project.actual_margin ?? project.current_margin ?? 0}
               contractedAmount={project.contracted_amount || 0}
             />
           </section>
@@ -280,8 +280,8 @@ export function ProjectCostBreakdown({ project, open, onClose }: Props) {
                 </div>
                 <div className="flex justify-between font-medium">
                   <span>Adjusted Gross Margin</span>
-                  <span className={project.projected_margin && project.projected_margin >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {formatCurrency(project.projected_margin || 0)}
+                  <span className={(project.adjusted_est_margin ?? project.projected_margin) && (project.adjusted_est_margin ?? project.projected_margin ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {formatCurrency(project.adjusted_est_margin ?? project.projected_margin ?? 0)}
                   </span>
                 </div>
               </div>

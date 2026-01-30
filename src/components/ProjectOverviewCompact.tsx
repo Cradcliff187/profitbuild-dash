@@ -54,7 +54,7 @@ export function ProjectOverviewCompact({
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Projected</p>
-            <p className="text-sm font-bold">{formatCurrency(project.projected_margin || 0)}</p>
+            <p className="text-sm font-bold">{formatCurrency(project.adjusted_est_margin ?? project.projected_margin ?? 0)}</p>
             <p className="text-xs text-muted-foreground">
               {project.margin_percentage?.toFixed(1) || 0}%
             </p>

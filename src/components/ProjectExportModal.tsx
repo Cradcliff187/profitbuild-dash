@@ -224,7 +224,7 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
         row.push(
           project.contracted_amount?.toFixed(2) || '0.00',
           project.margin_percentage?.toFixed(2) || '0.00',
-          project.current_margin?.toFixed(2) || '0.00',
+          (project.actual_margin ?? project.current_margin)?.toFixed(2) || '0.00',
           project.original_est_costs?.toFixed(2) || '0.00',
           project.adjusted_est_costs?.toFixed(2) || '0.00',
           costVariance.toFixed(2)

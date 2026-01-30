@@ -111,8 +111,8 @@ export const ProjectsTableView = ({
     { key: 'originalEstimatedMargin', label: 'Original Est. Margin ($)', required: false },
     { key: 'adjusted_est_costs', label: 'Adjusted Est. Costs', required: false },
     { key: 'cost_variance', label: 'Cost Variance', required: false },
-    { key: 'projected_margin', label: 'Projected Margin ($)', required: false },
-    { key: 'margin_percentage', label: 'Projected Margin %', required: false },
+    { key: 'adjusted_est_margin', label: 'Adj. Est. Margin ($)', required: false },
+    { key: 'margin_percentage', label: 'Adj. Est. Margin %', required: false },
     { key: 'actual_expenses', label: 'Actual Expenses', required: false },
     { key: 'line_items', label: 'Line Items', required: false },
     { key: 'contingency_remaining', label: 'Contingency Remaining', required: false },
@@ -162,7 +162,7 @@ export const ProjectsTableView = ({
       'changeOrders',
       'contingency_remaining',
       'originalEstimatedMargin',
-      'projected_margin',
+      'adjusted_est_margin',
       'margin_percentage',
       'actions'
     ];
@@ -1059,48 +1059,33 @@ export const ProjectsTableView = ({
       },
     },
     {
-      key: 'projected_margin',
-      label: 'Projected Margin ($)',
+      key: 'adjusted_est_margin',
+      label: 'Adj. Est. Margin ($)',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => project.projected_margin || 0,
+      getSortValue: (project) => project.adjusted_est_margin ?? project.projected_margin ?? 0,
       render: (project: ProjectWithFinancials) => {
-        // Compute inline for transparency
+        const margin = project.adjusted_est_margin ?? project.projected_margin ?? 0;
         const contract = project.contracted_amount || 0;
-        const adjustedCosts = project.adjusted_est_costs || 0;
-        const derivedMargin = contract - adjustedCosts;
-        
-        // Use database value
-        const dbMargin = project.projected_margin || 0;
-        const isPositive = derivedMargin >= 0;
-        
-        // Check for sync discrepancy
-        const hasSyncIssue = Math.abs(derivedMargin - dbMargin) > 1;
-        
-        // Calculate breakdown for tooltip
-        const originalContract = project.originalContractAmount || 0;
+        const isPositive = margin >= 0;
+
+        const originalContract = project.originalContractAmount ?? project.contracted_amount ?? 0;
         const originalCosts = project.original_est_costs || 0;
-        const originalMargin = originalContract - originalCosts;
-        
+        const originalMargin = project.original_margin ?? originalContract - originalCosts;
         const changeOrderRevenue = project.changeOrderRevenue || 0;
         const changeOrderCosts = project.changeOrderCosts || 0;
         const changeOrderNetMargin = changeOrderRevenue - changeOrderCosts;
-        
+        const adjustedCosts = project.adjusted_est_costs || 0;
         const quoteVariance = (adjustedCosts - originalCosts) - changeOrderCosts;
-        
+
         return (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
-                <div className={`font-medium text-xs font-mono tabular-nums flex items-center justify-end gap-1 ${
+                <div className={`font-medium text-xs font-mono tabular-nums ${
                   isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
-                  {formatCurrency(derivedMargin)}
-                  {hasSyncIssue && (
-                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-orange-300 text-orange-600">
-                      sync
-                    </Badge>
-                  )}
+                  {formatCurrency(margin)}
                 </div>
               </div>
             </TooltipTrigger>
@@ -1125,15 +1110,10 @@ export const ProjectsTableView = ({
                     </div>
                   )}
                   <div className="flex justify-between gap-4 border-t pt-1 font-semibold">
-                    <span>= Projected Margin:</span>
-                    <span>{formatCurrency(derivedMargin)}</span>
+                    <span>= Adjusted Est. Margin:</span>
+                    <span>{formatCurrency(margin)}</span>
                   </div>
                 </div>
-                {hasSyncIssue && (
-                  <p className="text-orange-600 dark:text-orange-400 text-[10px] mt-2 border-t pt-1">
-                    ⚠ DB value ({formatCurrency(dbMargin)}) differs from calculation. Refresh may be needed.
-                  </p>
-                )}
               </div>
             </TooltipContent>
           </Tooltip>
@@ -1142,33 +1122,23 @@ export const ProjectsTableView = ({
     },
     {
       key: 'margin_percentage',
-      label: 'Projected Margin %',
+      label: 'Adj. Est. Margin %',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => {
-        const contract = project.contracted_amount || 0;
-        return contract > 0 ? ((project.projected_margin || 0) / contract) * 100 : 0;
-      },
+      getSortValue: (project) => project.margin_percentage ?? 0,
       render: (project: ProjectWithFinancials) => {
-        // Calculate projected margin percentage as: Projected Margin / Contract * 100
-        const contract = project.contracted_amount || 0;
-        const projectedMarginPct = contract > 0 
-          ? ((project.projected_margin || 0) / contract) * 100 
-          : 0;
-        
-        const tooltipContent = `Projected Margin Percentage: ${projectedMarginPct.toFixed(1)}%. Calculated as Projected Margin ($${formatCurrency(project.projected_margin || 0)}) ÷ Contract Value ($${formatCurrency(contract)}) × 100.`;
-        
+        const marginPct = project.margin_percentage ?? 0;
         return (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-right cursor-help">
                 <div className="flex items-center justify-end">
-                  {getMarginBadge(projectedMarginPct, project.target_margin, project.minimum_margin_threshold)}
+                  {getMarginBadge(marginPct, project.target_margin, project.minimum_margin_threshold)}
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{tooltipContent}</p>
+              <p>Adjusted Est. Margin: {marginPct.toFixed(1)}%</p>
             </TooltipContent>
           </Tooltip>
         );

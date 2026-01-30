@@ -164,7 +164,7 @@ const Dashboard = () => {
   const loadWorkOrderStatusCounts = async () => {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, status, category, contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, estimates!left(id, is_auto_generated)')
+      .select('id, status, category, contracted_amount, adjusted_est_costs, adjusted_est_margin, projected_margin, margin_percentage, estimates!left(id, is_auto_generated)')
       .eq('category', 'construction')
       .eq('project_type', 'work_order');
 
@@ -203,7 +203,7 @@ const Dashboard = () => {
     
     const totalContractValue = activeWorkOrders.reduce((sum, wo) => sum + (wo.contracted_amount || 0), 0);
     const totalEstCosts = activeWorkOrders.reduce((sum, wo) => sum + (wo.adjusted_est_costs || 0), 0);
-    const totalProjectedMargin = activeWorkOrders.reduce((sum, wo) => sum + (wo.projected_margin || 0), 0);
+    const totalProjectedMargin = activeWorkOrders.reduce((sum, wo) => sum + (wo.adjusted_est_margin ?? wo.projected_margin ?? 0), 0);
     const aggregateMarginPercent = totalContractValue > 0 
       ? (totalProjectedMargin / totalContractValue) * 100 
       : 0;
@@ -360,7 +360,7 @@ const Dashboard = () => {
       const totalEstCosts = activeProjects?.reduce((sum, p) => 
         sum + (p.adjusted_est_costs || 0), 0) || 0;
       const totalProjectedMargin = activeProjects?.reduce((sum, p) => 
-        sum + (p.projected_margin || 0), 0) || 0;
+        sum + (p.adjusted_est_margin ?? p.projected_margin ?? 0), 0) || 0;
       const aggregateMarginPercent = totalContractValue > 0 
         ? (totalProjectedMargin / totalContractValue) * 100 
         : 0;

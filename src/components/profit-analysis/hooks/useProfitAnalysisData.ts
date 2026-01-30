@@ -31,7 +31,7 @@ export function calculateSummaryTotals(projects: ProfitAnalysisProject[]): Profi
     return {
       totalContractValue: acc.totalContractValue + project.contracted_amount,
       totalInvoiced: acc.totalInvoiced + project.total_invoiced,
-      totalProjectedMargin: acc.totalProjectedMargin + project.projected_margin,
+      totalProjectedMargin: acc.totalProjectedMargin + (project.adjusted_est_margin ?? project.projected_margin ?? 0),
       totalActualMargin: acc.totalActualMargin + project.actual_margin,
       totalOriginalEstCosts: acc.totalOriginalEstCosts + project.original_est_costs,
       totalAdjustedEstCosts: acc.totalAdjustedEstCosts + project.adjusted_est_costs,

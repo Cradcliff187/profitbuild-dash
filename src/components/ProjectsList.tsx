@@ -87,7 +87,7 @@ const getStatusKPIs = (
   const contractValue = project.contracted_amount ?? 0;
   const adjustedEstCosts = project.adjusted_est_costs ?? 0;
   const projectedMarginPct = contractValue > 0
-    ? ((project.projected_margin ?? 0) / contractValue) * 100
+    ? (((project.adjusted_est_margin ?? project.projected_margin) ?? 0) / contractValue) * 100
     : 0;
 
   // Actuals: use actualExpenses (camelCase from frontend enrichment)
@@ -101,6 +101,23 @@ const getStatusKPIs = (
 
   switch (status) {
     case 'estimating':
+      // If project has adjusted values from quotes/COs, show those
+      // Otherwise fall back to raw estimate values
+      if (contractValue > 0 || adjustedEstCosts > 0) {
+        return {
+          primary: {
+            label1: 'Contract',
+            value1: contractValue || estimateValue,
+            label2: 'Adj. Est. Costs',
+            value2: adjustedEstCosts || estimatedCosts,
+            label3: 'Adj. Est. Margin',
+            value3: projectedMarginPct || estimatedMarginPct,
+            isPercent3: true,
+          },
+        };
+      }
+      
+      // Fallback: pure estimate view (no DB data yet)
       return {
         primary: {
           label1: 'Estimate',
@@ -541,7 +558,7 @@ export const ProjectsList = ({
                         // Project details: use project actuals
                         contract = project.contracted_amount ?? 0;
                         adjustedCosts = project.adjusted_est_costs ?? 0;
-                        projectedMargin = project.projected_margin ?? (contract - adjustedCosts);
+                        projectedMargin = project.adjusted_est_margin ?? project.projected_margin ?? (contract - adjustedCosts);
                       }
                       const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
                       const marginPctToShow = project.margin_percentage ?? derivedMarginPct;

@@ -30,7 +30,7 @@ export default function ProfitAnalysis({ estimates, quotes, expenses, projects }
       const project = projects?.find(p => p.id === estimate.project_id);
       const storedProjectData = project ? {
         contracted_amount: project.contracted_amount,
-        current_margin: project.current_margin,
+        current_margin: project.actual_margin ?? project.current_margin,
         margin_percentage: project.margin_percentage,
         total_accepted_quotes: project.total_accepted_quotes,
       } : undefined;

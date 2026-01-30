@@ -19,7 +19,7 @@ import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectWithFinancials, calculateMultipleProjectFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { parseDateOnly } from "@/utils/dateUtils";
@@ -237,14 +237,20 @@ const Projects = () => {
         return !isSplitParent;
       });
 
-      // Enrich projects with line item counts (estimate + change order line items)
-      const enrichedProjects = await calculateMultipleProjectFinancials(
-        formattedProjects as any[],
-        formattedEstimates,
-        displayableExpenses
-      );
+      // Projects already have financial fields from database triggers.
+      // Add display-only enrichment (e.g. line item counts).
+      const enrichedProjects = formattedProjects.map((project: any) => {
+        const projectEstimates = formattedEstimates.filter((e: any) => e.project_id === project.id);
+        const approvedEstimate = projectEstimates.find((e: any) =>
+          e.status === 'approved' && e.is_current_version
+        ) ?? projectEstimates.find((e: any) => e.status === 'approved');
+        return {
+          ...project,
+          totalLineItemCount: (approvedEstimate?.lineItems?.length ?? 0),
+        };
+      });
 
-      setProjects(enrichedProjects);
+      setProjects(enrichedProjects as ProjectWithFinancials[]);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
       setExpenses(displayableExpenses);
