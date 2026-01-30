@@ -71,7 +71,7 @@ export const viewKPIs: KPIMeasure[] = [
     domain: 'time_entry',
     whereUsed: 'Weekly labor reports, payroll',
     notes: 'Total net billable hours for the week (after lunch deductions).',
-    aliases: ['total hours', 'weekly hours', 'hours'],
+    aliases: ['total hours', 'weekly hours', 'hours', 'paid hours', 'net hours'],
   },
   {
     id: 'weekly_labor_gross_hours',
@@ -83,7 +83,7 @@ export const viewKPIs: KPIMeasure[] = [
     domain: 'time_entry',
     whereUsed: 'Weekly labor reports, compliance',
     notes: 'Total gross shift hours for the week (before lunch deductions). VERIFY THIS COLUMN EXISTS IN VIEW.',
-    aliases: ['gross hours', 'shift hours'],
+    aliases: ['gross hours', 'shift hours', 'total shift hours', 'clock hours'],
   },
   {
     id: 'weekly_labor_total_cost',
