@@ -1598,7 +1598,7 @@ export const MobileTimeTracker: React.FC = () => {
                       
                       {/* Row 4: Lunch Status Indicator */}
                       {hasLunchDeduction && lunchMinutes > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2 text-xs text-green-600">
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-600 dark:text-emerald-400">
                           <CheckSquare className="h-3.5 w-3.5" />
                           <span>{lunchMinutes} min lunch</span>
                         </div>
@@ -1606,7 +1606,7 @@ export const MobileTimeTracker: React.FC = () => {
                       
                       {/* Row 4 Alt: No Lunch Warning for long shifts */}
                       {isLongShiftNoLunch && (
-                        <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600">
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
                           <Square className="h-3.5 w-3.5" />
                           <span>No lunch recorded</span>
                         </div>
