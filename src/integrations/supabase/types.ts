@@ -1863,6 +1863,7 @@ export type Database = {
           actual_margin: number | null
           address: string | null
           adjusted_est_costs: number | null
+          adjusted_est_margin: number | null
           category: Database["public"]["Enums"]["project_category"]
           client_id: string | null
           client_name: string
@@ -1901,6 +1902,7 @@ export type Database = {
           actual_margin?: number | null
           address?: string | null
           adjusted_est_costs?: number | null
+          adjusted_est_margin?: number | null
           category?: Database["public"]["Enums"]["project_category"]
           client_id?: string | null
           client_name: string
@@ -1939,6 +1941,7 @@ export type Database = {
           actual_margin?: number | null
           address?: string | null
           adjusted_est_costs?: number | null
+          adjusted_est_margin?: number | null
           category?: Database["public"]["Enums"]["project_category"]
           client_id?: string | null
           client_name?: string
@@ -3139,6 +3142,23 @@ export type Database = {
           },
         ]
       }
+      weekly_labor_hours: {
+        Row: {
+          approved_entries: number | null
+          employee_name: string | null
+          employee_number: string | null
+          entry_count: number | null
+          gross_hours: number | null
+          hourly_rate: number | null
+          pending_entries: number | null
+          rejected_entries: number | null
+          total_cost: number | null
+          total_hours: number | null
+          week_end_saturday: string | null
+          week_start_sunday: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       ai_find_client_by_name: {
@@ -3175,7 +3195,7 @@ export type Database = {
         Returns: number
       }
       calculate_project_margins: {
-        Args: { project_id_param: string }
+        Args: { p_project_id: string }
         Returns: undefined
       }
       can_access_project: {
@@ -3242,6 +3262,7 @@ export type Database = {
           accepted_quote_count: number
           actual_margin: number
           adjusted_est_costs: number
+          adjusted_est_margin: number
           budget_utilization_percent: number
           change_order_cost: number
           change_order_count: number
@@ -3351,6 +3372,18 @@ export type Database = {
         Returns: number
       }
       rollback_cost_migration_final: { Args: never; Returns: undefined }
+      safe_cast_to_expense_category: {
+        Args: { val: string }
+        Returns: Database["public"]["Enums"]["expense_category"]
+      }
+      safe_cast_to_project_status: {
+        Args: { val: string }
+        Returns: Database["public"]["Enums"]["project_status"]
+      }
+      safe_cast_to_quote_status: {
+        Args: { val: string }
+        Returns: Database["public"]["Enums"]["quote_status"]
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "field_worker"
