@@ -163,18 +163,29 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
       </div>
 
       {/* Week Summary Card */}
-      <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
-        <div className="flex justify-between items-center">
-          <div>
-            <div className="text-3xl font-bold text-primary">
-              {entries.reduce((sum, e) => sum + e.hours, 0).toFixed(1)} hrs
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total hours this week • {entries.length} entries
+      {(() => {
+        const totalPaidHours = entries.reduce((sum, e) => sum + e.hours, 0);
+        const totalShiftHours = entries.reduce((sum, e) => sum + (e.gross_hours || e.hours), 0);
+        const hasLunchDeductions = totalShiftHours > totalPaidHours + 0.01;
+        
+        return (
+          <div className="bg-card rounded-xl shadow-sm p-4 mb-4 border">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-3xl font-bold text-primary">
+                  {totalPaidHours.toFixed(1)} hrs{hasLunchDeductions ? ' paid' : ''}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {hasLunchDeductions 
+                    ? `${totalShiftHours.toFixed(1)} hrs shift • ${entries.length} entries`
+                    : `${entries.length} entries this week`
+                  }
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Empty State */}
       {entries.length === 0 ? (
