@@ -20,6 +20,7 @@ export interface ProfitAnalysisProject {
   current_margin: number;
   actual_margin: number;
   margin_percentage: number;
+  adjusted_est_margin: number;
   
   // Costs - from database
   original_est_costs: number;

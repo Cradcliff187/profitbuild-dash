@@ -45,6 +45,7 @@ interface WorkOrderWithDetails extends Project {
   total_expenses: number;
   expense_count: number;
   estimate_amount: number | null;
+  adjusted_est_margin?: number | null;
   estimates?: Array<{
     id: string;
     is_current_version?: boolean;

@@ -54,8 +54,7 @@ const sizeClasses = {
 // COMPONENT
 // =============================================================================
 
-export const StatusBadge = React.forwardRef<HTMLDivElement, StatusBadgeProps>(
-  ({ status, type, size = 'default', className, label }, ref) => {
+export const StatusBadge = ({ status, type, size = 'default', className, label }: StatusBadgeProps) => {
     // Get color based on type
     const getColorClass = () => {
       switch (type) {
@@ -79,7 +78,6 @@ export const StatusBadge = React.forwardRef<HTMLDivElement, StatusBadgeProps>(
 
     return (
       <Badge
-        ref={ref}
         variant="outline"
         className={cn(
           sizeClasses[size],
@@ -91,8 +89,7 @@ export const StatusBadge = React.forwardRef<HTMLDivElement, StatusBadgeProps>(
         {displayLabel}
       </Badge>
     );
-  }
-);
+};
 
 StatusBadge.displayName = "StatusBadge";
 
