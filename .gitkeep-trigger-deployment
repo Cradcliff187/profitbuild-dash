@@ -1,3 +1,4 @@
 # Deployment trigger file
 # This file exists to trigger Supabase CI/CD after reverting to cd6efea
 # Database and edge functions have been aligned to commit cd6efea state
+# Trigger agent review – 2026-01-30
