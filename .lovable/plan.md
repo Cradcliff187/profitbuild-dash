@@ -1,60 +1,43 @@
 
-# Update Today Time Entry Cards with New Design
+# Standardize Lunch Indicator Colors with Dark Mode Support
 
 ## Overview
-Replace the current Today time entry cards with an enhanced design that includes:
-- PTO project detection and specialized display
-- Gross hours vs. net hours (shift vs. paid) terminology
-- Lunch status indicators (green checkmark for taken, amber warning for long shifts without lunch)
-- Improved layout with status badges
+Update the lunch status indicators in `MobileTimeTracker.tsx` to match the emerald/amber color scheme used in `WeekView.tsx` and add proper dark mode support.
 
 ## File to Modify
 **File:** `src/components/time-tracker/MobileTimeTracker.tsx`
 
-## Current State (Lines 1517-1571)
-The current implementation renders a simple card with:
-- Time range at top
-- Project number and client name
-- Project name
-- Pending approval badge
-- Hours on the right side
+## Changes
 
-## Change Details
-
-### Replace Lines 1517-1571
-Replace the entire `todayEntries.map(entry => (...))` block with the new implementation that:
-
-1. **Detects PTO entries** using the `isPTOProject()` helper added earlier
-2. **Calculates gross hours** from start/end timestamps
-3. **Detects lunch deductions** by comparing gross to net hours
-4. **Shows warning** for long shifts (>6 hrs) without lunch
-
-### New Card Layout
-```
-┌─────────────────────────────────────────┐
-│ [Project/PTO Name]            [Badge]   │
-│ 7:00 AM - 3:30 PM                       │
-│                                         │
-│ Shift:                     8.5 hrs      │
-│ Paid:                      8.0 hrs      │
-│                                         │
-│ ✓ 30 min lunch                          │
-└─────────────────────────────────────────┘
+### Change 1: Lunch Taken Indicator (Line 1601)
+**Current:**
+```typescript
+<div className="flex items-center gap-1.5 mt-2 text-xs text-green-600">
 ```
 
-## Technical Details
+**Updated:**
+```typescript
+<div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+```
 
-### Variables Calculated Per Entry
-- `isPTO`: Whether the entry is for a PTO project (006-SICK, 007-VAC, 008-HOL)
-- `grossHours`: Total shift hours from start to end time
-- `hasLunchDeduction`: True if gross > net + 0.01 (tolerance for rounding)
-- `lunchMinutes`: Calculated lunch duration in minutes
-- `showBothHours`: Show both shift and paid rows
-- `isLongShiftNoLunch`: Warning condition for >6 hr shifts without lunch
+### Change 2: No Lunch Warning (Line 1609)
+**Current:**
+```typescript
+<div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600">
+```
 
-### Icons Used
-- `CheckSquare` (green): Lunch was taken
-- `Square` (amber): No lunch recorded on long shift
+**Updated:**
+```typescript
+<div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
+```
 
-## Scope
-Only the `todayEntries.map` block is replaced. The empty state check before it and the code after (WeekView section) remain unchanged.
+## Summary
+| Indicator | Before | After |
+|-----------|--------|-------|
+| Lunch taken (checkmark) | `text-green-600` | `text-emerald-600 dark:text-emerald-400` |
+| No lunch warning | `text-amber-600` | `text-amber-600 dark:text-amber-400` |
+
+## Result
+- Visual consistency between MobileTimeTracker and WeekView
+- Proper dark mode support for both indicators
+- More modern/professional emerald color for lunch confirmation
