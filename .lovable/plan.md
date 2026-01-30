@@ -1,91 +1,69 @@
 
-
-# Update Week Selector to Sunday-Start Weeks
+# Update Time Entry KPI Aliases and Notes
 
 ## Overview
-Change the TimesheetWeekSelector component to use Sunday as the week start day (matching field worker views and KPI definitions) and extend the range to show full 7-day weeks.
+Add employee-facing terminology to the gross hours and net hours KPI definitions to ensure the documentation reflects the UI terms used in the WeekView time entry cards.
 
 ## File to Modify
-**File:** `src/components/TimesheetWeekSelector.tsx`
+**File:** `src/lib/kpi-definitions/time-entry-kpis.ts`
 
 ## Changes
 
-### 1. "This Week" Preset (Lines 24-27)
+### 1. Update `time_entry_gross_hours` aliases (Line 151)
 **Before:**
 ```typescript
-if (newPreset === 'this-week') {
-  const start = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const end = addDays(start, 4); // Monday to Friday
-  onChange(start, end);
-}
+aliases: ['gross hours', 'total hours', 'shift hours', 'raw hours', 'total time'],
 ```
 
 **After:**
 ```typescript
-if (newPreset === 'this-week') {
-  const start = startOfWeek(new Date(), { weekStartsOn: 0 });
-  const end = addDays(start, 6); // Sunday to Saturday
-  onChange(start, end);
-}
+aliases: ['gross hours', 'total hours', 'shift hours', 'raw hours', 'total time', 'time logged', 'clock time'],
 ```
 
-### 2. "Last Week" Preset (Lines 28-32)
+### 2. Update `time_entry_gross_hours` notes (Line 150)
 **Before:**
 ```typescript
-} else if (newPreset === 'last-week') {
-  const lastWeekDate = subWeeks(new Date(), 1);
-  const start = startOfWeek(lastWeekDate, { weekStartsOn: 1 });
-  const end = addDays(start, 4); // Monday to Friday
-  onChange(start, end);
-}
+notes: 'CALCULATED FIELD - total shift duration before lunch deduction. Computed from start_time/end_time. For compliance tracking (e.g., >8 hours may indicate OT eligibility).',
 ```
 
 **After:**
 ```typescript
-} else if (newPreset === 'last-week') {
-  const lastWeekDate = subWeeks(new Date(), 1);
-  const start = startOfWeek(lastWeekDate, { weekStartsOn: 0 });
-  const end = addDays(start, 6); // Sunday to Saturday
-  onChange(start, end);
-}
+notes: 'CALCULATED FIELD - total shift duration before lunch deduction. Computed from start_time/end_time. For compliance tracking (e.g., >8 hours may indicate OT eligibility). Employee-facing term: "Shift Hours".',
 ```
 
-### 3. Custom Date Selection (Lines 38-46)
+### 3. Update `time_entry_hours` aliases (Line 166)
 **Before:**
 ```typescript
-const handleCustomDateSelect = (date: Date | undefined) => {
-  if (date) {
-    setCustomStart(date);
-    const start = startOfWeek(date, { weekStartsOn: 1 });
-    const end = addDays(start, 4); // Monday to Friday
-    onChange(start, end);
-    setShowCustomPicker(false);
-  }
-};
+aliases: ['hours', 'billable hours', 'net hours', 'productive hours', 'worked hours', 'payable hours'],
 ```
 
 **After:**
 ```typescript
-const handleCustomDateSelect = (date: Date | undefined) => {
-  if (date) {
-    setCustomStart(date);
-    const start = startOfWeek(date, { weekStartsOn: 0 });
-    const end = addDays(start, 6); // Sunday to Saturday
-    onChange(start, end);
-    setShowCustomPicker(false);
-  }
-};
+aliases: ['hours', 'billable hours', 'net hours', 'productive hours', 'worked hours', 'payable hours', 'paid hours'],
+```
+
+### 4. Update `time_entry_hours` notes (Line 165)
+**Before:**
+```typescript
+notes: 'Stored billable hours after lunch deduction. Used for: amount = hours × hourly_rate.',
+```
+
+**After:**
+```typescript
+notes: 'Stored billable hours after lunch deduction. Used for: amount = hours × hourly_rate. Employee-facing term: "Paid Hours".',
 ```
 
 ## Summary of Changes
 
-| Location | Change | Effect |
-|----------|--------|--------|
-| All 3 functions | `weekStartsOn: 1` → `0` | Weeks now start on Sunday |
-| All 3 functions | `addDays(start, 4)` → `addDays(start, 6)` | Full 7-day week (Sun-Sat) |
+| Field | Change Type | Addition |
+|-------|-------------|----------|
+| `time_entry_gross_hours` | aliases | Added "time logged", "clock time" |
+| `time_entry_gross_hours` | notes | Added employee-facing term: "Shift Hours" |
+| `time_entry_hours` | aliases | Added "paid hours" |
+| `time_entry_hours` | notes | Added employee-facing term: "Paid Hours" |
 
 ## Why This Matters
-- Aligns admin timesheet view with field worker WeekView
-- Matches the `reporting.weekly_labor_hours` view which uses Sunday-based weeks
-- Ensures consistent KPI calculations across all time entry displays
-
+- Ensures KPI documentation matches the UI terminology in the WeekView time entry cards
+- Helps AI Report Assistant understand employee-facing terms when users ask questions
+- Maintains consistency between technical definitions and user-facing language
+- After updating, run `npx tsx scripts/sync-edge-kpi-context.ts` to regenerate the edge function context
