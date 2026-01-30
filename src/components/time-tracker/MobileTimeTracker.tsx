@@ -1529,16 +1529,16 @@ export const MobileTimeTracker: React.FC = () => {
                 todayEntries.map(entry => {
                   const isPTO = isPTOProject(entry.project.project_number);
                   
-                  // Calculate gross hours from timestamps if available
-                  const grossHours = entry.startTime && entry.endTime
+                  // Use pre-calculated gross hours or calculate from timestamps
+                  const grossHours = entry.gross_hours || (entry.startTime && entry.endTime
                     ? (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60)
-                    : entry.hours;
+                    : entry.hours);
                   
-                  // Detect if lunch was taken by comparing gross to net hours
-                  const hasLunchDeduction = grossHours > entry.hours + 0.01;
-                  const lunchMinutes = hasLunchDeduction ? Math.round((grossHours - entry.hours) * 60) : 0;
-                  const showBothHours = hasLunchDeduction;
-                  const isLongShiftNoLunch = !isPTO && !hasLunchDeduction && grossHours > 6;
+                  // Use explicit lunch fields
+                  const hasLunch = entry.lunch_taken && entry.lunch_duration_minutes && entry.lunch_duration_minutes > 0;
+                  const lunchMinutes = hasLunch ? entry.lunch_duration_minutes : 0;
+                  const showShiftHours = hasLunch && grossHours && Math.abs(grossHours - entry.hours) > 0.01;
+                  const isLongShiftNoLunch = !isPTO && !entry.lunch_taken && grossHours > 6;
                   
                   return (
                     <div 
@@ -1580,48 +1580,36 @@ export const MobileTimeTracker: React.FC = () => {
                         </div>
                       )}
                       
-                      {/* Row 3: Hours Display */}
-                      <div className="space-y-1">
-                        {showBothHours ? (
-                          <>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Shift:</span>
+                      {/* Row 3: Hours Display + Lunch Badge */}
+                      <div className="flex justify-between items-end">
+                        <div className="space-y-0.5">
+                          {showShiftHours && (
+                            <div className="flex gap-2 text-sm text-muted-foreground">
+                              <span className="w-10">Shift:</span>
                               <span className="font-mono">{grossHours.toFixed(1)} hrs</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Paid:</span>
-                              <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex justify-between text-sm">
-                            {isPTO ? (
-                              <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs paid</span>
-                            ) : (
-                              <>
-                                <span className="text-muted-foreground">Hours:</span>
-                                <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
-                              </>
-                            )}
+                          )}
+                          <div className="flex gap-2 text-sm">
+                            <span className="w-10 text-muted-foreground">Paid:</span>
+                            <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
+                          </div>
+                        </div>
+                        
+                        {/* Lunch Badge - Compact indicator */}
+                        {hasLunch && lunchMinutes && lunchMinutes > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                            <CheckSquare className="h-3 w-3" />
+                            <span>{lunchMinutes}m</span>
+                          </div>
+                        )}
+                        
+                        {isLongShiftNoLunch && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>No lunch</span>
                           </div>
                         )}
                       </div>
-                      
-                      {/* Row 4: Lunch Status Indicator */}
-                      {hasLunchDeduction && lunchMinutes > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-                          <CheckSquare className="h-3.5 w-3.5" />
-                          <span>{lunchMinutes} min lunch</span>
-                        </div>
-                      )}
-                      
-                      {/* Row 4 Alt: No Lunch Warning for long shifts */}
-                      {isLongShiftNoLunch && (
-                        <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
-                          <Square className="h-3.5 w-3.5" />
-                          <span>No lunch recorded</span>
-                        </div>
-                      )}
                     </div>
                   );
                 })
