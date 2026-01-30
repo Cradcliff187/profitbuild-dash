@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { QuoteStatusBadge } from "@/components/ui/status-badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -49,20 +50,7 @@ const getQuoteStatusLabel = (hasQuotes: boolean, hasAccepted: boolean, quoteCoun
   return 'No Quotes';
 };
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'accepted':
-      return 'text-green-600 bg-green-50 border-green-200';
-    case 'pending':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    case 'rejected':
-      return 'text-red-600 bg-red-50 border-red-200';
-    case 'expired':
-      return 'text-gray-600 bg-gray-50 border-gray-200';
-    default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
-  }
-};
+// Removed - now using QuoteStatusBadge component
 
 export function EstimateQuoteStatusView({ estimateId }: EstimateQuoteStatusViewProps) {
   const { lineItems, summary, isLoading, error } = useEstimateQuoteStatus(estimateId);
@@ -314,12 +302,7 @@ export function EstimateQuoteStatusView({ estimateId }: EstimateQuoteStatusViewP
                                           {quote.vendor || 'Unknown Vendor'}
                                         </div>
                                       </div>
-                                      <Badge
-                                        variant="outline"
-                                        className={cn("text-xs", getStatusColor(quote.status))}
-                                      >
-                                        {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
-                                      </Badge>
+                                      <QuoteStatusBadge status={quote.status} size="sm" />
                                     </div>
                                     <div className="flex items-center gap-4 ml-4">
                                       <div className="text-right">

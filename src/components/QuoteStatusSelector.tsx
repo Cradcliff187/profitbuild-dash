@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Check, AlertTriangle, ChevronDown, CheckCircle, XCircle, Clock, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { QuoteStatusBadge } from "@/components/ui/status-badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,22 +66,9 @@ export const QuoteStatusSelector = ({
   const [rejectionReason, setRejectionReason] = useState("");
   const [pendingStatus, setPendingStatus] = useState<QuoteStatus | null>(null);
 
-  const getStatusBadge = (status: QuoteStatus) => {
-    return (
-      <Badge 
-        variant="outline" 
-        className={cn(
-          "text-xs capitalize px-2 py-0.5",
-          status === QuoteStatus.ACCEPTED && 'border-green-200 text-green-700 bg-green-50',
-          status === QuoteStatus.PENDING && 'border-yellow-200 text-yellow-700 bg-yellow-50',
-          status === QuoteStatus.REJECTED && 'border-red-200 text-red-700 bg-red-50',
-          status === QuoteStatus.EXPIRED && 'border-gray-200 text-gray-700 bg-gray-50'
-        )}
-      >
-        {status.toLowerCase()}
-      </Badge>
-    );
-  };
+  const getStatusBadge = (status: QuoteStatus) => (
+    <QuoteStatusBadge status={status.toLowerCase()} size="sm" />
+  );
 
   const getStatusIcon = (status: QuoteStatus) => {
     switch (status) {

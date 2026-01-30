@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ProjectStatusBadge } from '@/components/ui/status-badge';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,28 +32,13 @@ export function BillingProgressTable({ data, isLoading, onSelectProject }: Props
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
-  const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'estimating': 'text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300',
-      'approved': 'text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300',
-      'in_progress': 'text-[10px] h-4 px-1.5 bg-purple-50 text-purple-700 border-purple-300',
-      'complete': 'text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300',
-      'on_hold': 'text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300',
-      'cancelled': 'text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300',
-    };
-
-    return (
-      <Badge 
-        variant="outline" 
-        className={cn(
-          statusColors[status] || 'text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300',
-          'whitespace-nowrap leading-tight font-normal rounded-md'
-        )}
-      >
-        {status.replace(/_/g, ' ')}
-      </Badge>
-    );
-  };
+  const getStatusBadge = (status: string) => (
+    <ProjectStatusBadge 
+      status={status} 
+      size="xs" 
+      className="whitespace-nowrap leading-tight font-normal rounded-md"
+    />
+  );
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {

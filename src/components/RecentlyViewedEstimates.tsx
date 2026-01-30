@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Eye, Calculator } from "lucide-react";
+import { EstimateStatusBadge } from "@/components/ui/status-badge";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 
@@ -84,16 +85,7 @@ export const RecentlyViewedEstimates = ({ onViewEstimate }: RecentlyViewedEstima
     loadRecentlyViewed();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'sent': return 'bg-blue-100 text-blue-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'expired': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Removed - now using EstimateStatusBadge component
 
   // Expose the addToRecentlyViewed function globally for other components to use
   useEffect(() => {
@@ -129,9 +121,7 @@ export const RecentlyViewedEstimates = ({ onViewEstimate }: RecentlyViewedEstima
                 <Badge variant="outline" className="text-xs">
                   v{estimate.version_number}
                 </Badge>
-                <Badge className={`text-xs ${getStatusColor(estimate.status)}`}>
-                  {estimate.status}
-                </Badge>
+                <EstimateStatusBadge status={estimate.status} size="sm" />
               </div>
                <div className="text-xs text-muted-foreground">
                  <p className="truncate">{estimate.client_name}</p>

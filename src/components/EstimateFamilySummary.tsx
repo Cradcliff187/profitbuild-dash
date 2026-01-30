@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, Eye, Plus, TrendingUp, Clock } from "lucide-react";
+import { EstimateStatusBadge } from "@/components/ui/status-badge";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -116,16 +117,7 @@ export const EstimateFamilySummary = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'sent': return 'bg-blue-100 text-blue-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'expired': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Removed - now using EstimateStatusBadge component
 
   if (loading) {
     return <BrandedLoader message="Loading estimate summary..." />;
@@ -179,9 +171,7 @@ export const EstimateFamilySummary = ({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <h4 className="font-medium">Current Version {currentVersion.version_number}</h4>
-              <Badge className={getStatusColor(currentVersion.status)}>
-                {currentVersion.status}
-              </Badge>
+              <EstimateStatusBadge status={currentVersion.status} size="sm" />
             </div>
              <div className="text-right">
                <div className="font-bold text-lg">

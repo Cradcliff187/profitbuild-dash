@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
 import { Badge } from "@/components/ui/badge";
 import { VarianceBadge } from "@/components/ui/variance-badge";
+import { ProjectStatusBadge } from "@/components/ui/status-badge";
+import { getProjectStatusColor } from "@/lib/statusColors";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -261,24 +263,7 @@ export const ProjectsList = ({
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
 
-  const getStatusColor = (status: ProjectStatus) => {
-    switch (status) {
-      case 'estimating':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'complete':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'on_hold':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  // Removed - now using ProjectStatusBadge component
 
   const getMarginColor = (marginPercentage: number | null | undefined) => {
     if (marginPercentage === null || marginPercentage === undefined) return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -535,9 +520,11 @@ export const ProjectsList = ({
                   })()}
 
                   <div className="flex items-center gap-1 flex-wrap">
-                    <Badge className={`compact-badge ${getStatusColor(project.status)}`}>
-                      {project.status.replace('_', ' ').toUpperCase()}
-                    </Badge>
+                    <ProjectStatusBadge 
+                      status={project.status} 
+                      size="xs" 
+                      className="compact-badge"
+                    />
                     {project.margin_percentage !== null && project.margin_percentage !== undefined && (
                       <Badge className={`compact-badge ${getMarginColor(project.margin_percentage)}`}>
                         {project.margin_percentage.toFixed(1)}%
@@ -710,7 +697,7 @@ export const ProjectsList = ({
               subtitle={`${project.project_number} • ${project.client_name || "No Client"}`}
               badge={{
                 label: project.status.replace("_", " ").toUpperCase(),
-                className: getStatusColor(project.status),
+                className: getProjectStatusColor(project.status),
               }}
               secondaryBadge={
                 project.project_type === "work_order"

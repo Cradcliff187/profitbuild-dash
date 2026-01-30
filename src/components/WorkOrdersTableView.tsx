@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
@@ -216,28 +217,13 @@ export const WorkOrdersTableView = ({
     actions: "Actions",
   };
 
-  const getStatusBadge = (status: ProjectStatus) => {
-    const statusColors: Record<ProjectStatus, string> = {
-      'estimating': 'text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300',
-      'approved': 'text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300',
-      'in_progress': 'text-[10px] h-4 px-1.5 bg-purple-50 text-purple-700 border-purple-300',
-      'complete': 'text-[10px] h-4 px-1.5 bg-green-50 text-green-700 border-green-300',
-      'on_hold': 'text-[10px] h-4 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-300',
-      'cancelled': 'text-[10px] h-4 px-1.5 bg-red-50 text-red-700 border-red-300',
-    };
-
-    return (
-      <Badge 
-        variant="outline" 
-        className={cn(
-          statusColors[status] || 'text-[10px] h-4 px-1.5 bg-gray-50 text-gray-700 border-gray-300',
-          'whitespace-nowrap leading-tight font-normal rounded-md'
-        )}
-      >
-        {status.replace(/_/g, ' ')}
-      </Badge>
-    );
-  };
+  const getStatusBadge = (status: ProjectStatus) => (
+    <ProjectStatusBadge 
+      status={status} 
+      size="xs" 
+      className="whitespace-nowrap leading-tight font-normal rounded-md"
+    />
+  );
 
   const handleViewDetails = (workOrder: Project) => {
     navigate(`/projects/${workOrder.id}`);

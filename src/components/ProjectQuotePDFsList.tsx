@@ -5,6 +5,7 @@ import { Eye, Download, Trash2, Filter, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { QuoteStatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
@@ -97,15 +98,9 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'accepted') {
-      return <Badge variant="default" className="text-xs bg-green-500">Accepted</Badge>;
-    }
-    if (status === 'rejected') {
-      return <Badge variant="destructive" className="text-xs">Rejected</Badge>;
-    }
-    return <Badge variant="outline" className="text-xs">Pending</Badge>;
-  };
+  const getStatusBadge = (status: string) => (
+    <QuoteStatusBadge status={status} size="sm" />
+  );
 
   const handlePreview = (quote: Quote & { payees: { payee_name: string } | null }) => {
     if (!quote.attachment_url) return;

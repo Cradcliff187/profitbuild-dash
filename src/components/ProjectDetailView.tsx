@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, FileSignature, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, FileSignature, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ProjectOption, formatProjectLabel } from "@/components/projects/ProjectOption";
 import { Badge } from "@/components/ui/badge";
+import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Project } from "@/types/project";
@@ -110,6 +111,40 @@ const getNavigationGroups = (): NavGroup[] => {
   }
 
   return groups;
+};
+
+// Helper: Get section display label from URL segment
+const getSectionLabel = (section: string): string => {
+  const labels: Record<string, string> = {
+    '': 'Overview',
+    'overview': 'Overview',
+    'estimates': 'Estimates & Quotes',
+    'contracts': 'Contracts',
+    'changes': 'Change Orders',
+    'expenses': 'Expenses',
+    'control': 'Line Item Control',
+    'documents': 'Documents',
+    'schedule': 'Schedule',
+    'edit': 'Edit Project',
+  };
+  return labels[section] || 'Overview';
+};
+
+// Helper: Get section icon from URL segment
+const getSectionIcon = (section: string) => {
+  const icons: Record<string, typeof Building2> = {
+    '': Building2,
+    'overview': Building2,
+    'estimates': FileText,
+    'contracts': FileSignature,
+    'changes': FileEdit,
+    'expenses': DollarSign,
+    'control': Target,
+    'documents': FileText,
+    'schedule': Calendar,
+    'edit': Edit,
+  };
+  return icons[section] || Building2;
 };
 
 export const ProjectDetailView = () => {
@@ -567,31 +602,103 @@ export const ProjectDetailView = () => {
     setMobileNavOpen(false); // Auto-close mobile nav
   };
 
-  const NavContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Back to Projects */}
-      <div className="p-3 border-b border-border/60 bg-slate-50">
+  // Mobile NavContent - Optimized for touch with 48px targets and 16px fonts
+  const MobileNavContent = () => (
+    <div className="flex flex-col h-full bg-white">
+      {/* Back to Projects - Large touch target */}
+      <div className="px-4 py-4 border-b border-border/40">
         <Button
           variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-transparent"
-          onClick={() => navigate("/projects")}
+          size="lg"
+          className="w-full justify-start gap-3 h-12 text-base text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          onClick={() => {
+            navigate("/projects");
+            setMobileNavOpen(false);
+          }}
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {!panelCollapsed && "Back to Projects"}
+          <ArrowLeft className="h-5 w-5" />
+          Back to Projects
         </Button>
       </div>
 
       {/* Navigation Groups */}
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className="flex-1 overflow-y-auto px-3 py-5">
         {navigationGroups.map((group, groupIndex) => (
-          <div key={group.label} className="mb-3">
+          <div key={group.label} className={cn("mb-8", groupIndex === 0 && "mt-0")}>
+            {/* Section Header - Visible and clear */}
+            <h3 className="px-4 mb-3 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+              {group.label}
+            </h3>
+            
+            {/* Nav Items - 48px touch targets */}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = isActive(item.url);
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.title}
+                    variant="ghost"
+                    className={cn(
+                      // Base - 48px min height, 16px font
+                      "w-full justify-start gap-4 min-h-[48px] px-4",
+                      "text-base font-normal rounded-lg",
+                      "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      // Active state
+                      active && [
+                        "bg-primary/8 text-foreground font-medium",
+                        "border-l-[3px] border-primary -ml-[3px] pl-[calc(1rem+3px)]",
+                      ]
+                    )}
+                    onClick={() => handleNavigation(item.url)}
+                  >
+                    <Icon className={cn(
+                      "h-5 w-5 shrink-0",
+                      active ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    <span>{item.title}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+    </div>
+  );
+
+  // Desktop NavContent - Compact for mouse with 36px targets and 14px fonts
+  const DesktopNavContent = () => (
+    <div className="flex flex-col h-full bg-white">
+      {/* Back to Projects */}
+      <div className="px-3 py-3 border-b border-border/40">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "w-full justify-start gap-2 h-9 text-sm text-muted-foreground hover:text-foreground hover:bg-transparent",
+            panelCollapsed && "justify-center px-0"
+          )}
+          onClick={() => navigate("/projects")}
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          {!panelCollapsed && <span>Back to Projects</span>}
+        </Button>
+      </div>
+
+      {/* Navigation Groups */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
+        {navigationGroups.map((group, groupIndex) => (
+          <div key={group.label} className={cn("mb-5", groupIndex === 0 && "mt-0")}>
+            {/* Section Header */}
             {!panelCollapsed && (
-              <h3 className="px-3 mb-1.5 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+              <h3 className="px-3 mb-2 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">
                 {group.label}
               </h3>
             )}
-            <div className="space-y-1">
+            
+            {/* Nav Items - 36px for mouse */}
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active = isActive(item.url);
                 const Icon = item.icon;
@@ -601,14 +708,24 @@ export const ProjectDetailView = () => {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "w-full justify-start gap-2.5 min-h-[40px] text-sm text-slate-600 hover:text-slate-900 hover:bg-white/80",
-                      active && "bg-white font-semibold text-slate-900 border-l-2 border-orange-500 shadow-sm",
-                      panelCollapsed && "justify-center px-2"
+                      // Base - compact for desktop
+                      "w-full justify-start gap-2.5 h-9 text-sm font-normal rounded-md",
+                      "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      // Active state - subtle
+                      active && [
+                        "bg-primary/6 text-foreground font-medium",
+                        "border-l-2 border-primary -ml-[2px] pl-[calc(0.75rem+2px)]",
+                      ],
+                      // Collapsed mode
+                      panelCollapsed && "justify-center px-0 w-10 mx-auto"
                     )}
                     onClick={() => handleNavigation(item.url)}
                     title={panelCollapsed ? item.title : undefined}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className={cn(
+                      "h-4 w-4 shrink-0",
+                      active ? "text-primary" : "text-muted-foreground"
+                    )} />
                     {!panelCollapsed && <span>{item.title}</span>}
                   </Button>
                 );
@@ -622,61 +739,141 @@ export const ProjectDetailView = () => {
 
   // Mobile: Use Sheet for navigation
   if (isMobile) {
+    // Extract current section from URL
+    const pathSegments = location.pathname.split('/');
+    const currentSection = pathSegments[pathSegments.length - 1] === projectId 
+      ? '' 
+      : pathSegments[pathSegments.length - 1] || '';
+
     return (
-      <div className="flex flex-col h-full">
-        {/* Mobile Project Header - Enhanced */}
-        <header className="border-b bg-background">
-          <div className="flex items-center gap-2 p-3 pb-2">
-            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-12 w-12 flex-shrink-0">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64 p-0">
-                <NavContent />
-              </SheetContent>
-            </Sheet>
+      <div className="flex flex-col h-full bg-background">
+        {/* Mobile Project Header - Redesigned */}
+        <header className="border-b border-border/60 bg-background">
+          {/* Project Identity Row */}
+          <div className="flex items-start gap-3 px-4 py-3">
+            {/* Back Button - replaces hamburger */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0 -ml-2 -mt-0.5"
+              onClick={() => navigate("/projects")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+
+            {/* Project Info - restructured layout */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              {/* Row 1: Number + Status */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono text-sm font-semibold text-muted-foreground">
                   {project.project_number}
                 </span>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[10px] px-1.5 py-0 h-5 capitalize",
-                    project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50 dark:border-green-800 dark:text-green-300 dark:bg-green-950/50',
-                    project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:bg-gray-800',
-                    project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:bg-purple-950/50',
-                    project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50 dark:border-green-800 dark:text-green-300 dark:bg-green-950/50',
-                    project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50 dark:border-yellow-800 dark:text-yellow-300 dark:bg-yellow-950/50',
-                    project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50 dark:border-red-800 dark:text-red-300 dark:bg-red-950/50'
-                  )}
-                >
-                  {project.status?.replace(/_/g, ' ')}
-                </Badge>
+                <ProjectStatusBadge status={project.status} size="sm" />
               </div>
-              <div className="text-sm font-medium truncate">{project.project_name}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-3 pb-3 text-xs text-muted-foreground">
-            <span className="truncate max-w-[150px]">{project.client_name}</span>
-            {project.address && (
-              <>
-                <span className="text-border">•</span>
+
+              {/* Row 2: Project Name - prominent, allows wrapping */}
+              <h1 className="text-base font-semibold text-foreground leading-tight mt-1 line-clamp-2">
+                {project.project_name}
+              </h1>
+
+              {/* Row 3: Client Name */}
+              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                {project.client_name}
+              </p>
+
+              {/* Row 4: Address - enhanced touch target */}
+              {project.address && (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-primary hover:underline active:text-primary/80 min-w-0"
+                  className="inline-flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground active:text-foreground transition-colors"
                 >
-                  <MapPin className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate max-w-[120px]">{project.address}</span>
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate max-w-[200px]">{project.address}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
                 </a>
-              </>
-            )}
+              )}
+            </div>
           </div>
+
+          {/* Section Selector - Opens navigation sheet */}
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <button
+                className={cn(
+                  "w-full flex items-center justify-between",
+                  "min-h-[48px] px-4 py-3",
+                  "bg-muted/30 border-t border-border/40",
+                  "active:bg-muted/50 transition-colors"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const Icon = getSectionIcon(currentSection);
+                    return <Icon className="h-5 w-5 text-primary" />;
+                  })()}
+                  <span className="text-base font-medium text-foreground">
+                    {getSectionLabel(currentSection)}
+                  </span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </SheetTrigger>
+            
+            <SheetContent
+              side="bottom"
+              className="h-auto max-h-[70vh] rounded-t-2xl p-0"
+            >
+              {/* Drag Handle + Title */}
+              <div className="px-4 py-4 border-b border-border/40">
+                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-3" />
+                <h2 className="text-lg font-semibold text-center">Navigate to</h2>
+              </div>
+              
+              {/* Navigation Options - Enhanced for touch */}
+              <nav className="px-2 py-3 overflow-y-auto">
+                {navigationGroups.map((group) => (
+                  <div key={group.label} className="mb-4">
+                    <h3 className="px-4 mb-2 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide">
+                      {group.label}
+                    </h3>
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const active = isActive(item.url);
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.title}
+                            className={cn(
+                              "w-full flex items-center gap-4 min-h-[52px] px-4 rounded-xl",
+                              "text-base transition-colors",
+                              active 
+                                ? "bg-primary/10 text-primary font-medium" 
+                                : "text-foreground active:bg-muted/50"
+                            )}
+                            onClick={() => handleNavigation(item.url)}
+                          >
+                            <Icon className={cn(
+                              "h-5 w-5 shrink-0",
+                              active ? "text-primary" : "text-muted-foreground"
+                            )} />
+                            <span>{item.title}</span>
+                            {active && (
+                              <Check className="h-5 w-5 ml-auto text-primary" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </nav>
+              
+              {/* Safe area padding for iOS bottom */}
+              <div className="h-6" />
+            </SheetContent>
+          </Sheet>
         </header>
 
         {/* Content */}
@@ -754,25 +951,29 @@ export const ProjectDetailView = () => {
       {/* Secondary Navigation Panel - Sticky */}
       <aside
           className={cn(
-            "sticky top-0 self-start h-screen border-r border-border/60 bg-slate-50 transition-all duration-200 flex flex-col flex-shrink-0",
-            panelCollapsed ? "w-12" : "w-44"  // 48px collapsed, 176px expanded (was w-14/w-52)
+            "sticky top-0 self-start h-screen border-r border-border/50",
+            "bg-white transition-all duration-200 flex flex-col shrink-0",
+            panelCollapsed ? "w-14" : "w-52"  // 56px collapsed, 208px expanded
           )}
       >
-        <NavContent />
+        <DesktopNavContent />
 
         {/* Collapse Toggle */}
-        <div className="p-2 border-t border-border/60">
+        <div className="p-2 border-t border-border/40 mt-auto">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-center text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-100 py-1"
+            className={cn(
+              "w-full justify-center h-8 text-xs text-muted-foreground hover:text-foreground",
+              panelCollapsed && "px-0"
+            )}
             onClick={() => setPanelCollapsed(!panelCollapsed)}
           >
             {panelCollapsed ? (
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-4 w-4" />
             ) : (
               <>
-                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                <ChevronLeft className="h-4 w-4 mr-1" />
                 <span>Collapse</span>
               </>
             )}
@@ -893,20 +1094,11 @@ export const ProjectDetailView = () => {
               )}
 
               {/* Status Badge */}
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-xs flex-shrink-0 capitalize px-2 py-0.5",
-                  project.status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
-                  project.status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
-                  project.status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
-                  project.status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
-                  project.status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
-                  project.status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
-                )}
-              >
-                {project.status?.replace(/_/g, ' ')}
-              </Badge>
+              <ProjectStatusBadge 
+                status={project.status} 
+                size="sm" 
+                className="flex-shrink-0"
+              />
             </div>
           </div>
         </header>

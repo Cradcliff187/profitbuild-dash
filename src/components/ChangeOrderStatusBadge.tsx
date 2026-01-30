@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { CheckCircle, Clock, XCircle, FileEdit } from "lucide-react";
+import { getChangeOrderStatusColor } from "@/lib/statusColors";
 
-export type ChangeOrderStatus = 'pending' | 'approved' | 'rejected';
+export type ChangeOrderStatus = 'draft' | 'pending' | 'approved' | 'rejected';
 
 interface ChangeOrderStatusBadgeProps {
   status: ChangeOrderStatus;
@@ -10,32 +11,29 @@ interface ChangeOrderStatusBadgeProps {
 export const ChangeOrderStatusBadge = ({ status }: ChangeOrderStatusBadgeProps) => {
   const getStatusConfig = (status: ChangeOrderStatus) => {
     switch (status) {
+      case 'draft':
+        return {
+          text: 'Draft',
+          icon: FileEdit
+        };
       case 'approved':
         return {
           text: 'Approved',
-          variant: 'default' as const,
-          className: 'border-green-300 text-green-700',
           icon: CheckCircle
         };
       case 'pending':
         return {
           text: 'Pending',
-          variant: 'secondary' as const,
-          className: 'border-yellow-300 text-yellow-700',
           icon: Clock
         };
       case 'rejected':
         return {
           text: 'Rejected',
-          variant: 'destructive' as const,
-          className: 'border-red-300 text-red-700',
           icon: XCircle
         };
       default:
         return {
           text: 'Unknown',
-          variant: 'outline' as const,
-          className: '',
           icon: Clock
         };
     }
@@ -45,7 +43,7 @@ export const ChangeOrderStatusBadge = ({ status }: ChangeOrderStatusBadgeProps) 
   const Icon = config.icon;
 
   return (
-    <Badge variant="outline" className={`text-[10px] flex items-center gap-0.5 px-1.5 py-0 h-4 leading-none ${config.className}`}>
+    <Badge variant="outline" className={`text-[10px] flex items-center gap-0.5 px-1.5 py-0 h-4 leading-none ${getChangeOrderStatusColor(status)}`}>
       <Icon className="h-2 w-2" />
       {config.text}
     </Badge>

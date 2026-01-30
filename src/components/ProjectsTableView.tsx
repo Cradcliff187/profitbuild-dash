@@ -3,6 +3,7 @@ import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, A
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CompletePagination } from "@/components/ui/complete-pagination";
@@ -249,24 +250,9 @@ export const ProjectsTableView = ({
   };
 
 
-  const getStatusBadge = (status: ProjectStatus) => {
-    return (
-      <Badge 
-        variant="outline" 
-        className={cn(
-          "text-xs capitalize px-2 py-0.5",
-          status === 'approved' && 'border-green-200 text-green-700 bg-green-50',
-          status === 'estimating' && 'border-gray-200 text-gray-700 bg-gray-50',
-          status === 'in_progress' && 'border-purple-200 text-purple-700 bg-purple-50',
-          status === 'complete' && 'border-green-200 text-green-700 bg-green-50',
-          status === 'on_hold' && 'border-yellow-200 text-yellow-700 bg-yellow-50',
-          status === 'cancelled' && 'border-red-200 text-red-700 bg-red-50'
-        )}
-      >
-        {status.replace(/_/g, ' ')}
-      </Badge>
-    );
-  };
+  const getStatusBadge = (status: ProjectStatus) => (
+    <ProjectStatusBadge status={status} size="sm" />
+  );
 
   const getMarginBadge = (marginPercentage: number | null | undefined, targetMargin: number | null | undefined, minimumThreshold: number | null | undefined) => {
     if (marginPercentage === null || marginPercentage === undefined) {

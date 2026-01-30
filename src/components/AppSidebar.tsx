@@ -213,7 +213,7 @@ export function AppSidebar() {
               {visibleItems.map((item) => {
                 const active = isActive(item.url);
                 const Icon = item.icon;
-                const showBadge = item.badgeCount && item.badgeCount > 0;
+                const showBadge = !!(item.badgeCount && item.badgeCount > 0);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
