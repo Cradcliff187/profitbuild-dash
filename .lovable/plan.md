@@ -1,69 +1,74 @@
 
-# Fix Build Errors - Add Missing Types
+
+# Update Time Entry Cards in WeekView.tsx
 
 ## Overview
-Add the missing `adjusted_est_margin` property to all type interfaces that extend `Project` and fix a few other minor issues.
+Replace the current time entry card rendering with a new field-worker-friendly design that better displays PTO entries, lunch breaks, and hours breakdown.
 
-## Changes Required
+## File to Modify
 
-### 1. Add `adjusted_est_margin` to `Project` interface
-**File:** `src/types/project.ts` (Line 28)
+**File:** `src/components/time-tracker/WeekView.tsx`
 
-Add after `actual_margin`:
-```typescript
-adjusted_est_margin?: number | null;
+## Change Details
+
+**Location:** Lines 223-309 (the dayEntries.map() section)
+
+**Current Implementation:**
+- Shows payee name, times, project info in a two-column layout
+- Displays hours with emoji lunch indicator (🍴)
+- Shows receipt attachment section
+
+**New Implementation:**
+- Calculates PTO status, lunch status, and warning conditions upfront
+- **Row 1:** Project/PTO name + status badge (always visible)
+- **Row 2:** Time range (only for non-PTO entries)
+- **Row 3:** Hours display (shift vs paid when lunch taken, or simple hours)
+- **Row 4:** Lunch status with CheckSquare icon OR no-lunch warning with Square icon for 6+ hour shifts
+
+## What Changes
+
+| Aspect | Before | After |
+|--------|--------|-------|
+| Layout | Two-column (info left, hours/status right) | Stacked rows for better mobile readability |
+| PTO Display | Shows project number | Shows friendly project name (e.g., "Vacation") |
+| Hours | Single hours value with emoji | Shift vs Paid breakdown when lunch taken |
+| Lunch Indicator | 🍴 emoji | CheckSquare icon with duration text |
+| Warnings | None | Amber warning for 6+ hour shifts without lunch |
+| Status Badge | Only shown if approval_status exists | Always shown (defaults to "pending") |
+
+## Visual Examples
+
+**Regular entry with lunch:**
+```
+001-ABC - Client Name          [pending]
+7:00 AM - 3:30 PM
+
+Shift:                         8.5 hrs
+Paid:                          8.0 hrs
+
+☑ 30 min lunch
 ```
 
-### 2. Add `adjusted_est_margin` to `ProjectWithVariance` interface
-**File:** `src/components/ProjectsList.tsx` (Line 42-53)
+**PTO entry:**
+```
+Vacation                       [approved]
 
-Add to the interface:
-```typescript
-adjusted_est_margin?: number | null;
+8.0 hrs paid
 ```
 
-### 3. Add `adjusted_est_margin` to `WorkOrderWithDetails` in WorkOrders.tsx
-**File:** `src/pages/WorkOrders.tsx` (Line 36-42)
+**Long shift without lunch (warning):**
+```
+001-ABC - Client Name          [pending]
+6:00 AM - 1:00 PM
 
-Add to the interface:
-```typescript
-adjusted_est_margin?: number | null;
+Hours:                         7.0 hrs
+
+☐ No lunch recorded
 ```
 
-### 4. Add `adjusted_est_margin` to `WorkOrderWithDetails` in WorkOrdersTableView.tsx
-**File:** `src/components/WorkOrdersTableView.tsx` (Line 42-55)
+## Technical Notes
+- Uses existing `isPTOProject()` helper (line 12)
+- Uses already-imported `CheckSquare` and `Square` icons from lucide-react
+- Receipt/attachment section is removed in the new design (can be re-added if needed)
+- Payee name is no longer displayed on the card (cards already grouped by day, and this is the logged-in user's own entries)
 
-Add to the interface:
-```typescript
-adjusted_est_margin?: number | null;
-```
-
-### 5. Add `adjusted_est_margin` to `ProfitAnalysisProject` interface
-**File:** `src/types/profitAnalysis.ts` (Line 17-22, Margins section)
-
-Add after `margin_percentage`:
-```typescript
-adjusted_est_margin: number;
-```
-
-### 6. Fix RPC parameter names
-**Files:** 
-- `src/components/ProjectFinancialReconciliation.tsx` (Line 79)
-- `src/components/QuoteStatusSelector.tsx` (Line 153)
-
-Change `project_id_param` to `p_project_id`
-
-### 7. Fix StatusBadge ref forwarding
-**File:** `src/components/ui/status-badge.tsx` (Line 82)
-
-Remove the `ref` prop from Badge since it doesn't support forwarding
-
-### 8. Fix EstimatesCardView const assertion
-**File:** `src/components/EstimatesCardView.tsx` (Line 231)
-
-Fix the invalid `as const` assertion
-
----
-
-## Summary
-This is a quick type synchronization to add the `adjusted_est_margin` property that was recently added to the database but not yet reflected in all TypeScript interfaces.
