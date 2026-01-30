@@ -10,6 +10,7 @@ import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/uti
 import { calculateTimeEntryHours, calculateTimeEntryAmount, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
 import { LunchToggle } from './LunchToggle';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { AddReceiptModal } from './AddReceiptModal';
@@ -1514,61 +1515,105 @@ export const MobileTimeTracker: React.FC = () => {
                   </Button>
                 </div>
               ) : (
-                todayEntries.map(entry => (
-                  <div 
-                    key={entry.id} 
-                    className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer"
-                    onClick={async () => {
-                      const { data } = await supabase
-                        .from('expenses')
-                        .select('*')
-                        .eq('id', entry.id)
-                        .single();
-                      if (data) setEditingEntry(data);
-                    }}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        {/* PRIMARY: Start/End Times - Prominent at top */}
-                        {entry.startTimeString && entry.endTimeString ? (
-                          <div className="text-sm font-medium text-foreground">
-                            {entry.startTimeString} - {entry.endTimeString}
-                          </div>
+                todayEntries.map(entry => {
+                  const isPTO = isPTOProject(entry.project.project_number);
+                  
+                  // Calculate gross hours from timestamps if available
+                  const grossHours = entry.startTime && entry.endTime
+                    ? (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60)
+                    : entry.hours;
+                  
+                  // Detect if lunch was taken by comparing gross to net hours
+                  const hasLunchDeduction = grossHours > entry.hours + 0.01;
+                  const lunchMinutes = hasLunchDeduction ? Math.round((grossHours - entry.hours) * 60) : 0;
+                  const showBothHours = hasLunchDeduction;
+                  const isLongShiftNoLunch = !isPTO && !hasLunchDeduction && grossHours > 6;
+                  
+                  return (
+                    <div 
+                      key={entry.id} 
+                      className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={async () => {
+                        const { data } = await supabase
+                          .from('expenses')
+                          .select('*')
+                          .eq('id', entry.id)
+                          .single();
+                        if (data) setEditingEntry(data);
+                      }}
+                    >
+                      {/* Row 1: Project/PTO Name + Status Badge */}
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="font-semibold text-foreground text-sm">
+                          {isPTO 
+                            ? entry.project.project_name 
+                            : `${entry.project.project_number} - ${entry.project.client_name}`
+                          }
+                        </div>
+                        <Badge 
+                          variant={
+                            entry.approval_status === 'approved' ? 'default' :
+                            entry.approval_status === 'rejected' ? 'destructive' :
+                            'secondary'
+                          }
+                          className="text-xs ml-2 shrink-0"
+                        >
+                          {entry.approval_status || 'pending'}
+                        </Badge>
+                      </div>
+                      
+                      {/* Row 2: Time Range (only for non-PTO entries with times) */}
+                      {!isPTO && entry.startTimeString && entry.endTimeString && (
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {entry.startTimeString} - {entry.endTimeString}
+                        </div>
+                      )}
+                      
+                      {/* Row 3: Hours Display */}
+                      <div className="space-y-1">
+                        {showBothHours ? (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Shift:</span>
+                              <span className="font-mono">{grossHours.toFixed(1)} hrs</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Paid:</span>
+                              <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
+                            </div>
+                          </>
                         ) : (
-                          <div className="text-sm font-medium text-muted-foreground">
-                            {format(entry.startTime, 'EEE, MMM d')} • Manual Entry
-                          </div>
-                        )}
-                        
-                        {/* SECONDARY: Project Information */}
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {entry.project.project_number} - {entry.project.client_name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {entry.project.project_name}
-                        </div>
-                        
-                        {/* STATUS: Approval Badge if Pending */}
-                        {entry.approval_status === 'pending' && (
-                          <div className="inline-flex items-center gap-1 mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
-                            <Clock className="w-3 h-3" />
-                            Pending Approval
+                          <div className="flex justify-between text-sm">
+                            {isPTO ? (
+                              <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs paid</span>
+                            ) : (
+                              <>
+                                <span className="text-muted-foreground">Hours:</span>
+                                <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
                       
-                      {/* EMPHASIS: Hours Worked */}
-                      <div className="text-right">
-                        <div className="font-bold text-primary text-lg">
-                          {entry.hours.toFixed(2)} hrs
+                      {/* Row 4: Lunch Status Indicator */}
+                      {hasLunchDeduction && lunchMinutes > 0 && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-green-600">
+                          <CheckSquare className="h-3.5 w-3.5" />
+                          <span>{lunchMinutes} min lunch</span>
                         </div>
-                        {entry.attachment_url && (
-                          <div className="text-xs text-muted-foreground mt-1">📎 Receipt</div>
-                        )}
-                      </div>
+                      )}
+                      
+                      {/* Row 4 Alt: No Lunch Warning for long shifts */}
+                      {isLongShiftNoLunch && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600">
+                          <Square className="h-3.5 w-3.5" />
+                          <span>No lunch recorded</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               
             </div>
