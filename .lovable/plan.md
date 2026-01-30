@@ -1,45 +1,43 @@
 
-# Update Weekly Labor View KPI Aliases
+# Add PTO Constants to MobileTimeTracker.tsx
 
 ## Overview
-Add consistent aliases to the weekly labor hours view KPIs to match the terminology used in the base time entry KPIs, ensuring the AI Report Assistant can correctly interpret user queries about weekly aggregated data.
+Add the PTO project detection constants and helper function to `MobileTimeTracker.tsx`, matching the pattern used in `WeekView.tsx`. This enables the "Today" view to properly identify PTO entries.
 
 ## File to Modify
-**File:** `src/lib/kpi-definitions/view-kpis.ts`
+**File:** `src/components/time-tracker/MobileTimeTracker.tsx`
 
-## Changes
+## Change Details
 
-### 1. Update `weekly_labor_total_hours` aliases (Line 74)
-**Before:**
+### Location
+- **Insert after:** Line 37 (`import { ProjectCategory } from '@/types/project';`)
+- **Insert before:** Line 40 (`interface Project {`)
+
+### Code to Add
 ```typescript
-aliases: ['total hours', 'weekly hours', 'hours'],
+// PTO/Overhead project numbers that don't have traditional start/end times
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
+const isPTOProject = (projectNumber: string): boolean => {
+  return PTO_PROJECT_NUMBERS.includes(projectNumber);
+};
 ```
 
-**After:**
+### Result
+Lines 37-46 will become:
 ```typescript
-aliases: ['total hours', 'weekly hours', 'hours', 'paid hours', 'net hours'],
+import { ProjectCategory } from '@/types/project';
+
+// PTO/Overhead project numbers that don't have traditional start/end times
+const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+
+const isPTOProject = (projectNumber: string): boolean => {
+  return PTO_PROJECT_NUMBERS.includes(projectNumber);
+};
+
+interface Project {
+  id: string;
 ```
 
-### 2. Update `weekly_labor_gross_hours` aliases (Line 86)
-**Before:**
-```typescript
-aliases: ['gross hours', 'shift hours'],
-```
-
-**After:**
-```typescript
-aliases: ['gross hours', 'shift hours', 'total shift hours', 'clock hours'],
-```
-
-## Summary of Changes
-
-| KPI | New Aliases Added |
-|-----|-------------------|
-| `weekly_labor_total_hours` | "paid hours", "net hours" |
-| `weekly_labor_gross_hours` | "total shift hours", "clock hours" |
-
-## Why This Matters
-- Aligns view-level KPIs with the base `time_entry_hours` and `time_entry_gross_hours` definitions
-- Ensures AI Report Assistant can correctly map user queries like "show me paid hours by week" to the weekly view
-- Maintains consistency across the KPI system for better natural language understanding
-- After updating, run `npx tsx scripts/sync-edge-kpi-context.ts` to regenerate the edge function context
+## No Other Changes
+This is a targeted addition only. No other code in the file will be modified.
