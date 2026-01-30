@@ -473,6 +473,9 @@ export const MobileTimeTracker: React.FC = () => {
           approval_status,
           start_time,
           end_time,
+          lunch_taken,
+          lunch_duration_minutes,
+          gross_hours,
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
         `)
@@ -567,7 +570,12 @@ export const MobileTimeTracker: React.FC = () => {
           startTime,
           endTime,
           startTimeString,
-          endTimeString
+          endTimeString,
+          lunch_taken: expense.lunch_taken || false,
+          lunch_duration_minutes: expense.lunch_duration_minutes || null,
+          gross_hours: expense.gross_hours || ((startTime && endTime)
+            ? (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+            : hours)
         };
       }) || [];
 
