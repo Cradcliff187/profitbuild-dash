@@ -1,69 +1,45 @@
 
-# Update Time Entry KPI Aliases and Notes
+# Update Weekly Labor View KPI Aliases
 
 ## Overview
-Add employee-facing terminology to the gross hours and net hours KPI definitions to ensure the documentation reflects the UI terms used in the WeekView time entry cards.
+Add consistent aliases to the weekly labor hours view KPIs to match the terminology used in the base time entry KPIs, ensuring the AI Report Assistant can correctly interpret user queries about weekly aggregated data.
 
 ## File to Modify
-**File:** `src/lib/kpi-definitions/time-entry-kpis.ts`
+**File:** `src/lib/kpi-definitions/view-kpis.ts`
 
 ## Changes
 
-### 1. Update `time_entry_gross_hours` aliases (Line 151)
+### 1. Update `weekly_labor_total_hours` aliases (Line 74)
 **Before:**
 ```typescript
-aliases: ['gross hours', 'total hours', 'shift hours', 'raw hours', 'total time'],
+aliases: ['total hours', 'weekly hours', 'hours'],
 ```
 
 **After:**
 ```typescript
-aliases: ['gross hours', 'total hours', 'shift hours', 'raw hours', 'total time', 'time logged', 'clock time'],
+aliases: ['total hours', 'weekly hours', 'hours', 'paid hours', 'net hours'],
 ```
 
-### 2. Update `time_entry_gross_hours` notes (Line 150)
+### 2. Update `weekly_labor_gross_hours` aliases (Line 86)
 **Before:**
 ```typescript
-notes: 'CALCULATED FIELD - total shift duration before lunch deduction. Computed from start_time/end_time. For compliance tracking (e.g., >8 hours may indicate OT eligibility).',
+aliases: ['gross hours', 'shift hours'],
 ```
 
 **After:**
 ```typescript
-notes: 'CALCULATED FIELD - total shift duration before lunch deduction. Computed from start_time/end_time. For compliance tracking (e.g., >8 hours may indicate OT eligibility). Employee-facing term: "Shift Hours".',
-```
-
-### 3. Update `time_entry_hours` aliases (Line 166)
-**Before:**
-```typescript
-aliases: ['hours', 'billable hours', 'net hours', 'productive hours', 'worked hours', 'payable hours'],
-```
-
-**After:**
-```typescript
-aliases: ['hours', 'billable hours', 'net hours', 'productive hours', 'worked hours', 'payable hours', 'paid hours'],
-```
-
-### 4. Update `time_entry_hours` notes (Line 165)
-**Before:**
-```typescript
-notes: 'Stored billable hours after lunch deduction. Used for: amount = hours × hourly_rate.',
-```
-
-**After:**
-```typescript
-notes: 'Stored billable hours after lunch deduction. Used for: amount = hours × hourly_rate. Employee-facing term: "Paid Hours".',
+aliases: ['gross hours', 'shift hours', 'total shift hours', 'clock hours'],
 ```
 
 ## Summary of Changes
 
-| Field | Change Type | Addition |
-|-------|-------------|----------|
-| `time_entry_gross_hours` | aliases | Added "time logged", "clock time" |
-| `time_entry_gross_hours` | notes | Added employee-facing term: "Shift Hours" |
-| `time_entry_hours` | aliases | Added "paid hours" |
-| `time_entry_hours` | notes | Added employee-facing term: "Paid Hours" |
+| KPI | New Aliases Added |
+|-----|-------------------|
+| `weekly_labor_total_hours` | "paid hours", "net hours" |
+| `weekly_labor_gross_hours` | "total shift hours", "clock hours" |
 
 ## Why This Matters
-- Ensures KPI documentation matches the UI terminology in the WeekView time entry cards
-- Helps AI Report Assistant understand employee-facing terms when users ask questions
-- Maintains consistency between technical definitions and user-facing language
+- Aligns view-level KPIs with the base `time_entry_hours` and `time_entry_gross_hours` definitions
+- Ensures AI Report Assistant can correctly map user queries like "show me paid hours by week" to the weekly view
+- Maintains consistency across the KPI system for better natural language understanding
 - After updating, run `npx tsx scripts/sync-edge-kpi-context.ts` to regenerate the edge function context
