@@ -1,43 +1,30 @@
 
-# Add PTO Constants to MobileTimeTracker.tsx
+# Add CheckSquare Icon Import to MobileTimeTracker.tsx
 
 ## Overview
-Add the PTO project detection constants and helper function to `MobileTimeTracker.tsx`, matching the pattern used in `WeekView.tsx`. This enables the "Today" view to properly identify PTO entries.
+Add the `CheckSquare` icon to the lucide-react import in `MobileTimeTracker.tsx`. This icon is needed for the lunch indicator in the "Today" view cards.
 
 ## File to Modify
 **File:** `src/components/time-tracker/MobileTimeTracker.tsx`
 
+## Current State (Line 2)
+```typescript
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee } from 'lucide-react';
+```
+
+**Note:** `Square` is already imported (used elsewhere in the component).
+
 ## Change Details
 
-### Location
-- **Insert after:** Line 37 (`import { ProjectCategory } from '@/types/project';`)
-- **Insert before:** Line 40 (`interface Project {`)
-
-### Code to Add
+### Update Line 2
+**After:**
 ```typescript
-// PTO/Overhead project numbers that don't have traditional start/end times
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-
-const isPTOProject = (projectNumber: string): boolean => {
-  return PTO_PROJECT_NUMBERS.includes(projectNumber);
-};
+import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee, CheckSquare } from 'lucide-react';
 ```
 
-### Result
-Lines 37-46 will become:
-```typescript
-import { ProjectCategory } from '@/types/project';
-
-// PTO/Overhead project numbers that don't have traditional start/end times
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-
-const isPTOProject = (projectNumber: string): boolean => {
-  return PTO_PROJECT_NUMBERS.includes(projectNumber);
-};
-
-interface Project {
-  id: string;
-```
+## Icon Usage
+- **CheckSquare** (green): Indicates lunch was recorded
+- **Square** (amber): Indicates no lunch recorded for shifts >6 hours
 
 ## No Other Changes
-This is a targeted addition only. No other code in the file will be modified.
+This is a targeted import update only. No other code in the file will be modified.
