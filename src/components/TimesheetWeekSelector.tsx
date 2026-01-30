@@ -22,13 +22,13 @@ export function TimesheetWeekSelector({ startDate, endDate, onChange }: Timeshee
     setPreset(newPreset);
     
     if (newPreset === 'this-week') {
-      const start = startOfWeek(new Date(), { weekStartsOn: 1 });
-      const end = addDays(start, 4); // Monday to Friday
+      const start = startOfWeek(new Date(), { weekStartsOn: 0 });
+      const end = addDays(start, 6); // Sunday to Saturday
       onChange(start, end);
     } else if (newPreset === 'last-week') {
       const lastWeekDate = subWeeks(new Date(), 1);
-      const start = startOfWeek(lastWeekDate, { weekStartsOn: 1 });
-      const end = addDays(start, 4); // Monday to Friday
+      const start = startOfWeek(lastWeekDate, { weekStartsOn: 0 });
+      const end = addDays(start, 6); // Sunday to Saturday
       onChange(start, end);
     } else {
       setShowCustomPicker(true);
@@ -38,8 +38,8 @@ export function TimesheetWeekSelector({ startDate, endDate, onChange }: Timeshee
   const handleCustomDateSelect = (date: Date | undefined) => {
     if (date) {
       setCustomStart(date);
-      const start = startOfWeek(date, { weekStartsOn: 1 });
-      const end = addDays(start, 4); // Monday to Friday
+      const start = startOfWeek(date, { weekStartsOn: 0 });
+      const end = addDays(start, 6); // Sunday to Saturday
       onChange(start, end);
       setShowCustomPicker(false);
     }
