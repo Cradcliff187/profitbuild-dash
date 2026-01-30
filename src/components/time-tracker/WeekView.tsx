@@ -221,92 +221,90 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
               </div>
               
               {/* Day's Time Entry Cards */}
-              {dayEntries.map(entry => (
-                <div 
-                  key={entry.id} 
-                  className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer hover:shadow-md transition-shadow border"
-                  onClick={() => onEditEntry(entry)}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      {/* Team Member */}
-                      <div className="font-semibold text-foreground">
-                        {entry.payee.payee_name}
+              {dayEntries.map(entry => {
+                const isPTO = isPTOProject(entry.project.project_number);
+                const hasLunch = entry.lunch_taken && entry.lunch_duration_minutes && entry.lunch_duration_minutes > 0;
+                const showBothHours = hasLunch && entry.gross_hours && Math.abs(entry.gross_hours - entry.hours) > 0.01;
+                const isLongShiftNoLunch = !isPTO && !entry.lunch_taken && entry.gross_hours && entry.gross_hours > 6;
+                
+                return (
+                  <div 
+                    key={entry.id} 
+                    className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer hover:shadow-md transition-shadow border"
+                    onClick={() => onEditEntry(entry)}
+                  >
+                    {/* Row 1: Project/PTO Name + Status Badge */}
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="font-semibold text-foreground text-sm">
+                        {isPTO 
+                          ? entry.project.project_name 
+                          : `${entry.project.project_number} - ${entry.project.client_name}`
+                        }
                       </div>
-                      
-                      {/* Start/End Times */}
-                      {entry.start_time && entry.end_time && (
-                        <div className="text-sm text-foreground/80 mt-0.5">
-                          {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
-                        </div>
-                      )}
-                      
-                      {/* Project Info */}
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {entry.project.project_number} - {entry.project.client_name}
+                      <Badge 
+                        variant={
+                          entry.approval_status === 'approved' ? 'default' :
+                          entry.approval_status === 'rejected' ? 'destructive' :
+                          'secondary'
+                        }
+                        className="text-xs ml-2 shrink-0"
+                      >
+                        {entry.approval_status || 'pending'}
+                      </Badge>
+                    </div>
+                    
+                    {/* Row 2: Time Range (only for non-PTO entries with times) */}
+                    {!isPTO && entry.start_time && entry.end_time && (
+                      <div className="text-sm text-muted-foreground mb-2">
+                        {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {entry.project.project_name}
-                      </div>
-                      {entry.project.address && (
-                        <div className="text-xs text-muted-foreground">
-                          {entry.project.address}
+                    )}
+                    
+                    {/* Row 3: Hours Display */}
+                    <div className="space-y-1">
+                      {showBothHours ? (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Shift:</span>
+                            <span className="font-mono">{entry.gross_hours?.toFixed(1)} hrs</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Paid:</span>
+                            <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between text-sm">
+                          {isPTO ? (
+                            <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs paid</span>
+                          ) : (
+                            <>
+                              <span className="text-muted-foreground">Hours:</span>
+                              <span className="font-mono font-semibold text-primary">{entry.hours.toFixed(1)} hrs</span>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
                     
-                    <div className="text-right">
-                      {/* Hours with lunch indicator */}
-                      <div className="font-bold text-primary text-lg">
-                        {entry.hours.toFixed(1)}h
-                        {entry.lunch_taken && (
-                          <span className="ml-1 text-xs" title={`${entry.lunch_duration_minutes}min lunch`}>
-                            🍴
-                          </span>
-                        )}
+                    {/* Row 4: Lunch Status Indicator */}
+                    {hasLunch && (
+                      <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                        <CheckSquare className="h-3.5 w-3.5" />
+                        <span>{entry.lunch_duration_minutes} min lunch</span>
                       </div>
-                      {entry.lunch_taken && entry.gross_hours && (
-                        <div className="text-xs text-muted-foreground">
-                          ({entry.gross_hours.toFixed(1)}h - {entry.lunch_duration_minutes}min)
-                        </div>
-                      )}
-                      
-                      {/* Status Badge */}
-                      {entry.approval_status && (
-                        <Badge 
-                          variant={
-                            entry.approval_status === 'approved' ? 'default' :
-                            entry.approval_status === 'pending' ? 'secondary' :
-                            entry.approval_status === 'rejected' ? 'destructive' :
-                            'outline'
-                          }
-                          className="text-xs mt-1"
-                        >
-                          {entry.approval_status}
-                        </Badge>
-                      )}
-                    </div>
+                    )}
+                    
+                    {/* Row 4 Alt: No Lunch Warning for long shifts */}
+                    {isLongShiftNoLunch && (
+                      <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
+                        <Square className="h-3.5 w-3.5" />
+                        <span>No lunch recorded</span>
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Receipt Image */}
-                  {entry.attachment_url && (
-                    <div className="mt-2 border rounded-lg overflow-hidden">
-                      <img 
-                        src={entry.attachment_url} 
-                        alt="Receipt"
-                        className="w-full h-auto max-h-64 object-contain bg-slate-50 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(entry.attachment_url, '_blank');
-                        }}
-                      />
-                      <div className="text-xs text-center text-muted-foreground bg-muted p-1">
-                        📎 Receipt attached - Click to view full size
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })
