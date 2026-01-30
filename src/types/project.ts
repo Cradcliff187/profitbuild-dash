@@ -26,6 +26,7 @@ export interface Project {
   original_margin?: number | null;
   projected_margin?: number | null;
   actual_margin?: number | null;
+  adjusted_est_margin?: number | null;
   adjusted_est_costs?: number | null;
   original_est_costs?: number | null;
   notes?: string | null;

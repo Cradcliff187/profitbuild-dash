@@ -39,6 +39,7 @@ interface WorkOrderWithDetails extends Project {
   total_expenses: number;
   expense_count: number;
   estimate_amount: number | null;
+  adjusted_est_margin?: number | null;
 }
 
 // Define column metadata for selector

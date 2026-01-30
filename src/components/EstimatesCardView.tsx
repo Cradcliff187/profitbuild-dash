@@ -228,7 +228,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                 : `${quotableItems.length} quotable items • ${quoteCount} quote(s) received`;
             return {
               message,
-              variant: (quoteCount === 0 ? "warning" : "info") as const,
+              variant: quoteCount === 0 ? "warning" as const : "info" as const,
             };
           })();
 

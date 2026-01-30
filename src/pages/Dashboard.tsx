@@ -347,7 +347,7 @@ const Dashboard = () => {
     // Get active projects (approved + in_progress)
     const { data: activeProjects, error: activeError } = await supabase
       .from('projects')
-      .select('id, contracted_amount, adjusted_est_costs, projected_margin, margin_percentage, category')
+      .select('id, contracted_amount, adjusted_est_costs, adjusted_est_margin, projected_margin, margin_percentage, category')
       .in('status', ['approved', 'in_progress'])
       .eq('category', 'construction')
       .neq('project_type', 'work_order');

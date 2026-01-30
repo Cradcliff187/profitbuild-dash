@@ -76,7 +76,7 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
     setIsRefreshing(true);
     try {
       const { error } = await supabase.rpc('calculate_project_margins', { 
-        project_id_param: projectId 
+        p_project_id: projectId 
       });
       
       if (error) throw error;

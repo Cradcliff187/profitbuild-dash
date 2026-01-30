@@ -50,6 +50,7 @@ interface ProjectWithVariance extends Project {
   changeOrderCosts?: number;
   adjusted_est_costs?: number;
   original_est_costs?: number;
+  adjusted_est_margin?: number | null;
 }
 
 interface StatusKPIs {

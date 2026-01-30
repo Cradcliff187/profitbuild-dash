@@ -150,7 +150,7 @@ export const QuoteStatusSelector = ({
       if (error) throw error;
 
       // Trigger project margin recalculation
-      await supabase.rpc('calculate_project_margins', { project_id_param: projectId });
+      await supabase.rpc('calculate_project_margins', { p_project_id: projectId });
 
       toast({
         title: "Status Updated",
