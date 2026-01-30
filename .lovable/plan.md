@@ -1,56 +1,60 @@
 
-# Update Today Summary Card with Shift/Paid Terminology
+# Update Today Time Entry Cards with New Design
 
 ## Overview
-Update the Today Summary Card in `MobileTimeTracker.tsx` to show both shift hours and paid hours when lunch deductions are present, matching the terminology used in the Week view.
+Replace the current Today time entry cards with an enhanced design that includes:
+- PTO project detection and specialized display
+- Gross hours vs. net hours (shift vs. paid) terminology
+- Lunch status indicators (green checkmark for taken, amber warning for long shifts without lunch)
+- Improved layout with status badges
 
 ## File to Modify
 **File:** `src/components/time-tracker/MobileTimeTracker.tsx`
 
-## Current State (Lines 1478-1482)
-```typescript
-            <div className="p-4 space-y-3 relative pb-24">
-              <div className="bg-card rounded-xl shadow-sm p-4">
-                <div className="text-3xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
-                <div className="text-sm text-muted-foreground">Total today • {todayEntries.length} entries</div>
-              </div>
-```
+## Current State (Lines 1517-1571)
+The current implementation renders a simple card with:
+- Time range at top
+- Project number and client name
+- Project name
+- Pending approval badge
+- Hours on the right side
 
 ## Change Details
 
-### Replace Lines 1478-1482
-**After:**
-```typescript
-            <div className="p-4 space-y-3 relative pb-24">
-              {(() => {
-                const todayShiftTotal = todayEntries.reduce((sum, entry) => {
-                  // Calculate gross hours from start/end time if available
-                  if (entry.startTime && entry.endTime) {
-                    return sum + (entry.endTime.getTime() - entry.startTime.getTime()) / (1000 * 60 * 60);
-                  }
-                  return sum + entry.hours;
-                }, 0);
-                const hasLunchDeductions = todayShiftTotal > todayTotal + 0.01;
-                
-                return (
-                  <div className="bg-card rounded-xl shadow-sm p-4">
-                    <div className="text-3xl font-bold text-primary">
-                      {todayTotal.toFixed(1)} hrs{hasLunchDeductions ? ' paid' : ''}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {hasLunchDeductions 
-                        ? `${todayShiftTotal.toFixed(1)} hrs shift • ${todayEntries.length} entries`
-                        : `Total today • ${todayEntries.length} entries`
-                      }
-                    </div>
-                  </div>
-                );
-              })()}
+### Replace Lines 1517-1571
+Replace the entire `todayEntries.map(entry => (...))` block with the new implementation that:
+
+1. **Detects PTO entries** using the `isPTOProject()` helper added earlier
+2. **Calculates gross hours** from start/end timestamps
+3. **Detects lunch deductions** by comparing gross to net hours
+4. **Shows warning** for long shifts (>6 hrs) without lunch
+
+### New Card Layout
+```
+┌─────────────────────────────────────────┐
+│ [Project/PTO Name]            [Badge]   │
+│ 7:00 AM - 3:30 PM                       │
+│                                         │
+│ Shift:                     8.5 hrs      │
+│ Paid:                      8.0 hrs      │
+│                                         │
+│ ✓ 30 min lunch                          │
+└─────────────────────────────────────────┘
 ```
 
-## Behavior
-- **Without lunch deductions:** Shows `"X.X hrs"` with `"Total today • N entries"`
-- **With lunch deductions:** Shows `"X.X hrs paid"` with `"Y.Y hrs shift • N entries"`
+## Technical Details
+
+### Variables Calculated Per Entry
+- `isPTO`: Whether the entry is for a PTO project (006-SICK, 007-VAC, 008-HOL)
+- `grossHours`: Total shift hours from start to end time
+- `hasLunchDeduction`: True if gross > net + 0.01 (tolerance for rounding)
+- `lunchMinutes`: Calculated lunch duration in minutes
+- `showBothHours`: Show both shift and paid rows
+- `isLongShiftNoLunch`: Warning condition for >6 hr shifts without lunch
+
+### Icons Used
+- `CheckSquare` (green): Lunch was taken
+- `Square` (amber): No lunch recorded on long shift
 
 ## Scope
-Only the summary card is modified. The empty state check and `todayEntries.map` that follow remain unchanged.
+Only the `todayEntries.map` block is replaced. The empty state check before it and the code after (WeekView section) remain unchanged.
