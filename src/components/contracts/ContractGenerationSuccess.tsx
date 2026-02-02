@@ -1,6 +1,7 @@
 import { CheckCircle2, Download, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { ContractGenerationResponse } from '@/types/contract';
 
 interface ContractGenerationSuccessProps {
@@ -9,6 +10,7 @@ interface ContractGenerationSuccessProps {
 }
 
 export function ContractGenerationSuccess({ result, onClose }: ContractGenerationSuccessProps) {
+  const isMobile = useIsMobile();
   const handleDownload = (url: string | undefined, label: string) => {
     if (!url) return;
     const link = document.createElement('a');
@@ -39,15 +41,17 @@ export function ContractGenerationSuccess({ result, onClose }: ContractGeneratio
       <div className="flex flex-wrap gap-2 justify-center">
         {result.docxUrl && (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePrint(result.docxUrl)}
-              title="Print / Save as PDF"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print / Save as PDF
-            </Button>
+            {!isMobile && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePrint(result.docxUrl)}
+                title="Print / Save as PDF"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print / Save as PDF
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

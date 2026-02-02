@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -55,6 +55,11 @@ const Quotes = () => {
     amountRange: { min: null, max: null },
   });
 
+  const currentViewedQuoteIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    currentViewedQuoteIdRef.current = selectedQuote?.id;
+  }, [selectedQuote?.id]);
+
   // Load data from Supabase on mount
   useEffect(() => {
     fetchData();
@@ -70,26 +75,54 @@ const Quotes = () => {
   }, [view, selectedQuote?.id, selectedQuote?.status]);
 
   // Fetch contracts for the selected quote
-  useEffect(() => {
-    const fetchQuoteContracts = async () => {
-      if (!selectedQuote?.id || view !== 'view') {
-        setQuoteContracts([]);
-        return;
-      }
-      try {
-        const { data, error } = await supabase
-          .from("contracts")
-          .select("*")
-          .eq("quote_id", selectedQuote.id)
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        setQuoteContracts((data as unknown as Contract[]) ?? []);
-      } catch {
-        setQuoteContracts([]);
-      }
-    };
-    fetchQuoteContracts();
+  const fetchQuoteContracts = useCallback(async () => {
+    if (!selectedQuote?.id || view !== 'view') {
+      setQuoteContracts([]);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("contracts")
+        .select("*")
+        .eq("quote_id", selectedQuote.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setQuoteContracts((data as unknown as Contract[]) ?? []);
+    } catch {
+      setQuoteContracts([]);
+    }
   }, [selectedQuote?.id, view]);
+
+  useEffect(() => {
+    fetchQuoteContracts();
+  }, [fetchQuoteContracts]);
+
+  const handleDeleteContract = useCallback(async (contractId: string) => {
+    try {
+      const { data: contract } = await supabase
+        .from("contracts")
+        .select("docx_storage_path, pdf_storage_path")
+        .eq("id", contractId)
+        .single();
+      const pathsToRemove: string[] = [];
+      if (contract?.docx_storage_path) pathsToRemove.push(contract.docx_storage_path);
+      if (contract?.pdf_storage_path) pathsToRemove.push(contract.pdf_storage_path);
+      if (pathsToRemove.length > 0) {
+        await supabase.storage.from("project-documents").remove(pathsToRemove);
+      }
+      const { error } = await supabase.from("contracts").delete().eq("id", contractId);
+      if (error) throw error;
+      toast({ title: "Contract deleted", description: "The contract has been removed." });
+      await fetchQuoteContracts();
+    } catch (err) {
+      console.error("Error deleting contract:", err);
+      toast({
+        title: "Delete failed",
+        description: err instanceof Error ? err.message : "Failed to delete contract",
+        variant: "destructive",
+      });
+    }
+  }, [fetchQuoteContracts, toast]);
 
   // Apply filters when quotes or filters change
   useEffect(() => {
@@ -128,10 +161,16 @@ const Quotes = () => {
           schema: 'public',
           table: 'quotes'
         },
-        (payload) => {
+        (payload: { eventType: string; new?: { id: string }; old?: { id: string } }) => {
           console.log('Quote change detected:', payload);
-          // Refresh data when any quote changes
-          fetchData();
+          const updatedQuoteId = payload.new?.id ?? payload.old?.id;
+          const isViewingThisQuote = updatedQuoteId && updatedQuoteId === currentViewedQuoteIdRef.current;
+          // Silent refresh when we're viewing/editing the quote that changed (e.g. attachment upload) so the page doesn't reset to loader
+          if (payload.eventType === 'UPDATE' && isViewingThisQuote) {
+            fetchData({ silent: true });
+          } else {
+            fetchData();
+          }
         }
       )
       .subscribe();
@@ -140,6 +179,31 @@ const Quotes = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Real-time updates for contracts on the selected quote
+  useEffect(() => {
+    if (!selectedQuote?.id || view !== 'view') return;
+
+    const channel = supabase
+      .channel(`contracts-changes-${selectedQuote.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contracts',
+          filter: `quote_id=eq.${selectedQuote.id}`
+        },
+        () => {
+          fetchQuoteContracts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedQuote?.id, view, fetchQuoteContracts]);
 
   // Auto-open quote creation form when navigating from project details
   useEffect(() => {
@@ -274,10 +338,11 @@ const Quotes = () => {
     setFilteredQuotes(filtered);
   };
 
-  const fetchData = async () => {
+  const fetchData = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     try {
-      setLoading(true);
-      
+      if (!silent) setLoading(true);
+
       // Fetch quotes with related data
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
@@ -495,6 +560,11 @@ const Quotes = () => {
 
       setQuotes(transformedQuotes);
       setEstimates(transformedEstimates);
+
+      if (silent && currentViewedQuoteIdRef.current) {
+        const updated = transformedQuotes.find((q) => q.id === currentViewedQuoteIdRef.current);
+        if (updated) setSelectedQuote(updated);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -503,7 +573,7 @@ const Quotes = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -903,6 +973,9 @@ const Quotes = () => {
             onSave={() => {}}
             onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
             generatedContractsForQuote={quoteContracts}
+            projectNumber={selectedQuote.project_number ?? undefined}
+            payeeName={selectedQuote.quotedBy}
+            onDeleteContract={handleDeleteContract}
           />
           <ContractGenerationModal
             open={showContractModal}
@@ -915,7 +988,7 @@ const Quotes = () => {
               toast({
                 title: "Contract generated",
                 description: result.docxUrl
-                  ? "Download available from the project's Contracts tab."
+                  ? "Download available from the project's Documents > Contracts tab."
                   : `Contract ${result.contractNumber} created.`,
               });
               setShowContractModal(false);

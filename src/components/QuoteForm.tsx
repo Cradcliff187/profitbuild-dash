@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer, MoreHorizontal, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
 import { OfficeDocumentPreviewModal } from "@/components/OfficeDocumentPreviewModal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface QuoteValidationResult {
   isValid: boolean;
@@ -70,6 +81,9 @@ export interface GeneratedContractForQuote {
   docx_url: string | null;
   pdf_url: string | null;
   agreement_date?: string;
+  /** When present (e.g. full Contract from API), show amount and status badge to match Documents area */
+  subcontract_price?: number;
+  status?: string;
 }
 
 interface QuoteFormProps {
@@ -81,9 +95,15 @@ interface QuoteFormProps {
   mode?: 'edit' | 'view';
   /** When provided, generated contract(s) for this quote are shown in the Quote Document section */
   generatedContractsForQuote?: GeneratedContractForQuote[];
+  /** Project number for generated contract labels (e.g. "Contract • 225-001 • Payee") */
+  projectNumber?: string;
+  /** Payee name for generated contract labels */
+  payeeName?: string;
+  /** Called when user confirms delete of a generated contract; parent should delete contract and refetch */
+  onDeleteContract?: (contractId: string) => void | Promise<void>;
 }
 
-export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote }: QuoteFormProps) => {
+export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote, projectNumber, payeeName, onDeleteContract }: QuoteFormProps) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const isEdit = !!initialQuote;
@@ -114,6 +134,8 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   const [previewContractOpen, setPreviewContractOpen] = useState(false);
   const [previewContractUrl, setPreviewContractUrl] = useState<string | null>(null);
   const [previewContractFileName, setPreviewContractFileName] = useState<string>('');
+  const [deleteContractDialogOpen, setDeleteContractDialogOpen] = useState(false);
+  const [contractToDeleteId, setContractToDeleteId] = useState<string | null>(null);
 
   // Auto-select estimate when navigating from project details
   useEffect(() => {
@@ -1352,87 +1374,175 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
             />
           </div>
 
-          {/* Quote Document: generated contract(s) + upload */}
-          {selectedEstimate && (
+          {/* Quote Document: generated contract(s) + payee upload — show when we have an estimate (create) or when viewing/editing a quote so payee docs can be uploaded */}
+          {(selectedEstimate || initialQuote) && (
             <div className="space-y-3">
               <Label className="text-sm font-medium">Quote Document</Label>
               {generatedContractsForQuote && generatedContractsForQuote.length > 0 && (
-                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground">
                     Generated contract{generatedContractsForQuote.length > 1 ? "s" : ""}
                   </p>
-                  {generatedContractsForQuote.map((c) => (
+                  {generatedContractsForQuote.map((c) => {
+                    const primaryLabel = projectNumber && payeeName
+                      ? `Contract • ${projectNumber} • ${payeeName}`
+                      : (c.internal_reference || c.contract_number || '—');
+                    const contractRef = c.internal_reference || c.contract_number || '—';
+                    return (
                     <div
                       key={c.id}
-                      className="flex items-center justify-between gap-2 text-sm"
+                      className="rounded-2xl border border-border bg-card p-4 shadow-sm"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{c.internal_reference || c.contract_number}</p>
-                          {c.agreement_date && (
-                            <p className="text-muted-foreground text-xs">
-                              {format(new Date(c.agreement_date), "MMM d, yyyy")}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate" title={primaryLabel}>{primaryLabel}</p>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5" title={contractRef}>{contractRef}</p>
+                            {(c.subcontract_price != null || c.status) && (
+                              <div className="mt-1 flex items-center gap-2">
+                                {c.subcontract_price != null && (
+                                  <p className="text-sm font-medium">{formatCurrency(c.subcontract_price)}</p>
+                                )}
+                                {c.status && (
+                                  <Badge variant="secondary" className="text-xs">{c.status}</Badge>
+                                )}
+                              </div>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {c.agreement_date ? format(new Date(c.agreement_date), "MMM d, yyyy") : "—"}
                             </p>
-                          )}
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                                {contractRef}
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {c.docx_url && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setPreviewContractUrl(c.docx_url!);
+                                      setPreviewContractFileName(`${c.internal_reference || c.contract_number || 'Contract'}.docx`);
+                                      setPreviewContractOpen(true);
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </DropdownMenuItem>
+                                  {!isMobile && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(c.docx_url!)}`;
+                                        window.open(printUrl, '_blank');
+                                      }}
+                                    >
+                                      <Printer className="h-4 w-4 mr-2" />
+                                      Print
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => window.open(c.docx_url!, "_blank")}>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download DOCX
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {c.pdf_url && (
+                                <DropdownMenuItem onClick={() => window.open(c.pdf_url!, "_blank")}>
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Download PDF
+                                </DropdownMenuItem>
+                              )}
+                              {onDeleteContract && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setContractToDeleteId(c.id);
+                                      setDeleteContractDialogOpen(true);
+                                    }}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {c.docx_url && (
-                          <>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                setPreviewContractUrl(c.docx_url!);
-                                setPreviewContractFileName(`${c.internal_reference || c.contract_number || 'Contract'}.docx`);
-                                setPreviewContractOpen(true);
-                              }}
-                              title="Preview"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(c.docx_url!)}`;
-                                window.open(printUrl, '_blank');
-                              }}
-                              title="Print / Save as PDF"
-                            >
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => window.open(c.docx_url!, "_blank")}
-                              title="Download DOCX"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               <QuoteAttachmentUpload
-                projectId={selectedEstimate.project_id}
+                projectId={selectedEstimate?.project_id ?? initialQuote!.project_id}
                 onUploadSuccess={(url) => {
                   console.log('📎 [QUOTE FORM DEBUG] Attachment URL received from upload:', url);
                   setAttachmentUrl(url);
                 }}
-                onRemove={() => setAttachmentUrl("")}
+                onRemove={async () => {
+                  if (initialQuote?.id) {
+                    try {
+                      // Delete project_documents row(s) for this quote attachment
+                      const { error: docError } = await supabase
+                        .from('project_documents')
+                        .delete()
+                        .eq('related_quote_id', initialQuote.id);
+                      
+                      if (docError) {
+                        console.error('Failed to delete project_documents for quote:', docError);
+                        // Continue anyway to clear attachment_url
+                      }
+                      
+                      // Clear quote's attachment_url
+                      const { error: quoteError } = await supabase
+                        .from('quotes')
+                        .update({ attachment_url: null })
+                        .eq('id', initialQuote.id);
+                      
+                      if (quoteError) {
+                        toast({
+                          title: 'Failed to remove attachment',
+                          description: quoteError.message,
+                          variant: 'destructive',
+                        });
+                        return;
+                      }
+                      
+                      toast({
+                        title: 'Attachment removed',
+                        description: 'Quote attachment removed successfully',
+                      });
+                    } catch (err) {
+                      toast({
+                        title: 'Failed to remove attachment',
+                        description: err instanceof Error ? err.message : 'An error occurred',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                  }
+                  setAttachmentUrl("");
+                }}
+                onViewDocument={(url, fileName) => {
+                  setPreviewContractUrl(url);
+                  setPreviewContractFileName(fileName);
+                  setPreviewContractOpen(true);
+                }}
                 existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
-                disabled={isViewMode}
+                disabled={isViewMode && !initialQuote}
                 relatedQuoteId={initialQuote?.id}
               />
             </div>
@@ -1469,6 +1579,32 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
         fileName={previewContractFileName}
         fileType="word"
       />
+
+      <AlertDialog open={deleteContractDialogOpen} onOpenChange={setDeleteContractDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contract</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this contract? Related document records will be removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (contractToDeleteId && onDeleteContract) {
+                  await onDeleteContract(contractToDeleteId);
+                  setContractToDeleteId(null);
+                }
+                setDeleteContractDialogOpen(false);
+              }}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

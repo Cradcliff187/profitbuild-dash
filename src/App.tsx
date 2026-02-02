@@ -63,8 +63,6 @@ const EstimateNewRoute = lazy(() => import("./components/project-routes/Estimate
 const QuoteViewRoute = lazy(() => import("./components/project-routes/QuoteViewRoute").then(m => ({ default: m.QuoteViewRoute })));
 const QuoteEditRoute = lazy(() => import("./components/project-routes/QuoteEditRoute").then(m => ({ default: m.QuoteEditRoute })));
 const QuoteNewRoute = lazy(() => import("./components/project-routes/QuoteNewRoute").then(m => ({ default: m.QuoteNewRoute })));
-const ProjectContractsRoute = lazy(() => import("./components/project-routes/ProjectContractsRoute").then(m => ({ default: m.ProjectContractsRoute })));
-
 const queryClient = new QueryClient();
 
 const LazyRoute = ({ component: Component }: { component: React.ComponentType }) => (
@@ -108,7 +106,6 @@ const App = () => (
                     <Route path="expenses" element={<LazyRoute component={ProjectExpensesRoute} />} />
                     <Route path="control" element={<LazyRoute component={ProjectControlRoute} />} />
                     <Route path="changes" element={<LazyRoute component={ProjectChangesRoute} />} />
-                    <Route path="contracts" element={<LazyRoute component={ProjectContractsRoute} />} />
                     <Route path="documents" element={<LazyRoute component={ProjectDocumentsRoute} />} />
                     <Route path="schedule" element={<LazyRoute component={ProjectScheduleRoute} />} />
                     <Route path="edit" element={<LazyRoute component={ProjectEditRoute} />} />

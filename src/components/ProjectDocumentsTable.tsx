@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, Download, Trash2, Filter, FileText } from "lucide-react";
+import { Filter, FileText, MoreHorizontal, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, differenceInDays, parseISO } from "date-fns";
 import type { ProjectDocument, DocumentType } from "@/types/document";
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPE_ICONS } from "@/types/document";
@@ -25,10 +27,11 @@ import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPE_ICONS } from "@/types/document";
 interface ProjectDocumentsTableProps {
   projectId: string;
   documentType?: DocumentType;
+  projectNumber?: string;
   onDocumentDeleted?: () => void;
 }
 
-export function ProjectDocumentsTable({ projectId, documentType, onDocumentDeleted }: ProjectDocumentsTableProps) {
+export function ProjectDocumentsTable({ projectId, documentType, projectNumber, onDocumentDeleted }: ProjectDocumentsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<DocumentType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -37,6 +40,7 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
   // Real-time subscription for project documents
@@ -219,11 +223,13 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
                   }}
                   className="flex w-full items-start gap-3 text-left"
                 >
-                  <span className="text-xl text-muted-foreground">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
+                  <span className="text-xl text-muted-foreground flex-shrink-0">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground break-words">{doc.file_name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate" title={doc.file_name}>
+                      {projectNumber ? `${projectNumber} • ${DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.file_name}` : doc.file_name}
+                    </p>
                     {doc.description && (
-                      <p className="mt-0.5 text-xs text-muted-foreground break-words">{doc.description}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground truncate" title={doc.description}>{doc.description}</p>
                     )}
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <Badge variant="outline" className="text-[10px]">
@@ -237,44 +243,58 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
                   </div>
                 </button>
                 <div className="mt-3 flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (doc.mime_type === 'application/pdf') {
-                        handlePreview(doc);
-                      } else {
-                        window.open(doc.file_url, "_blank");
-                      }
-                    }}
-                    className="min-h-[44px] min-w-[44px] rounded-full"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const a = document.createElement("a");
-                      a.href = doc.file_url;
-                      a.download = doc.file_name;
-                      a.click();
-                    }}
-                    className="h-9 w-9 rounded-full"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setDocumentToDelete(doc);
-                      setDeleteDialogOpen(true);
-                    }}
-                    className="h-9 w-9 rounded-full text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                        {doc.file_name}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => {
+                        if (doc.mime_type === 'application/pdf') {
+                          handlePreview(doc);
+                        } else {
+                          window.open(doc.file_url, "_blank");
+                        }
+                      }}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        const a = document.createElement("a");
+                        a.href = doc.file_url;
+                        a.download = doc.file_name;
+                        a.click();
+                      }}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      {!isMobile && doc.mime_type === 'application/pdf' && (
+                        <DropdownMenuItem onClick={() => {
+                          window.open(`https://docs.google.com/gview?url=${encodeURIComponent(doc.file_url)}`, '_blank');
+                        }}>
+                          <Printer className="h-4 w-4 mr-2" />
+                          Print
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setDocumentToDelete(doc);
+                          setDeleteDialogOpen(true);
+                        }}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
@@ -321,45 +341,59 @@ export function ProjectDocumentsTable({ projectId, documentType, onDocumentDelet
                       </div>
                     </td>
                     <td className="p-2">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            if (doc.mime_type === 'application/pdf') {
-                              handlePreview(doc);
-                            } else {
-                              window.open(doc.file_url, "_blank");
-                            }
-                          }}
-                          className="h-7 w-7 p-0 sm:min-h-[44px] sm:min-w-[44px]"
-                        >
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const a = document.createElement("a");
-                            a.href = doc.file_url;
-                            a.download = doc.file_name;
-                            a.click();
-                          }}
-                          className="h-7 w-7 p-0"
-                        >
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setDocumentToDelete(doc);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                      <div className="flex items-center justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                              {doc.file_name}
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => {
+                              if (doc.mime_type === 'application/pdf') {
+                                handlePreview(doc);
+                              } else {
+                                window.open(doc.file_url, "_blank");
+                              }
+                            }}>
+                              <FileText className="h-4 w-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              const a = document.createElement("a");
+                              a.href = doc.file_url;
+                              a.download = doc.file_name;
+                              a.click();
+                            }}>
+                              <FileText className="h-4 w-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            {!isMobile && doc.mime_type === 'application/pdf' && (
+                              <DropdownMenuItem onClick={() => {
+                                window.open(`https://docs.google.com/gview?url=${encodeURIComponent(doc.file_url)}`, '_blank');
+                              }}>
+                                <Printer className="h-4 w-4 mr-2" />
+                                Print
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setDocumentToDelete(doc);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>

@@ -2,18 +2,23 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { FileText, Image, Video, Receipt, FileCheck, Loader2, Eye, Download, Filter, X } from 'lucide-react';
+import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, X, MoreHorizontal, Printer, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { PdfPreviewModal } from '@/components/PdfPreviewModal';
 import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
 import { OfficeDocumentPreviewModal } from '@/components/OfficeDocumentPreviewModal';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { DOCUMENT_TYPE_LABELS } from '@/types/document';
+import type { DocumentType } from '@/types/document';
 
 interface ProjectDocumentsTimelineProps {
   projectId: string;
+  projectNumber?: string;
 }
 
 type TimelineItem = {
@@ -28,8 +33,9 @@ type TimelineItem = {
   metadata?: any;
 };
 
-export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimelineProps) {
+export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDocumentsTimelineProps) {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TimelineItem['type'] | 'all'>('all');
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
@@ -175,21 +181,32 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
         });
       }
 
-      // Fetch project documents
+      // Fetch project documents with quote/payee for labels
       const { data: documents } = await supabase
         .from('project_documents')
-        .select('*')
+        .select('*, quotes(quote_number, payees(payee_name))')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
       if (documents) {
         documents.forEach((d) => {
+          const q = d.quotes as { quote_number?: string; payees?: { payee_name?: string } | null } | null;
+          const hasQuote = d.related_quote_id && q;
+          const payeeName = q?.payees?.payee_name ?? '—';
+          const typeLabel = DOCUMENT_TYPE_LABELS[d.document_type as DocumentType] ?? 'Document';
+          const title = projectNumber
+            ? (hasQuote ? `${typeLabel} • ${projectNumber} • ${payeeName}` : `${typeLabel} • ${projectNumber}`)
+            : `${typeLabel} • ${d.file_name}`;
+          // When quote-linked: show 'Contract' for actual contracts, 'Quote Document' for quote attachments
+          const subtitle = hasQuote 
+            ? (d.document_type === 'contract' ? 'Contract' : 'Quote Document')
+            : (d.description || d.file_name);
           timelineItems.push({
             id: d.id,
             type: 'document',
             timestamp: new Date(d.created_at),
-            title: d.file_name,
-            subtitle: d.description || undefined,
+            title,
+            subtitle,
             fileUrl: d.file_url,
             metadata: d,
           });
@@ -251,7 +268,7 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
     const labels = {
       'media': 'Photo/Video',
       'receipt': 'Receipt',
-      'quote-pdf': 'Quote PDF',
+      'quote-pdf': 'Quote',
       'document': 'Document',
     };
     return <Badge variant="secondary" className="text-xs">{labels[type]}</Badge>;
@@ -429,7 +446,7 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="document">Documents</SelectItem>
                 <SelectItem value="receipt">Receipts</SelectItem>
-                <SelectItem value="quote-pdf">Quote PDFs</SelectItem>
+                <SelectItem value="quote-pdf">Quotes</SelectItem>
                 <SelectItem value="media">Photos & Videos</SelectItem>
               </SelectContent>
             </Select>
@@ -481,7 +498,7 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="document">Documents</SelectItem>
               <SelectItem value="receipt">Receipts</SelectItem>
-              <SelectItem value="quote-pdf">Quote PDFs</SelectItem>
+              <SelectItem value="quote-pdf">Quotes</SelectItem>
               <SelectItem value="media">Photos & Videos</SelectItem>
             </SelectContent>
           </Select>
@@ -495,66 +512,90 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
             <h3 className="text-xs font-medium text-muted-foreground px-1">{dateGroup.replace('📅 ', '')}</h3>
             {groupItems.map((item) => (
               <div key={item.id} className="rounded-xl border border-border bg-card p-3 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => handleItemClick(item)}
-                  className="flex w-full items-start gap-2 text-left"
-                >
-                  <div className="flex-shrink-0">
-                    {item.thumbnailUrl ? (
-                      <img
-                        src={item.thumbnailUrl}
-                        alt={item.title}
-                        className="w-10 h-10 object-cover rounded-md"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-md">
-                        {getIcon(item.type)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <p className="text-sm font-semibold text-foreground break-words">{item.title}</p>
-                      {getTypeBadge(item.type)}
-                    </div>
-                    {item.subtitle && (
-                      <p className="text-xs text-muted-foreground break-words mb-1">{item.subtitle}</p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>{format(item.timestamp, 'MMM d, h:mm a')}</span>
-                      {item.amount !== undefined && (
-                        <>
-                          <span>•</span>
-                          <span className="font-medium">${item.amount.toFixed(2)}</span>
-                        </>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleItemClick(item)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
+                    <div className="flex-shrink-0">
+                      {item.thumbnailUrl ? (
+                        <img
+                          src={item.thumbnailUrl}
+                          alt={item.title}
+                          className="w-10 h-10 object-cover rounded-md"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-md">
+                          {getIcon(item.type)}
+                        </div>
                       )}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                        </div>
+                        {getTypeBadge(item.type)}
+                      </div>
+                      {item.subtitle && (
+                        <p className="text-xs text-muted-foreground truncate mb-1 min-w-0">{item.subtitle}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>{format(item.timestamp, 'MMM d, h:mm a')}</span>
+                        {item.amount !== undefined && (
+                          <>
+                            <span>•</span>
+                            <span className="font-medium">${item.amount.toFixed(2)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                  <div className="shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                        {item.title}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleItemClick(item)}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        const a = document.createElement("a");
+                        a.href = item.fileUrl;
+                        a.download = item.title;
+                        a.click();
+                      }}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      {!isMobile && (item.type === 'quote-pdf' || item.type === 'document') && (
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(`https://docs.google.com/gview?url=${encodeURIComponent(item.fileUrl)}`, '_blank');
+                        }}>
+                          <Printer className="h-4 w-4 mr-2" />
+                          Print
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </button>
-                <div className="mt-2 flex items-center justify-end gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleItemClick(item)}
-                    className="min-h-[44px] min-w-[44px] rounded-full"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const a = document.createElement("a");
-                      a.href = item.fileUrl;
-                      a.download = item.title;
-                      a.click();
-                    }}
-                    className="h-9 w-9 rounded-full"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             ))}
@@ -607,17 +648,48 @@ export function ProjectDocumentsTimeline({ projectId }: ProjectDocumentsTimeline
                   </div>
 
                   {/* Actions */}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleItemClick(item);
-                    }}
-                    className="h-7 w-7 p-0 shrink-0"
-                  >
-                    <Eye className="h-3 w-3" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                        {item.title}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleItemClick(item)}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        const a = document.createElement("a");
+                        a.href = item.fileUrl;
+                        a.download = item.title;
+                        a.click();
+                      }}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      {!isMobile && (item.type === 'quote-pdf' || item.type === 'document') && (
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(`https://docs.google.com/gview?url=${encodeURIComponent(item.fileUrl)}`, '_blank');
+                        }}>
+                          <Printer className="h-4 w-4 mr-2" />
+                          Print
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ))}
             </div>

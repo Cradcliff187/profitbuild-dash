@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { ProjectMediaGallery } from "./ProjectMediaGallery";
 import { ProjectReceiptsView } from "./ProjectReceiptsView";
 import { ProjectQuotePDFsList } from "./ProjectQuotePDFsList";
+import { ContractsListView } from "@/components/contracts/ContractsListView";
 import { ProjectDocumentsTable } from "./ProjectDocumentsTable";
 import { DocumentUpload } from "./DocumentUpload";
 import { ProjectDocumentsTimeline } from "./ProjectDocumentsTimeline";
@@ -28,7 +29,8 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
     { value: "all", label: "All" },
     { value: "media", label: "Photos & Videos" },
     { value: "receipts", label: "Receipts" },
-    { value: "quotes", label: "Quote PDFs" },
+    { value: "quotes", label: "Quotes" },
+    { value: "contracts", label: "Contracts" },
     { value: "drawings", label: "Drawings" },
     { value: "permits", label: "Permits" },
     { value: "licenses", label: "Licenses" },
@@ -97,7 +99,7 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
         </TabsList>
 
         <TabsContent value="all" className="mt-3 sm:mt-4">
-          <ProjectDocumentsTimeline projectId={projectId} />
+          <ProjectDocumentsTimeline projectId={projectId} projectNumber={projectNumber} />
         </TabsContent>
 
         <TabsContent value="media" className="mt-3 sm:mt-4">
@@ -117,16 +119,20 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
           <ProjectQuotePDFsList projectId={projectId} />
         </TabsContent>
 
+        <TabsContent value="contracts" className="mt-3 sm:mt-4">
+          <ContractsListView projectId={projectId} projectNumber={projectNumber} />
+        </TabsContent>
+
         <TabsContent value="drawings" className="mt-3 sm:mt-4">
-          <ProjectDocumentsTable projectId={projectId} documentType="drawing" onDocumentDeleted={() => {}} />
+          <ProjectDocumentsTable projectId={projectId} documentType="drawing" projectNumber={projectNumber} onDocumentDeleted={() => {}} />
         </TabsContent>
 
         <TabsContent value="permits" className="mt-3 sm:mt-4">
-          <ProjectDocumentsTable projectId={projectId} documentType="permit" onDocumentDeleted={() => {}} />
+          <ProjectDocumentsTable projectId={projectId} documentType="permit" projectNumber={projectNumber} onDocumentDeleted={() => {}} />
         </TabsContent>
 
         <TabsContent value="licenses" className="mt-3 sm:mt-4">
-          <ProjectDocumentsTable projectId={projectId} documentType="license" onDocumentDeleted={() => {}} />
+          <ProjectDocumentsTable projectId={projectId} documentType="license" projectNumber={projectNumber} onDocumentDeleted={() => {}} />
         </TabsContent>
       </Tabs>
 

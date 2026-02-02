@@ -1381,10 +1381,14 @@ export const ProjectsTableView = ({
                     </TableRow>
                   ) : (
                     sortedProjects.map((project) => (
-                      <TableRow key={project.id} className="h-9 hover:bg-muted/50">
+                      <TableRow 
+                        key={project.id} 
+                        className="h-9 hover:bg-muted/50 cursor-pointer"
+                        onClick={() => handleViewDetails(project)}
+                      >
                         {/* Checkbox Column */}
                         {onSelectOne && (
-                          <TableCell className="w-[40px] p-2">
+                          <TableCell className="w-[40px] p-2" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedIds.includes(project.id)}
                               onCheckedChange={(checked) => onSelectOne(project.id, checked as boolean)}
@@ -1407,6 +1411,7 @@ export const ProjectsTableView = ({
                                 column.align === 'right' && 'text-right',
                                 column.align === 'center' && 'text-center'
                               )}
+                              onClick={colKey === 'actions' ? (e) => e.stopPropagation() : undefined}
                             >
                               {column.render(project)}
                             </TableCell>

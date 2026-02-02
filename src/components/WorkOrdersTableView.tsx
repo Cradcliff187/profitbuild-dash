@@ -317,6 +317,7 @@ export const WorkOrdersTableView = ({
                 key={workOrder.id}
                 title={workOrder.project_name}
                 subtitle={`${workOrder.project_number}${workOrder.client_name ? ` • ${workOrder.client_name}` : ""}`}
+                onTap={() => handleViewDetails(workOrder)}
                 badge={{
                   label: workOrder.status.replace("_", " ").toUpperCase(),
                   className: (() => {
@@ -566,9 +567,13 @@ export const WorkOrdersTableView = ({
               </TableHeader>
               <TableBody>
                 {workOrders.map((workOrder) => (
-                  <TableRow key={workOrder.id} className="h-9 hover:bg-muted/50 even:bg-muted/20">
+                  <TableRow 
+                    key={workOrder.id} 
+                    className="h-9 hover:bg-muted/50 even:bg-muted/20 cursor-pointer"
+                    onClick={() => handleViewDetails(workOrder)}
+                  >
                     {onSelectOne && (
-                      <TableCell className="p-1.5">
+                      <TableCell className="p-1.5" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedIds.includes(workOrder.id)}
                           onCheckedChange={(checked) => onSelectOne(workOrder.id, checked as boolean)}
@@ -775,7 +780,7 @@ export const WorkOrdersTableView = ({
                           );
                         case "actions":
                           return (
-                            <TableCell key={colKey} className="p-1.5 text-right">
+                            <TableCell key={colKey} className="p-1.5 text-right" onClick={(e) => e.stopPropagation()}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">

@@ -1,10 +1,18 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, File, X, FileText } from 'lucide-react';
+import { Upload, File, X, FileText, Eye, Download, Printer, MoreHorizontal, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isIOSPWA } from '@/utils/platform';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface QuoteAttachmentUploadProps {
   projectId: string;
@@ -13,6 +21,8 @@ interface QuoteAttachmentUploadProps {
   existingFile?: { url: string; name: string };
   disabled?: boolean;
   relatedQuoteId?: string;
+  /** When provided, View opens in the same preview modal as contracts instead of a new tab */
+  onViewDocument?: (url: string, fileName: string) => void;
 }
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
@@ -30,7 +40,8 @@ export function QuoteAttachmentUpload({
   onRemove,
   existingFile,
   disabled = false,
-  relatedQuoteId
+  relatedQuoteId,
+  onViewDocument,
 }: QuoteAttachmentUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -223,36 +234,84 @@ export function QuoteAttachmentUpload({
     fileInputRef.current?.click();
   };
 
-  // Show existing file if provided
+  // Show existing file in contract-style card (align with Generated contracts in QuoteForm)
   if (existingFile) {
+    const isPdf = existingFile.name.toLowerCase().endsWith('.pdf');
     return (
-      <div className="border rounded-lg p-3 flex items-center justify-between bg-muted/30">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{existingFile.name}</p>
-            <p className="text-xs text-muted-foreground">Quote document attached</p>
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground truncate" title={existingFile.name}>
+                {existingFile.name}
+              </p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                Quote document attached
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(existingFile.url, '_blank')}
-            disabled={disabled}
-          >
-            View
-          </Button>
-          {onRemove && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              disabled={disabled || isUploading}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
+          <div className="shrink-0 flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={disabled}>
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                  {existingFile.name}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (onViewDocument) {
+                      onViewDocument(existingFile.url, existingFile.name);
+                    } else {
+                      window.open(existingFile.url, '_blank');
+                    }
+                  }}
+                  disabled={disabled}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </DropdownMenuItem>
+                {!isMobile && isPdf && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(existingFile.url)}`;
+                      window.open(printUrl, '_blank');
+                    }}
+                    disabled={disabled}
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => window.open(existingFile.url, '_blank')}
+                  disabled={disabled}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </DropdownMenuItem>
+                {onRemove && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={onRemove}
+                      disabled={disabled || isUploading}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remove
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     );

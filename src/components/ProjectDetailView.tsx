@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, FileSignature, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, FileText, DollarSign, Target, FileEdit, Edit, Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderForm } from "@/components/ChangeOrderForm";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProjectOption, formatProjectLabel } from "@/components/projects/ProjectOption";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
@@ -80,7 +81,6 @@ const getNavigationGroups = (): NavGroup[] => {
       label: "CONTRACTS & ESTIMATES",
       items: [
         { title: "Estimates & Quotes", url: "estimates", icon: FileText },
-        { title: "Contracts", url: "contracts", icon: FileSignature },
         { title: "Change Orders", url: "changes", icon: FileEdit },
       ],
     },
@@ -119,7 +119,6 @@ const getSectionLabel = (section: string): string => {
     '': 'Overview',
     'overview': 'Overview',
     'estimates': 'Estimates & Quotes',
-    'contracts': 'Contracts',
     'changes': 'Change Orders',
     'expenses': 'Expenses',
     'control': 'Line Item Control',
@@ -136,7 +135,6 @@ const getSectionIcon = (section: string) => {
     '': Building2,
     'overview': Building2,
     'estimates': FileText,
-    'contracts': FileSignature,
     'changes': FileEdit,
     'expenses': DollarSign,
     'control': Target,
@@ -168,8 +166,11 @@ export const ProjectDetailView = () => {
   const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Secondary panel collapse state
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  // Secondary panel collapse state with persistence
+  const [panelCollapsed, setPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem('projectSidebarCollapsed');
+    return saved === 'true';
+  });
   
   // Mobile nav sheet state
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -192,6 +193,23 @@ export const ProjectDetailView = () => {
       queryClient.invalidateQueries({ queryKey: ['project-media'] });
     }
   }, [location.state, queryClient]);
+
+  // Persist sidebar collapse state
+  useEffect(() => {
+    localStorage.setItem('projectSidebarCollapsed', String(panelCollapsed));
+  }, [panelCollapsed]);
+
+  // Keyboard shortcut: Cmd/Ctrl+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        setPanelCollapsed(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, []);
 
 
   const loadProjectOptions = async () => {
@@ -947,18 +965,46 @@ export const ProjectDetailView = () => {
 
   // Desktop: Secondary panel with main content
   return (
+    <TooltipProvider>
     <div className="flex h-screen overflow-hidden">
       {/* Secondary Navigation Panel - Sticky */}
       <aside
           className={cn(
             "sticky top-0 self-start h-screen border-r border-border/50",
-            "bg-white transition-all duration-200 flex flex-col shrink-0",
+            "bg-white transition-all duration-200 flex flex-col shrink-0 relative",
             panelCollapsed ? "w-14" : "w-52"  // 56px collapsed, 208px expanded
           )}
       >
         <DesktopNavContent />
 
-        {/* Collapse Toggle */}
+        {/* Hover-Revealed Collapse Toggle Handle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setPanelCollapsed(!panelCollapsed)}
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 -right-3 z-50",
+                "w-6 h-16 flex items-center justify-center",
+                "opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-200",
+                "group cursor-pointer outline-none"
+              )}
+              aria-label={panelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <div className={cn(
+                "w-1 h-12 rounded-full bg-border group-hover:bg-primary/60 group-focus:bg-primary/60 transition-all",
+                panelCollapsed && "bg-primary/40"
+              )} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            <p className="text-xs">
+              {panelCollapsed ? "Expand" : "Collapse"} sidebar
+              <kbd className="ml-1.5 px-1 py-0.5 text-[10px] bg-muted rounded border">⌘B</kbd>
+            </p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Compact Bottom Toggle (fallback) */}
         <div className="p-2 border-t border-border/40 mt-auto">
           <Button
             variant="ghost"
@@ -968,6 +1014,7 @@ export const ProjectDetailView = () => {
               panelCollapsed && "px-0"
             )}
             onClick={() => setPanelCollapsed(!panelCollapsed)}
+            title={panelCollapsed ? "Expand (⌘B)" : "Collapse (⌘B)"}
           >
             {panelCollapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -1190,5 +1237,6 @@ export const ProjectDetailView = () => {
       </Dialog>
       </div>
     </div>
+    </TooltipProvider>
   );
 };

@@ -32,6 +32,7 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
   const [loadError, setLoadError] = useState(false);
   const [showDownloadFallback, setShowDownloadFallback] = useState(false);
   const contentLoadedRef = useRef(false);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   contentLoadedRef.current = contentLoaded;
 
   // Detect file type from extension if not provided
@@ -82,13 +83,23 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
       setContentLoaded(false);
       setLoadError(false);
       setShowDownloadFallback(false);
-      
-      // On mobile, show download fallback after 3 seconds if content hasn't loaded
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+
+      // On mobile, show download fallback after 2s if content hasn't loaded (align with training)
       if (isMobile) {
-        const fallbackTimer = setTimeout(() => {
+        fallbackTimerRef.current = setTimeout(() => {
           setShowDownloadFallback(true);
-        }, 3000);
-        return () => clearTimeout(fallbackTimer);
+          fallbackTimerRef.current = null;
+        }, 2000);
+        return () => {
+          if (fallbackTimerRef.current) {
+            clearTimeout(fallbackTimerRef.current);
+            fallbackTimerRef.current = null;
+          }
+        };
       }
 
       // On desktop, show download fallback after 10s if iframe hasn't loaded
@@ -124,36 +135,85 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
 
         <div className="flex-1 overflow-hidden bg-muted/20 flex flex-col relative">
           {isMobile ? (
-            // Mobile: Download-first approach
-            <div className="flex flex-col items-center justify-center gap-4 p-6 h-full">
-              <div className="flex flex-col items-center gap-3 max-w-md">
-                <FileText className="h-16 w-16 text-muted-foreground" />
-                <div className="text-center space-y-2">
-                  <p className="text-sm font-medium">Preview not available on mobile</p>
-                  <p className="text-xs text-muted-foreground">
-                    For best experience, download and open in {getAppName()}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 w-full mt-4">
-                  <Button 
-                    onClick={handleDownload} 
-                    size="default"
-                    className="w-full min-h-[44px]"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download {detectedFileType === 'word' ? 'Document' : detectedFileType === 'excel' ? 'Spreadsheet' : 'Presentation'}
-                  </Button>
-                  <Button 
-                    onClick={handleOpenInNewTab} 
-                    variant="outline"
-                    size="default"
-                    className="w-full min-h-[44px]"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open in New Tab
-                  </Button>
-                </div>
+            // Mobile: Viewer-first with fallback (align with TrainingViewer presentation flow)
+            <div className="flex flex-col p-4 gap-3 overflow-auto">
+              {/* Top section: primary actions + helper text */}
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={handleDownload}
+                  size="default"
+                  className="w-full min-h-[44px]"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download {detectedFileType === 'word' ? 'Document' : detectedFileType === 'excel' ? 'Spreadsheet' : 'Presentation'}
+                </Button>
+                <Button
+                  onClick={handleOpenInNewTab}
+                  variant="outline"
+                  size="default"
+                  className="w-full min-h-[44px]"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open in New Tab
+                </Button>
+                <p className="text-xs text-muted-foreground text-center px-2">
+                  For best experience on mobile, download and open in {getAppName()}
+                </p>
               </div>
+
+              {/* Fallback UI when viewer fails or times out */}
+              {showDownloadFallback && !contentLoaded && (
+                <div className="flex flex-col items-center justify-center gap-4 p-6 border rounded-lg bg-muted/20">
+                  <FileText className="h-16 w-16 text-muted-foreground" />
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium">Preview not available on mobile</p>
+                    <p className="text-xs text-muted-foreground">
+                      For best experience, download and open in {getAppName()}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full max-w-sm">
+                    <Button onClick={handleDownload} size="default" className="w-full min-h-[44px]">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download {detectedFileType === 'word' ? 'Document' : detectedFileType === 'excel' ? 'Spreadsheet' : 'Presentation'}
+                    </Button>
+                    <Button onClick={handleOpenInNewTab} variant="outline" size="default" className="w-full min-h-[44px]">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Viewer: Google Docs Viewer iframe (attempt first, fallback above when timer/error) */}
+              {!showDownloadFallback && (
+                <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
+                  {!contentLoaded && !loadError && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Loading document...</p>
+                      </div>
+                    </div>
+                  )}
+                  <iframe
+                    src={googleViewerUrl}
+                    title={fileName}
+                    className="absolute inset-0 w-full h-full rounded-lg border-0"
+                    onLoad={() => {
+                      setContentLoaded(true);
+                      setLoadError(false);
+                      if (fallbackTimerRef.current) {
+                        clearTimeout(fallbackTimerRef.current);
+                        fallbackTimerRef.current = null;
+                      }
+                    }}
+                    onError={() => {
+                      setLoadError(true);
+                      setShowDownloadFallback(true);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             // Desktop: Embedded viewer with download option
