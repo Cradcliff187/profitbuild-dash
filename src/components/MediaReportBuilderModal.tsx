@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
@@ -57,6 +57,9 @@ export function MediaReportBuilderModal({
   const [reportSummary, setReportSummary] = useState('');
   const [showVoiceSummaryModal, setShowVoiceSummaryModal] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<'print' | 'download' | 'email'>('print');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientName, setRecipientName] = useState(clientName || '');
 
   // Reset state on modal close
   useEffect(() => {
@@ -69,6 +72,68 @@ export function MediaReportBuilderModal({
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
+
+  /**
+   * Render HTML in a hidden iframe and trigger the browser's print dialog.
+   * The user can then print to paper or choose "Save as PDF".
+   */
+  const printHtmlReport = (html: string) => {
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      toast.error('Could not open print preview');
+      document.body.removeChild(iframe);
+      return;
+    }
+
+    // Write the report HTML into the iframe
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    // Wait for images to load before printing
+    const images = iframeDoc.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // Don't block print on failed images
+          }
+        })
+    );
+
+    Promise.all(imagePromises).then(() => {
+      // Small delay to ensure rendering is complete
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+
+        // Clean up iframe after print dialog closes
+        // The onafterprint event fires when the dialog closes (print or cancel)
+        iframe.contentWindow?.addEventListener('afterprint', () => {
+          document.body.removeChild(iframe);
+        });
+
+        // Fallback cleanup if afterprint doesn't fire (some mobile browsers)
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 60000); // 60 second fallback
+      }, 500);
+    });
+  };
 
   const handleGenerateHTMLReport = async () => {
     setIsGenerating(true);
@@ -83,83 +148,112 @@ export function MediaReportBuilderModal({
         return;
       }
 
-      console.log('🎨 Generating HTML from edge function...');
-      
-      // Step 1: Get HTML from edge function
-      const { data: htmlString, error } = await supabase.functions.invoke('generate-media-report', {
-        body: {
-          projectId,
-          mediaIds,
-          reportTitle: reportTitle || `${projectName} - Media Report`,
-          format: 'story', // Always use story timeline format
-          summary: reportSummary.trim() || undefined,
-        },
-      });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to generate HTML');
+      if (deliveryMethod === 'email' && !recipientEmail) {
+        toast.error('Please enter a recipient email address');
+        return;
       }
 
-      if (!htmlString || typeof htmlString !== 'string') {
-        throw new Error('Invalid HTML response from server');
-      }
-
-      console.log(`✅ HTML received (${(htmlString.length / 1024).toFixed(1)}KB)`);
-      console.log('🎯 Converting HTML to PDF in browser...');
-
-      // Update progress indicator
-      setGenerationProgress(selectedMedia.length * 0.5);
-
-      // Step 2: Convert HTML to PDF client-side
-      const fileName = `${projectNumber}_Professional_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      console.log(`🎨 Generating report (${deliveryMethod} delivery)...`);
       
-      const options = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: fileName,
-        image: { 
-          type: 'jpeg' as const, 
-          quality: 0.95
-        },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          letterRendering: true,
-        },
-        jsPDF: { 
-          unit: 'mm' as const, 
-          format: 'a4' as const, 
-          orientation: 'portrait' as const,
-          compress: true
-        },
-        pagebreak: { 
-          mode: ['avoid-all', 'css', 'legacy'],
-          before: '.page-break',
-          after: '.page-break-after',
-          avoid: ['img', '.no-break']
-        }
+      // Build request
+      const requestBody: Record<string, unknown> = {
+        projectId,
+        mediaIds,
+        reportTitle: reportTitle || `${projectName} - Media Report`,
+        format: 'story',
+        summary: reportSummary.trim() || undefined,
+        delivery: deliveryMethod,
       };
 
-      // Convert and auto-download
-      await html2pdf()
-        .set(options)
-        .from(htmlString)
-        .save();
+      if (deliveryMethod === 'email') {
+        requestBody.recipientEmail = recipientEmail;
+        requestBody.recipientName = recipientName || undefined;
+      }
 
-      console.log('✅ PDF generated and downloaded');
-      
-      toast.success('Professional PDF report generated!', {
-        description: `${selectedMedia.length} items • ${fileName}`
-      });
-      
+      setGenerationProgress(selectedMedia.length * 0.3);
+
+      const { data, error } = await supabase.functions.invoke(
+        'generate-media-report',
+        { body: requestBody }
+      );
+
+      if (error) {
+        throw new Error(error.message || 'Failed to generate report');
+      }
+
+      setGenerationProgress(selectedMedia.length * 0.7);
+
+      // ── Handle each delivery method ──────────────────────
+
+      if (deliveryMethod === 'email') {
+        // Email path: response is JSON
+        const result = typeof data === 'string' ? JSON.parse(data) : data;
+        if (result.success) {
+          toast.success('Report emailed successfully!', {
+            description: `Sent to ${recipientEmail}`,
+          });
+        } else {
+          throw new Error(result.error || 'Email delivery failed');
+        }
+      } else if (deliveryMethod === 'print') {
+        // Print path: render HTML in iframe → window.print()
+        if (!data || typeof data !== 'string') {
+          throw new Error('Invalid HTML response from server');
+        }
+
+        printHtmlReport(data);
+
+        toast.success('Print dialog opened', {
+          description: 'Choose "Save as PDF" to save a copy, or print directly.',
+        });
+      } else {
+        // Download path: existing html2pdf.js flow
+        if (!data || typeof data !== 'string') {
+          throw new Error('Invalid HTML response from server');
+        }
+
+        const fileName = `${projectNumber}_Professional_Report_${format(
+          new Date(),
+          'yyyy-MM-dd'
+        )}.pdf`;
+
+        const options = {
+          margin: [10, 10, 10, 10] as [number, number, number, number],
+          filename: fileName,
+          image: { type: 'jpeg' as const, quality: 0.95 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            letterRendering: true,
+          },
+          jsPDF: {
+            unit: 'mm' as const,
+            format: 'a4' as const,
+            orientation: 'portrait' as const,
+            compress: true,
+          },
+          pagebreak: {
+            mode: ['avoid-all', 'css', 'legacy'],
+            before: '.page-break',
+            after: '.page-break-after',
+            avoid: ['img', '.no-break'],
+          },
+        };
+
+        await html2pdf().set(options).from(data).save();
+
+        toast.success('PDF downloaded!', {
+          description: `${selectedMedia.length} items • ${fileName}`,
+        });
+      }
+
       onComplete();
       onOpenChange(false);
-
     } catch (error) {
       console.error('❌ Report generation failed:', error);
       toast.error('Failed to generate report', {
-        description: (error as Error).message
+        description: (error as Error).message,
       });
     } finally {
       setIsGenerating(false);
@@ -350,6 +444,81 @@ export function MediaReportBuilderModal({
               )}
             </div>
 
+            {/* Delivery Method */}
+            <div className={cn(isMobile ? "space-y-1.5" : "space-y-3")}>
+              <Label className={cn(isMobile ? "text-xs" : "text-sm")}>
+                Delivery Method
+              </Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={deliveryMethod === 'print' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDeliveryMethod('print')}
+                  className="flex-1"
+                  disabled={isGenerating}
+                >
+                  <Printer className="h-4 w-4 mr-1" />
+                  {isMobile ? 'Print' : 'Print / Save PDF'}
+                </Button>
+                <Button
+                  type="button"
+                  variant={deliveryMethod === 'download' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDeliveryMethod('download')}
+                  className="flex-1"
+                  disabled={isGenerating}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+                <Button
+                  type="button"
+                  variant={deliveryMethod === 'email' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDeliveryMethod('email')}
+                  className="flex-1"
+                  disabled={isGenerating}
+                >
+                  <Mail className="h-4 w-4 mr-1" />
+                  Email
+                </Button>
+              </div>
+
+              {deliveryMethod === 'print' && (
+                <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                  Opens your device's print dialog. Choose "Save as PDF" to save a copy,
+                  or print directly.
+                </p>
+              )}
+
+              {deliveryMethod === 'email' && (
+                <div className={cn("space-y-2 pt-2")}>
+                  <div>
+                    <Label className={cn(isMobile ? "text-[10px]" : "text-xs")}>Recipient Email *</Label>
+                    <Input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder="client@example.com"
+                      className={cn("mt-1", isMobile ? "h-8 text-xs" : "h-9")}
+                      disabled={isGenerating}
+                    />
+                  </div>
+                  <div>
+                    <Label className={cn(isMobile ? "text-[10px]" : "text-xs")}>Recipient Name</Label>
+                    <Input
+                      value={recipientName}
+                      onChange={(e) => setRecipientName(e.target.value)}
+                      placeholder="Client name"
+                      className={cn("mt-1", isMobile ? "h-8 text-xs" : "h-9")}
+                      disabled={isGenerating}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Project Info Preview */}
             <div className={cn("bg-muted/50 rounded-lg space-y-1", isMobile ? "p-2 text-[10px]" : "p-3 text-xs")}>
               <div className="flex justify-between">
@@ -406,7 +575,11 @@ export function MediaReportBuilderModal({
           </Button>
           <Button
             onClick={handleGenerateHTMLReport}
-            disabled={isGenerating || selectedMedia.length === 0}
+            disabled={
+              isGenerating ||
+              selectedMedia.length === 0 ||
+              (deliveryMethod === 'email' && !recipientEmail)
+            }
             size={isMobile ? "sm" : "default"}
           >
             {isGenerating ? (
@@ -416,8 +589,18 @@ export function MediaReportBuilderModal({
               </>
             ) : (
               <>
-                <Download className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
-                Generate Report
+                {deliveryMethod === 'print' ? (
+                  <Printer className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                ) : deliveryMethod === 'email' ? (
+                  <Mail className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                ) : (
+                  <Download className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                )}
+                {deliveryMethod === 'print'
+                  ? `Print Report (${selectedMedia.length})`
+                  : deliveryMethod === 'email'
+                    ? `Email Report (${selectedMedia.length})`
+                    : `Download PDF (${selectedMedia.length})`}
               </>
             )}
           </Button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +30,7 @@ export default function FieldMedia() {
   const isMobile = useIsMobile();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(routeProjectId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');
+  const controlsRef = useRef<HTMLDivElement>(null);
 
   // Sync URL with selection
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function FieldMedia() {
               Capture Photo
             </Button>
             <Button 
+              variant="outline"
               size="sm"
               onClick={() => selectedProjectId && navigate(`/field-media/${selectedProjectId}/capture-video`)}
               disabled={!selectedProjectId}
@@ -152,7 +154,7 @@ export default function FieldMedia() {
                     })}
                   </TabsList>
                   {/* Controls will be rendered by ProjectMediaGallery via a portal */}
-                  <div id="field-media-controls" className="flex items-center" />
+                  <div ref={controlsRef} id="field-media-controls" className="flex items-center" />
                 </div>
 
                 {tabOptions.map((tab) => (
@@ -166,6 +168,7 @@ export default function FieldMedia() {
                         address={project.address}
                         externalActiveTab={tab.value}
                         hideInternalTabs={true}
+                        controlsContainerRef={controlsRef}
                       />
                     </ErrorBoundary>
                   </TabsContent>

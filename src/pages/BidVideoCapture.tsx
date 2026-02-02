@@ -1,107 +1,66 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Video, Mic, MapPin, Clock, Check, RotateCcw, Smartphone, X } from 'lucide-react';
+import { Video, Mic, MapPin, Check, Smartphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useCaptureMetadata } from '@/hooks/useCaptureMetadata';
+import { useCaptionFlow } from '@/hooks/useCaptionFlow';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
-import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
-import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
-import { isWebPlatform, isIOSDevice } from '@/utils/platform';
+import { getVideoDuration } from '@/utils/videoUtils';
+import { isWebPlatform } from '@/utils/platform';
 import { convertMovToM4a } from '@/utils/movToM4a';
 import { toast } from 'sonner';
-import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 
 export default function BidVideoCapture() {
   const { id: bidId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const { startRecording, isRecording } = useVideoCapture();
-  const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useBidMediaUpload();
-  const { transcribe, isTranscribing, error: transcriptionError } = useAudioTranscription();
-  const { reverseGeocode } = useReverseGeocode();
-  
+  const { transcribe } = useAudioTranscription();
+  const metadata = useCaptureMetadata();
+  const captions = useCaptionFlow();
+
   const [capturedVideo, setCapturedVideo] = useState<{
     path?: string;
     webPath?: string;
     format: string;
   } | null>(null);
-  const [showCaptionModal, setShowCaptionModal] = useState(false);
-  const [videoCaption, setVideoCaption] = useState('');
-  const [locationName, setLocationName] = useState<string>('');
-  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [isAutoTranscribing, setIsAutoTranscribing] = useState(false);
-  const [isIOS] = useState(isIOSDevice());
-  const [captureCount, setCaptureCount] = useState(0);
 
   useEffect(() => {
-    // Refresh GPS on mount
-    getLocation();
+    void metadata.startLocationCapture();
   }, []);
 
-  // Reverse geocode when coordinates change
-  useEffect(() => {
-    if (coordinates) {
-      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
-        if (result) {
-          setLocationName(result.shortName);
-        } else {
-          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
-        }
-      });
-    }
-  }, [coordinates, reverseGeocode]);
-
   const handleCapture = async () => {
-    // Parallelize GPS and video capture to preserve user gesture
     const capturePromise = startRecording();
-    const gpsPromise = getLocation();
-    
-    const [video, location] = await Promise.all([capturePromise, gpsPromise]);
-    
-    if (location) {
-      const age = Date.now() - location.timestamp;
-      const ageSeconds = Math.floor(age / 1000);
-      
-      if (ageSeconds < 10) {
-        setGpsAccuracy(location.accuracy);
-        toast.success(`GPS refreshed (±${location.accuracy.toFixed(0)}m)`);
+    await metadata.startLocationCapture();
+
+    const video = await capturePromise;
+
+    if (metadata.coordinates) {
+      const age = metadata.gpsAge ?? 0;
+      if (age < 10000) {
+        toast.success(`GPS refreshed (±${metadata.coordinates.accuracy.toFixed(0)}m)`);
       } else {
         toast.warning('GPS data is stale', {
           description: 'Location may not be accurate',
         });
       }
     }
-    
+
     if (video) {
-      const newCaptureCount = captureCount + 1;
-      setCaptureCount(newCaptureCount);
-      
       setCapturedVideo(video);
-      setGpsAccuracy(location?.accuracy || null);
-      
-      // Auto-transcribe video directly (OpenAI Whisper supports video formats)
+      captions.onCaptureSuccess(!!metadata.coordinates);
       setIsAutoTranscribing(true);
       try {
-        console.log('🎬 Fetching video from path:', video.webPath);
         const response = await fetch(video.webPath || '');
-        console.log('✅ Fetch response:', response.ok, response.status);
-        
         if (response.ok) {
           let blob = await response.blob();
-          console.log('✅ Video blob created:', {
-            size: `${(blob.size / 1024 / 1024).toFixed(2)} MB`,
-            type: blob.type
-          });
-          
-          // Convert iOS MOV to M4A for Whisper compatibility
           let mimeType = blob.type || `video/${video.format}`;
           if (blob.type.includes('video/quicktime')) {
             toast.info('Converting video for transcription...', { duration: 3000 });
@@ -109,7 +68,6 @@ export default function BidVideoCapture() {
               const converted = await convertMovToM4a(blob);
               blob = converted.blob;
               mimeType = converted.mime;
-              console.log('✅ MOV converted to M4A');
             } catch (conversionError) {
               console.error('❌ Conversion failed:', conversionError);
               toast.error('Video conversion failed', {
@@ -117,25 +75,22 @@ export default function BidVideoCapture() {
               });
             }
           }
-          
+
           const file = new File([blob], `video.${mimeType.split('/')[1]}`, { type: mimeType });
-          console.log('🎤 Transcribing video file:', file.name, file.type);
-          
-          // Convert File to base64 for transcription
           const reader = new FileReader();
           const base64Promise = new Promise<string>((resolve) => {
             reader.onloadend = () => {
               const base64 = reader.result as string;
-              resolve(base64.split(',')[1]); // Remove data:audio/... prefix
+              resolve(base64.split(',')[1]);
             };
             reader.readAsDataURL(file);
           });
-          
+
           const audioBase64 = await base64Promise;
           const transcript = await transcribe(audioBase64, mimeType);
-          
+
           if (transcript) {
-            setVideoCaption(transcript);
+            captions.setPendingCaption(transcript);
             const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
             toast.success(`Audio transcribed (${wordCount} word${wordCount !== 1 ? 's' : ''})`);
           } else {
@@ -160,16 +115,16 @@ export default function BidVideoCapture() {
   const handleUploadAndContinue = async () => {
     if (!capturedVideo || !bidId) return;
 
+    if (!captions.pendingCaption.trim()) {
+      captions.onCaptionSkipped();
+    }
+
     try {
       const response = await fetch(capturedVideo.webPath || '');
-      if (!response.ok) {
-        throw new Error('Failed to fetch video file');
-      }
+      if (!response.ok) throw new Error('Failed to fetch video file');
 
       const blob = await response.blob();
       const fileSizeMB = blob.size / (1024 * 1024);
-
-      // Warn for large files
       if (fileSizeMB > 50) {
         toast.warning(`Large video: ${fileSizeMB.toFixed(1)}MB`, {
           description: 'Upload may take several minutes',
@@ -177,42 +132,35 @@ export default function BidVideoCapture() {
         });
       }
 
-      const takenAt = new Date().toISOString();
       const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
-        type: `video/${capturedVideo.format}`
+        type: `video/${capturedVideo.format}`,
       });
-
-      // Get video duration from the blob
       const duration = await getVideoDuration(file);
+      const meta = metadata.getMetadataForUpload();
 
       await upload({
         bid_id: bidId,
         file,
-        caption: videoCaption || undefined,
+        caption: captions.pendingCaption || undefined,
         duration: duration || undefined,
-        // GPS and location metadata
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        altitude: coordinates?.altitude,
-        location_name: locationName || undefined,
-        // Capture metadata
-        taken_at: takenAt,
-        device_model: navigator.userAgent || undefined,
-        upload_source: 'camera',
+        latitude: meta.latitude,
+        longitude: meta.longitude,
+        altitude: meta.altitude ?? undefined,
+        location_name: meta.locationName,
+        taken_at: meta.takenAt,
+        device_model: meta.deviceModel,
+        upload_source: meta.uploadSource,
       });
 
-      // Show success toast
-      const wordCount = videoCaption ? videoCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
+      const wordCount = captions.pendingCaption ? captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
       toast.success(
-        videoCaption
+        captions.pendingCaption
           ? `Video uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
           : 'Video uploaded without caption'
       );
 
-      // Reset for next video
       setCapturedVideo(null);
-      setVideoCaption('');
-      setGpsAccuracy(null);
+      captions.setPendingCaption('');
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error('Failed to upload video');
@@ -220,15 +168,13 @@ export default function BidVideoCapture() {
   };
 
   const handleSaveCaption = (caption: string) => {
-    setVideoCaption(caption);
-    setShowCaptionModal(false);
-    toast.success('Caption saved - ready to upload');
+    captions.onCaptionSaved(caption);
+    captions.setShowCaptionModal(false);
   };
 
   const handleDiscard = () => {
     setCapturedVideo(null);
-    setVideoCaption('');
-    setGpsAccuracy(null);
+    captions.setPendingCaption('');
     toast.info('Video discarded');
   };
 
@@ -259,19 +205,19 @@ export default function BidVideoCapture() {
           {/* GPS Info */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
-              <MapPin className={`h-4 w-4 ${coordinates ? 'text-green-500' : 'text-muted-foreground'}`} />
+              <MapPin className={`h-4 w-4 ${metadata.coordinates ? 'text-green-500' : 'text-muted-foreground'}`} />
               <span className="text-sm">
-                {coordinates 
-                  ? `GPS: ±${coordinates.accuracy.toFixed(0)}m`
-                  : isLoadingLocation 
-                    ? 'Getting GPS...' 
+                {metadata.coordinates
+                  ? `GPS: ±${metadata.coordinates.accuracy.toFixed(0)}m`
+                  : metadata.isLoadingLocation
+                    ? 'Getting GPS...'
                     : 'GPS unavailable'}
               </span>
             </div>
-            {gpsAccuracy && (
-              <Badge variant="outline" className="text-xs">
-                ±{gpsAccuracy.toFixed(0)}m
-              </Badge>
+            {metadata.coordinates && (
+              <span className="text-xs text-muted-foreground">
+                ±{metadata.coordinates.accuracy.toFixed(0)}m
+              </span>
             )}
           </div>
 
@@ -316,10 +262,10 @@ export default function BidVideoCapture() {
                   className="w-full h-full object-contain"
                   playsInline
                 />
-                {gpsAccuracy && (
+                {metadata.coordinates?.accuracy != null && (
                   <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
-                    ±{gpsAccuracy.toFixed(0)}m
+                    ±{metadata.coordinates.accuracy.toFixed(0)}m
                   </div>
                 )}
               </div>
@@ -336,19 +282,19 @@ export default function BidVideoCapture() {
 
               {/* Caption Section */}
               <div className="space-y-2">
-                {videoCaption && (
+                {captions.pendingCaption && (
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <div className="text-xs text-muted-foreground mb-1">
                           Caption {isAutoTranscribing ? '(transcribing...)' : ''}
                         </div>
-                        <div className="text-sm">{videoCaption}</div>
+                        <div className="text-sm">{captions.pendingCaption}</div>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setShowCaptionModal(true)}
+                        onClick={() => captions.setShowCaptionModal(true)}
                         disabled={isAutoTranscribing}
                       >
                         Edit
@@ -357,10 +303,10 @@ export default function BidVideoCapture() {
                   </div>
                 )}
 
-                {!videoCaption && !isAutoTranscribing && (
+                {!captions.pendingCaption && !isAutoTranscribing && (
                   <Button
                     variant="outline"
-                    onClick={() => setShowCaptionModal(true)}
+                    onClick={() => captions.setShowCaptionModal(true)}
                     className="w-full"
                   >
                     <Mic className="h-4 w-4 mr-2" />
@@ -411,9 +357,9 @@ export default function BidVideoCapture() {
 
         {/* Caption Modal */}
         <QuickCaptionModal
-          photo={{ file_url: '', caption: videoCaption } as any}
-          open={showCaptionModal}
-          onClose={() => setShowCaptionModal(false)}
+          photo={{ file_url: '', caption: captions.pendingCaption } as any}
+          open={captions.showCaptionModal}
+          onClose={() => captions.setShowCaptionModal(false)}
           onSave={handleSaveCaption}
         />
       </div>

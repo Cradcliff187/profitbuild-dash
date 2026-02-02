@@ -50,6 +50,9 @@ export const processQueue = async (): Promise<void> => {
         case 'media_upload':
           await syncMediaUpload(operation);
           break;
+        case 'bid_media_upload':
+          await syncBidMediaUpload(operation);
+          break;
         default:
           console.warn('Unknown operation type:', operation.type);
       }
@@ -167,6 +170,86 @@ const syncMediaUpload = async (operation: QueuedOperation) => {
     console.log('📸 Media synced:', data?.id);
   } catch (error) {
     console.error('Failed to sync media:', error);
+    throw error;
+  }
+};
+
+const syncBidMediaUpload = async (operation: QueuedOperation) => {
+  const { payload } = operation;
+
+  try {
+    const file = await base64ToFile(
+      payload.fileData,
+      payload.fileName,
+      payload.fileType
+    );
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Compress images
+    let fileToUpload = file;
+    if (file.type.startsWith('image/')) {
+      const { compressImage } = await import('@/utils/imageCompression');
+      fileToUpload = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.85,
+        targetSizeKB: 500,
+      });
+    }
+
+    const fileType = file.type.startsWith('image/')
+      ? 'image'
+      : file.type.startsWith('video/')
+        ? 'video'
+        : 'document';
+    const bucket = fileType === 'document' ? 'bid-documents' : 'bid-media';
+
+    // Generate storage path
+    const { generateStoragePath } = await import('@/utils/mediaMetadata');
+    const storagePath = generateStoragePath(user.id, payload.bidId, fileToUpload.name);
+
+    // Upload to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(storagePath, fileToUpload, { cacheControl: '3600', upsert: false });
+
+    if (uploadError) throw uploadError;
+
+    // Create database record with relative path (NOT public URL)
+    const { error: dbError } = await supabase
+      .from('bid_media')
+      .insert({
+        bid_id: payload.bidId,
+        file_url: uploadData.path,
+        file_name: fileToUpload.name,
+        mime_type: fileToUpload.type,
+        file_type: fileType,
+        file_size: fileToUpload.size,
+        caption: payload.caption || null,
+        description: payload.description || null,
+        duration: payload.duration || null,
+        latitude: payload.latitude || null,
+        longitude: payload.longitude || null,
+        altitude: payload.altitude || null,
+        location_name: payload.locationName || null,
+        taken_at: payload.takenAt || null,
+        device_model: payload.deviceModel || null,
+        upload_source: payload.uploadSource || 'web',
+        uploaded_by: user.id,
+      });
+
+    if (dbError) {
+      // Rollback storage
+      await supabase.storage.from(bucket).remove([uploadData.path]);
+      throw dbError;
+    }
+
+    console.log('📸 Bid media synced');
+  } catch (error) {
+    console.error('Failed to sync bid media:', error);
     throw error;
   }
 };

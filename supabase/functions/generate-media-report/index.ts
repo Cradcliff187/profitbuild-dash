@@ -1,4 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import {
+  fetchBranding,
+  buildBrandedReport,
+  buildBrandedEmail,
+  escapeHtml,
+  type BrandingConfig,
+} from '../_shared/brandedTemplate.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,8 +16,12 @@ interface ReportRequest {
   projectId: string;
   mediaIds: string[];
   reportTitle?: string;
-  format?: 'detailed' | 'story';
+  format?: string;  // Accepted but only 'story' is used
   summary?: string;
+  // NEW: delivery options
+  delivery?: 'print' | 'download' | 'email';
+  recipientEmail?: string;
+  recipientName?: string;
 }
 
 interface MediaComment {
@@ -24,139 +35,76 @@ interface MediaComment {
   };
 }
 
-// HTML entity escaping helper to prevent garbled text
-function escapeHtml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     console.log('🚀 Starting media report generation...');
-    
-    // Initialize Supabase client
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse request
-    const { projectId, mediaIds, reportTitle, format = 'detailed', summary } = await req.json() as ReportRequest;
-    console.log(`📋 Request: Project ${projectId}, ${mediaIds.length} media items, format: ${format}, hasSummary: ${!!summary}`);
+    const body = (await req.json()) as ReportRequest;
+    const { projectId, mediaIds, reportTitle, summary, delivery, recipientEmail, recipientName } = body;
 
-    // Fetch company branding (same as send-auth-email pattern)
-    console.log('🎨 Fetching company branding...');
-    const { data: branding } = await supabase
-      .from('company_branding_settings')
-      .select('*')
-      .single();
-
-    const brandingData = {
-      primaryColor: branding?.primary_color || '#cf791d',
-      secondaryColor: branding?.secondary_color || '#1b2b43',
-      accentColor: branding?.accent_color || '#cf791d',
-      lightBgColor: branding?.light_bg_color || '#f4f7f9',
-      logoFullUrl: branding?.logo_full_url || '',
-      companyName: branding?.company_name || 'Radcliff Construction Group',
-      companyLegalName: branding?.company_legal_name || 'Radcliff Construction Group, LLC',
-    };
-    console.log('✅ Branding loaded:', brandingData.companyName);
-
-    // Fetch project data
-    console.log('📁 Fetching project data...');
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', projectId)
-      .single();
-
-    if (projectError || !project) {
-      throw new Error('Project not found');
-    }
-    console.log('✅ Project loaded:', project.project_name);
-
-    // Fetch media items with signed URLs
-    console.log('🖼️ Fetching media items...');
-    const { data: mediaItems, error: mediaError } = await supabase
-      .from('project_media')
-      .select('*')
-      .in('id', mediaIds)
-      .order('taken_at', { ascending: true });
-
-    if (mediaError) {
-      throw new Error('Failed to fetch media items: ' + mediaError.message);
-    }
-    console.log(`✅ ${mediaItems?.length || 0} media items loaded`);
-
-    // Generate signed URLs for each media item
-    const mediaWithUrls = await Promise.all(
-      (mediaItems || []).map(async (media) => {
-        try {
-          // file_url already contains the storage path
-          const storagePath = media.file_url;
-          
-          if (!storagePath) {
-            console.warn(`⚠️ Media item ${media.id} has no file_url`);
-            return media;
-          }
-
-          // Check if it's already a full URL (shouldn't happen but defensive coding)
-          if (storagePath.startsWith('http')) {
-            console.log(`✅ Media ${media.id} already has full URL`);
-            return media;
-          }
-
-          // Create signed URL using the storage path from file_url
-          const { data: signedData, error } = await supabase.storage
-            .from('project-media')
-            .createSignedUrl(storagePath, 3600); // 1 hour expiry
-
-          if (error) {
-            console.error(`❌ Failed to create signed URL for ${storagePath}:`, error.message);
-            return media; // Return original media, let HTML generation handle missing URL
-          }
-
-          if (!signedData?.signedUrl) {
-            console.warn(`⚠️ No signed URL returned for ${storagePath}`);
-            return media;
-          }
-
-          console.log(`✅ Signed URL created for media ${media.id}`);
-          
-          return {
-            ...media,
-            file_url: signedData.signedUrl, // Replace with signed URL
-          };
-        } catch (err) {
-          console.error(`❌ Exception creating signed URL for media ${media.id}:`, err);
-          return media; // Return original on exception
-        }
-      })
+    console.log(
+      `📋 Request: Project ${projectId}, ${mediaIds.length} media items, delivery: ${delivery || 'download'}`
     );
 
-    console.log(`✅ Generated ${mediaWithUrls.length} signed URLs`);
+    // ── Parallel data fetching ──────────────────────────────
+    const [branding, projectResult, mediaResult] = await Promise.all([
+      fetchBranding(supabase),
+      supabase.from('projects').select('*').eq('id', projectId).single(),
+      supabase
+        .from('project_media')
+        .select('*')
+        .in('id', mediaIds)
+        .order('taken_at', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true }),
+    ]);
 
-    // Fetch comments for these media items
-    console.log('💬 Fetching comments...');
+    if (projectResult.error || !projectResult.data) {
+      throw new Error('Project not found');
+    }
+    if (mediaResult.error) {
+      throw new Error('Failed to fetch media items: ' + mediaResult.error.message);
+    }
+
+    const project = projectResult.data;
+    const mediaItems = mediaResult.data || [];
+    console.log(`✅ Data loaded: ${mediaItems.length} media items`);
+
+    // ── Batch signed URLs (single request, not N+1) ─────────
+    const mediaPaths = mediaItems.map((m: any) => m.file_url).filter(Boolean);
+    const { data: signedUrls } = await supabase.storage
+      .from('project-media')
+      .createSignedUrls(mediaPaths, 3600); // 1 hour for report generation
+
+    const signedUrlMap = new Map<string, string>();
+    if (signedUrls) {
+      signedUrls.forEach((item: any) => {
+        if (item.signedUrl && item.path) {
+          signedUrlMap.set(item.path, item.signedUrl);
+        }
+      });
+    }
+    console.log(`✅ Batch signed URLs generated: ${signedUrlMap.size}`);
+
+    const mediaWithUrls = mediaItems.map((media: any) => ({
+      ...media,
+      file_url: signedUrlMap.get(media.file_url) || media.file_url,
+    }));
+
+    // ── Fetch comments (single query) ───────────────────────
     const { data: comments } = await supabase
       .from('media_comments')
-      .select(`
-        *,
-        profiles:user_id (full_name, email)
-      `)
+      .select(`*, profiles:user_id (full_name, email)`)
       .in('media_id', mediaIds)
       .order('created_at', { ascending: true });
 
-    // Group comments by media_id
     const commentsByMedia = new Map<string, MediaComment[]>();
     (comments || []).forEach((comment: MediaComment) => {
       if (!commentsByMedia.has(comment.media_id)) {
@@ -166,694 +114,376 @@ Deno.serve(async (req) => {
     });
     console.log(`✅ ${comments?.length || 0} comments loaded`);
 
-    // Generate HTML report
-    console.log('📝 Generating HTML report...');
-    const html = generateReportHTML({
-      branding: brandingData,
-      projectName: project.project_name,
-      projectNumber: project.project_number,
-      clientName: project.client_name,
-      address: project.address,
-      reportTitle: reportTitle || `${project.project_name} - Media Report`,
-      mediaItems: mediaWithUrls,
-      comments: commentsByMedia,
-      format: format,
-      summary: summary,
+    // ── Build report HTML using shared template ─────────────
+    const detailsHtml = `
+      <div class="detail-row">
+        <strong>Project:</strong> ${escapeHtml(project.project_name)}
+      </div>
+      <div class="detail-row">
+        <strong>Project #:</strong> ${escapeHtml(project.project_number)}
+      </div>
+      ${project.client_name ? `
+        <div class="detail-row">
+          <strong>Client:</strong> ${escapeHtml(project.client_name)}
+        </div>
+      ` : ''}
+      ${project.address ? `
+        <div class="detail-row">
+          <strong>Location:</strong> ${escapeHtml(project.address)}
+        </div>
+      ` : ''}
+      <div class="detail-row">
+        <strong>Total Media Items:</strong> ${mediaWithUrls.length}
+      </div>
+    `;
+
+    const storyBodyHtml = generateStoryTimeline(
+      branding,
+      mediaWithUrls,
+      commentsByMedia
+    );
+
+    const html = buildBrandedReport(branding, {
+      title: reportTitle || `${project.project_name} - Media Report`,
+      detailsHtml,
+      summary,
+      bodyHtml: storyBodyHtml,
+      recipientName: project.client_name || undefined,
+      additionalCss: getStoryTimelineCss(branding),
     });
-    console.log('✅ HTML generated');
-    
-    // Log HTML size for debugging
+
     const htmlSize = new TextEncoder().encode(html).length;
-    console.log(`✅ HTML report ready: ${(htmlSize / 1024).toFixed(1)}KB, ${mediaWithUrls.length} media items`);
+    console.log(`✅ HTML report ready: ${(htmlSize / 1024).toFixed(1)}KB`);
 
-    // Return HTML directly for client-side PDF conversion
+    // ── Handle email delivery ───────────────────────────────
+    if (delivery === 'email') {
+      if (!recipientEmail) {
+        return new Response(
+          JSON.stringify({ error: 'recipientEmail is required for email delivery' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`📧 Sending report via email to ${recipientEmail}`);
+
+      const resendApiKey = Deno.env.get('ResendAPI');
+      if (!resendApiKey) {
+        throw new Error('Email service not configured');
+      }
+
+      const { Resend } = await import('https://esm.sh/resend@2.0.0');
+      const resend = new Resend(resendApiKey);
+
+      // Build email-safe summary (no huge images)
+      const emailBodyHtml = `
+        <h1 style="margin: 0 0 16px; color: ${branding.secondaryColor}; font-size: 24px; font-weight: 600;">
+          ${escapeHtml(reportTitle || project.project_name + ' - Media Report')}
+        </h1>
+        <p style="margin: 0 0 24px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+          ${recipientName ? `Hi ${escapeHtml(recipientName)},` : 'Hello,'}
+        </p>
+        <p style="margin: 0 0 24px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+          Please find the latest project media report for
+          <strong>${escapeHtml(project.project_name)}</strong>
+          (${escapeHtml(project.project_number)}).
+          This report contains ${mediaWithUrls.length} media
+          item${mediaWithUrls.length !== 1 ? 's' : ''}.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+          style="background: ${branding.lightBgColor}; border-radius: 8px; border-left: 4px solid ${branding.primaryColor}; margin-bottom: 24px;">
+          <tr>
+            <td style="padding: 20px;">
+              ${detailsHtml}
+            </td>
+          </tr>
+        </table>
+
+        ${summary ? `
+          <p style="margin: 0 0 8px; color: ${branding.secondaryColor}; font-size: 14px; font-weight: 600;">
+            Report Summary
+          </p>
+          <p style="margin: 0 0 24px; color: #4a5568; font-size: 14px; line-height: 1.6;">
+            ${escapeHtml(summary)}
+          </p>
+        ` : ''}
+
+        <p style="margin: 0 0 8px; color: #4a5568; font-size: 14px; line-height: 1.6;">
+          <strong>${mediaWithUrls.length} photos</strong> captured across
+          <strong>${new Set(mediaWithUrls.map((m: any) =>
+            new Date(m.taken_at || m.created_at).toLocaleDateString()
+          )).size} day(s)</strong>.
+        </p>
+
+        <p style="margin: 24px 0 0; color: #718096; font-size: 13px; font-style: italic;">
+          For the full report with high-resolution images, please use the print/save
+          option in the ${escapeHtml(branding.companyAbbreviation)} project portal.
+        </p>
+      `;
+
+      const emailHtml = buildBrandedEmail(branding, {
+        preheaderText: `Media report: ${project.project_name} - ${mediaWithUrls.length} items`,
+        bodyHtml: emailBodyHtml,
+      });
+
+      const { data: emailResult, error: emailError } = await resend.emails.send({
+        from: `${branding.companyName} <noreply@rcgwork.com>`,
+        to: [recipientEmail],
+        subject: `${project.project_number} - Media Report: ${project.project_name}`,
+        html: emailHtml,
+      });
+
+      if (emailError) {
+        console.error('❌ Email send failed:', emailError);
+        throw new Error(`Failed to send email: ${emailError.message}`);
+      }
+
+      console.log('✅ Report email sent:', emailResult?.id);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          delivery: 'email',
+          emailId: emailResult?.id,
+          recipientEmail,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For 'print' and 'download': return HTML
     return new Response(html, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/html; charset=utf-8',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
     });
-
   } catch (error) {
     console.error('❌ Error generating report:', error);
     const err = error instanceof Error ? error : new Error(String(error));
     return new Response(
-      JSON.stringify({ 
-        error: err.message,
-        details: err.stack 
-      }),
+      JSON.stringify({ error: err.message, details: err.stack }),
       {
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
 });
 
-// Helper function: Generate detailed format (existing one-photo-per-page layout)
-function generateDetailedFormat(options: any): string {
-  return options.mediaItems.map((media: any, index: number) => {
-    const comments = options.comments.get(media.id) || [];
-    const takenDate = media.taken_at || media.created_at;
-    
-    return `
-      <div class="media-item">
-        <div class="media-image-container">
-          <div class="photo-number">Photo ${index + 1} of ${options.mediaItems.length}</div>
-          <img 
-            src="${media.file_url}" 
-            alt="${media.caption || 'Project Media'}" 
-            class="media-image"
-          >
-        </div>
-        
-        <div class="media-metadata">
-          ${(media.caption && media.caption.trim()) ? `<div class="caption">${escapeHtml(media.caption.trim())}</div>` : '<div class="caption" style="color: #a0aec0; font-style: italic;">No caption provided</div>'}
-          
-          <div class="metadata-grid">
-            <div class="metadata-row">
-              <div class="metadata-item">
-                <strong>Date & Time</strong>
-                ${new Date(takenDate).toLocaleString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-              <div class="metadata-item">
-                <strong>Media Type</strong>
-                ${media.file_type === 'video' ? 'Video' : 'Photo'}
-              </div>
-            </div>
-            
-            ${media.latitude && media.longitude ? `
-              <div class="metadata-row">
-                <div class="metadata-item">
-                  <strong>GPS Coordinates</strong>
-                  ${media.latitude.toFixed(6)}°, ${media.longitude.toFixed(6)}°
-                </div>
-                ${media.location_name ? `
-                  <div class="metadata-item">
-                    <strong>Location</strong>
-                    ${escapeHtml(media.location_name)}
-                  </div>
-                ` : '<div class="metadata-item"></div>'}
-              </div>
-            ` : media.location_name ? `
-              <div class="metadata-row">
-                <div class="metadata-item">
-                  <strong>Location</strong>
-                  ${escapeHtml(media.location_name)}
-                </div>
-                <div class="metadata-item"></div>
-              </div>
-            ` : ''}
-            
-            ${media.description ? `
-              <div class="metadata-item full-width">
-                <div>
-                  <strong>Description</strong>
-                  ${escapeHtml(media.description)}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-          
-          ${comments.length > 0 ? `
-            <div class="comments-section">
-              <div class="comments-title">
-                💬 Comments (${comments.length})
-              </div>
-              ${comments.map((comment: any) => `
-                <div class="comment">
-                  <span class="comment-author">${comment.profiles?.full_name || 'User'}:</span>
-                  ${escapeHtml(comment.comment_text)}
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
+// ================================================================
+// Story Timeline Generator
+// ================================================================
 
-// Helper function: Generate story format (compact timeline layout)
-function generateStoryFormat(options: any): string {
-  const { branding, mediaItems, comments } = options;
-  
+function generateStoryTimeline(
+  branding: BrandingConfig,
+  mediaItems: any[],
+  comments: Map<string, MediaComment[]>
+): string {
   // Group photos by date
   const photosByDate = new Map<string, any[]>();
   mediaItems.forEach((media: any) => {
-    const dateKey = new Date(media.taken_at || media.created_at).toLocaleDateString('en-US', {
+    const dateKey = new Date(
+      media.taken_at || media.created_at
+    ).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
     if (!photosByDate.has(dateKey)) {
       photosByDate.set(dateKey, []);
     }
     photosByDate.get(dateKey)!.push(media);
   });
-  
+
   return `
-    ${Array.from(photosByDate.entries()).map(([date, photos]) => `
-      <div class="story-date-group">
-        <div class="story-date-header">${date}</div>
-        
-        ${photos.map((media: any) => {
-          const mediaComments = comments.get(media.id) || [];
-          const timestamp = new Date(media.taken_at || media.created_at);
-          const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
-          
-          return `
-            <div class="story-item">
-              <div class="story-thumbnail">
-                <img src="${media.file_url}" alt="${escapeHtml(media.caption || 'Photo')}">
-              </div>
-              
-              <div class="story-content">
-                <div class="story-number">PHOTO ${globalIndex + 1}</div>
-                
-                ${media.caption ? `
-                  <div class="story-caption">${escapeHtml(media.caption)}</div>
-                ` : '<div class="story-caption" style="color: #94a3b8; font-style: italic;">No caption</div>'}
-                
-                <div class="story-meta">
-                  <div class="story-meta-item">
-                    <strong>Time:</strong> ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  ${media.location_name ? `
-                    <div class="story-meta-item">
-                      <strong>Location:</strong> ${escapeHtml(media.location_name)}
-                    </div>
-                  ` : ''}
-                  ${media.latitude && media.longitude ? `
-                    <div class="story-meta-item">
-                      <strong>GPS:</strong> ${media.latitude.toFixed(4)}°, ${media.longitude.toFixed(4)}°
-                    </div>
-                  ` : ''}
+    <div class="story-section">
+      ${Array.from(photosByDate.entries())
+        .map(
+          ([date, photos]) => `
+        <div class="story-date-group">
+          <div class="story-date-header">${date}</div>
+          ${photos
+            .map((media: any) => {
+              const mediaComments = comments.get(media.id) || [];
+              const timestamp = new Date(media.taken_at || media.created_at);
+              const globalIndex = mediaItems.findIndex(
+                (m: any) => m.id === media.id
+              );
+
+              return `
+              <div class="story-item">
+                <div class="story-thumbnail">
+                  <img src="${media.file_url}" alt="${escapeHtml(media.caption || 'Photo')}">
                 </div>
-                
-                ${media.description ? `
-                  <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
-                    ${escapeHtml(media.description)}
+                <div class="story-content">
+                  <div class="story-number">PHOTO ${globalIndex + 1}</div>
+                  ${
+                    media.caption
+                      ? `<div class="story-caption">${escapeHtml(media.caption)}</div>`
+                      : '<div class="story-caption" style="color: #94a3b8; font-style: italic;">No caption</div>'
+                  }
+                  <div class="story-meta">
+                    <div class="story-meta-item">
+                      <strong>Time:</strong> ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    ${
+                      media.location_name
+                        ? `<div class="story-meta-item"><strong>Location:</strong> ${escapeHtml(media.location_name)}</div>`
+                        : ''
+                    }
+                    ${
+                      media.latitude && media.longitude
+                        ? `<div class="story-meta-item"><strong>GPS:</strong> ${media.latitude.toFixed(4)}°, ${media.longitude.toFixed(4)}°</div>`
+                        : ''
+                    }
                   </div>
-                ` : ''}
-                
-                ${mediaComments.length > 0 ? `
-                  <div class="story-comments">
-                    ${mediaComments.map((comment: any) => `
-                      <div class="story-comment">
-                        <span class="story-comment-author">${comment.profiles?.full_name || 'User'}:</span>
-                        ${escapeHtml(comment.comment_text)}
-                      </div>
-                    `).join('')}
-                  </div>
-                ` : ''}
+                  ${
+                    media.description
+                      ? `<div style="font-size: 12px; color: #64748b; margin-top: 6px;">${escapeHtml(media.description)}</div>`
+                      : ''
+                  }
+                  ${
+                    mediaComments.length > 0
+                      ? `
+                    <div class="story-comments">
+                      ${mediaComments
+                        .map(
+                          (comment: any) => `
+                        <div class="story-comment">
+                          <span class="story-comment-author">${comment.profiles?.full_name || 'User'}:</span>
+                          ${escapeHtml(comment.comment_text)}
+                        </div>
+                      `
+                        )
+                        .join('')}
+                    </div>
+                  `
+                      : ''
+                  }
+                </div>
               </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `).join('')}
+            `;
+            })
+            .join('')}
+        </div>
+      `
+        )
+        .join('')}
+    </div>
   `;
 }
 
-// Helper function: Get story format CSS styles
-function getStoryFormatStyles(branding: any): string {
+// ================================================================
+// Story Timeline CSS
+// ================================================================
+
+function getStoryTimelineCss(branding: BrandingConfig): string {
   return `
-    .story-section {
-      padding: 30px;
-    }
-    
+    .story-section { padding: 30px; }
+
     .story-date-group {
       margin-bottom: 40px;
       page-break-inside: avoid;
     }
-    
+
     .story-date-header {
-      font-size: 20px;
-      font-weight: bold;
+      font-size: 20px; font-weight: bold;
       color: ${branding.secondaryColor};
-      margin-bottom: 20px;
-      padding-bottom: 10px;
+      margin-bottom: 20px; padding-bottom: 10px;
       border-bottom: 2px solid ${branding.primaryColor};
     }
-    
+
     .story-item {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 30px;
-      padding: 15px;
+      display: flex; gap: 20px;
+      margin-bottom: 30px; padding: 15px;
       background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border: 1px solid #e2e8f0; border-radius: 8px;
       page-break-inside: avoid;
     }
-    
+
     .story-thumbnail {
-      flex-shrink: 0;
-      width: 180px;
-      height: 135px;
-      border-radius: 6px;
-      overflow: hidden;
-      background: #f7fafc;
+      flex-shrink: 0; width: 180px; height: 135px;
+      border-radius: 6px; overflow: hidden; background: #f7fafc;
     }
-    
+
     .story-thumbnail img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      width: 100%; height: 100%; object-fit: cover;
     }
-    
-    .story-content {
-      flex: 1;
-      min-width: 0;
-    }
-    
+
+    .story-content { flex: 1; min-width: 0; }
+
     .story-number {
       display: inline-block;
-      background: ${branding.primaryColor};
-      color: white;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
+      background: ${branding.primaryColor}; color: white;
+      padding: 3px 10px; border-radius: 4px;
+      font-size: 11px; font-weight: 600;
+      margin-bottom: 8px; letter-spacing: 0.5px;
     }
-    
+
     .story-caption {
-      font-size: 15px;
-      font-weight: 600;
-      color: ${branding.secondaryColor};
-      margin-bottom: 8px;
+      font-size: 15px; font-weight: 600;
+      color: ${branding.secondaryColor}; margin-bottom: 8px;
     }
-    
+
     .story-meta {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      font-size: 11px;
-      color: #64748b;
-      margin-bottom: 8px;
+      display: flex; gap: 15px; flex-wrap: wrap;
+      font-size: 11px; color: #64748b; margin-bottom: 8px;
     }
-    
-    .story-meta-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    
+
+    .story-meta-item { display: flex; align-items: center; gap: 4px; }
+
     .story-comments {
-      margin-top: 10px;
-      padding-top: 10px;
+      margin-top: 10px; padding-top: 10px;
       border-top: 1px solid #e2e8f0;
     }
-    
+
     .story-comment {
-      font-size: 12px;
-      color: #475569;
-      margin: 5px 0;
-      padding-left: 12px;
+      font-size: 12px; color: #475569;
+      margin: 5px 0; padding-left: 12px;
       border-left: 2px solid ${branding.accentColor};
     }
-    
-    .story-comment-author {
-      font-weight: 600;
-      color: ${branding.secondaryColor};
-    }
-  `;
-}
 
-// HTML generation function (inline for now)
-function generateReportHTML(options: {
-  branding: any;
-  projectName: string;
-  projectNumber: string;
-  clientName: string;
-  address?: string;
-  reportTitle: string;
-  mediaItems: any[];
-  comments: Map<string, any[]>;
-  format?: 'detailed' | 'story';
-  summary?: string;
-}): string {
-  const { branding } = options;
-  
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${options.reportTitle}</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: ${branding.lightBgColor};
-            padding: 0;
-            margin: 0;
-            color: #1a202c;
-            line-height: 1.6;
-          }
-          
-          .report-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-          }
-          
-          .header {
-            background: linear-gradient(135deg, ${branding.secondaryColor} 0%, #243550 100%);
-            padding: 60px 40px;
-            text-align: center;
-            border-bottom: 4px solid ${branding.primaryColor};
-          }
-          
-          .logo {
-            max-width: 280px;
-            height: auto;
-            margin-bottom: 20px;
-          }
-          
-          .header-title {
-            font-size: 36px;
-            font-weight: bold;
-            color: white;
-            margin: 20px 0 0 0;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-          }
-          
-          .cover-content {
-            padding: 40px;
-          }
-          
-          .report-title {
-            font-size: 28px;
-            font-weight: bold;
-            color: ${branding.secondaryColor};
-            margin: 0 0 30px 0;
-            text-align: center;
-          }
-          
-          .project-details {
-            background: ${branding.lightBgColor};
-            padding: 30px;
-            border-radius: 12px;
-            border-left: 4px solid ${branding.primaryColor};
-            margin-bottom: 40px;
-          }
-          
-          .project-details-title {
-            color: ${branding.secondaryColor};
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: block;
-          }
-          
-          .report-summary {
-            margin-top: 30px;
-            padding: 20px;
-            background: linear-gradient(to right, ${branding.lightBgColor}, #ffffff);
-            border-left: 4px solid ${branding.primaryColor};
-            border-radius: 8px;
-            page-break-inside: avoid;
-          }
-          
-          .report-summary-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: ${branding.secondaryColor};
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          
-          .report-summary-title::before {
-            content: "📝";
-            font-size: 20px;
-          }
-          
-          .report-summary-text {
-            font-size: 14px;
-            line-height: 1.6;
-            color: ${branding.secondaryColor};
-            white-space: pre-wrap;
-          }
-          
-          .detail-row {
-            margin: 12px 0;
-            font-size: 14px;
-            color: #4a5568;
-          }
-          
-          .detail-row strong {
-            color: ${branding.secondaryColor};
-            min-width: 100px;
-            display: inline-block;
-          }
-          
-          .media-section {
-            page-break-before: always;
-            padding: 40px;
-          }
-          
-          .media-item {
-            page-break-inside: avoid;
-            margin-bottom: 50px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-          }
-          
-          .media-image-container {
-            width: 100%;
-            background: #f7fafc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-            position: relative;
-          }
-          
-          .media-image {
-            width: 100%;
-            height: auto;
-            display: block;
-            max-height: 600px;
-            object-fit: contain;
-          }
-          
-          .media-metadata {
-            padding: 25px;
-            background: ${branding.lightBgColor};
-          }
-          
-          .caption {
-            font-size: 18px;
-            font-weight: 600;
-            color: ${branding.secondaryColor};
-            margin-bottom: 15px;
-            line-height: 1.4;
-          }
-          
-          .metadata-grid {
-            display: table;
-            width: 100%;
-            margin-top: 15px;
-            border-spacing: 0;
-          }
-          
-          .metadata-row {
-            display: table-row;
-          }
-          
-          .metadata-item {
-            display: table-cell;
-            width: 50%;
-            font-size: 13px;
-            color: #4a5568;
-            padding: 8px 12px;
-            vertical-align: top;
-          }
-          
-          .photo-number {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(27, 43, 67, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          }
-          
-          .metadata-item.full-width {
-            display: table-row;
-            width: 100%;
-          }
-          
-          .metadata-item.full-width > div {
-            display: table-cell;
-            width: 100%;
-            padding: 8px 12px;
-          }
-          
-          .metadata-item strong {
-            color: ${branding.secondaryColor};
-            display: block;
-            margin-bottom: 4px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          
-          .comments-section {
-            background: #fff7ed;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 3px solid ${branding.accentColor};
-            border-radius: 6px;
-          }
-          
-          .comments-title {
-            color: ${branding.primaryColor};
-            font-weight: 600;
-            margin-bottom: 12px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          }
-          
-          .comment {
-            font-size: 13px;
-            color: #744210;
-            margin: 10px 0;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            line-height: 1.5;
-          }
-          
-          .comment-author {
-            font-weight: 600;
-            color: ${branding.secondaryColor};
-          }
-          
-          .footer {
-            text-align: center;
-            padding: 40px;
-            color: #a0aec0;
-            font-size: 12px;
-            border-top: 1px solid #e2e8f0;
-            background: ${branding.lightBgColor};
-          }
-          
-          .footer-company {
-            font-weight: 600;
-            color: ${branding.secondaryColor};
-            margin-bottom: 8px;
-          }
-          
-          @media print {
-            body {
-              background: white;
-            }
-            .report-container {
-              box-shadow: none;
-            }
-          }
-          
-          ${options.format === 'story' ? getStoryFormatStyles(branding) : ''}
-        </style>
-      </head>
-      <body>
-        <div class="report-container">
-          
-          <!-- Cover Page -->
-          <div class="header">
-            ${branding.logoFullUrl ? `<img src="${branding.logoFullUrl}" alt="${branding.companyName}" class="logo">` : ''}
-            <h1 class="header-title">${branding.companyName}</h1>
-          </div>
-          
-          <div class="cover-content">
-            <h2 class="report-title">${options.reportTitle}</h2>
-            
-            <div class="project-details">
-              <strong class="project-details-title">Project Information</strong>
-              <div class="detail-row">
-                <strong>Project Name:</strong> ${options.projectName}
-              </div>
-              <div class="detail-row">
-                <strong>Project Number:</strong> ${options.projectNumber}
-              </div>
-              <div class="detail-row">
-                <strong>Client:</strong> ${options.clientName}
-              </div>
-              ${options.address ? `
-                <div class="detail-row">
-                  <strong>Location:</strong> ${options.address}
-                </div>
-              ` : ''}
-              <div class="detail-row">
-                <strong>Report Generated:</strong> ${new Date().toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-              <div class="detail-row">
-                <strong>Total Media Items:</strong> ${options.mediaItems.length}
-              </div>
-            </div>
-            
-            ${options.summary ? `
-              <div class="report-summary">
-                <div class="report-summary-title">REPORT SUMMARY</div>
-                <div class="report-summary-text">${escapeHtml(options.summary)}</div>
-              </div>
-            ` : ''}
-          </div>
-          
-          <!-- Media Items -->
-          <div class="${options.format === 'story' ? 'story-section' : 'media-section'}">
-            ${options.format === 'story' ? generateStoryFormat(options) : generateDetailedFormat(options)}
-          </div>
-          
-          <!-- Footer -->
-          <div class="footer">
-            <div class="footer-company">${branding.companyLegalName}</div>
-            <div>© ${new Date().getFullYear()} ${branding.companyLegalName}. All Rights Reserved.</div>
-            <div style="margin-top: 12px; font-size: 11px;">
-              This report is confidential and intended solely for the use of ${options.clientName}
-            </div>
-          </div>
-          
-        </div>
-      </body>
-    </html>
+    .story-comment-author {
+      font-weight: 600; color: ${branding.secondaryColor};
+    }
+
+    /* Print-optimized styles */
+    @media print {
+      body {
+        background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .report-container {
+        box-shadow: none !important;
+        max-width: 100% !important;
+      }
+
+      .header {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .story-date-group {
+        page-break-inside: avoid;
+      }
+
+      .story-item {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .story-thumbnail img {
+        max-height: 120px;
+      }
+
+      .footer {
+        page-break-inside: avoid;
+      }
+    }
+
+    @page {
+      margin: 0.75in;
+      size: letter portrait;
+    }
   `;
 }

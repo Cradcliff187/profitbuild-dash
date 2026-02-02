@@ -53,9 +53,48 @@ export function useBidMedia(
       if (error) throw error;
       if (!mediaItems || mediaItems.length === 0) return [];
 
+      // Batch generate signed URLs for relative paths (backward compat: full URLs used as-is)
+      const mediaPaths = mediaItems
+        .filter((m) => !m.file_url?.startsWith('http') && m.file_type !== 'document')
+        .map((m) => m.file_url);
+
+      const docPaths = mediaItems
+        .filter((m) => !m.file_url?.startsWith('http') && m.file_type === 'document')
+        .map((m) => m.file_url);
+
+      const signedUrlMap = new Map<string, string>();
+
+      if (mediaPaths.length > 0) {
+        const { data: signedUrls } = await supabase.storage
+          .from('bid-media')
+          .createSignedUrls(mediaPaths, 604800); // 7 days
+        signedUrls?.forEach((item) => {
+          if (item.signedUrl && item.path) {
+            signedUrlMap.set(item.path, item.signedUrl);
+          }
+        });
+      }
+
+      if (docPaths.length > 0) {
+        const { data: signedUrls } = await supabase.storage
+          .from('bid-documents')
+          .createSignedUrls(docPaths, 604800);
+        signedUrls?.forEach((item) => {
+          if (item.signedUrl && item.path) {
+            signedUrlMap.set(item.path, item.signedUrl);
+          }
+        });
+      }
+
+      // Map signed URLs to media items (preserving existing full URLs for backward compat)
+      const mediaWithUrls = mediaItems.map((media) => ({
+        ...media,
+        file_url: signedUrlMap.get(media.file_url) || media.file_url,
+      }));
+
       // Fetch user profiles separately
-      const userIds = [...new Set(mediaItems.map(item => item.uploaded_by).filter(Boolean))];
-      if (userIds.length === 0) return mediaItems as BidMedia[];
+      const userIds = [...new Set(mediaWithUrls.map(item => item.uploaded_by).filter(Boolean))];
+      if (userIds.length === 0) return mediaWithUrls as BidMedia[];
 
       const { data: profiles } = await supabase
         .from('profiles')
@@ -63,7 +102,7 @@ export function useBidMedia(
         .in('id', userIds);
 
       // Map profiles to media items
-      return mediaItems.map(item => ({
+      return mediaWithUrls.map(item => ({
         ...item,
         profiles: item.uploaded_by ? profiles?.find(p => p.id === item.uploaded_by) : null
       })) as BidMedia[];

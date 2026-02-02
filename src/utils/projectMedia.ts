@@ -241,29 +241,64 @@ export async function getProjectMediaList(
       };
     }
 
-    // Generate signed URLs for all media (7 days expiry)
-    const mediaWithUrls = await Promise.all(
-      (data || []).map(async (media) => {
-        const { data: signedUrlData } = await supabase.storage
-          .from('project-media')
-          .createSignedUrl(media.file_url, 604800);
+    // Batch generate signed URLs for all media (7 days expiry)
+    const mediaPaths = (data || []).map((media) => media.file_url);
 
-        // Get signed URL for thumbnail if it exists
-        let thumbnailUrl = media.thumbnail_url;
-        if (thumbnailUrl && media.file_type === 'video') {
-          const { data: thumbSignedUrl } = await supabase.storage
-            .from('project-media-thumbnails')
-            .createSignedUrl(`thumbnails/${media.id}.jpg`, 604800);
-          thumbnailUrl = thumbSignedUrl?.signedUrl || thumbnailUrl;
+    const { data: signedUrls, error: signedUrlError } = await supabase.storage
+      .from('project-media')
+      .createSignedUrls(mediaPaths, 604800);
+
+    if (signedUrlError) {
+      console.error('Failed to batch generate signed URLs:', signedUrlError);
+    }
+
+    // Build a map from path → signedUrl for O(1) lookup
+    const signedUrlMap = new Map<string, string>();
+    if (signedUrls) {
+      signedUrls.forEach((item) => {
+        if (item.signedUrl && item.path) {
+          signedUrlMap.set(item.path, item.signedUrl);
         }
+      });
+    }
 
-        return {
-          ...media,
-          file_url: signedUrlData?.signedUrl || media.file_url,
-          thumbnail_url: thumbnailUrl,
-        } as ProjectMedia;
-      })
+    // Batch generate thumbnail signed URLs for videos
+    const videoMedia = (data || []).filter(
+      (media) => media.file_type === 'video' && media.thumbnail_url
     );
+    const thumbnailPaths = videoMedia.map((media) => `thumbnails/${media.id}.jpg`);
+
+    const thumbnailUrlMap = new Map<string, string>();
+    if (thumbnailPaths.length > 0) {
+      const { data: thumbSignedUrls } = await supabase.storage
+        .from('project-media-thumbnails')
+        .createSignedUrls(thumbnailPaths, 604800);
+
+      if (thumbSignedUrls) {
+        thumbSignedUrls.forEach((item) => {
+          if (item.signedUrl && item.path) {
+            thumbnailUrlMap.set(item.path, item.signedUrl);
+          }
+        });
+      }
+    }
+
+    // Map signed URLs back to media items
+    const mediaWithUrls = (data || []).map((media) => {
+      const signedUrl = signedUrlMap.get(media.file_url);
+      let thumbnailUrl = media.thumbnail_url;
+
+      if (media.file_type === 'video' && media.thumbnail_url) {
+        const thumbKey = `thumbnails/${media.id}.jpg`;
+        thumbnailUrl = thumbnailUrlMap.get(thumbKey) || thumbnailUrl;
+      }
+
+      return {
+        ...media,
+        file_url: signedUrl || media.file_url,
+        thumbnail_url: thumbnailUrl,
+      } as ProjectMedia;
+    });
 
     return {
       data: mediaWithUrls,

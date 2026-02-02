@@ -2,7 +2,7 @@ import localforage from 'localforage';
 
 export interface QueuedOperation {
   id: string;
-  type: 'clock_in' | 'clock_out' | 'edit_entry' | 'delete_entry' | 'media_upload';
+  type: 'clock_in' | 'clock_out' | 'edit_entry' | 'delete_entry' | 'media_upload' | 'bid_media_upload';
   timestamp: number;
   payload: any;
   retryCount: number;
@@ -166,5 +166,43 @@ export const addMediaToQueue = async (
   await addToQueue(operation);
   const queue = await getQueue();
   const queuedOp = queue.find(op => op.timestamp === operation.timestamp && op.type === 'media_upload');
+  return queuedOp?.id || crypto.randomUUID();
+};
+
+export const addBidMediaToQueue = async (
+  file: File,
+  metadata: {
+    bidId: string;
+    caption?: string;
+    description?: string;
+    latitude?: number;
+    longitude?: number;
+    altitude?: number;
+    locationName?: string;
+    takenAt?: string;
+    deviceModel?: string;
+    uploadSource?: string;
+    duration?: number;
+  }
+): Promise<string> => {
+  const base64 = await fileToBase64(file);
+
+  const operation: Omit<QueuedOperation, 'id' | 'retryCount' | 'status'> = {
+    type: 'bid_media_upload',
+    timestamp: Date.now(),
+    payload: {
+      fileData: base64,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      ...metadata,
+    },
+  };
+
+  await addToQueue(operation);
+  const queue = await getQueue();
+  const queuedOp = queue.find(
+    (op) => op.timestamp === operation.timestamp && op.type === 'bid_media_upload'
+  );
   return queuedOp?.id || crypto.randomUUID();
 };

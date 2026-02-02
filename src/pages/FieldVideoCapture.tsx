@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, Video, Mic, MapPin, Clock, Check, RotateCcw, Smartphone } from 'lucide-react';
+import { ArrowLeft, Video, MapPin, Clock, Check, RotateCcw, Smartphone } from 'lucide-react';
 import { useSmartNavigation } from '@/hooks/useSmartNavigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,12 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { useVideoCapture } from '@/hooks/useVideoCapture';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useCaptureMetadata } from '@/hooks/useCaptureMetadata';
+import { useCaptionFlow } from '@/hooks/useCaptionFlow';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
-import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
-import { formatFileSize, getVideoDuration } from '@/utils/videoUtils';
-import { isWebPlatform, isIOSDevice } from '@/utils/platform';
+import { getVideoDuration } from '@/utils/videoUtils';
+import { isWebPlatform } from '@/utils/platform';
 import { convertMovToM4a } from '@/utils/movToM4a';
 import { toast } from 'sonner';
 import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
@@ -22,87 +22,52 @@ import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptTo
 export default function FieldVideoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
   const { navigateToProjectMedia, navigateToProjectDetail } = useSmartNavigation();
-  
+
   const { startRecording, isRecording } = useVideoCapture();
-  const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading } = useProjectMediaUpload(projectId!);
-  const { transcribe, isTranscribing, error: transcriptionError } = useAudioTranscription();
-  const { reverseGeocode } = useReverseGeocode();
-  
+  const { transcribe, error: transcriptionError } = useAudioTranscription();
+  const metadata = useCaptureMetadata();
+  const captions = useCaptionFlow();
+
   const [capturedVideo, setCapturedVideo] = useState<{
     path?: string;
     webPath?: string;
     format: string;
   } | null>(null);
-  const [showCaptionModal, setShowCaptionModal] = useState(false);
-  const [videoCaption, setVideoCaption] = useState('');
-  const [locationName, setLocationName] = useState<string>('');
-  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [isAutoTranscribing, setIsAutoTranscribing] = useState(false);
-  const [isIOS] = useState(isIOSDevice());
-  const [captureCount, setCaptureCount] = useState(0);
+  const [videoCaptureCount, setVideoCaptureCount] = useState(0);
 
   useEffect(() => {
-    // Refresh GPS on mount
-    getLocation();
+    void metadata.startLocationCapture();
   }, []);
 
-  // Reverse geocode when coordinates change
-  useEffect(() => {
-    if (coordinates) {
-      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
-        if (result) {
-          setLocationName(result.shortName);
-        } else {
-          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
-        }
-      });
-    }
-  }, [coordinates, reverseGeocode]);
-
   const handleCapture = async () => {
-    // Parallelize GPS and video capture to preserve user gesture
     const capturePromise = startRecording();
-    const gpsPromise = getLocation();
-    
-    const [video, location] = await Promise.all([capturePromise, gpsPromise]);
-    
-    if (location) {
-      const age = Date.now() - location.timestamp;
-      const ageSeconds = Math.floor(age / 1000);
-      
-      if (ageSeconds < 10) {
-        setGpsAccuracy(location.accuracy);
-        toast.success(`GPS refreshed (±${location.accuracy.toFixed(0)}m)`);
+    await metadata.startLocationCapture();
+
+    const video = await capturePromise;
+
+    if (metadata.coordinates) {
+      const age = metadata.gpsAge ?? 0;
+      if (age < 10000) {
+        toast.success(`GPS refreshed (±${metadata.coordinates.accuracy.toFixed(0)}m)`);
       } else {
         toast.warning('GPS data is stale', {
           description: 'Location may not be accurate',
         });
       }
     }
-    
+
     if (video) {
-      const newCaptureCount = captureCount + 1;
-      setCaptureCount(newCaptureCount);
-      
+      const newCaptureCount = videoCaptureCount + 1;
+      setVideoCaptureCount(newCaptureCount);
       setCapturedVideo(video);
-      setGpsAccuracy(location?.accuracy || null);
-      
-      // Auto-transcribe video directly (OpenAI Whisper supports video formats)
+
       setIsAutoTranscribing(true);
       try {
-        console.log('🎬 Fetching video from path:', video.webPath);
         const response = await fetch(video.webPath || '');
-        console.log('✅ Fetch response:', response.ok, response.status);
-        
         if (response.ok) {
           let blob = await response.blob();
-          console.log('✅ Video blob created:', {
-            size: `${(blob.size / 1024 / 1024).toFixed(2)} MB`,
-            type: blob.type
-          });
-          
-          // Convert iOS MOV to M4A for Whisper compatibility
           let mimeType = blob.type || `video/${video.format}`;
           if (blob.type.includes('video/quicktime')) {
             toast.info('Converting video for transcription...', { duration: 3000 });
@@ -110,19 +75,18 @@ export default function FieldVideoCapture() {
               const converted = await convertMovToM4a(blob);
               blob = converted.blob;
               mimeType = converted.mime;
-              console.log('✅ MOV converted to M4A');
             } catch (conversionError) {
               console.error('❌ Conversion failed:', conversionError);
               toast.error('Video conversion failed', {
                 description: 'You can still add a manual or voice caption',
-                duration: 5000
+                duration: 5000,
               });
               setIsAutoTranscribing(false);
+              captions.setShowCaptionModal(true);
               return;
             }
           }
-          
-          // Convert blob to base64
+
           const videoBase64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -132,34 +96,22 @@ export default function FieldVideoCapture() {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          
-          console.log('✅ Video converted to base64:', {
-            length: videoBase64.length,
-            estimatedSizeMB: `${(videoBase64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`
-          });
-          
-          // Send to transcription with proper MIME type
-          console.log('🤖 Transcribing with MIME type:', mimeType);
+
           const transcribedText = await transcribe(videoBase64, mimeType);
-          console.log('✅ Transcription result:', transcribedText?.slice(0, 50));
-          
           if (transcribedText) {
-            setVideoCaption(transcribedText);
+            captions.setPendingCaption(transcribedText);
             toast.success('Caption auto-generated from video');
-            
-            // Suggest review after 2 seconds (only for first 2 captures)
             setTimeout(() => {
               if (newCaptureCount <= 2) {
                 showCaptionPrompt({
-                  onVoiceClick: () => setShowCaptionModal(true),
-                  onTypeClick: () => setShowCaptionModal(true),
+                  onVoiceClick: () => captions.setShowCaptionModal(true),
+                  onTypeClick: () => captions.setShowCaptionModal(true),
                   message: CAPTION_PROMPTS.reviewAiCaption,
                   duration: 4000,
                 });
               }
             }, 2000);
           } else {
-            console.warn('⚠️ No transcription returned');
             toast.error('Transcription failed', {
               description: transcriptionError ?? 'No text returned from service',
               duration: 8000,
@@ -169,17 +121,14 @@ export default function FieldVideoCapture() {
           throw new Error(`Fetch failed with status: ${response.status}`);
         }
       } catch (error) {
-        console.error('❌ Auto-transcription failed at:', error);
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        
-        // Parse specific error codes for better UX
         if (errorMsg.includes('NO_SPEECH_DETECTED')) {
           toast.error('No speech detected', {
-            description: 'Please speak clearly during recording and try again'
+            description: 'Please speak clearly during recording and try again',
           });
         } else if (errorMsg.includes('INVALID_AUDIO')) {
           toast.error('Audio format issue', {
-            description: 'Try recording again or use manual caption'
+            description: 'Try recording again or use manual caption',
           });
         } else {
           toast.error('Auto-caption failed', {
@@ -190,10 +139,9 @@ export default function FieldVideoCapture() {
       } finally {
         setIsAutoTranscribing(false);
       }
-      
-      setShowCaptionModal(true);
+
+      captions.setShowCaptionModal(true);
     } else if (window.top !== window.self) {
-      // Running in iframe - suggest opening in new tab
       toast.error('Camera blocked in embedded view', {
         description: 'Open app in a new tab to use camera',
       });
@@ -201,27 +149,21 @@ export default function FieldVideoCapture() {
   };
 
   const handleSaveCaption = (caption: string) => {
-    setVideoCaption(caption);
-    setShowCaptionModal(false);
+    captions.onCaptionSaved(caption);
   };
 
   const handleUploadAndContinue = async () => {
     if (!capturedVideo || !projectId) return;
 
     try {
-      // Convert URI to File object
       const response = await fetch(capturedVideo.webPath || capturedVideo.path || '');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch video file');
-      }
-      
+      if (!response.ok) throw new Error('Failed to fetch video file');
+
       const blob = await response.blob();
       const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
         type: blob.type || `video/${capturedVideo.format}`,
       });
 
-      // Check file size (warn if > 100MB, approaching 150MB limit)
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > 100) {
         toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
@@ -229,7 +171,6 @@ export default function FieldVideoCapture() {
         });
       }
 
-      // Extract video duration
       let duration: number | undefined;
       try {
         duration = await getVideoDuration(file);
@@ -237,21 +178,16 @@ export default function FieldVideoCapture() {
         console.warn('Failed to extract video duration:', error);
       }
 
-      // Upload with metadata
+      const meta = metadata.getMetadataForUpload();
       await upload({
         file,
-        caption: videoCaption,
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        altitude: coordinates?.altitude,
-        locationName: locationName || undefined,
-        uploadSource: 'camera',
+        caption: captions.pendingCaption,
+        ...meta,
         duration,
       });
 
-      // Reset and stay on capture screen
       setCapturedVideo(null);
-      setVideoCaption('');
+      captions.setPendingCaption('');
       toast.success('Video uploaded - ready for next capture');
     } catch (error) {
       console.error('Upload error:', error);
@@ -264,17 +200,13 @@ export default function FieldVideoCapture() {
 
     try {
       const response = await fetch(capturedVideo.webPath || capturedVideo.path || '');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch video file');
-      }
-      
+      if (!response.ok) throw new Error('Failed to fetch video file');
+
       const blob = await response.blob();
       const file = new File([blob], `video-${Date.now()}.${capturedVideo.format}`, {
         type: blob.type || `video/${capturedVideo.format}`,
       });
 
-      // Check file size
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > 100) {
         toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
@@ -282,7 +214,6 @@ export default function FieldVideoCapture() {
         });
       }
 
-      // Extract video duration
       let duration: number | undefined;
       try {
         duration = await getVideoDuration(file);
@@ -290,14 +221,11 @@ export default function FieldVideoCapture() {
         console.warn('Failed to extract video duration:', error);
       }
 
+      const meta = metadata.getMetadataForUpload();
       await upload({
         file,
-        caption: videoCaption,
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        altitude: coordinates?.altitude,
-        locationName: locationName || undefined,
-        uploadSource: 'camera',
+        caption: captions.pendingCaption,
+        ...meta,
         duration,
       });
 
@@ -310,7 +238,7 @@ export default function FieldVideoCapture() {
 
   const handleRetake = () => {
     setCapturedVideo(null);
-    setVideoCaption('');
+    captions.setPendingCaption('');
   };
 
   // Mock photo for caption modal (video uses same modal)
@@ -343,15 +271,15 @@ export default function FieldVideoCapture() {
             <div className="flex-1">
               <h1 className="text-lg font-semibold">Field Video Capture</h1>
             </div>
-            {isLoadingLocation && (
+            {metadata.isLoadingLocation && (
               <Badge variant="outline" className="text-xs">
                 Getting GPS...
               </Badge>
             )}
-            {coordinates && !isLoadingLocation && (
+            {metadata.coordinates && !metadata.isLoadingLocation && (
               <Badge variant="outline" className="text-xs">
                 <MapPin className="h-3 w-3 mr-1" />
-                ±{coordinates.accuracy.toFixed(0)}m
+                ±{metadata.coordinates.accuracy.toFixed(0)}m
               </Badge>
             )}
           </div>
@@ -393,7 +321,7 @@ export default function FieldVideoCapture() {
                 </p>
               </div>
 
-              {isLoadingLocation && (
+              {metadata.isLoadingLocation && (
                 <Alert>
                   <AlertDescription className="text-xs">
                     🔄 Acquiring GPS location...
@@ -401,13 +329,13 @@ export default function FieldVideoCapture() {
                 </Alert>
               )}
 
-              {coordinates && gpsAccuracy && !isLoadingLocation && (
+              {metadata.coordinates && !metadata.isLoadingLocation && (
                 <Alert>
                   <MapPin className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    GPS: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+                    GPS: {metadata.coordinates.latitude.toFixed(6)}, {metadata.coordinates.longitude.toFixed(6)}
                     <br />
-                    Accuracy: ±{gpsAccuracy.toFixed(0)}m (Fresh)
+                    Accuracy: ±{metadata.coordinates.accuracy.toFixed(0)}m (Fresh)
                   </AlertDescription>
                 </Alert>
               )}
@@ -439,16 +367,16 @@ export default function FieldVideoCapture() {
 
             {/* Metadata */}
             <div className="grid grid-cols-2 gap-3 text-sm">
-              {coordinates && (
+              {metadata.coordinates && (
                 <Card className="p-3">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <MapPin className="h-4 w-4" />
                     <span className="font-medium">Location</span>
                   </div>
                   <div className="text-xs">
-                    {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+                    {metadata.coordinates.latitude.toFixed(6)}, {metadata.coordinates.longitude.toFixed(6)}
                     <br />
-                    ±{coordinates.accuracy.toFixed(0)}m accuracy
+                    ±{metadata.coordinates.accuracy.toFixed(0)}m accuracy
                   </div>
                 </Card>
               )}
@@ -486,16 +414,16 @@ export default function FieldVideoCapture() {
                 <Button
                   variant="outline"
                   className="w-full h-12 font-medium"
-                  onClick={() => setShowCaptionModal(true)}
+                  onClick={() => captions.setShowCaptionModal(true)}
                   disabled={isAutoTranscribing}
                 >
-                  {videoCaption ? 'Review AI Caption' : 'Add Caption'}
+                  {captions.pendingCaption ? 'Review AI Caption' : 'Add Caption'}
                 </Button>
                 {isAutoTranscribing ? (
                   <p className="text-xs text-center text-muted-foreground">
                     Generating caption from audio...
                   </p>
-                ) : !videoCaption ? (
+                ) : !captions.pendingCaption ? (
                   <p className="text-xs text-center text-muted-foreground">
                     AI transcription attempted - verify or add details
                   </p>
@@ -558,8 +486,8 @@ export default function FieldVideoCapture() {
         >
           <QuickCaptionModal
             photo={mockPhoto}
-            open={showCaptionModal}
-            onClose={() => setShowCaptionModal(false)}
+            open={captions.showCaptionModal}
+            onClose={() => captions.setShowCaptionModal(false)}
             onSave={handleSaveCaption}
           />
         </ErrorBoundary>

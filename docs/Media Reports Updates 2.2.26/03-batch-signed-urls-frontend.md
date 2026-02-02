@@ -3,7 +3,15 @@
 ## Priority: Third (Highest Performance ROI)
 ## Risk Level: Low — same function signature, same return type, faster internals
 ## Estimated Time: 20 minutes
-## Depends On: 01
+## Depends On: 01 (dead code removal), both HOTFIXes should be applied first (hooks order + documents signed URLs)
+
+---
+
+## Global Rules
+
+1. Follow `.cursorrules` in repo root for all project conventions
+2. Use Supabase MCP for any database migrations or edge function deployments (NOT CLI commands)
+3. Edge function imports must be pinned with explicit versions (not applicable to this phase)
 
 ---
 
@@ -13,6 +21,8 @@
 
 Current: 50 photos = 50+ individual API calls (plus additional calls for video thumbnails).
 After: 50 photos = 1 batch call for photos + 1 batch call for video thumbnails = 2 total.
+
+**Note:** The Documents Timeline hotfix (`HOTFIX-Documents-SignedURLs.md`) already uses the batch `createSignedUrls()` pattern inline in `ProjectDocumentsTimeline.tsx`. That is a separate code path — this phase optimizes the Field Media / `useProjectMedia` path. Both should exist independently; they serve different pages.
 
 ## File to Modify
 
@@ -50,11 +60,17 @@ const mediaWithUrls = await Promise.all(
 **Replace with:**
 ```typescript
 // Batch generate signed URLs for all media (7 days expiry)
-const mediaPaths = (data || []).map((media) => media.file_url);
+// Filter to only paths that need signing (skip nulls and already-full URLs)
+const mediaWithPaths = (data || []).filter(
+  (media) => media.file_url && !media.file_url.startsWith('http')
+);
+const mediaPaths = mediaWithPaths.map((media) => media.file_url);
 
-const { data: signedUrls, error: signedUrlError } = await supabase.storage
-  .from('project-media')
-  .createSignedUrls(mediaPaths, 604800);
+const { data: signedUrls, error: signedUrlError } = mediaPaths.length > 0
+  ? await supabase.storage
+      .from('project-media')
+      .createSignedUrls(mediaPaths, 604800)
+  : { data: null, error: null };
 
 if (signedUrlError) {
   console.error('Failed to batch generate signed URLs:', signedUrlError);
@@ -93,7 +109,10 @@ if (thumbnailPaths.length > 0) {
 
 // Map signed URLs back to media items
 const mediaWithUrls = (data || []).map((media) => {
-  const signedUrl = signedUrlMap.get(media.file_url);
+  // If file_url is already a full URL, use it as-is
+  const signedUrl = media.file_url?.startsWith('http')
+    ? media.file_url
+    : signedUrlMap.get(media.file_url) || media.file_url;
   let thumbnailUrl = media.thumbnail_url;
 
   if (media.file_type === 'video' && media.thumbnail_url) {
@@ -129,13 +148,15 @@ const mediaWithUrls = (data || []).map((media) => {
 
 - [ ] `npx tsc --noEmit` passes
 - [ ] Navigate to a project with 10+ photos
-- [ ] Gallery loads and all photos display correctly
+- [ ] **Field Media page:** Gallery loads and all photos display correctly
 - [ ] Open browser DevTools → Network tab → filter by `sign`
 - [ ] Confirm you see 1 batch request (or 2 if videos exist) instead of N individual requests
 - [ ] Video thumbnails still display in gallery
 - [ ] Click a photo to open detail view — photo displays correctly
 - [ ] Image refresh on error still works (the `handleImageError` path in the gallery uses `refreshMediaSignedUrl` which is unchanged)
 - [ ] Report generation still works (it uses the edge function's own signed URL generation, unrelated)
+- [ ] **Documents → All tab:** Photo thumbnails still display (uses timeline hotfix, separate path — confirm no regression)
+- [ ] **Documents → Photos & Videos tab:** Gallery still loads correctly (this tab uses `ProjectMediaGallery` → `useProjectMedia` → `getProjectMediaList` — the path you just changed)
 
 ## Performance Impact
 

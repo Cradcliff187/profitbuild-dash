@@ -57,6 +57,34 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
 
       setProgress(30);
 
+      // Check if online - queue for later if offline
+      if (!navigator.onLine) {
+        console.log('📴 Offline - queueing bid media upload');
+
+        const { addBidMediaToQueue } = await import('@/utils/syncQueue');
+        await addBidMediaToQueue(fileToUpload, {
+          bidId: params.bid_id,
+          caption: params.caption,
+          description: params.description,
+          latitude: params.latitude,
+          longitude: params.longitude,
+          altitude: params.altitude,
+          locationName: params.location_name,
+          takenAt: params.taken_at,
+          deviceModel: params.device_model,
+          uploadSource: params.upload_source,
+          duration: params.duration,
+        });
+
+        toast.info('Queued for upload', {
+          description: 'Media will upload automatically when connection is restored',
+        });
+
+        setIsUploading(false);
+        setProgress(0);
+        return null;
+      }
+
       // Determine bucket based on file type
       const bucket = fileType === 'document' ? 'bid-documents' : 'bid-media';
 
@@ -75,10 +103,9 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
 
       setProgress(70);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(uploadData.path);
+      // Store relative path — signed URLs generated on read
+      // This matches the project media pattern for consistent security
+      const relativePath = uploadData.path;
 
       setProgress(80);
 
@@ -87,7 +114,7 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
         .from('bid_media')
         .insert({
           bid_id: params.bid_id,
-          file_url: publicUrl,
+          file_url: relativePath,
           file_name: fileToUpload.name,
           mime_type: fileToUpload.type,
           file_type: fileType,

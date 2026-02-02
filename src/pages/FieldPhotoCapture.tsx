@@ -1,110 +1,45 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw, Smartphone, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useCaptureMetadata } from '@/hooks/useCaptureMetadata';
+import { useCaptionFlow } from '@/hooks/useCaptionFlow';
 import { useProjectMediaUpload } from '@/hooks/useProjectMediaUpload';
 import { useSmartNavigation } from '@/hooks/useSmartNavigation';
-import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { isWebPlatform, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
-import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 import type { ProjectMedia } from '@/types/project';
-import { getCaptionPreferences } from '@/utils/userPreferences';
-
-// Debug mode: set to true to always show caption prompts (helpful for testing)
-const DEBUG_ALWAYS_SHOW_PROMPT = false;
 
 export default function FieldPhotoCapture() {
   const { id: projectId } = useParams<{ id: string }>();
   const { navigateToProjectMedia, navigateToProjectDetail } = useSmartNavigation();
   const { capturePhoto, isCapturing } = useCameraCapture();
-  const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useProjectMediaUpload(projectId!);
-  const { reverseGeocode, isLoading: isGeocoding } = useReverseGeocode();
+  const metadata = useCaptureMetadata();
+  const captions = useCaptionFlow();
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
-  const [locationName, setLocationName] = useState<string>('');
-  const [showCaptionModal, setShowCaptionModal] = useState(false);
-  const [showVoiceCaptionModal, setShowVoiceCaptionModal] = useState(false);
-  const [pendingCaption, setPendingCaption] = useState<string>('');
-  const [gpsAge, setGpsAge] = useState<number | null>(null);
-  const [captureCount, setCaptureCount] = useState(0);
-  const [skipCount, setSkipCount] = useState(0);
-
-  // Calculate GPS age and reverse geocode
-  useEffect(() => {
-    if (coordinates) {
-      setGpsAge(Date.now() - coordinates.timestamp);
-      
-      // Reverse geocode to get human-readable address
-      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
-        if (result) {
-          setLocationName(result.shortName);
-        } else {
-          // Fallback to coordinates if geocoding fails
-          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
-        }
-      });
-    }
-  }, [coordinates, reverseGeocode]);
 
   const handleCapture = async () => {
-    // Parallelize GPS and photo capture to preserve user gesture
     const capturePromise = capturePhoto();
-    const gpsPromise = getLocation();
-    
-    const [photo, freshCoords] = await Promise.all([capturePromise, gpsPromise]);
-    
-    if (photo) {
-      console.log('[PhotoCapture] Photo captured successfully', {
-        captureCount: captureCount + 1,
-        hasGPS: !!freshCoords,
-        willShowToast: DEBUG_ALWAYS_SHOW_PROMPT || (captureCount + 1) <= 3,
-      });
-      
-      setCapturedPhotoUri(photo.webPath || '');
-      const newCaptureCount = captureCount + 1;
-      setCaptureCount(newCaptureCount);
-      
-      // Show GPS accuracy toast
-      if (freshCoords) {
-        toast.success(`Photo captured with GPS accuracy ±${freshCoords.accuracy.toFixed(0)}m`);
-        
-        // Smart caption prompt (3-second delay so GPS toast shows first)
-        setTimeout(async () => {
-          // Check user preferences
-          const prefs = await getCaptionPreferences();
-          if (!prefs.showCaptionPrompts && !DEBUG_ALWAYS_SHOW_PROMPT) {
-            return; // User has disabled prompts
-          }
+    await metadata.startLocationCapture();
 
-          // Only show on first 3 captures (unless debugging)
-          if (DEBUG_ALWAYS_SHOW_PROMPT || newCaptureCount <= 3) {
-            const message = newCaptureCount === 1 
-              ? CAPTION_PROMPTS.firstCapture 
-              : CAPTION_PROMPTS.gpsAvailable;
-            
-            console.log('[PhotoCapture] Showing caption prompt toast', {
-              captureNumber: newCaptureCount,
-              message: newCaptureCount === 1 ? 'firstCapture' : 'gpsAvailable',
-            });
-            
-            showCaptionPrompt({
-              onVoiceClick: () => setShowVoiceCaptionModal(true),
-              onTypeClick: () => setShowCaptionModal(true),
-              message,
-              duration: DEBUG_ALWAYS_SHOW_PROMPT ? 10000 : 5000,
-            });
-          }
-        }, 3000);
+    const photo = await capturePromise;
+
+    if (photo) {
+      setCapturedPhotoUri(photo.webPath || '');
+
+      const hasGps = !!metadata.coordinates;
+      if (hasGps) {
+        toast.success(`Photo captured with GPS accuracy ±${metadata.coordinates!.accuracy.toFixed(0)}m`);
       }
+
+      captions.onCaptureSuccess(hasGps);
     } else if (window.top !== window.self) {
-      // Running in iframe - suggest opening in new tab
       toast.error('Camera blocked in embedded view', {
         description: 'Open app in a new tab to use camera',
       });
@@ -114,32 +49,17 @@ export default function FieldPhotoCapture() {
   const handleUploadAndContinue = async () => {
     if (!capturedPhotoUri) return;
 
-    // Track if user skipped caption
-    const skippedCaption = !pendingCaption.trim();
-    if (skippedCaption) {
-      const newSkipCount = skipCount + 1;
-      setSkipCount(newSkipCount);
-      
-      // Show gentle reminder after 3 consecutive skips
-      if (newSkipCount >= 3 && newSkipCount % 3 === 0) {
-        toast.info(CAPTION_PROMPTS.multipleSkips, {
-          duration: 4000,
-        });
-      }
+    if (!captions.pendingCaption.trim()) {
+      captions.onCaptionSkipped();
     }
 
     try {
-      // Convert photo URI to File
       const response = await fetch(capturedPhotoUri);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch photo file');
-      }
-      
+      if (!response.ok) throw new Error('Failed to fetch photo file');
+
       const blob = await response.blob();
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
 
-      // Check file size (warn if > 15MB)
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > 15) {
         toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
@@ -147,44 +67,34 @@ export default function FieldPhotoCapture() {
         });
       }
 
+      const meta = metadata.getMetadataForUpload();
       await upload({
         file,
-        caption: pendingCaption || '',
+        caption: captions.pendingCaption || '',
         description: '',
-        locationName: locationName,
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        altitude: coordinates?.altitude,
+        ...meta,
       });
 
-      // Show success toast with caption info
-      const wordCount = pendingCaption ? pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
+      const wordCount = captions.pendingCaption ? captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
       toast.success(
-        pendingCaption 
-          ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})` 
+        captions.pendingCaption
+          ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
           : 'Photo uploaded without caption'
       );
 
-      // Reset for next photo
       setCapturedPhotoUri(null);
-      setPendingCaption('');
+      captions.setPendingCaption('');
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error('Failed to upload photo');
     }
   };
 
-
   const handleSaveCaption = (caption: string) => {
-    setPendingCaption(caption);
-    setShowCaptionModal(false);
-    setSkipCount(0); // Reset skip counter when user adds caption
-    toast.success('Caption saved - ready to upload');
+    captions.onCaptionSaved(caption);
   };
 
-  // Open voice modal with non-blocking warnings
   const handleVoiceCaptionClick = () => {
-    // Show info toast if in iframe (non-blocking)
     if (window.self !== window.top) {
       toast.info('Embedded preview: microphone may be limited', {
         description: 'If recording fails, open in a new tab.',
@@ -195,20 +105,13 @@ export default function FieldPhotoCapture() {
         },
       });
     }
-    
-    // Always open the modal - let it handle actual errors
-    setShowVoiceCaptionModal(true);
+    captions.setShowVoiceCaptionModal(true);
   };
 
   const handleVoiceCaptionReady = (caption: string) => {
-    setPendingCaption(caption);
-    setShowVoiceCaptionModal(false);
-    setSkipCount(0); // Reset skip counter
-    const wordCount = caption.split(/\s+/).filter(w => w.length > 0).length;
-    toast.success(`Voice caption added (${wordCount} word${wordCount !== 1 ? 's' : ''})`);
+    captions.onVoiceCaptionReady(caption);
   };
 
-  // Create a mock ProjectMedia object for the caption modal
   const mockPhoto: ProjectMedia = {
     id: 'temp',
     project_id: projectId!,
@@ -217,12 +120,12 @@ export default function FieldPhotoCapture() {
     file_type: 'image',
     file_size: 0,
     mime_type: 'image/jpeg',
-    caption: pendingCaption || null,
+    caption: captions.pendingCaption || null,
     description: null,
-    latitude: coordinates?.latitude || null,
-    longitude: coordinates?.longitude || null,
-    altitude: coordinates?.altitude || null,
-    location_name: locationName || null,
+    latitude: metadata.coordinates?.latitude ?? null,
+    longitude: metadata.coordinates?.longitude ?? null,
+    altitude: metadata.coordinates?.altitude ?? null,
+    location_name: metadata.locationName ?? null,
     taken_at: new Date().toISOString(),
     device_model: null,
     uploaded_by: null,
@@ -295,19 +198,19 @@ export default function FieldPhotoCapture() {
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 text-foreground">
                 <MapPin className="h-3 w-3 text-primary" />
-                {isLoadingLocation ? (
+                {metadata.isLoadingLocation ? (
                   <span>Getting location...</span>
-                ) : isGeocoding ? (
+                ) : metadata.isGeocoding ? (
                   <span>Getting address...</span>
-                ) : coordinates ? (
+                ) : metadata.coordinates ? (
                   <span className="truncate max-w-[200px]">
-                    {locationName || `${coordinates.latitude.toFixed(4)}, ${coordinates.longitude.toFixed(4)}`}
+                    {metadata.locationName || `${metadata.coordinates.latitude.toFixed(4)}, ${metadata.coordinates.longitude.toFixed(4)}`}
                   </span>
                 ) : (
                   <span className="text-warning">GPS unavailable</span>
                 )}
               </div>
-              {coordinates && gpsAge && gpsAge < 5000 && (
+              {metadata.coordinates && metadata.gpsAge !== null && metadata.gpsAge < 5000 && (
                 <div className="flex items-center gap-1 text-primary">
                   <RefreshCw className="h-3 w-3" />
                   <span>Fresh</span>
@@ -366,11 +269,11 @@ export default function FieldPhotoCapture() {
             {/* Caption Preview - Always Visible */}
             <div className="p-3 bg-muted/50 rounded-lg border mb-2">
               <p className="text-xs text-muted-foreground font-medium mb-1.5">Caption Preview:</p>
-              {pendingCaption ? (
+              {captions.pendingCaption ? (
                 <>
-                  <p className="text-sm mb-1">{pendingCaption}</p>
+                  <p className="text-sm mb-1">{captions.pendingCaption}</p>
                   <p className="text-xs text-muted-foreground">
-                    {pendingCaption.split(/\s+/).filter(w => w.length > 0).length} words
+                    {captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length} words
                   </p>
                 </>
               ) : (
@@ -379,8 +282,7 @@ export default function FieldPhotoCapture() {
             </div>
             
             <div className="space-y-2">
-              {/* Show tip badge when prompt is suppressed */}
-              {captureCount > 3 && !pendingCaption && (
+              {captions.captureCount > 3 && !captions.pendingCaption && (
                 <div className="text-xs text-center text-muted-foreground bg-muted/50 p-2 rounded">
                   💡 Tip: Caption prompts show for first 3 photos
                 </div>
@@ -403,7 +305,7 @@ export default function FieldPhotoCapture() {
               
               {/* Secondary Type Option */}
               <Button 
-                onClick={() => setShowCaptionModal(true)} 
+                onClick={() => captions.setShowCaptionModal(true)} 
                 variant="outline" 
                 className="w-full"
                 size="sm"
@@ -446,7 +348,7 @@ export default function FieldPhotoCapture() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setShowCaptionModal(false)}
+                  onClick={() => captions.setShowCaptionModal(false)}
                 >
                   Skip Caption
                 </Button>
@@ -460,16 +362,16 @@ export default function FieldPhotoCapture() {
       >
         <QuickCaptionModal
           photo={mockPhoto}
-          open={showCaptionModal}
-          onClose={() => setShowCaptionModal(false)}
+          open={captions.showCaptionModal}
+          onClose={() => captions.setShowCaptionModal(false)}
           onSave={handleSaveCaption}
         />
       </ErrorBoundary>
 
       {/* Voice Caption Modal */}
       <VoiceCaptionModal
-        open={showVoiceCaptionModal}
-        onClose={() => setShowVoiceCaptionModal(false)}
+        open={captions.showVoiceCaptionModal}
+        onClose={() => captions.setShowVoiceCaptionModal(false)}
         onCaptionReady={handleVoiceCaptionReady}
         imageUrl={capturedPhotoUri || ''}
       />

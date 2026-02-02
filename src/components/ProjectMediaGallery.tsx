@@ -24,6 +24,7 @@ import { deleteProjectMedia, refreshMediaSignedUrl } from '@/utils/projectMedia'
 import { formatFileSize, formatDuration } from '@/utils/videoUtils';
 import { getPendingCount } from '@/utils/syncQueue';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import type { ProjectMedia } from '@/types/project';
 
 type ViewMode = 'grid' | 'list';
@@ -38,6 +39,8 @@ interface ProjectMediaGalleryProps {
   address?: string;
   externalActiveTab?: MediaTab; // Optional external tab control
   hideInternalTabs?: boolean; // Hide internal tabs if external tabs are used
+  /** Ref to external container where filter/sort controls should be rendered */
+  controlsContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function ProjectMediaGallery({ 
@@ -47,7 +50,8 @@ export function ProjectMediaGallery({
   clientName, 
   address,
   externalActiveTab,
-  hideInternalTabs = false
+  hideInternalTabs = false,
+  controlsContainerRef,
 }: ProjectMediaGalleryProps) {
   const queryClient = useQueryClient();
   const { media: allMedia, isLoading, refetch } = useProjectMedia(projectId);
@@ -68,6 +72,7 @@ export function ProjectMediaGallery({
   });
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [refreshingImages, setRefreshingImages] = useState<Set<string>>(new Set());
+  const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
 
   // Check for pending media uploads in queue
   const { data: queueCount } = useQuery({
@@ -262,6 +267,82 @@ export function ProjectMediaGallery({
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [selectedItems, filteredAndSortedMedia]);
 
+  // Fetch comment counts for all media items in one query
+  useEffect(() => {
+    if (allMedia.length === 0) return;
+
+    const fetchCommentCounts = async () => {
+      const mediaIds = allMedia.map((m) => m.id);
+
+      // Single query: get count grouped by media_id
+      // Supabase doesn't support GROUP BY directly, so we fetch all comment media_ids
+      // and count client-side. For large datasets, an RPC would be better.
+      const { data, error } = await supabase
+        .from('media_comments')
+        .select('media_id')
+        .in('media_id', mediaIds);
+
+      if (error) {
+        console.error('Failed to fetch comment counts:', error);
+        return;
+      }
+
+      const counts = new Map<string, number>();
+      (data || []).forEach((row) => {
+        counts.set(row.media_id, (counts.get(row.media_id) || 0) + 1);
+      });
+      setCommentCounts(counts);
+    };
+
+    fetchCommentCounts();
+  }, [allMedia]);
+
+  // Single realtime subscription for all comment changes on this project's media
+  useEffect(() => {
+    if (!projectId) return;
+
+    const channel = supabase
+      .channel(`project-media-comments-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'media_comments',
+        },
+        (payload) => {
+          // When any comment changes, update the relevant count
+          const mediaId =
+            payload.new && typeof payload.new === 'object' && 'media_id' in payload.new
+              ? (payload.new as { media_id: string }).media_id
+              : payload.old && typeof payload.old === 'object' && 'media_id' in payload.old
+                ? (payload.old as { media_id: string }).media_id
+                : null;
+
+          if (!mediaId) return;
+
+          // Refetch counts for accuracy (avoids complex insert/delete tracking)
+          const mediaIds = allMedia.map((m) => m.id);
+          supabase
+            .from('media_comments')
+            .select('media_id')
+            .in('media_id', mediaIds)
+            .then(({ data }) => {
+              const counts = new Map<string, number>();
+              (data || []).forEach((row) => {
+                counts.set(row.media_id, (counts.get(row.media_id) || 0) + 1);
+              });
+              setCommentCounts(counts);
+            });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, allMedia]);
+
   const handleBatchDelete = async () => {
     setIsDeleting(true);
     const itemIds = Array.from(selectedItems);
@@ -392,15 +473,8 @@ export function ProjectMediaGallery({
     );
   }
 
-  // Portal target for external controls - use state to ensure it exists
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (hideInternalTabs) {
-      const target = document.getElementById('field-media-controls');
-      setPortalTarget(target);
-    }
-  }, [hideInternalTabs]);
+  // Simple ref-based portal target (no DOM query needed)
+  const portalTarget = controlsContainerRef?.current || null;
 
   return (
     <div className="space-y-2">
@@ -601,7 +675,7 @@ export function ProjectMediaGallery({
                           </Badge>
 
                           {/* Comment Count Badge */}
-                          <MediaCommentBadge mediaId={item.id} />
+                          <MediaCommentBadge count={commentCounts.get(item.id) || 0} />
 
                           {/* Thumbnail/Image */}
                           {item.file_type === 'image' ? (

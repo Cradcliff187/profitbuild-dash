@@ -56,20 +56,23 @@ This file needs three additions:
 
 #### Addition 1: Import and state for comment counts
 
-Add near the top with other imports:
+Add near the top with other imports (useState and useEffect are likely already imported):
 ```typescript
 import { useEffect, useState, useCallback } from 'react';
 // ... existing imports ...
 ```
 
-Add state inside the component (near other state declarations):
+Add state inside the component, near other state declarations at the TOP of the function (with `failedImages`, `refreshingImages`, `portalTarget`, etc.):
 ```typescript
 const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
 ```
 
+**IMPORTANT (Rules of Hooks):** All hooks must be declared BEFORE any early returns (`if (isLoading) return ...`). Place this useState with the other useState calls at the top of the component.
+
 #### Addition 2: Fetch all comment counts in a single query
 
-Add a `useEffect` that runs when `allMedia` changes:
+Add a `useEffect` that runs when `allMedia` changes. Place this with other useEffect calls, BEFORE any early returns:
+
 ```typescript
 // Fetch comment counts for all media items in one query
 useEffect(() => {

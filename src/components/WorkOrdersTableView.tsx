@@ -434,7 +434,6 @@ export const WorkOrdersTableView = ({
                 selectable={!!onSelectOne}
                 selected={selectedIds.includes(workOrder.id)}
                 onSelectChange={(checked) => onSelectOne?.(workOrder.id, checked)}
-                onTap={() => navigate(`/projects/${workOrder.id}`)}
                 actions={[
                   {
                     icon: Eye,

@@ -9,7 +9,9 @@
 
 ## Context
 
-`ProjectMediaGallery.tsx` uses a DOM query to find a portal target for rendering external controls:
+`ProjectMediaGallery.tsx` uses a DOM query to find a portal target for rendering external controls.
+
+**Note:** If you already ran the HOTFIX for the hooks order violation, this code was moved from after the early returns to the top of the component. Either way, you need to find and replace this pattern:
 
 ```typescript
 const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
@@ -68,7 +70,8 @@ interface ProjectMediaGalleryProps {
 
 **Replace the DOM query with the ref:**
 
-Find this code:
+Find this code (after the hotfix, it should be at the TOP of the component with other hooks; before the hotfix, it was after the early returns — either way, find and remove it):
+
 ```typescript
 const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -80,15 +83,17 @@ useEffect(() => {
 }, [hideInternalTabs]);
 ```
 
-Replace with:
+Replace with this single line (place it near where the `createPortal` call is, or just before the JSX return):
 ```typescript
 const portalTarget = controlsContainerRef?.current || null;
 ```
 
 This eliminates:
-- The `useState` for portalTarget
-- The `useEffect` with DOM query
+- The `useState` for portalTarget (removes 1 hook)
+- The `useEffect` with DOM query (removes 1 hook)
 - The timing dependency on `#field-media-controls` existing
+
+**Note:** This is not just a style preference — the ref-based approach is more robust because it doesn't depend on DOM element IDs or render timing.
 
 The `createPortal` call that uses `portalTarget` remains unchanged — it already handles `null` gracefully (renders nothing).
 

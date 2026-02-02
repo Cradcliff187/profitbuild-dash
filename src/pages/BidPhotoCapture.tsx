@@ -1,112 +1,47 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, MapPin, Clock, X, Check, Eye, MessageSquare, RefreshCw, Smartphone, Mic } from 'lucide-react';
+import { Camera, MapPin, Clock, X, Check, MessageSquare, Smartphone, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useCaptureMetadata } from '@/hooks/useCaptureMetadata';
+import { useCaptionFlow } from '@/hooks/useCaptionFlow';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
-import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
 import { VoiceCaptionModal } from '@/components/VoiceCaptionModal';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isWebPlatform, isIOSPWA } from '@/utils/platform';
+import { isWebPlatform } from '@/utils/platform';
 import { toast } from 'sonner';
-import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
-import { getCaptionPreferences } from '@/utils/userPreferences';
-
-// Debug mode: set to true to always show caption prompts (helpful for testing)
-const DEBUG_ALWAYS_SHOW_PROMPT = false;
 
 export default function BidPhotoCapture() {
   const { id: bidId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { capturePhoto, isCapturing } = useCameraCapture();
-  const { getLocation, coordinates, isLoading: isLoadingLocation } = useGeolocation();
   const { upload, isUploading, progress } = useBidMediaUpload();
-  const { reverseGeocode, isLoading: isGeocoding } = useReverseGeocode();
+  const metadata = useCaptureMetadata();
+  const captions = useCaptionFlow();
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
-  const [locationName, setLocationName] = useState<string>('');
-  const [showCaptionModal, setShowCaptionModal] = useState(false);
-  const [showVoiceCaptionModal, setShowVoiceCaptionModal] = useState(false);
-  const [pendingCaption, setPendingCaption] = useState<string>('');
-  const [gpsAge, setGpsAge] = useState<number | null>(null);
-  const [captureCount, setCaptureCount] = useState(0);
-  const [skipCount, setSkipCount] = useState(0);
-
-  // Calculate GPS age and reverse geocode
-  useEffect(() => {
-    if (coordinates) {
-      setGpsAge(Date.now() - coordinates.timestamp);
-      
-      // Reverse geocode to get human-readable address
-      reverseGeocode(coordinates.latitude, coordinates.longitude).then((result) => {
-        if (result) {
-          setLocationName(result.shortName);
-        } else {
-          // Fallback to coordinates if geocoding fails
-          setLocationName(`${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
-        }
-      });
-    }
-  }, [coordinates, reverseGeocode]);
 
   const handleCapture = async () => {
-    // Parallelize GPS and photo capture to preserve user gesture
     const capturePromise = capturePhoto();
-    const gpsPromise = getLocation();
-    
-    const [photo, freshCoords] = await Promise.all([capturePromise, gpsPromise]);
-    
-    if (photo) {
-      console.log('[BidPhotoCapture] Photo captured successfully', {
-        captureCount: captureCount + 1,
-        hasGPS: !!freshCoords,
-        willShowToast: DEBUG_ALWAYS_SHOW_PROMPT || (captureCount + 1) <= 3,
-      });
-      
-      setCapturedPhotoUri(photo.webPath || '');
-      const newCaptureCount = captureCount + 1;
-      setCaptureCount(newCaptureCount);
-      
-      // Show GPS accuracy toast
-      if (freshCoords) {
-        toast.success(`Photo captured with GPS accuracy ±${freshCoords.accuracy.toFixed(0)}m`);
-        
-        // Smart caption prompt (3-second delay so GPS toast shows first)
-        setTimeout(async () => {
-          // Check user preferences
-          const prefs = await getCaptionPreferences();
-          if (!prefs.showCaptionPrompts && !DEBUG_ALWAYS_SHOW_PROMPT) {
-            return; // User has disabled prompts
-          }
+    await metadata.startLocationCapture();
 
-          // Only show on first 3 captures (unless debugging)
-          if (DEBUG_ALWAYS_SHOW_PROMPT || newCaptureCount <= 3) {
-            const message = newCaptureCount === 1 
-              ? CAPTION_PROMPTS.firstCapture 
-              : CAPTION_PROMPTS.gpsAvailable;
-            
-            console.log('[BidPhotoCapture] Showing caption prompt toast', {
-              captureNumber: newCaptureCount,
-              message: newCaptureCount === 1 ? 'firstCapture' : 'gpsAvailable',
-            });
-            
-            showCaptionPrompt({
-              onVoiceClick: () => setShowVoiceCaptionModal(true),
-              onTypeClick: () => setShowCaptionModal(true),
-              message,
-              duration: DEBUG_ALWAYS_SHOW_PROMPT ? 10000 : 5000,
-            });
-          }
-        }, 3000);
+    const photo = await capturePromise;
+
+    if (photo) {
+      setCapturedPhotoUri(photo.webPath || '');
+
+      const hasGps = !!metadata.coordinates;
+      if (hasGps) {
+        toast.success(`Photo captured with GPS accuracy ±${metadata.coordinates!.accuracy.toFixed(0)}m`);
       } else {
         toast.warning('GPS unavailable', {
           description: 'Photo captured without location data',
         });
       }
+
+      captions.onCaptureSuccess(hasGps);
     } else if (window.top !== window.self) {
-      // Running in iframe - suggest opening in new tab
       toast.error('Camera blocked in embedded view', {
         description: 'Open app in a new tab to use camera',
       });
@@ -116,33 +51,17 @@ export default function BidPhotoCapture() {
   const handleUploadAndContinue = async () => {
     if (!capturedPhotoUri || !bidId) return;
 
-    // Track if user skipped caption
-    const skippedCaption = !pendingCaption.trim();
-    if (skippedCaption) {
-      const newSkipCount = skipCount + 1;
-      setSkipCount(newSkipCount);
-
-      // Show gentle reminder after 3 consecutive skips
-      if (newSkipCount >= 3 && newSkipCount % 3 === 0) {
-        toast.info(CAPTION_PROMPTS.multipleSkips, {
-          duration: 4000,
-        });
-      }
+    if (!captions.pendingCaption.trim()) {
+      captions.onCaptionSkipped();
     }
 
     try {
-      // Convert photo URI to File
       const response = await fetch(capturedPhotoUri);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch photo file');
-      }
+      if (!response.ok) throw new Error('Failed to fetch photo file');
 
       const blob = await response.blob();
-      const takenAt = new Date().toISOString();
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
 
-      // Check file size (warn if > 15MB)
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > 15) {
         toast.warning(`Large file: ${fileSizeMB.toFixed(1)}MB`, {
@@ -150,32 +69,29 @@ export default function BidPhotoCapture() {
         });
       }
 
+      const meta = metadata.getMetadataForUpload();
       await upload({
         bid_id: bidId,
         file,
-        caption: pendingCaption || undefined,
-        // GPS and location metadata
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        altitude: coordinates?.altitude,
-        location_name: locationName || undefined,
-        // Capture metadata
-        taken_at: takenAt,
-        device_model: navigator.userAgent || undefined,
-        upload_source: 'camera',
+        caption: captions.pendingCaption || undefined,
+        latitude: meta.latitude,
+        longitude: meta.longitude,
+        altitude: meta.altitude ?? undefined,
+        location_name: meta.locationName,
+        taken_at: meta.takenAt,
+        device_model: meta.deviceModel,
+        upload_source: meta.uploadSource,
       });
 
-      // Show success toast with caption info
-      const wordCount = pendingCaption ? pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
+      const wordCount = captions.pendingCaption ? captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
       toast.success(
-        pendingCaption
+        captions.pendingCaption
           ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
           : 'Photo uploaded without caption'
       );
 
-      // Reset for next photo
       setCapturedPhotoUri(null);
-      setPendingCaption('');
+      captions.setPendingCaption('');
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error('Failed to upload photo');
@@ -183,15 +99,10 @@ export default function BidPhotoCapture() {
   };
 
   const handleSaveCaption = (caption: string) => {
-    setPendingCaption(caption);
-    setShowCaptionModal(false);
-    setSkipCount(0); // Reset skip counter when user adds caption
-    toast.success('Caption saved - ready to upload');
+    captions.onCaptionSaved(caption);
   };
 
-  // Open voice modal with non-blocking warnings
   const handleVoiceCaptionClick = () => {
-    // Show info toast if in iframe (non-blocking)
     if (window.self !== window.top) {
       toast.info('Embedded preview: microphone may be limited', {
         description: 'If recording fails, open in a new tab.',
@@ -202,22 +113,16 @@ export default function BidPhotoCapture() {
         },
       });
     }
-    
-    // Always open the modal - let it handle actual errors
-    setShowVoiceCaptionModal(true);
+    captions.setShowVoiceCaptionModal(true);
   };
 
   const handleVoiceCaptionReady = (caption: string) => {
-    setPendingCaption(caption);
-    setShowVoiceCaptionModal(false);
-    setSkipCount(0); // Reset skip counter
-    const wordCount = caption.split(/\s+/).filter(w => w.length > 0).length;
-    toast.success(`Voice caption added (${wordCount} word${wordCount !== 1 ? 's' : ''})`);
+    captions.onVoiceCaptionReady(caption);
   };
 
   const handleDiscard = () => {
     setCapturedPhotoUri(null);
-    setPendingCaption('');
+    captions.setPendingCaption('');
     toast.info('Photo discarded');
   };
 
@@ -225,11 +130,10 @@ export default function BidPhotoCapture() {
     navigate(`/branch-bids/${bidId}`);
   };
 
-  // Calculate GPS age string
-  const gpsAgeString = gpsAge !== null 
-    ? gpsAge < 60000 
-      ? `${Math.floor(gpsAge / 1000)}s ago` 
-      : `${Math.floor(gpsAge / 60000)}m ago`
+  const gpsAgeString = metadata.gpsAge !== null
+    ? metadata.gpsAge < 60000
+      ? `${Math.floor(metadata.gpsAge / 1000)}s ago`
+      : `${Math.floor(metadata.gpsAge / 60000)}m ago`
     : '';
 
   return (
@@ -255,16 +159,16 @@ export default function BidPhotoCapture() {
           {/* GPS Info */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
-              <MapPin className={`h-4 w-4 ${coordinates ? 'text-green-500' : 'text-muted-foreground'}`} />
+              <MapPin className={`h-4 w-4 ${metadata.coordinates ? 'text-green-500' : 'text-muted-foreground'}`} />
               <span className="text-sm">
-                {coordinates 
-                  ? `GPS: ±${coordinates.accuracy.toFixed(0)}m`
-                  : isLoadingLocation 
+                {metadata.coordinates 
+                  ? `GPS: ±${metadata.coordinates.accuracy.toFixed(0)}m`
+                  : metadata.isLoadingLocation 
                     ? 'Getting GPS...' 
                     : 'GPS unavailable'}
               </span>
             </div>
-            {gpsAge !== null && (
+            {metadata.gpsAge !== null && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {gpsAgeString}
@@ -312,27 +216,27 @@ export default function BidPhotoCapture() {
                   alt="Captured photo"
                   className="w-full h-full object-contain"
                 />
-                {coordinates && (
+                {metadata.coordinates && (
                   <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
-                    ±{coordinates.accuracy.toFixed(0)}m
+                    ±{metadata.coordinates.accuracy.toFixed(0)}m
                   </div>
                 )}
               </div>
 
               {/* Caption Section */}
               <div className="space-y-2">
-                {pendingCaption && (
+                {captions.pendingCaption && (
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <div className="text-xs text-muted-foreground mb-1">Caption</div>
-                        <div className="text-sm">{pendingCaption}</div>
+                        <div className="text-sm">{captions.pendingCaption}</div>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setShowCaptionModal(true)}
+                        onClick={() => captions.setShowCaptionModal(true)}
                       >
                         Edit
                       </Button>
@@ -340,11 +244,11 @@ export default function BidPhotoCapture() {
                   </div>
                 )}
 
-                {!pendingCaption && (
+                {!captions.pendingCaption && (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => setShowCaptionModal(true)}
+                      onClick={() => captions.setShowCaptionModal(true)}
                       className="flex-1"
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
@@ -404,15 +308,15 @@ export default function BidPhotoCapture() {
 
         {/* Modals */}
         <QuickCaptionModal
-          photo={{ file_url: '', caption: pendingCaption } as any}
-          open={showCaptionModal}
-          onClose={() => setShowCaptionModal(false)}
+          photo={{ file_url: '', caption: captions.pendingCaption } as any}
+          open={captions.showCaptionModal}
+          onClose={() => captions.setShowCaptionModal(false)}
           onSave={handleSaveCaption}
         />
 
         <VoiceCaptionModal
-          open={showVoiceCaptionModal}
-          onClose={() => setShowVoiceCaptionModal(false)}
+          open={captions.showVoiceCaptionModal}
+          onClose={() => captions.setShowVoiceCaptionModal(false)}
           onCaptionReady={handleVoiceCaptionReady}
         />
       </div>

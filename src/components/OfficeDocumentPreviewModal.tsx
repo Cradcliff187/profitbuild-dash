@@ -184,8 +184,8 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
                 </div>
               )}
 
-              {/* Viewer: Google Docs Viewer iframe (attempt first, fallback above when timer/error) */}
-              {!showDownloadFallback && (
+              {/* Viewer: Google Docs Viewer iframe (attempt first, fallback above when timer/error). Keep iframe visible once loaded even if timeout fired. */}
+              {(!showDownloadFallback || contentLoaded) && (
                 <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
                   {!contentLoaded && !loadError && (
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">

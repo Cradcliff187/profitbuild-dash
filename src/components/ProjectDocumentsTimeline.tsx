@@ -122,16 +122,69 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
         .eq('project_id', projectId)
         .order('taken_at', { ascending: false });
 
-      if (media) {
+      if (media && media.length > 0) {
+        // Batch generate signed URLs for all media files
+        const mediaPaths = media
+          .map((m) => m.file_url)
+          .filter((path): path is string => !!path && !path.startsWith('http'));
+
+        const { data: signedUrlsData } = mediaPaths.length > 0
+          ? await supabase.storage
+              .from('project-media')
+              .createSignedUrls(mediaPaths, 604800) // 7 days
+          : { data: null };
+
+        // Build path → signedUrl lookup map
+        const signedUrlMap = new Map<string, string>();
+        if (signedUrlsData) {
+          signedUrlsData.forEach((item) => {
+            if (item.signedUrl && item.path) {
+              signedUrlMap.set(item.path, item.signedUrl);
+            }
+          });
+        }
+
+        // Also generate signed URLs for video thumbnails if any exist
+        const videoThumbnailPaths = media
+          .filter((m) => m.file_type === 'video' && m.thumbnail_url)
+          .map((m) => `thumbnails/${m.id}.jpg`);
+
+        const thumbnailUrlMap = new Map<string, string>();
+        if (videoThumbnailPaths.length > 0) {
+          const { data: thumbSignedUrls } = await supabase.storage
+            .from('project-media-thumbnails')
+            .createSignedUrls(videoThumbnailPaths, 604800);
+
+          if (thumbSignedUrls) {
+            thumbSignedUrls.forEach((item) => {
+              if (item.signedUrl && item.path) {
+                thumbnailUrlMap.set(item.path, item.signedUrl);
+              }
+            });
+          }
+        }
+
         media.forEach((m) => {
+          // Resolve the signed URL for this media item
+          const signedFileUrl = m.file_url?.startsWith('http')
+            ? m.file_url // Already a full URL (defensive)
+            : signedUrlMap.get(m.file_url) || m.file_url;
+
+          // For thumbnails: use video thumbnail if available, otherwise use signed file URL
+          let resolvedThumbnailUrl = signedFileUrl;
+          if (m.file_type === 'video' && m.thumbnail_url) {
+            const thumbPath = `thumbnails/${m.id}.jpg`;
+            resolvedThumbnailUrl = thumbnailUrlMap.get(thumbPath) || signedFileUrl;
+          }
+
           timelineItems.push({
             id: m.id,
             type: 'media',
             timestamp: new Date(m.taken_at || m.created_at),
             title: m.description || m.file_name,
-            thumbnailUrl: m.thumbnail_url || m.file_url,
-            fileUrl: m.file_url,
-            metadata: m,
+            thumbnailUrl: resolvedThumbnailUrl,
+            fileUrl: signedFileUrl,
+            metadata: { ...m, file_url: signedFileUrl }, // Pass signed URL through metadata too
           });
         });
       }
