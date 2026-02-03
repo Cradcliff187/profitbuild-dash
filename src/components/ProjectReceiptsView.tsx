@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { receiptQueryKeys } from '@/hooks/useReceiptsData';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { Filter, Receipt, MoreHorizontal, FileText, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,8 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
         payee_name: receipt.payee_id ? payeesMap.get(receipt.payee_id) || undefined : undefined
       }));
     },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!projectId,
   });
 
   // Real-time subscription for receipts
@@ -156,6 +159,9 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
         .eq('id', receiptToDelete.id);
 
       if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['project-receipts', projectId] });
+      queryClient.invalidateQueries({ queryKey: receiptQueryKeys.all });
 
       toast({
         title: 'Receipt deleted',

@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { receiptQueryKeys } from '@/hooks/useReceiptsData';
 import { format, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
 import { parseLocalDate } from '@/lib/utils';
 import { Receipt, Trash2, Plus, Edit, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
@@ -32,8 +34,7 @@ type FilterType = 'all' | 'unassigned' | 'thisWeek' | 'thisMonth';
 type SortType = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
 export const ReceiptsList = () => {
-  const [receipts, setReceipts] = useState<ReceiptData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortType>('date-desc');
@@ -44,13 +45,9 @@ export const ReceiptsList = () => {
   const [editingReceipt, setEditingReceipt] = useState<ReceiptData | null>(null);
   const [reassigningReceiptIds, setReassigningReceiptIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadReceipts();
-  }, []);
-
-  const loadReceipts = async () => {
-    try {
-      setLoading(true);
+  const { data: receipts = [], isLoading: loading } = useQuery({
+    queryKey: ['field-receipts'],
+    queryFn: async (): Promise<ReceiptData[]> => {
       const { data, error } = await supabase
         .from('receipts')
         .select(`
@@ -62,7 +59,7 @@ export const ReceiptsList = () => {
 
       if (error) throw error;
 
-      const formattedReceipts = (data || []).map((receipt: any) => ({
+      return (data || []).map((receipt: any) => ({
         id: receipt.id,
         image_url: receipt.image_url,
         amount: receipt.amount,
@@ -74,14 +71,12 @@ export const ReceiptsList = () => {
         description: receipt.description,
         captured_at: receipt.captured_at,
       }));
+    },
+  });
 
-      setReceipts(formattedReceipts);
-    } catch (error) {
-      console.error('Failed to load receipts:', error);
-      toast.error('Failed to load receipts');
-    } finally {
-      setLoading(false);
-    }
+  const loadReceipts = () => {
+    queryClient.invalidateQueries({ queryKey: ['field-receipts'] });
+    queryClient.invalidateQueries({ queryKey: receiptQueryKeys.all });
   };
 
   const filteredAndSortedReceipts = useMemo(() => {
