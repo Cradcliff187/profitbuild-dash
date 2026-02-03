@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRoles } from '@/contexts/RoleContext';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 import { SMSComposer } from '@/components/sms/SMSComposer';
 import { SMSHistory } from '@/components/sms/SMSHistory';
 import { ScheduledSMSManager } from '@/components/sms/ScheduledSMSManager';
@@ -21,6 +21,13 @@ export default function SMSAdmin() {
   const { toast } = useToast();
   const hasCheckedAccess = useRef(false);
   const [activeTab, setActiveTab] = useState('compose');
+
+  const tabOptions = [
+    { value: 'compose', label: 'Compose', icon: MessageSquare },
+    { value: 'history', label: 'History', icon: History },
+    { value: 'scheduled', label: 'Scheduled', icon: Clock },
+    { value: 'settings', label: 'Settings', icon: Settings },
+  ];
 
   useEffect(() => {
     console.log('📱 SMSAdmin: Roles check:', { isAdmin, isManager, rolesLoading, rolesLength: roles.length, roles, hasChecked: hasCheckedAccess.current });
@@ -87,37 +94,11 @@ export default function SMSAdmin() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Mobile Dropdown */}
         <div className="sm:hidden mb-4">
-          <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="compose">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>Compose</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="scheduled">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>Scheduled</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="history">
-                <div className="flex items-center gap-2">
-                  <History className="h-4 w-4" />
-                  <span>History</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="settings">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <MobileTabSelector
+            value={activeTab}
+            onValueChange={setActiveTab}
+            options={tabOptions}
+          />
         </div>
 
         {/* Desktop Tabs - Styled like Time Management */}

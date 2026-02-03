@@ -8,7 +8,7 @@ import { EstimateExportModal } from "@/components/EstimateExportModal";
 import EstimateFinancialAnalyticsDashboard from "@/components/EstimateFinancialAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
@@ -531,24 +531,11 @@ const EstimatesPage = () => {
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full max-w-full min-w-0">
           <div className="w-full sm:w-auto">
             <div className="sm:hidden">
-              <Select value={activeTab} onValueChange={handleTabChange}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {tabOptions.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <SelectItem key={tab.value} value={tab.value}>
-                        <div className="flex items-center gap-2">
-                          {Icon && <Icon className="h-4 w-4" />}
-                          <span>{tab.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <MobileTabSelector
+                value={activeTab}
+                onValueChange={handleTabChange}
+                options={tabOptions}
+              />
             </div>
 
             {!isMobile && (

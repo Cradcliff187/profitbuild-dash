@@ -9,7 +9,7 @@ import { FieldProjectSelector } from '@/components/FieldProjectSelector';
 import { ProjectMediaGallery } from '@/components/ProjectMediaGallery';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -115,24 +115,11 @@ export default function FieldMedia() {
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MediaTab)} className="space-y-4">
                 {/* Mobile: Dropdown + Controls Below */}
                 <div className="sm:hidden space-y-2">
-                  <Select value={activeTab} onValueChange={(value) => setActiveTab(value as MediaTab)}>
-                    <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tabOptions.map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                          <SelectItem key={tab.value} value={tab.value}>
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              <span>{tab.label}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  <MobileTabSelector
+                    value={activeTab}
+                    onValueChange={(value) => setActiveTab(value as MediaTab)}
+                    options={tabOptions}
+                  />
                   {/* Mobile controls will be rendered inside TabsContent by ProjectMediaGallery */}
                 </div>
 

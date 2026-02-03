@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { toast } from 'sonner';
 import { BidNotesTimeline } from '@/components/BidNotesTimeline';
@@ -430,24 +431,11 @@ export default function BranchBidDetail() {
           <div className="w-full sm:w-auto">
             {/* Mobile Dropdown */}
             <div className="sm:hidden">
-              <Select value={activeTab} onValueChange={setActiveTab}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {tabOptions.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <SelectItem key={tab.value} value={tab.value}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
-                          <span>{tab.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <MobileTabSelector
+                value={activeTab}
+                onValueChange={setActiveTab}
+                options={tabOptions}
+              />
             </div>
 
             {/* Desktop Tabs */}

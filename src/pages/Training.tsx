@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { 
@@ -31,6 +31,13 @@ export default function Training() {
   const isMobile = useIsMobile();
   const { items, stats, isLoading } = useMyTraining();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+
+  const tabOptions = [
+    { value: 'all', label: 'All', icon: GraduationCap },
+    { value: 'pending', label: 'Pending', icon: Clock },
+    { value: 'completed', label: 'Completed', icon: CheckCircle2 },
+    { value: 'overdue', label: 'Overdue', icon: AlertCircle },
+  ];
 
   // Filter items based on active tab
   const filteredItems = items.filter(item => {
@@ -213,17 +220,11 @@ export default function Training() {
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FilterTab)} className="mb-4">
         {/* Mobile Dropdown */}
         <div className="sm:hidden mb-4">
-          <Select value={activeTab} onValueChange={(v) => setActiveTab(v as FilterTab)}>
-            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
+          <MobileTabSelector
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as FilterTab)}
+            options={tabOptions as any}
+          />
         </div>
 
         {/* Desktop Tabs */}

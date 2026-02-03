@@ -4,7 +4,7 @@ import { ClipboardCheck, FileImage, Plus, Download, AlertCircle, Clock } from "l
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -557,49 +557,11 @@ const TimeEntriesPage = () => {
         <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full sm:w-auto overflow-hidden">
             <div className="sm:hidden">
-              <Select value={activeTab} onValueChange={handleTabChange}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm overflow-hidden">
-                  {(() => {
-                    const activeOption = tabOptions.find(t => t.value === activeTab);
-                    const Icon = activeOption?.icon;
-                    return (
-                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                        {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
-                        <span className="truncate">{activeOption?.label}</span>
-                        {activeOption?.badgeCount && activeOption.badgeCount > 0 && (
-                          <Badge 
-                            variant="secondary" 
-                            className="text-xs font-semibold h-5 px-2 bg-slate-900 text-white border-0"
-                          >
-                            {activeOption.badgeCount}
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </SelectTrigger>
-                <SelectContent className="z-[100]">
-                  {tabOptions.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <SelectItem key={tab.value} value={tab.value}>
-                        <div className="flex items-center gap-2">
-                          {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
-                          <span>{tab.label}</span>
-                          {tab.badgeCount > 0 && (
-                            <Badge 
-                              variant="secondary" 
-                              className="text-xs font-semibold h-5 px-2 bg-slate-900 text-white border-0 hover:bg-slate-800"
-                            >
-                              {tab.badgeCount}
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <MobileTabSelector
+                value={activeTab}
+                onValueChange={handleTabChange}
+                options={tabOptions}
+              />
             </div>
 
             <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">

@@ -7,8 +7,8 @@
  * - supabase/functions/ai-report-assistant (AI context)
  * - Validation scripts (CI/CD)
  *
- * @version 3.0.0
- * @lastUpdated 2026-01-30
+ * @version 3.1.0
+ * @lastUpdated 2026-02-03
  */
 
 // Types

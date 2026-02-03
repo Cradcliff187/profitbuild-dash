@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { Edit, Plus, FileText, GitCompare, FileStack } from "lucide-react";
 import { EstimateForm } from "@/components/EstimateForm";
 import { QuotesList } from "@/components/QuotesList";
@@ -60,10 +60,10 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
   };
 
   const tabOptions = [
-    { value: "current", label: "Current Estimate" },
-    { value: "versions", label: `Versions (${estimates.length})` },
-    { value: "quotes", label: `Quotes (${quotes.length})` },
-    ...(hasMultipleEstimates ? [{ value: "compare", label: "Compare" }] : []),
+    { value: "current", label: "Current Estimate", icon: FileText },
+    { value: "versions", label: `Versions (${estimates.length})`, icon: FileStack },
+    { value: "quotes", label: `Quotes (${quotes.length})`, icon: FileText },
+    ...(hasMultipleEstimates ? [{ value: "compare", label: "Compare", icon: GitCompare }] : []),
   ];
 
   if (estimates.length === 0) {
@@ -98,18 +98,11 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full sm:w-auto">
             <div className="sm:hidden">
-              <Select value={activeTab} onValueChange={handleTabChange}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {tabOptions.map((tab) => (
-                    <SelectItem key={tab.value} value={tab.value}>
-                      {tab.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MobileTabSelector
+                value={activeTab}
+                onValueChange={handleTabChange}
+                options={tabOptions as any}
+              />
             </div>
 
             <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">

@@ -5,7 +5,7 @@ import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -43,6 +43,7 @@ const KPI_GUIDE_METADATA = {
   lastUpdated: LAST_UPDATED,
   version: KPI_DEFINITIONS_VERSION,
   changelog: [
+    { date: '2026-02-03', version: '3.1', changes: 'Added Labor Tracking section to Project KPIs: estimated_hours, actual_hours, hours_variance (3 new measures). Fixed contingency_amount field mapping from estimates to projects table. Applied database migration to add missing project fields (contingency_amount, estimated_hours, actual_hours).' },
     { date: '2026-01-29', version: '3.0', changes: 'Added View KPIs section (21 measures) for weekly_labor_hours and training_status views. Added 8 new expense KPIs for joined fields (worker_name, employee_number, hourly_rate, approval_status, description, project fields). Updated gross_hours to frontend-calculated.' },
     { date: '2026-01-23', version: '2.0', changes: 'Migrated to centralized KPI definitions library. Added semantic mappings, business rules, and validation. Fixed SQL examples for time tracking calculations.' },
     { date: '2026-01-21', version: '1.4', changes: 'Added Labor Cushion metrics (9 new measures) - labor_cushion_amount, max_gross_profit_potential, max_potential_margin_percent, and labor financial tracking' },
@@ -202,21 +203,11 @@ export default function KPIGuide() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Mobile Dropdown */}
         <div className="sm:hidden mb-4">
-          <Select value={activeTab} onValueChange={handleTabChange}>
-            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {tabOptions.map((tab) => (
-                <SelectItem key={tab.value} value={tab.value}>
-                  <div className="flex items-center gap-2">
-                    <tab.icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MobileTabSelector
+            value={activeTab}
+            onValueChange={handleTabChange}
+            options={tabOptions}
+          />
         </div>
 
         {/* Desktop Orange Pills */}

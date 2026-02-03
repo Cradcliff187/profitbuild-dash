@@ -5,7 +5,7 @@ import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { ExpenseDashboard } from "@/components/ExpenseDashboard";
 import { ExpenseFormSheet } from "@/components/ExpenseFormSheet";
@@ -497,24 +497,11 @@ const Expenses = () => {
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="w-full sm:w-auto sm:order-1">
               <div className="sm:hidden">
-                <Select value={viewMode} onValueChange={handleTabChange}>
-                  <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tabOptions.map((tab) => {
-                      const Icon = tab.icon;
-                      return (
-                        <SelectItem key={tab.value} value={tab.value}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" />
-                            <span>{tab.label}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <MobileTabSelector
+                  value={viewMode}
+                  onValueChange={handleTabChange}
+                  options={tabOptions}
+                />
               </div>
 
               <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1 sm:flex">

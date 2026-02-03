@@ -25,8 +25,8 @@ import { fewShotExamples } from './few-shot-examples';
 import { getBenchmarksForPrompt } from './business-benchmarks';
 
 // Version tracking for cache invalidation
-export const KPI_DEFINITIONS_VERSION = '3.0.0';
-export const LAST_UPDATED = '2026-01-28';
+export const KPI_DEFINITIONS_VERSION = '3.1.0';
+export const LAST_UPDATED = '2026-02-03';
 
 /**
  * Generate the complete AI context object

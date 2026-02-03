@@ -4,8 +4,13 @@
  * Core project-level financial metrics and margin calculations.
  * These are the primary metrics for project profitability analysis.
  * 
- * @version 2.0.0
- * @lastUpdated 2026-01-30
+ * @version 2.1.0
+ * @lastUpdated 2026-02-03
+ * 
+ * CHANGELOG v2.1.0:
+ * - ADDED: Labor Tracking section (estimated_hours, actual_hours, hours_variance)
+ * - FIXED: contingency_amount field mapping (estimates → projects)
+ * - ADDED: Database columns via migration (contingency_amount, estimated_hours, actual_hours)
  * 
  * CHANGELOG v2.0.0:
  * - RENAMED: projected_margin → adjusted_est_margin
@@ -290,13 +295,14 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     id: 'contingency_amount',
     name: 'Contingency Amount',
     source: 'database',
-    field: 'estimates.contingency_amount',
-    formula: 'Contingency set in approved estimate',
+    field: 'projects.contingency_amount',
+    formula: 'Total contingency budget set at project approval',
     dataType: 'currency',
     domain: 'project',
-    whereUsed: 'ContingencyAllocation, financial dashboards',
-    notes: 'Total contingency buffer from approved estimate.',
-    aliases: ['contingency', 'buffer', 'reserve'],
+    whereUsed: 'ProjectOperationalDashboard, ContingencyAllocation, financial dashboards',
+    notes: 'Total contingency budget set at project level. Maintained by triggers when estimates approved or change orders created. Used to calculate contingency_remaining.',
+    aliases: ['contingency', 'buffer', 'reserve', 'total contingency'],
+    relatedTo: ['contingency_remaining', 'contingency_used'],
   },
   {
     id: 'contingency_used',
@@ -320,6 +326,51 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     whereUsed: 'Budget planning, risk assessment',
     notes: 'Available contingency buffer.',
     aliases: ['available contingency'],
+  },
+
+  // ==========================================================================
+  // LABOR TRACKING METRICS
+  // ==========================================================================
+  {
+    id: 'estimated_hours',
+    name: 'Estimated Hours',
+    source: 'database',
+    field: 'projects.estimated_hours',
+    formula: 'SUM(estimate_line_items.quantity) WHERE category=labor_internal AND unit IN (HR, HRS, HOUR, HOURS)',
+    dataType: 'number',
+    domain: 'project',
+    whereUsed: 'ProjectOperationalDashboard Labor Section, internal_labor_hours_by_project view, labor reports',
+    notes: 'Total estimated labor hours from approved estimate line items. Calculated and stored when estimates are approved. Maintained by triggers.',
+    aliases: ['planned hours', 'budgeted hours', 'est hours', 'labor estimate'],
+    relatedTo: ['actual_hours', 'hours_variance'],
+    preferWhen: 'User asks about planned or estimated labor hours',
+  },
+  {
+    id: 'actual_hours',
+    name: 'Actual Hours',
+    source: 'database',
+    field: 'projects.actual_hours',
+    formula: 'Calculated from time entries and labor expenses (see internal_labor_hours_by_project view for logic)',
+    dataType: 'number',
+    domain: 'project',
+    whereUsed: 'ProjectOperationalDashboard Labor Section, time tracking reports, labor analysis',
+    notes: 'Total actual labor hours tracked via time entries and labor expenses. Maintained by triggers. Complex calculation handles start_time/end_time, description parsing, and hourly rate division.',
+    aliases: ['tracked hours', 'worked hours', 'logged hours', 'labor actual'],
+    relatedTo: ['estimated_hours', 'hours_variance'],
+    preferWhen: 'User asks about actual or tracked labor hours',
+  },
+  {
+    id: 'hours_variance',
+    name: 'Hours Variance',
+    source: 'frontend',
+    field: 'calculated',
+    formula: 'estimated_hours - actual_hours',
+    dataType: 'number',
+    domain: 'project',
+    whereUsed: 'ProjectOperationalDashboard Labor Section, variance analysis',
+    notes: 'Remaining labor hours. Positive = under hours (savings), Negative = over hours (overrun). Used for labor utilization tracking.',
+    aliases: ['hours remaining', 'hours delta', 'labor variance'],
+    relatedTo: ['estimated_hours', 'actual_hours'],
   },
 
   // ==========================================================================

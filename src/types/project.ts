@@ -21,6 +21,9 @@ export interface Project {
   current_margin?: number | null;
   margin_percentage?: number | null;
   contingency_remaining?: number | null;
+  contingency_amount?: number | null;
+  estimated_hours?: number | null;
+  actual_hours?: number | null;
   minimum_margin_threshold?: number | null;
   target_margin?: number | null;
   original_margin?: number | null;

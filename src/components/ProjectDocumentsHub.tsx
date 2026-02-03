@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, FileText, Image, Receipt, FileSignature, FileBox, Clipboard, ScrollText } from "lucide-react";
 import { ProjectMediaGallery } from "./ProjectMediaGallery";
 import { ProjectReceiptsView } from "./ProjectReceiptsView";
 import { ProjectQuotePDFsList } from "./ProjectQuotePDFsList";
@@ -10,7 +10,7 @@ import { ProjectDocumentsTable } from "./ProjectDocumentsTable";
 import { DocumentUpload } from "./DocumentUpload";
 import { ProjectDocumentsTimeline } from "./ProjectDocumentsTimeline";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import type { DocumentType } from "@/types/document";
 
 interface ProjectDocumentsHubProps {
@@ -26,14 +26,14 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   const [uploadDocumentType, setUploadDocumentType] = useState<DocumentType>("other");
 
   const tabOptions = [
-    { value: "all", label: "All" },
-    { value: "media", label: "Photos & Videos" },
-    { value: "receipts", label: "Receipts" },
-    { value: "quotes", label: "Quotes" },
-    { value: "contracts", label: "Contracts" },
-    { value: "drawings", label: "Drawings" },
-    { value: "permits", label: "Permits" },
-    { value: "licenses", label: "Licenses" },
+    { value: "all", label: "All", icon: FileText },
+    { value: "media", label: "Photos & Videos", icon: Image },
+    { value: "receipts", label: "Receipts", icon: Receipt },
+    { value: "quotes", label: "Quotes", icon: FileBox },
+    { value: "contracts", label: "Contracts", icon: FileSignature },
+    { value: "drawings", label: "Drawings", icon: Clipboard },
+    { value: "permits", label: "Permits", icon: ScrollText },
+    { value: "licenses", label: "Licenses", icon: ScrollText },
   ];
 
   const handleUploadClick = () => {
@@ -71,18 +71,11 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
 
       {/* Tabs */}
       <div className="sm:hidden">
-        <Select value={activeTab} onValueChange={setActiveTab}>
-          <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm">
-            <SelectValue placeholder="Select tab" />
-          </SelectTrigger>
-          <SelectContent>
-            {tabOptions.map((tab) => (
-              <SelectItem key={tab.value} value={tab.value}>
-                {tab.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MobileTabSelector
+          value={activeTab}
+          onValueChange={setActiveTab}
+          options={tabOptions}
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
