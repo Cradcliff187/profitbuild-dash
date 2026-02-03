@@ -1,17 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, X, MoreHorizontal, Printer, Download } from 'lucide-react';
+import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
-import { PdfPreviewModal } from '@/components/PdfPreviewModal';
-import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
-import { OfficeDocumentPreviewModal } from '@/components/OfficeDocumentPreviewModal';
-import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useDocumentPreview } from '@/hooks/useDocumentPreview';
+import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DOCUMENT_TYPE_LABELS } from '@/types/document';
 import type { DocumentType } from '@/types/document';
@@ -38,77 +36,7 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TimelineItem['type'] | 'all'>('all');
-  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
-  const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
-  const [previewPdfFileName, setPreviewPdfFileName] = useState<string>('');
-  const [previewReceiptOpen, setPreviewReceiptOpen] = useState(false);
-  const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
-  const [previewImageOpen, setPreviewImageOpen] = useState(false);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
-  const [previewVideoOpen, setPreviewVideoOpen] = useState(false);
-  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
-  const [previewOfficeOpen, setPreviewOfficeOpen] = useState(false);
-  const [previewOfficeUrl, setPreviewOfficeUrl] = useState<string | null>(null);
-  const [previewOfficeFileName, setPreviewOfficeFileName] = useState<string>('');
-  const [previewOfficeFileType, setPreviewOfficeFileType] = useState<'word' | 'excel' | 'powerpoint' | undefined>(undefined);
-
-  // Swipe handlers for image lightbox
-  const { 
-    handleTouchStart: imageSwipeStart, 
-    handleTouchMove: imageSwipeMove, 
-    handleTouchEnd: imageSwipeEnd 
-  } = useSwipeGesture({
-    onSwipeLeft: () => setPreviewImageOpen(false),
-    onSwipeRight: () => setPreviewImageOpen(false),
-    minSwipeDistance: 50
-  });
-
-  // Swipe handlers for video lightbox
-  const { 
-    handleTouchStart: videoSwipeStart, 
-    handleTouchMove: videoSwipeMove, 
-    handleTouchEnd: videoSwipeEnd 
-  } = useSwipeGesture({
-    onSwipeLeft: () => setPreviewVideoOpen(false),
-    onSwipeRight: () => setPreviewVideoOpen(false),
-    minSwipeDistance: 50
-  });
-
-  // Attach touch listeners to image lightbox
-  useEffect(() => {
-    if (!previewImageOpen) return;
-    
-    const container = document.getElementById('image-lightbox-container');
-    if (!container) return;
-
-    container.addEventListener('touchstart', imageSwipeStart);
-    container.addEventListener('touchmove', imageSwipeMove);
-    container.addEventListener('touchend', imageSwipeEnd);
-
-    return () => {
-      container.removeEventListener('touchstart', imageSwipeStart);
-      container.removeEventListener('touchmove', imageSwipeMove);
-      container.removeEventListener('touchend', imageSwipeEnd);
-    };
-  }, [previewImageOpen, imageSwipeStart, imageSwipeMove, imageSwipeEnd]);
-
-  // Attach touch listeners to video lightbox
-  useEffect(() => {
-    if (!previewVideoOpen) return;
-    
-    const container = document.getElementById('video-lightbox-container');
-    if (!container) return;
-
-    container.addEventListener('touchstart', videoSwipeStart);
-    container.addEventListener('touchmove', videoSwipeMove);
-    container.addEventListener('touchend', videoSwipeEnd);
-
-    return () => {
-      container.removeEventListener('touchstart', videoSwipeStart);
-      container.removeEventListener('touchmove', videoSwipeMove);
-      container.removeEventListener('touchend', videoSwipeEnd);
-    };
-  }, [previewVideoOpen, videoSwipeStart, videoSwipeMove, videoSwipeEnd]);
+  const preview = useDocumentPreview();
   
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['project-documents-timeline', projectId],
@@ -327,106 +255,32 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
     return <Badge variant="secondary" className="text-xs">{labels[type]}</Badge>;
   };
 
-  const getFileType = (item: TimelineItem): 'pdf' | 'receipt' | 'image' | 'video' | 'office' | 'other' => {
-    if (item.type === 'receipt') return 'receipt';
+  const handleItemClick = (item: TimelineItem) => {
+    // Handle media items specially - detect image vs video from URL
     if (item.type === 'media') {
       const url = item.fileUrl?.toLowerCase() || '';
-      if (url.includes('.mp4') || url.includes('.mov') || url.includes('.webm')) return 'video';
-      return 'image';
+      if (url.includes('.mp4') || url.includes('.mov') || url.includes('.webm')) {
+        preview.openPreview({
+          fileUrl: item.fileUrl,
+          fileName: item.title,
+          mimeType: 'video/mp4',
+        });
+      } else {
+        preview.openPreview({
+          fileUrl: item.fileUrl,
+          fileName: item.title,
+          mimeType: 'image/jpeg',
+        });
+      }
+      return;
     }
-    
-    // Check MIME type from metadata first (most reliable)
-    const mimeType = item.metadata?.mime_type?.toLowerCase() || '';
-    const fileName = item.fileUrl?.toLowerCase() || item.title?.toLowerCase() || '';
-    
-    // PDF detection
-    if (mimeType.includes('pdf') || fileName.includes('.pdf')) {
-      return 'pdf';
-    }
-    
-    // Office document detection via MIME type
-    if (
-      mimeType.includes('wordprocessingml') || // .docx
-      mimeType.includes('msword') || // .doc
-      mimeType.includes('spreadsheetml') || // .xlsx
-      mimeType.includes('ms-excel') || // .xls
-      mimeType.includes('presentationml') || // .pptx
-      mimeType.includes('ms-powerpoint') || // .ppt
-      mimeType.includes('vnd.openxmlformats-officedocument')
-    ) {
-      return 'office';
-    }
-    
-    // Office document detection via file extension (fallback)
-    if (
-      fileName.includes('.doc') ||
-      fileName.includes('.xls') ||
-      fileName.includes('.ppt')
-    ) {
-      return 'office';
-    }
-    
-    return 'other';
-  };
-  
-  const getOfficeFileType = (item: TimelineItem): 'word' | 'excel' | 'powerpoint' | undefined => {
-    const mimeType = item.metadata?.mime_type?.toLowerCase() || '';
-    const fileName = item.fileUrl?.toLowerCase() || item.title?.toLowerCase() || '';
-    
-    // Word detection
-    if (
-      mimeType.includes('wordprocessingml') ||
-      mimeType.includes('msword') ||
-      fileName.includes('.doc')
-    ) {
-      return 'word';
-    }
-    
-    // Excel detection
-    if (
-      mimeType.includes('spreadsheetml') ||
-      mimeType.includes('ms-excel') ||
-      fileName.includes('.xls')
-    ) {
-      return 'excel';
-    }
-    
-    // PowerPoint detection
-    if (
-      mimeType.includes('presentationml') ||
-      mimeType.includes('ms-powerpoint') ||
-      fileName.includes('.ppt')
-    ) {
-      return 'powerpoint';
-    }
-    
-    return undefined;
-  };
 
-  const handleItemClick = async (item: TimelineItem) => {
-    const fileType = getFileType(item);
-    
-    if (fileType === 'pdf') {
-      setPreviewPdfUrl(item.fileUrl);
-      setPreviewPdfFileName(item.title);
-      setPreviewPdfOpen(true);
-    } else if (fileType === 'receipt') {
-      setPreviewReceiptUrl(item.fileUrl);
-      setPreviewReceiptOpen(true);
-    } else if (fileType === 'image') {
-      setPreviewImageUrl(item.fileUrl);
-      setPreviewImageOpen(true);
-    } else if (fileType === 'video') {
-      setPreviewVideoUrl(item.fileUrl);
-      setPreviewVideoOpen(true);
-    } else if (fileType === 'office') {
-      setPreviewOfficeUrl(item.fileUrl);
-      setPreviewOfficeFileName(item.title);
-      setPreviewOfficeFileType(getOfficeFileType(item));
-      setPreviewOfficeOpen(true);
-    } else {
-      window.open(item.fileUrl, '_blank');
-    }
+    preview.openPreview({
+      fileUrl: item.fileUrl,
+      fileName: item.title,
+      mimeType: item.metadata?.mime_type,
+      isReceipt: item.type === 'receipt',
+    });
   };
 
   const filteredItems = items.filter((item) => {
@@ -751,81 +605,7 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
       </div>
 
       {/* Preview Modals */}
-      <PdfPreviewModal
-        open={previewPdfOpen}
-        onOpenChange={setPreviewPdfOpen}
-        pdfUrl={previewPdfUrl}
-        fileName={previewPdfFileName}
-      />
-
-      <ReceiptPreviewModal
-        open={previewReceiptOpen}
-        onOpenChange={setPreviewReceiptOpen}
-        receiptUrl={previewReceiptUrl}
-      />
-
-      <OfficeDocumentPreviewModal
-        open={previewOfficeOpen}
-        onOpenChange={setPreviewOfficeOpen}
-        fileUrl={previewOfficeUrl || ''}
-        fileName={previewOfficeFileName}
-        fileType={previewOfficeFileType}
-      />
-
-      {/* Image Lightbox */}
-      {previewImageOpen && previewImageUrl && (
-        <div 
-          id="image-lightbox-container"
-          className="fixed inset-0 bg-background z-50 flex items-center justify-center"
-          onClick={() => setPreviewImageOpen(false)}
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-4 right-4 h-10 w-10 z-10 min-h-[44px] min-w-[44px]"
-            onClick={() => setPreviewImageOpen(false)}
-          >
-            <X className="h-5 w-5" />
-          </Button>
-          <img
-            src={previewImageUrl}
-            alt="Preview"
-            className="max-h-[90vh] max-w-[90vw] object-contain touch-manipulation"
-            style={{ 
-              touchAction: 'pan-x pan-y pinch-zoom',
-              userSelect: 'none',
-              WebkitUserSelect: 'none'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            draggable={false}
-          />
-        </div>
-      )}
-
-      {/* Video Lightbox */}
-      {previewVideoOpen && previewVideoUrl && (
-        <div 
-          id="video-lightbox-container"
-          className="fixed inset-0 bg-background z-50 flex items-center justify-center"
-          onClick={() => setPreviewVideoOpen(false)}
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-4 right-4 h-10 w-10 z-10 min-h-[44px] min-w-[44px]"
-            onClick={() => setPreviewVideoOpen(false)}
-          >
-            <X className="h-5 w-5" />
-          </Button>
-          <video
-            src={previewVideoUrl}
-            className="max-h-[90vh] max-w-[90vw]"
-            controls
-            autoPlay
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <DocumentPreviewModals preview={preview} />
     </div>
   );
 }

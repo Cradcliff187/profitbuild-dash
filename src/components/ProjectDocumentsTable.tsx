@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Filter, FileText, MoreHorizontal, Printer, Trash2 } from "lucide-react";
+import { Filter, FileText, Eye, Download, MoreHorizontal, Printer, Trash2, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +17,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PdfPreviewModal } from "@/components/PdfPreviewModal";
+import { MobileListCard } from "@/components/ui/mobile-list-card";
+import { DocumentLeadingIcon, DOCUMENT_TYPE_LUCIDE_ICONS, DOCUMENT_TYPE_ICON_COLORS } from "@/utils/documentFileType";
+import { useDocumentPreview } from "@/hooks/useDocumentPreview";
+import { DocumentPreviewModals } from "@/components/documents/DocumentPreviewModals";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { formatDistanceToNow, differenceInDays, parseISO } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { ProjectDocument, DocumentType } from "@/types/document";
-import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPE_ICONS } from "@/types/document";
+import { DOCUMENT_TYPE_LABELS } from "@/types/document";
 
 interface ProjectDocumentsTableProps {
   projectId: string;
@@ -36,12 +40,10 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
   const [typeFilter, setTypeFilter] = useState<DocumentType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const preview = useDocumentPreview();
 
   // Real-time subscription for project documents
   useEffect(() => {
@@ -157,13 +159,6 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
     return (bytes / 1024 / 1024).toFixed(1) + " MB";
   };
 
-  const handlePreview = (doc: ProjectDocument) => {
-    if (!doc.file_url || doc.mime_type !== 'application/pdf') return;
-    
-    setPdfUrl(doc.file_url);
-    setSelectedDocument(doc);
-    setPreviewDialogOpen(true);
-  };
 
   if (isLoading) {
     return <div className="text-xs text-muted-foreground p-2">Loading documents...</div>;
@@ -209,94 +204,81 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
       ) : (
         <>
           {/* Mobile Cards */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-2 md:hidden">
             {filteredDocuments.map((doc) => (
-              <div key={doc.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (doc.mime_type === 'application/pdf') {
-                      handlePreview(doc);
-                    } else {
-                      window.open(doc.file_url, "_blank");
-                    }
-                  }}
-                  className="flex w-full items-start gap-3 text-left"
-                >
-                  <span className="text-xl text-muted-foreground flex-shrink-0">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate" title={doc.file_name}>
-                      {projectNumber ? `${projectNumber} • ${DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.file_name}` : doc.file_name}
-                    </p>
-                    {doc.description && (
-                      <p className="mt-0.5 text-xs text-muted-foreground truncate" title={doc.description}>{doc.description}</p>
-                    )}
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="text-[10px]">
-                        v{doc.version_number}
-                      </Badge>
-                      <span>{formatFileSize(doc.file_size)}</span>
-                      <span>•</span>
-                      <span>{formatDistanceToNow(parseISO(doc.created_at), { addSuffix: true })}</span>
-                      {getExpirationWarning(doc.expires_at)}
-                    </div>
-                  </div>
-                </button>
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                        {doc.file_name}
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => {
-                        if (doc.mime_type === 'application/pdf') {
-                          handlePreview(doc);
-                        } else {
-                          window.open(doc.file_url, "_blank");
-                        }
-                      }}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        const a = document.createElement("a");
-                        a.href = doc.file_url;
-                        a.download = doc.file_name;
-                        a.click();
-                      }}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      {!isMobile && doc.mime_type === 'application/pdf' && (
-                        <DropdownMenuItem onClick={() => {
-                          window.open(`https://docs.google.com/gview?url=${encodeURIComponent(doc.file_url)}`, '_blank');
-                        }}>
-                          <Printer className="h-4 w-4 mr-2" />
-                          Print
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          setDocumentToDelete(doc);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+              <MobileListCard
+                key={doc.id}
+                leading={
+                  <DocumentLeadingIcon
+                    documentType={doc.document_type}
+                    mimeType={doc.mime_type}
+                    fileUrl={doc.file_url}
+                  />
+                }
+                title={projectNumber
+                  ? `${DOCUMENT_TYPE_LABELS[doc.document_type] ?? 'Document'} • ${projectNumber}`
+                  : doc.file_name
+                }
+                subtitle={doc.description || doc.file_name}
+                badge={{
+                  label: DOCUMENT_TYPE_LABELS[doc.document_type] ?? 'Document',
+                  className: '',
+                }}
+                secondaryBadge={{
+                  label: `v${doc.version_number}`,
+                  className: '',
+                }}
+                metrics={[
+                  { label: 'Size', value: formatFileSize(doc.file_size) },
+                  { label: 'Uploaded', value: format(new Date(doc.created_at), 'MMM d, yyyy') },
+                ]}
+                attention={getExpirationWarning(doc.expires_at) ? {
+                  message: differenceInDays(parseISO(doc.expires_at!), new Date()) < 0
+                    ? 'Expired'
+                    : `Expires in ${differenceInDays(parseISO(doc.expires_at!), new Date())} days`,
+                  variant: differenceInDays(parseISO(doc.expires_at!), new Date()) < 0 ? 'error' : 'warning',
+                } : undefined}
+                onTap={() => preview.openPreview({
+                  fileUrl: doc.file_url,
+                  fileName: doc.file_name,
+                  mimeType: doc.mime_type,
+                })}
+                actions={[
+                  {
+                    icon: Eye,
+                    label: 'Preview',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      preview.openPreview({
+                        fileUrl: doc.file_url,
+                        fileName: doc.file_name,
+                        mimeType: doc.mime_type,
+                      });
+                    },
+                  },
+                  {
+                    icon: Download,
+                    label: 'Download',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      const a = document.createElement("a");
+                      a.href = doc.file_url;
+                      a.download = doc.file_name;
+                      a.click();
+                    },
+                  },
+                  {
+                    icon: Trash2,
+                    label: 'Delete',
+                    variant: 'destructive' as const,
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      setDocumentToDelete(doc);
+                      setDeleteDialogOpen(true);
+                    },
+                  },
+                ]}
+              />
             ))}
           </div>
 
@@ -317,9 +299,22 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                   <tr key={doc.id} className="transition-colors hover:bg-muted/30">
                     <td className="p-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">{DOCUMENT_TYPE_ICONS[doc.document_type]}</span>
+                        {(() => {
+                          const IconComponent = DOCUMENT_TYPE_LUCIDE_ICONS[doc.document_type] || File;
+                          const colorClass = DOCUMENT_TYPE_ICON_COLORS[doc.document_type] || 'text-muted-foreground';
+                          return <IconComponent className={cn("h-4 w-4 flex-shrink-0", colorClass)} />;
+                        })()}
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-medium">{doc.file_name}</p>
+                          <button
+                            className="truncate text-xs font-medium hover:underline text-left"
+                            onClick={() => preview.openPreview({
+                              fileUrl: doc.file_url,
+                              fileName: doc.file_name,
+                              mimeType: doc.mime_type,
+                            })}
+                          >
+                            {doc.file_name}
+                          </button>
                           {doc.description && (
                             <p className="truncate text-xs text-muted-foreground">{doc.description}</p>
                           )}
@@ -335,7 +330,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                     <td className="p-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(parseISO(doc.created_at), { addSuffix: true })}
+                          {format(new Date(doc.created_at), 'MMM d, yyyy')}
                         </span>
                         {getExpirationWarning(doc.expires_at)}
                       </div>
@@ -354,14 +349,12 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                               {doc.file_name}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => {
-                              if (doc.mime_type === 'application/pdf') {
-                                handlePreview(doc);
-                              } else {
-                                window.open(doc.file_url, "_blank");
-                              }
-                            }}>
-                              <FileText className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem onClick={() => preview.openPreview({
+                              fileUrl: doc.file_url,
+                              fileName: doc.file_name,
+                              mimeType: doc.mime_type,
+                            })}>
+                              <Eye className="h-4 w-4 mr-2" />
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
@@ -370,7 +363,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                               a.download = doc.file_name;
                               a.click();
                             }}>
-                              <FileText className="h-4 w-4 mr-2" />
+                              <Download className="h-4 w-4 mr-2" />
                               Download
                             </DropdownMenuItem>
                             {!isMobile && doc.mime_type === 'application/pdf' && (
@@ -382,7 +375,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setDocumentToDelete(doc);
                                 setDeleteDialogOpen(true);
@@ -421,12 +414,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
         </AlertDialogContent>
       </AlertDialog>
 
-      <PdfPreviewModal
-        open={previewDialogOpen}
-        onOpenChange={setPreviewDialogOpen}
-        pdfUrl={pdfUrl}
-        fileName={selectedDocument?.file_name || "document.pdf"}
-      />
+      <DocumentPreviewModals preview={preview} />
     </div>
   );
 }

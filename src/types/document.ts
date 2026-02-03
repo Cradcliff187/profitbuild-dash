@@ -34,6 +34,10 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   other: 'Other'
 };
 
+/**
+ * @deprecated Use DOCUMENT_TYPE_LUCIDE_ICONS from '@/utils/documentFileType' instead.
+ * Emoji icons are being replaced with Lucide icons for professional consistency.
+ */
 export const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
   drawing: '📐',
   permit: '📋',

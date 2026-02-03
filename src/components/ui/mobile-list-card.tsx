@@ -38,6 +38,9 @@ export interface MobileListCardBadge {
 }
 
 export interface MobileListCardProps {
+  // === LEADING VISUAL ===
+  leading?: React.ReactNode; // Icon, thumbnail, or avatar — renders left of title area
+
   // === IDENTITY ===
   title: string;
   subtitle?: string;
@@ -78,6 +81,9 @@ export interface MobileListCardProps {
 // ============================================================================
 
 export function MobileListCard({
+  // Leading
+  leading,
+
   // Identity
   title,
   subtitle,
@@ -139,29 +145,43 @@ export function MobileListCard({
       )}
       onClick={handleCardTap}
     >
-      {/* === HEADER: Badge + Actions === */}
+      {/* === HEADER: Leading + Badge + Title + Actions === */}
       <CardHeader className="mobile-list-card-header">
         <div className="flex items-start justify-between gap-2">
-          {/* Left: Checkbox (if selectable) + Badges */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* Left: Checkbox (if selectable) + Leading + Title Area */}
+          <div className="flex items-start gap-2 min-w-0 flex-1">
             {selectable && (
               <Checkbox
                 checked={selected}
                 onCheckedChange={(checked) => onSelectChange?.(checked as boolean)}
-                className="flex-shrink-0"
+                className="flex-shrink-0 mt-1"
                 onClick={(e) => e.stopPropagation()}
               />
             )}
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-              {badge && badge.label && (
-                <Badge className={cn("mobile-list-card-badge", badge.className)}>
-                  {badge.label}
-                </Badge>
-              )}
-              {secondaryBadge && secondaryBadge.label && (
-                <Badge variant="outline" className="mobile-list-card-badge">
-                  {secondaryBadge.label}
-                </Badge>
+            {leading && (
+              <div className="flex-shrink-0">
+                {leading}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              {/* Badges */}
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                {badge && badge.label && (
+                  <Badge className={cn("mobile-list-card-badge", badge.className)}>
+                    {badge.label}
+                  </Badge>
+                )}
+                {secondaryBadge && secondaryBadge.label && (
+                  <Badge variant="outline" className="mobile-list-card-badge">
+                    {secondaryBadge.label}
+                  </Badge>
+                )}
+              </div>
+              {/* Title */}
+              <h3 className="mobile-list-card-title">{title}</h3>
+              {/* Subtitle */}
+              {subtitle && (
+                <p className="mobile-list-card-subtitle">{subtitle}</p>
               )}
             </div>
           </div>
@@ -199,14 +219,6 @@ export function MobileListCard({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-        </div>
-
-        {/* === IDENTITY: Title + Subtitle === */}
-        <div className="mobile-list-card-identity mt-2">
-          <h3 className="mobile-list-card-title">{title}</h3>
-          {subtitle && (
-            <p className="mobile-list-card-subtitle">{subtitle}</p>
           )}
         </div>
       </CardHeader>
