@@ -19,19 +19,20 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
   const [caption, setCaption] = useState('');
   const [showAIEnhancer, setShowAIEnhancer] = useState(false);
 
+  // Sync caption from photo only when modal opens, so transcription updates
+  // don't overwrite in-progress edits (e.g. FieldVideoCapture).
+  // Must be called before any conditional returns (React Hooks rule).
+  useEffect(() => {
+    if (open && photo) {
+      setCaption(photo.caption || '');
+      setShowAIEnhancer(false);
+    }
+  }, [open, photo]);
+
   // Early return if photo is null/undefined
   if (!photo) {
     return null;
   }
-
-  // Sync caption from photo only when modal opens, so transcription updates
-  // don't overwrite in-progress edits (e.g. FieldVideoCapture).
-  useEffect(() => {
-    if (open) {
-      setCaption(photo.caption || '');
-      setShowAIEnhancer(false);
-    }
-  }, [open]);
 
   const handleSave = () => {
     if (!caption.trim()) {
