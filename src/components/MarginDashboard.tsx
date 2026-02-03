@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/types/project';
 import { calculateProjectMargin, type ProjectMargin, getContingencyUtilization } from '@/types/margin';
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from '@/utils/thresholdUtils';
+import { getMarginColor, getFinancialHealth, getFinancialHealthHSL } from '@/utils/financialColors';
 import { formatCurrency } from '@/lib/utils';
 
 interface MarginDashboardProps {
@@ -132,19 +133,6 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
   const statusColor = getThresholdStatusColor(thresholdStatus);
   const statusLabel = getThresholdStatusLabel(thresholdStatus);
 
-
-  const getMarginColorClass = (percentage: number): string => {
-    if (percentage >= 20) return 'text-green-600';
-    if (percentage >= 10) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getContingencyUsageColorClass = (usagePercent: number): string => {
-    if (usagePercent >= 80) return 'hsl(var(--destructive))';
-    if (usagePercent >= 50) return 'hsl(var(--warning))';
-    return 'hsl(var(--primary))';
-  };
-
   const contingencyUsagePercent = getContingencyUtilization(marginData);
   const marginProgress = Math.min((marginData.margin_percentage / marginData.target_margin) * 100, 100);
 
@@ -205,7 +193,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className={`text-4xl font-bold ${getMarginColorClass(marginData.margin_percentage)}`}>
+              <div className={`text-4xl font-bold ${getMarginColor(marginData.margin_percentage, marginData.minimum_threshold, marginData.target_margin)}`}>
                 {marginData.margin_percentage.toFixed(1)}%
               </div>
               <Badge 
@@ -293,7 +281,9 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
               value={contingencyUsagePercent} 
               className="h-3"
               style={{
-                ['--progress-foreground' as any]: getContingencyUsageColorClass(contingencyUsagePercent)
+                ['--progress-foreground' as any]: getFinancialHealthHSL(
+                  getFinancialHealth(contingencyUsagePercent, 50, 80, true)
+                )
               }}
             />
             <div className="flex justify-between text-xs text-muted-foreground">

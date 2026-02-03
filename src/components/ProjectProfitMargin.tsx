@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign, Target, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
+import { getMarginColor } from '@/utils/financialColors';
 import { ProjectMargin, formatMarginCurrency, getMarginStatusLevel } from "@/types/margin";
 import { formatCurrency } from "@/lib/utils";
 

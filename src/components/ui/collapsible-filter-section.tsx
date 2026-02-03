@@ -37,12 +37,26 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
   );
 
   return (
-    <Card className={cn("w-full max-w-full overflow-hidden box-border", className)}>
-      <CardHeader className="p-3 pb-2">
+    <Card className={cn(
+      "w-full max-w-full overflow-hidden box-border",
+      "border-2 border-slate-200",
+      "hover:border-primary hover:shadow-md",
+      "transition-all duration-200",
+      className
+    )}>
+      <CardHeader className={cn(
+        "p-3 pb-2",
+        "bg-gradient-to-r from-white to-slate-50",
+        !alwaysExpanded && "hover:from-primary/5 hover:to-primary/10",
+        !alwaysExpanded && "cursor-pointer"
+      )}>
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
-            <Filter className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm font-medium truncate">
+            {/* Enhanced icon container with background */}
+            <div className="p-2 bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors flex-shrink-0">
+              <Filter className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold truncate">
               {title}
               {resultCount !== undefined && hasActiveFilters && (
                 <span className="text-muted-foreground font-normal ml-1">
@@ -85,15 +99,20 @@ export const CollapsibleFilterSection: React.FC<CollapsibleFilterSectionProps> =
                 className="h-7 px-2"
               >
                 {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp className="h-5 w-5 text-primary transition-transform duration-300" />
                 ) : (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-5 w-5 text-primary transition-transform duration-300" />
                 )}
               </Button>
             )}
           </div>
         </div>
       </CardHeader>
+      
+      {/* Accent line when expanded */}
+      {isExpanded && (
+        <div className="h-1 bg-gradient-to-r from-primary to-orange-400" />
+      )}
       
       {isExpanded && (
         <CardContent className="p-3 pt-0 overflow-hidden">

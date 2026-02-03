@@ -821,21 +821,28 @@ export const ProjectDetailView = () => {
               <button
                 className={cn(
                   "w-full flex items-center justify-between",
-                  "min-h-[48px] px-4 py-3",
-                  "bg-muted/30 border-t border-border/40",
-                  "active:bg-muted/50 transition-colors"
+                  "min-h-[52px] px-4 py-3",
+                  "bg-gradient-to-r from-white to-slate-50",
+                  "border-2 border-slate-200",
+                  "hover:border-primary hover:shadow-md",
+                  "active:from-primary/5 active:to-primary/10",
+                  "transition-all duration-200"
                 )}
               >
                 <div className="flex items-center gap-3">
                   {(() => {
                     const Icon = getSectionIcon(currentSection);
-                    return <Icon className="h-5 w-5 text-primary" />;
+                    return (
+                      <div className="p-2 bg-primary/10 rounded-lg transition-colors flex-shrink-0">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                    );
                   })()}
-                  <span className="text-base font-medium text-foreground">
+                  <span className="text-base font-semibold text-foreground">
                     {getSectionLabel(currentSection)}
                   </span>
                 </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                <ChevronDown className="h-5 w-5 text-primary transition-transform duration-300" />
               </button>
             </SheetTrigger>
             

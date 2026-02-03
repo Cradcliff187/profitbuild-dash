@@ -14,20 +14,24 @@ import {
   Receipt,
   FileIcon,
   Calendar,
-  DollarSign
+  DollarSign,
+  FileSignature
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { formatCurrency, cn } from '@/lib/utils';
 import { getMarginThresholdStatus, getThresholdStatusColor } from '@/utils/thresholdUtils';
 import { calculateBudgetStatus, calculateScheduleStatus, getExpiringQuotes, getProjectScheduleDates } from '@/utils/projectDashboard';
+import { getContingencyColor } from '@/utils/financialColors';
 import type { Project } from '@/types/project';
 import type { Estimate } from '@/types/estimate';
 import type { Quote } from '@/types/quote';
 import type { Expense } from '@/types/expense';
 import type { ChangeOrder } from '@/types/changeOrder';
 import { ProjectNotesTimeline } from './ProjectNotesTimeline';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectOperationalDashboardProps {
   project: Project;
@@ -60,6 +64,12 @@ export function ProjectOperationalDashboard({
     end: null 
   });
 
+  // Data freshness tracking
+  const [dataFreshness, setDataFreshness] = useState<{
+    lastExpenseDays: number | null;
+    lastTimeDays: number | null;
+  }>({ lastExpenseDays: null, lastTimeDays: null });
+
   // Load schedule dates on mount
   useEffect(() => {
     const loadScheduleDates = async () => {
@@ -72,6 +82,48 @@ export function ProjectOperationalDashboard({
     };
     loadScheduleDates();
   }, [project.id, project.start_date, project.end_date]);
+
+  // Load data freshness for active projects
+  useEffect(() => {
+    async function checkFreshness() {
+      if (!project.id) return;
+
+      // Last non-labor expense by expense_date (not created_at)
+      const { data: lastExpense } = await supabase
+        .from('expenses')
+        .select('expense_date')
+        .eq('project_id', project.id)
+        .neq('category', 'labor_internal')
+        .order('expense_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      // Last time entry (labor_internal expense) by expense_date
+      const { data: lastTime } = await supabase
+        .from('expenses')
+        .select('expense_date')
+        .eq('project_id', project.id)
+        .eq('category', 'labor_internal')
+        .order('expense_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      const now = new Date();
+      setDataFreshness({
+        lastExpenseDays: lastExpense?.expense_date
+          ? Math.floor((now.getTime() - new Date(lastExpense.expense_date).getTime()) / 86400000)
+          : null,
+        lastTimeDays: lastTime?.expense_date
+          ? Math.floor((now.getTime() - new Date(lastTime.expense_date).getTime()) / 86400000)
+          : null,
+      });
+    }
+
+    // Only check freshness for active projects — irrelevant for estimating/complete
+    if (['in_progress', 'approved'].includes(project.status)) {
+      checkFreshness();
+    }
+  }, [project.id, project.status]);
 
   // Calculate operational metrics
   const needsAttention = useMemo(() => {
@@ -123,8 +175,66 @@ export function ProjectOperationalDashboard({
       });
     }
     
+    // DNE Warning — check if expenses approaching do_not_exceed
+    if (project.do_not_exceed && project.do_not_exceed > 0) {
+      const totalExpenses = (project as any).total_expenses ?? 0;
+      const utilizationPct = (totalExpenses / project.do_not_exceed) * 100;
+      if (utilizationPct >= 80) {
+        const remaining = project.do_not_exceed - totalExpenses;
+        items.push({
+          type: 'dne_warning',
+          label: `DNE: ${formatCurrency(remaining)} of ${formatCurrency(project.do_not_exceed)} remaining (${utilizationPct.toFixed(0)}% used)`,
+          count: 1,
+          color: utilizationPct >= 95 ? 'red' : 'orange',
+          icon: AlertTriangle,
+          onClick: () => navigate(`/projects/${project.id}/expenses`),
+        });
+      }
+    }
+    
+    // Contingency Warning
+    const contingencyAmount = project.contingency_amount ?? 0;
+    const contingencyRemaining = project.contingency_remaining ?? 0;
+    if (contingencyAmount > 0) {
+      const remainingPct = (contingencyRemaining / contingencyAmount) * 100;
+      if (remainingPct <= 25) {
+        items.push({
+          type: 'contingency_warning',
+          label: `Contingency: ${formatCurrency(contingencyRemaining)} left (${remainingPct.toFixed(0)}%)`,
+          count: 1,
+          color: remainingPct <= 10 ? 'red' : 'orange',
+          icon: AlertTriangle,
+          onClick: () => navigate(`/projects/${project.id}/change-orders`),
+        });
+      }
+    }
+    
+    // Data Freshness Warning — only for active projects with stale data
+    if (['in_progress', 'approved'].includes(project.status)) {
+      if (dataFreshness.lastExpenseDays !== null && dataFreshness.lastExpenseDays > 14) {
+        items.push({
+          type: 'stale_expenses',
+          label: `No expenses logged in ${dataFreshness.lastExpenseDays} days`,
+          count: 1,
+          color: 'orange',
+          icon: Clock,
+          onClick: () => navigate(`/projects/${project.id}/expenses`),
+        });
+      }
+      if (dataFreshness.lastTimeDays !== null && dataFreshness.lastTimeDays > 7) {
+        items.push({
+          type: 'stale_time',
+          label: `No time logged in ${dataFreshness.lastTimeDays} days`,
+          count: 1,
+          color: 'orange',
+          icon: Clock,
+          onClick: () => navigate('/time-entries'),
+        });
+      }
+    }
+    
     return items;
-  }, [pendingTimeEntries, pendingReceipts, changeOrders, quotes, project.id, navigate]);
+  }, [pendingTimeEntries, pendingReceipts, changeOrders, quotes, project, navigate, dataFreshness]);
 
   const budgetStatus = useMemo(() => 
     calculateBudgetStatus(project.contracted_amount, expenses, project.adjusted_est_costs),
@@ -154,6 +264,27 @@ export function ProjectOperationalDashboard({
       netImpact
     };
   }, [changeOrders]);
+
+  const contractNarrative = useMemo(() => {
+    const currentContract = project.contracted_amount ?? 0;
+
+    // Derive change order impact from the changeOrders prop
+    const approvedCOs = changeOrders.filter(co => co.status === 'approved');
+    const coCount = approvedCOs.length;
+    const coRevenue = approvedCOs.reduce((sum, co) => sum + (co.client_amount ?? 0), 0);
+
+    // Original contract = current contract minus CO revenue additions
+    // This works because contracted_amount is updated by DB triggers when COs are approved
+    const baseContract = currentContract - coRevenue;
+
+    return {
+      baseContract,
+      changeOrderCount: coCount,
+      changeOrderRevenue: coRevenue,
+      currentContract,
+      showNarrative: currentContract > 0,
+    };
+  }, [project.contracted_amount, changeOrders]);
 
   const financialDisplay = useMemo(() => {
     const status = project.status;
@@ -285,6 +416,43 @@ export function ProjectOperationalDashboard({
         </Card>
       )}
 
+      {/* Contract Narrative */}
+      {contractNarrative.showNarrative && (
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <FileSignature className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Contract
+            </span>
+          </div>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Original Contract</span>
+              <span className="font-mono font-semibold">
+                {formatCurrency(contractNarrative.baseContract)}
+              </span>
+            </div>
+            {contractNarrative.changeOrderCount > 0 && (
+              <>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>+ Change Orders ({contractNarrative.changeOrderCount})</span>
+                  <span className="font-mono">
+                    {formatCurrency(contractNarrative.changeOrderRevenue)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold">
+                  <span>Current Contract</span>
+                  <span className="font-mono">
+                    {formatCurrency(contractNarrative.currentContract)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Financial Summary */}
       <Card>
         <CardHeader className="p-3 pb-2">
@@ -358,40 +526,123 @@ export function ProjectOperationalDashboard({
         </CardContent>
       </Card>
 
-      {/* Budget Status & Schedule */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {financialDisplay.showBudgetStatus && (
-          <Card>
-            <CardHeader className="p-3 pb-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Budget Status</h3>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+      {/* Budget Status + Contingency */}
+      {financialDisplay.showBudgetStatus && (
+        <Card>
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Budget Status</h3>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Adjusted Est. Cost:</span>
+                <span className="font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
               </div>
-            </CardHeader>
-            <CardContent className="p-3 pt-0">
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Adjusted Est. Cost:</span>
-                  <span className="font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Spent:</span>
+                <span className="font-medium">{formatCurrency(budgetStatus.totalSpent)}</span>
+              </div>
+              <Progress 
+                value={budgetStatus.percentSpent} 
+                className={`h-2 ${
+                  budgetStatus.status === 'critical' ? '[&>div]:bg-destructive' :
+                  budgetStatus.status === 'warning' ? '[&>div]:bg-warning' :
+                  '[&>div]:bg-success'
+                }`}
+              />
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">{budgetStatus.percentSpent.toFixed(1)}% spent</span>
+                <span className="font-medium">{formatCurrency(budgetStatus.remaining)} remaining</span>
+              </div>
+              {/* Contingency — inside Budget Status card, below existing progress bar */}
+              {(project.contingency_amount ?? 0) > 0 && (
+                <div className="mt-2 pt-2 border-t">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Contingency</span>
+                    <span
+                      className={getContingencyColor(
+                        ((project.contingency_remaining ?? 0) /
+                          (project.contingency_amount ?? 0)) *
+                          100
+                      )}
+                    >
+                      {formatCurrency(project.contingency_remaining ?? 0)} left
+                    </span>
+                  </div>
+                  <Progress
+                    value={
+                      ((project.contingency_remaining ?? 0) /
+                        (project.contingency_amount ?? 0)) *
+                      100
+                    }
+                    className="h-1.5"
+                  />
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Spent:</span>
-                  <span className="font-medium">{formatCurrency(budgetStatus.totalSpent)}</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Labor + Schedule */}
+      <div className={cn(
+        "grid gap-3",
+        ['approved', 'in_progress'].includes(project.status) && (project.estimated_hours ?? 0) > 0
+          ? "grid-cols-1 md:grid-cols-2"
+          : "grid-cols-1"
+      )}>
+        {/* Labor — only show for active projects with estimated hours */}
+        {['approved', 'in_progress'].includes(project.status) &&
+          (project.estimated_hours ?? 0) > 0 && (
+          <Card className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Labor
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-xs text-muted-foreground">Estimated</div>
+                  <div className="text-sm font-semibold">
+                    {(project.estimated_hours ?? 0).toFixed(0)}h
+                  </div>
                 </div>
-                <Progress 
-                  value={budgetStatus.percentSpent} 
-                  className={`h-2 ${
-                    budgetStatus.status === 'critical' ? '[&>div]:bg-destructive' :
-                    budgetStatus.status === 'warning' ? '[&>div]:bg-warning' :
-                    '[&>div]:bg-success'
-                  }`}
+                <div>
+                  <div className="text-xs text-muted-foreground">Actual</div>
+                  <div className="text-sm font-semibold">
+                    {(project.actual_hours ?? 0).toFixed(0)}h
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Remaining</div>
+                  <div className="text-sm font-semibold">
+                    {Math.max(0, (project.estimated_hours ?? 0) - (project.actual_hours ?? 0)).toFixed(0)}h
+                  </div>
+                </div>
+              </div>
+              {(project.estimated_hours ?? 0) > 0 && (
+                <Progress
+                  value={Math.min(
+                    100,
+                    ((project.actual_hours ?? 0) / (project.estimated_hours ?? 0)) * 100
+                  )}
+                  className="h-2"
                 />
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">{budgetStatus.percentSpent.toFixed(1)}% spent</span>
-                  <span className="font-medium">{formatCurrency(budgetStatus.remaining)} remaining</span>
+              )}
+              {dataFreshness.lastTimeDays !== null && (
+                <div className="text-xs text-muted-foreground">
+                  Last time entry:{' '}
+                  {dataFreshness.lastTimeDays === 0
+                    ? 'Today'
+                    : `${dataFreshness.lastTimeDays}d ago`}
                 </div>
-              </div>
-            </CardContent>
+              )}
+            </div>
           </Card>
         )}
 
@@ -450,118 +701,115 @@ export function ProjectOperationalDashboard({
         </Card>
       </div>
 
-      {/* Change Orders & Documentation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Change Orders */}
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Change Orders</h3>
-              <Badge variant="outline" className="h-5 text-xs">{changeOrders.length} total</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-2">
-            <div className="flex gap-2">
-              {changeOrderSummary.pending > 0 && (
-                <Badge variant="outline" className="text-xs text-orange-600">
-                  {changeOrderSummary.pending} Pending
-                </Badge>
-              )}
-              {changeOrderSummary.approvedCount > 0 && (
-                <Badge variant="outline" className="text-xs text-green-600">
-                  {changeOrderSummary.approvedCount} Approved
-                </Badge>
-              )}
-              {changeOrderSummary.rejected > 0 && (
-                <Badge variant="outline" className="text-xs text-destructive">
-                  {changeOrderSummary.rejected} Rejected
-                </Badge>
-              )}
-            </div>
-            {changeOrderSummary.approvedCount > 0 && (
-              <div className="space-y-1 pt-1 border-t">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Approved Revenue:</span>
-                  <span className="font-medium">{formatCurrency(changeOrderSummary.totalRevenue)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Approved Costs:</span>
-                  <span className="font-medium">{formatCurrency(changeOrderSummary.totalCosts)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Net Impact:</span>
-                  <span className={`font-semibold ${
-                    changeOrderSummary.netImpact >= 0 ? 'text-green-600' : 'text-destructive'
-                  }`}>
-                    {formatCurrency(changeOrderSummary.netImpact)}
-                  </span>
-                </div>
-              </div>
+      {/* Change Orders */}
+      <Card>
+        <CardHeader className="p-3 pb-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Change Orders</h3>
+            <Badge variant="outline" className="h-5 text-xs">{changeOrders.length} total</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 space-y-2">
+          <div className="flex gap-2">
+            {changeOrderSummary.pending > 0 && (
+              <Badge variant="outline" className="text-xs text-orange-600">
+                {changeOrderSummary.pending} Pending
+              </Badge>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Documentation */}
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <h3 className="text-sm font-semibold">Documentation</h3>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                onClick={() => navigate(`/projects/${project.id}/documents?tab=photos`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <Camera className="h-4 w-4 text-blue-600" />
-                <div>
-                  <div className="text-sm font-medium">{mediaCounts.photos}</div>
-                  <div className="text-xs text-muted-foreground">Photos</div>
-                </div>
-              </button>
-              <button 
-                onClick={() => navigate(`/projects/${project.id}/documents?tab=videos`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <Video className="h-4 w-4 text-purple-600" />
-                <div>
-                  <div className="text-sm font-medium">{mediaCounts.videos}</div>
-                  <div className="text-xs text-muted-foreground">Videos</div>
-                </div>
-              </button>
-              <button 
-                onClick={() => navigate(`/time-entries?tab=receipts&project=${project.id}`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <Receipt className="h-4 w-4 text-green-600" />
-                <div>
-                  <div className="text-sm font-medium">{pendingReceipts}</div>
-                  <div className="text-xs text-muted-foreground">Pending Receipts</div>
-                </div>
-              </button>
-              <button 
-                onClick={() => navigate(`/projects/${project.id}/documents`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <FileIcon className="h-4 w-4 text-orange-600" />
-                <div>
-                  <div className="text-sm font-medium">{documentCount}</div>
-                  <div className="text-xs text-muted-foreground">Documents</div>
-                </div>
-              </button>
+            {changeOrderSummary.approvedCount > 0 && (
+              <Badge variant="outline" className="text-xs text-green-600">
+                {changeOrderSummary.approvedCount} Approved
+              </Badge>
+            )}
+            {changeOrderSummary.rejected > 0 && (
+              <Badge variant="outline" className="text-xs text-destructive">
+                {changeOrderSummary.rejected} Rejected
+              </Badge>
+            )}
+          </div>
+          {changeOrderSummary.approvedCount > 0 && (
+            <div className="space-y-1 pt-1 border-t">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Approved Revenue:</span>
+                <span className="font-medium">{formatCurrency(changeOrderSummary.totalRevenue)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Approved Costs:</span>
+                <span className="font-medium">{formatCurrency(changeOrderSummary.totalCosts)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Net Impact:</span>
+                <span className={`font-semibold ${
+                  changeOrderSummary.netImpact >= 0 ? 'text-green-600' : 'text-destructive'
+                }`}>
+                  {formatCurrency(changeOrderSummary.netImpact)}
+                </span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Project Notes Timeline */}
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <h3 className="text-sm font-semibold">Project Notes</h3>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <ProjectNotesTimeline projectId={project.id} />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Documentation */}
+      <Card>
+        <CardHeader className="p-3 pb-2">
+          <h3 className="text-sm font-semibold">Documentation</h3>
+        </CardHeader>
+        <CardContent className="p-3 pt-0">
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={() => navigate(`/projects/${project.id}/documents?tab=photos`)}
+              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+            >
+              <Camera className="h-4 w-4 text-blue-600" />
+              <div>
+                <div className="text-sm font-medium">{mediaCounts.photos}</div>
+                <div className="text-xs text-muted-foreground">Photos</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => navigate(`/projects/${project.id}/documents?tab=videos`)}
+              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+            >
+              <Video className="h-4 w-4 text-purple-600" />
+              <div>
+                <div className="text-sm font-medium">{mediaCounts.videos}</div>
+                <div className="text-xs text-muted-foreground">Videos</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => navigate(`/time-entries?tab=receipts&project=${project.id}`)}
+              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+            >
+              <Receipt className="h-4 w-4 text-green-600" />
+              <div>
+                <div className="text-sm font-medium">{pendingReceipts}</div>
+                <div className="text-xs text-muted-foreground">Pending Receipts</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => navigate(`/projects/${project.id}/documents`)}
+              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+            >
+              <FileIcon className="h-4 w-4 text-orange-600" />
+              <div>
+                <div className="text-sm font-medium">{documentCount}</div>
+                <div className="text-xs text-muted-foreground">Documents</div>
+              </div>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Project Notes Timeline */}
+      <Card>
+        <CardHeader className="p-3 pb-2">
+          <h3 className="text-sm font-semibold">Project Notes</h3>
+        </CardHeader>
+        <CardContent className="p-3 pt-0">
+          <ProjectNotesTimeline projectId={project.id} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -213,13 +213,13 @@ const getStatusKPIs = (
     case 'cancelled':
       return {
         primary: {
-          label1: 'Contract',
-          value1: contractValue,
-          label2: 'Spent',
+          label1: contractValue > 0 ? 'Contract' : 'Spent',
+          value1: contractValue || actualExpenses,
+          label2: 'Actual Costs',
           value2: actualExpenses,
-          label3: 'Loss',
-          value3: actualExpenses,
-          isPercent3: false,
+          label3: 'Margin',
+          value3: actualMarginPct,
+          isPercent3: true,
         },
       };
 
@@ -694,6 +694,7 @@ export const ProjectsList = ({
           return (
             <MobileListCard
               key={project.id}
+              metricsColumns={3}
               title={project.project_name}
               subtitle={`${project.project_number} • ${project.client_name || "No Client"}`}
               badge={{
@@ -725,7 +726,7 @@ export const ProjectsList = ({
                       : formatCurrency(primary.value3),
                     subtext: project.status === "estimating" ? "(est)" : undefined,
                   },
-                ].slice(0, 2);
+                ];
               })()}
               onTap={() => navigateToProjectDetail(project.id)}
               actions={[
