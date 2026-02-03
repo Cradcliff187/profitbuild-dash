@@ -169,21 +169,24 @@ export default function AppLayout() {
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
           {/* Mobile header with trigger */}
           {isMobile && (
-            <header className="flex h-16 items-center gap-3 border-b border-slate-700 bg-slate-900 px-4 lg:hidden shadow-sm">
-              <img
-                src={logoIcon}
-                alt={companyAbbr}
-                className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = logoIconDefault;
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-base text-white truncate">
-                  {pageTitle}
+            <header className="flex flex-col lg:hidden shadow-sm">
+              <div className="flex h-16 items-center gap-3 border-b border-slate-700 bg-slate-900 px-4">
+                <img
+                  src={logoIcon}
+                  alt={companyAbbr}
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = logoIconDefault;
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-base text-white truncate">
+                    {pageTitle}
+                  </div>
                 </div>
+                <MobileMenuTrigger />
               </div>
-              <MobileMenuTrigger />
+              <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400" />
             </header>
           )}
           

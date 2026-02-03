@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PageHeaderProps {
   title: string;
@@ -21,6 +22,34 @@ export function PageHeader({
   children,
   showAccent = true,
 }: PageHeaderProps) {
+  const isMobile = useIsMobile();
+
+  // On mobile: AppLayout header already shows the page title.
+  // Only render the accent line and any children content.
+  if (isMobile && !children) {
+    return (
+      <>
+        {showAccent && (
+          <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400 mb-3" />
+        )}
+      </>
+    );
+  }
+
+  if (isMobile && children) {
+    return (
+      <div className={cn("bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden mb-4", className)}>
+        <div className="px-3 py-3">
+          {children}
+        </div>
+        {showAccent && (
+          <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400" />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: render everything as before (NO CHANGES to desktop behavior)
   return (
     <div className={cn("bg-white border-b border-slate-200 shadow-sm w-full max-w-full overflow-hidden mb-4 lg:mb-3", className)}>
       <div className="px-3 sm:px-6 lg:px-4 py-4 lg:py-3">
