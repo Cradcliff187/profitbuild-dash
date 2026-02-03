@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Filter, FileText, MoreHorizontal, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Filter, FileText, Eye, Download, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { QuoteStatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,9 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PdfPreviewModal } from '@/components/PdfPreviewModal';
+import { MobileListCard } from '@/components/ui/mobile-list-card';
+import { DocumentLeadingIcon } from '@/utils/documentFileType';
+import { useDocumentPreview } from '@/hooks/useDocumentPreview';
+import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 interface Quote {
   id: string;
@@ -36,16 +36,24 @@ interface ProjectQuotePDFsListProps {
   projectId: string;
 }
 
+// Quote status color helper
+function getQuoteStatusColor(status: string): string {
+  switch (status?.toLowerCase()) {
+    case 'pending': return 'bg-amber-100 text-amber-700';
+    case 'accepted': return 'bg-emerald-100 text-emerald-700';
+    case 'rejected': return 'bg-red-100 text-red-700';
+    default: return 'bg-gray-100 text-gray-700';
+  }
+}
+
 export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const preview = useDocumentPreview();
   
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ['project-quote-pdfs', projectId],
@@ -98,18 +106,6 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
     const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  const getStatusBadge = (status: string) => (
-    <QuoteStatusBadge status={status} size="sm" />
-  );
-
-  const handlePreview = (quote: Quote & { payees: { payee_name: string } | null }) => {
-    if (!quote.attachment_url) return;
-    
-    setPdfUrl(quote.attachment_url);
-    setSelectedQuote(quote);
-    setPreviewDialogOpen(true);
-  };
 
   const handleDownload = (quote: Quote & { payees: { payee_name: string } | null }) => {
     if (!quote.attachment_url) return;
@@ -194,143 +190,77 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
         </div>
       ) : (
         <>
-          {/* Mobile Cards */}
-          <div className="space-y-3 md:hidden">
+          {/* Quote Cards - shown on all screen sizes */}
+          <div className="space-y-2">
             {filteredQuotes.map((quote) => (
-              <div key={quote.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{quote.quote_number}</p>
-                    <p className="text-xs text-muted-foreground">{quote.payees?.payee_name || 'Unknown'}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <p className="text-sm font-medium">${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                      {getStatusBadge(quote.status)}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDistanceToNow(parseISO(quote.date_received), { addSuffix: true })}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                        {quote.quote_number}
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handlePreview(quote)}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDownload(quote)}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          setQuoteToDelete(quote);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+              <MobileListCard
+                key={quote.id}
+                leading={<DocumentLeadingIcon documentType="other" />}
+                title={quote.quote_number}
+                subtitle={quote.payees?.payee_name || 'Unknown'}
+                badge={{
+                  label: quote.status.charAt(0).toUpperCase() + quote.status.slice(1),
+                  className: getQuoteStatusColor(quote.status),
+                }}
+                secondaryBadge={{
+                  label: 'Quote PDF',
+                  className: '',
+                }}
+                metrics={[
+                  { label: 'Amount', value: formatCurrency(quote.total_amount) },
+                  {
+                    label: 'Received',
+                    value: format(parseISO(quote.date_received), 'MMM d, yyyy'),
+                  },
+                ]}
+                onTap={() => {
+                  if (quote.attachment_url) {
+                    preview.openPreview({
+                      fileUrl: quote.attachment_url,
+                      fileName: `Quote-${quote.quote_number}.pdf`,
+                      mimeType: 'application/pdf',
+                    });
+                  }
+                }}
+                actions={[
+                  {
+                    icon: Eye,
+                    label: 'View',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (quote.attachment_url) {
+                        preview.openPreview({
+                          fileUrl: quote.attachment_url,
+                          fileName: `Quote-${quote.quote_number}.pdf`,
+                          mimeType: 'application/pdf',
+                        });
+                      }
+                    },
+                  },
+                  {
+                    icon: Download,
+                    label: 'Download',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleDownload(quote);
+                    },
+                  },
+                  {
+                    icon: Trash2,
+                    label: 'Delete',
+                    variant: 'destructive' as const,
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      setQuoteToDelete(quote);
+                      setDeleteDialogOpen(true);
+                    },
+                  },
+                ]}
+              />
             ))}
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden overflow-hidden rounded-lg border md:block">
-            <table className="w-full text-xs">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="p-2 text-left font-medium text-xs">Quote Number</th>
-                  <th className="p-2 text-left font-medium text-xs">Payee</th>
-                  <th className="p-2 text-right font-medium text-xs">Amount</th>
-                  <th className="p-2 text-left font-medium text-xs">Date</th>
-                  <th className="p-2 text-left font-medium text-xs">Status</th>
-                  <th className="p-2 text-right font-medium text-xs">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredQuotes.map((quote) => (
-                  <tr key={quote.id} className="transition-colors hover:bg-muted/30">
-                    <td className="p-2 font-medium text-xs">{quote.quote_number}</td>
-                    <td className="p-2 text-muted-foreground text-xs">
-                      {quote.payees?.payee_name || 'Unknown'}
-                    </td>
-                    <td className="p-2 text-right font-medium text-xs">
-                      ${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="p-2 text-muted-foreground text-xs">
-                      {formatDistanceToNow(parseISO(quote.date_received), { addSuffix: true })}
-                    </td>
-                    <td className="p-2">
-                      {getStatusBadge(quote.status)}
-                    </td>
-                    <td className="p-2">
-                      <div className="flex items-center justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                              {quote.quote_number}
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handlePreview(quote)}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDownload(quote)}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setQuoteToDelete(quote);
-                                setDeleteDialogOpen(true);
-                              }}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </>
       )}
-
-      <PdfPreviewModal
-        open={previewDialogOpen}
-        onOpenChange={setPreviewDialogOpen}
-        pdfUrl={pdfUrl}
-        fileName={selectedQuote ? `Quote-${selectedQuote.quote_number}.pdf` : 'Quote.pdf'}
-      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -348,6 +278,8 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewModals preview={preview} />
     </div>
   );
 }

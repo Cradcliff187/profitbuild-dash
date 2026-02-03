@@ -1,16 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Loader2, Printer, MoreHorizontal, Trash2, Eye } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { FileText, Download, Loader2, Trash2, Eye } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +16,6 @@ import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Contract } from '@/types/contract';
@@ -56,7 +44,6 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<(Contract & { payee_name?: string }) | null>(null);
   const { toast } = useToast();
-  const isMobile = useIsMobile();
   const preview = useDocumentPreview();
 
   const fetchContracts = useCallback(async () => {
@@ -143,8 +130,8 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
         </div>
       ) : (
           <>
-            {/* Mobile Cards */}
-            <div className="space-y-2 md:hidden">
+            {/* Contract Cards - shown on all screen sizes */}
+            <div className="space-y-2">
               {contracts.map((c) => (
                 <MobileListCard
                   key={c.id}
@@ -219,116 +206,6 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
                 />
               ))}
             </div>
-
-            {/* Desktop Table */}
-            <Table className="hidden md:table">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reference</TableHead>
-                <TableHead>Subcontractor</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Agreement date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contracts.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
-                    <button
-                      className="font-medium hover:underline text-left"
-                      onClick={() => {
-                        const url = c.pdf_url || c.docx_url;
-                        if (url) preview.openPreview({
-                          fileUrl: url,
-                          fileName: (c as { internal_reference?: string }).internal_reference || c.contract_number || 'Contract',
-                          mimeType: c.pdf_url ? 'application/pdf' : null,
-                        });
-                      }}
-                    >
-                      {(c as { internal_reference?: string }).internal_reference || c.contract_number || '—'}
-                    </button>
-                  </TableCell>
-                  <TableCell>{c.payee_name ?? '—'}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(c.subcontract_price)}
-                  </TableCell>
-                  <TableCell>
-                    {c.agreement_date
-                      ? format(new Date(c.agreement_date), 'MMM d, yyyy')
-                      : '—'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{c.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                            {(c as { internal_reference?: string }).internal_reference || c.contract_number || '—'}
-                          </DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => {
-                            const url = c.pdf_url || c.docx_url;
-                            if (url) preview.openPreview({
-                              fileUrl: url,
-                              fileName: (c as { internal_reference?: string }).internal_reference || c.contract_number || 'Contract',
-                              mimeType: c.pdf_url ? 'application/pdf' : null,
-                            });
-                          }}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </DropdownMenuItem>
-                          {c.docx_url && (
-                            <>
-                              {!isMobile && (
-                                <DropdownMenuItem onClick={() => {
-                                  const printUrl = `https://docs.google.com/gview?url=${encodeURIComponent(c.docx_url!)}`;
-                                  window.open(printUrl, '_blank');
-                                }}>
-                                  <Printer className="h-4 w-4 mr-2" />
-                                  Print
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => window.open(c.docx_url!, '_blank')}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Download DOCX
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {c.pdf_url && (
-                            <DropdownMenuItem onClick={() => window.open(c.pdf_url!, '_blank')}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Download PDF
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setContractToDelete(c);
-                              setDeleteDialogOpen(true);
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
           </>
         )}
 

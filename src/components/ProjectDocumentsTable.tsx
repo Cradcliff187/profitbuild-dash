@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Filter, FileText, Eye, Download, MoreHorizontal, Printer, Trash2, File } from "lucide-react";
+import { Filter, FileText, Eye, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
-import { DocumentLeadingIcon, DOCUMENT_TYPE_LUCIDE_ICONS, DOCUMENT_TYPE_ICON_COLORS } from "@/utils/documentFileType";
+import { DocumentLeadingIcon } from "@/utils/documentFileType";
 import { useDocumentPreview } from "@/hooks/useDocumentPreview";
 import { DocumentPreviewModals } from "@/components/documents/DocumentPreviewModals";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, differenceInDays, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
 import type { ProjectDocument, DocumentType } from "@/types/document";
 import { DOCUMENT_TYPE_LABELS } from "@/types/document";
 
@@ -203,8 +202,8 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
         </div>
       ) : (
         <>
-          {/* Mobile Cards */}
-          <div className="space-y-2 md:hidden">
+          {/* Document Cards - shown on all screen sizes */}
+          <div className="space-y-2">
             {filteredDocuments.map((doc) => (
               <MobileListCard
                 key={doc.id}
@@ -280,119 +279,6 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                 ]}
               />
             ))}
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden overflow-hidden rounded-lg border md:block">
-            <table className="w-full text-xs">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="p-2 text-left font-medium text-xs">Document</th>
-                  <th className="p-2 text-left font-medium text-xs">Version</th>
-                  <th className="p-2 text-left font-medium text-xs">Size</th>
-                  <th className="p-2 text-left font-medium text-xs">Uploaded</th>
-                  <th className="p-2 text-right font-medium text-xs">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="transition-colors hover:bg-muted/30">
-                    <td className="p-2">
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const IconComponent = DOCUMENT_TYPE_LUCIDE_ICONS[doc.document_type] || File;
-                          const colorClass = DOCUMENT_TYPE_ICON_COLORS[doc.document_type] || 'text-muted-foreground';
-                          return <IconComponent className={cn("h-4 w-4 flex-shrink-0", colorClass)} />;
-                        })()}
-                        <div className="min-w-0">
-                          <button
-                            className="truncate text-xs font-medium hover:underline text-left"
-                            onClick={() => preview.openPreview({
-                              fileUrl: doc.file_url,
-                              fileName: doc.file_name,
-                              mimeType: doc.mime_type,
-                            })}
-                          >
-                            {doc.file_name}
-                          </button>
-                          {doc.description && (
-                            <p className="truncate text-xs text-muted-foreground">{doc.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <Badge variant="outline" className="text-xs">
-                        v{doc.version_number}
-                      </Badge>
-                    </td>
-                    <td className="p-2 text-xs text-muted-foreground">{formatFileSize(doc.file_size)}</td>
-                    <td className="p-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(doc.created_at), 'MMM d, yyyy')}
-                        </span>
-                        {getExpirationWarning(doc.expires_at)}
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <div className="flex items-center justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                              {doc.file_name}
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => preview.openPreview({
-                              fileUrl: doc.file_url,
-                              fileName: doc.file_name,
-                              mimeType: doc.mime_type,
-                            })}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              const a = document.createElement("a");
-                              a.href = doc.file_url;
-                              a.download = doc.file_name;
-                              a.click();
-                            }}>
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            {!isMobile && doc.mime_type === 'application/pdf' && (
-                              <DropdownMenuItem onClick={() => {
-                                window.open(`https://docs.google.com/gview?url=${encodeURIComponent(doc.file_url)}`, '_blank');
-                              }}>
-                                <Printer className="h-4 w-4 mr-2" />
-                                Print
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setDocumentToDelete(doc);
-                                setDeleteDialogOpen(true);
-                              }}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </>
       )}
