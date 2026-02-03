@@ -22,12 +22,13 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
   // Sync caption from photo only when modal opens, so transcription updates
   // don't overwrite in-progress edits (e.g. FieldVideoCapture).
   // Must be called before any conditional returns (React Hooks rule).
+  // Intentionally depend only on [open] so we don't reset caption when photo ref changes during edit.
   useEffect(() => {
     if (open && photo) {
       setCaption(photo.caption || '');
       setShowAIEnhancer(false);
     }
-  }, [open, photo]);
+  }, [open]);
 
   // Early return if photo is null/undefined
   if (!photo) {
