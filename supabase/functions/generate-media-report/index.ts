@@ -22,6 +22,8 @@ interface ReportRequest {
   delivery?: 'print' | 'download' | 'email';
   recipientEmail?: string;
   recipientName?: string;
+  pdfDownloadUrl?: string;  // Signed URL for email download link
+  mediaCount?: number;      // Number of media items in report
 }
 
 interface MediaComment {
@@ -48,7 +50,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = (await req.json()) as ReportRequest;
-    const { projectId, mediaIds, reportTitle, summary, delivery, recipientEmail, recipientName } = body;
+    const { projectId, mediaIds, reportTitle, summary, delivery, recipientEmail, recipientName, pdfDownloadUrl, mediaCount } = body;
 
     console.log(
       `📋 Request: Project ${projectId}, ${mediaIds.length} media items, delivery: ${delivery || 'download'}`
@@ -209,16 +211,50 @@ Deno.serve(async (req) => {
         ` : ''}
 
         <p style="margin: 0 0 8px; color: #4a5568; font-size: 14px; line-height: 1.6;">
-          <strong>${mediaWithUrls.length} photos</strong> captured across
+          <strong>${mediaCount || mediaWithUrls.length} media item${(mediaCount || mediaWithUrls.length) !== 1 ? 's' : ''}</strong> captured across
           <strong>${new Set(mediaWithUrls.map((m: any) =>
             new Date(m.taken_at || m.created_at).toLocaleDateString()
           )).size} day(s)</strong>.
         </p>
 
-        <p style="margin: 24px 0 0; color: #718096; font-size: 13px; font-style: italic;">
-          For the full report with high-resolution images, please use the print/save
-          option in the ${escapeHtml(branding.companyAbbreviation)} project portal.
-        </p>
+        ${pdfDownloadUrl ? `
+          <!-- Download Button -->
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 32px 0;">
+            <tr>
+              <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="background-color: ${branding.primaryColor}; border-radius: 8px; padding: 16px 40px;">
+                      <a href="${pdfDownloadUrl}" 
+                         style="color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; font-weight: 600; text-decoration: none; display: inline-block;"
+                         target="_blank">
+                        📄 Download Full Report (PDF)
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Plain text fallback link -->
+          <p style="font-size: 13px; color: #666; text-align: center; margin-top: 16px;">
+            If the button doesn't work, copy this link:<br>
+            <a href="${pdfDownloadUrl}" style="color: ${branding.primaryColor}; word-break: break-all;">
+              ${pdfDownloadUrl}
+            </a>
+          </p>
+
+          <!-- Expiration notice -->
+          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 8px;">
+            This download link expires in 30 days.
+          </p>
+        ` : `
+          <p style="margin: 24px 0 0; color: #718096; font-size: 13px; font-style: italic;">
+            For the full report with high-resolution images, please use the print/save
+            option in the ${escapeHtml(branding.companyAbbreviation)} project portal.
+          </p>
+        `}
       `;
 
       const emailHtml = buildBrandedEmail(branding, {

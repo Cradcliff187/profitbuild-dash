@@ -12,6 +12,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription } from './ui/alert';
 import { toast } from 'sonner';
 import { estimatePDFSize } from '@/utils/pdfHelpers';
+import { saveReportToProjectDocuments } from '@/utils/reportStorageUtils';
 import { VoiceCaptionModal } from './VoiceCaptionModal';
 import type { ProjectMedia } from '@/types/project';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -72,6 +73,43 @@ export function MediaReportBuilderModal({
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
+
+  /**
+   * Generate PDF blob without triggering download.
+   * Used by both Download and Email delivery paths.
+   */
+  const generatePdfBlob = async (htmlString: string): Promise<Blob> => {
+    const pdfOptions = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      image: { type: 'jpeg' as const, quality: 0.95 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        letterRendering: true,
+      },
+      jsPDF: {
+        unit: 'mm' as const,
+        format: 'a4' as const,
+        orientation: 'portrait' as const,
+        compress: true,
+      },
+      pagebreak: {
+        mode: ['avoid-all', 'css', 'legacy'],
+        before: '.page-break',
+        after: '.page-break-after',
+        avoid: ['img', '.no-break'],
+      },
+    };
+
+    // .outputPdf('blob') returns the PDF as a Blob WITHOUT triggering download
+    const pdfBlob: Blob = await html2pdf()
+      .set(pdfOptions)
+      .from(htmlString)
+      .outputPdf('blob');
+
+    return pdfBlob;
+  };
 
   /**
    * Render HTML in a hidden iframe and trigger the browser's print dialog.
@@ -156,19 +194,15 @@ export function MediaReportBuilderModal({
       console.log(`🎨 Generating report (${deliveryMethod} delivery)...`);
       
       // Build request
+      // For email delivery: first request gets HTML (use 'download'), second request sends email
       const requestBody: Record<string, unknown> = {
         projectId,
         mediaIds,
         reportTitle: reportTitle || `${projectName} - Media Report`,
         format: 'story',
         summary: reportSummary.trim() || undefined,
-        delivery: deliveryMethod,
+        delivery: deliveryMethod === 'email' ? 'download' : deliveryMethod,
       };
-
-      if (deliveryMethod === 'email') {
-        requestBody.recipientEmail = recipientEmail;
-        requestBody.recipientName = recipientName || undefined;
-      }
 
       setGenerationProgress(selectedMedia.length * 0.3);
 
@@ -186,15 +220,53 @@ export function MediaReportBuilderModal({
       // ── Handle each delivery method ──────────────────────
 
       if (deliveryMethod === 'email') {
-        // Email path: response is JSON
-        const result = typeof data === 'string' ? JSON.parse(data) : data;
-        if (result.success) {
-          toast.success('Report emailed successfully!', {
-            description: `Sent to ${recipientEmail}`,
-          });
-        } else {
-          throw new Error(result.error || 'Email delivery failed');
+        // Email path: generate blob → save to project documents → send email with signed URL
+        if (!data || typeof data !== 'string') {
+          throw new Error('Invalid HTML response from server');
         }
+
+        // 1. Generate PDF blob
+        console.log('📄 Generating PDF for email...');
+        const pdfBlob = await generatePdfBlob(data);
+        console.log(`✅ PDF generated: ${(pdfBlob.size / 1024).toFixed(0)}KB`);
+
+        setGenerationProgress(selectedMedia.length * 0.8);
+
+        // 2. Save to project documents — gets both publicUrl and signedUrl
+        console.log('💾 Saving report to project documents...');
+        const { signedUrl, fileName } = await saveReportToProjectDocuments(
+          pdfBlob,
+          projectId,
+          projectNumber,
+          reportTitle || `${projectName} - Media Report`,
+          selectedMedia.length
+        );
+        console.log('✅ Report saved to project documents');
+
+        setGenerationProgress(selectedMedia.length * 0.9);
+
+        // 3. Send email WITH the download URL
+        console.log('📧 Sending email with download link...');
+        const { error: emailError } = await supabase.functions.invoke('generate-media-report', {
+          body: {
+            projectId,
+            mediaIds,
+            reportTitle: reportTitle || `${projectName} - Media Report`,
+            format: 'story',
+            summary: reportSummary.trim() || undefined,
+            delivery: 'email',
+            recipientEmail,
+            recipientName,
+            pdfDownloadUrl: signedUrl,     // ← NEW: signed URL for 30-day access
+            mediaCount: selectedMedia.length,
+          },
+        });
+
+        if (emailError) throw new Error(`Failed to send email: ${emailError.message}`);
+
+        toast.success('Report saved & emailed!', {
+          description: `Saved to project documents • Sent to ${recipientEmail}`
+        });
       } else if (deliveryMethod === 'print') {
         // Print path: render HTML in iframe → window.print()
         if (!data || typeof data !== 'string') {
@@ -207,44 +279,44 @@ export function MediaReportBuilderModal({
           description: 'Choose "Save as PDF" to save a copy, or print directly.',
         });
       } else {
-        // Download path: existing html2pdf.js flow
+        // Download path: generate blob → save to project documents → trigger download
         if (!data || typeof data !== 'string') {
           throw new Error('Invalid HTML response from server');
         }
 
-        const fileName = `${projectNumber}_Professional_Report_${format(
-          new Date(),
-          'yyyy-MM-dd'
-        )}.pdf`;
+        // 1. Generate PDF blob (NOT auto-download)
+        console.log('📄 Generating PDF...');
+        const pdfBlob = await generatePdfBlob(data);
+        console.log(`✅ PDF generated: ${(pdfBlob.size / 1024).toFixed(0)}KB`);
 
-        const options = {
-          margin: [10, 10, 10, 10] as [number, number, number, number],
-          filename: fileName,
-          image: { type: 'jpeg' as const, quality: 0.95 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            letterRendering: true,
-          },
-          jsPDF: {
-            unit: 'mm' as const,
-            format: 'a4' as const,
-            orientation: 'portrait' as const,
-            compress: true,
-          },
-          pagebreak: {
-            mode: ['avoid-all', 'css', 'legacy'],
-            before: '.page-break',
-            after: '.page-break-after',
-            avoid: ['img', '.no-break'],
-          },
-        };
+        setGenerationProgress(selectedMedia.length * 0.8);
 
-        await html2pdf().set(options).from(data).save();
+        // 2. Save to project documents (Storage + DB record)
+        console.log('💾 Saving report to project documents...');
+        const { fileName } = await saveReportToProjectDocuments(
+          pdfBlob,
+          projectId,
+          projectNumber,
+          reportTitle || `${projectName} - Media Report`,
+          selectedMedia.length
+        );
+        console.log('✅ Report saved to project documents');
 
-        toast.success('PDF downloaded!', {
-          description: `${selectedMedia.length} items • ${fileName}`,
+        setGenerationProgress(selectedMedia.length * 0.95);
+
+        // 3. Trigger browser download from the blob
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        console.log('✅ PDF downloaded');
+
+        toast.success('Report saved & downloaded!', {
+          description: `Saved to project documents • ${selectedMedia.length} items`
         });
       }
 

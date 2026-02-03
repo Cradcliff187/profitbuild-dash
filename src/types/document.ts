@@ -4,6 +4,7 @@ export type DocumentType =
   | 'license' 
   | 'contract' 
   | 'specification' 
+  | 'report'
   | 'other';
 
 export interface ProjectDocument {
@@ -29,6 +30,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   license: 'License',
   contract: 'Contract',
   specification: 'Specification',
+  report: 'Report',
   other: 'Other'
 };
 
@@ -38,5 +40,6 @@ export const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
   license: '📜',
   contract: '📄',
   specification: '📝',
+  report: '📊',
   other: '📎'
 };
