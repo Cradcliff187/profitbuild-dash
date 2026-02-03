@@ -16,7 +16,7 @@ createRoot(document.getElementById("root")!).render(<App />);
 startSyncService();
 
 // Detect when a new service worker takes control (update activated)
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !import.meta.env.DEV) {
   let isRefreshing = false;
   
   navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -45,8 +45,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Register service worker
-if ('serviceWorker' in navigator) {
+// Register service worker only in production (dev: no SW so updates always visible)
+if ('serviceWorker' in navigator && !import.meta.env.DEV) {
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
