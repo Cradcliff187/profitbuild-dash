@@ -250,7 +250,7 @@ export default function FieldVideoCapture() {
     file_type: 'video' as const,
     mime_type: `video/${capturedVideo.format}`,
     file_size: 0,
-    caption: videoCaption,
+    caption: captions.pendingCaption,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   } : null;
