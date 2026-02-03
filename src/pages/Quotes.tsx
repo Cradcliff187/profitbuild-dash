@@ -163,7 +163,9 @@ const Quotes = () => {
         },
         (payload) => {
           console.log('Quote change detected:', payload);
-          const updatedQuoteId = payload.new?.id ?? payload.old?.id;
+          const newRecord = payload.new as { id?: string } | null | undefined;
+          const oldRecord = payload.old as { id?: string } | null | undefined;
+          const updatedQuoteId = newRecord?.id ?? oldRecord?.id;
           const isViewingThisQuote = updatedQuoteId && updatedQuoteId === currentViewedQuoteIdRef.current;
           // Silent refresh when we're viewing/editing the quote that changed (e.g. attachment upload) so the page doesn't reset to loader
           if (payload.eventType === 'UPDATE' && isViewingThisQuote) {

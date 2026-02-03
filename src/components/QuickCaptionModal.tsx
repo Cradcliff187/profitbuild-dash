@@ -24,12 +24,14 @@ export function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaption
     return null;
   }
 
+  // Sync caption from photo only when modal opens, so transcription updates
+  // don't overwrite in-progress edits (e.g. FieldVideoCapture).
   useEffect(() => {
     if (open) {
       setCaption(photo.caption || '');
       setShowAIEnhancer(false);
     }
-  }, [open, photo.caption]);
+  }, [open]);
 
   const handleSave = () => {
     if (!caption.trim()) {
