@@ -161,7 +161,7 @@ const Quotes = () => {
           schema: 'public',
           table: 'quotes'
         },
-        (payload: { eventType: string; new?: { id: string }; old?: { id: string } }) => {
+        (payload) => {
           console.log('Quote change detected:', payload);
           const updatedQuoteId = payload.new?.id ?? payload.old?.id;
           const isViewingThisQuote = updatedQuoteId && updatedQuoteId === currentViewedQuoteIdRef.current;

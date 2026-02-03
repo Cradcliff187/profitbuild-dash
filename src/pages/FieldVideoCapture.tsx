@@ -401,10 +401,10 @@ export default function FieldVideoCapture() {
                 </div>
               </Card>
             )}
-            {videoCaption && !isAutoTranscribing && (
+            {captions.pendingCaption && !isAutoTranscribing && (
               <Card className="p-3">
                 <div className="text-sm font-medium mb-1">Caption (Auto-generated)</div>
-                <p className="text-sm text-muted-foreground">{videoCaption}</p>
+                <p className="text-sm text-muted-foreground">{captions.pendingCaption}</p>
               </Card>
             )}
 
@@ -472,7 +472,7 @@ export default function FieldVideoCapture() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setShowCaptionModal(false)}
+                    onClick={() => captions.setShowCaptionModal(false)}
                   >
                     Skip Caption
                   </Button>
