@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Download, Loader2, Trash2, Eye } from 'lucide-react';
+import { Filter, FileText, Download, Loader2, Trash2, Eye } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +43,8 @@ interface ContractsListViewProps {
 export function ContractsListView({ projectId, projectNumber }: ContractsListViewProps) {
   const [contracts, setContracts] = useState<(Contract & { payee_name?: string })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<(Contract & { payee_name?: string }) | null>(null);
   const { toast } = useToast();
@@ -110,6 +114,15 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
     fetchContracts();
   }, [fetchContracts]);
 
+  const filteredContracts = contracts.filter((c) => {
+    const matchesSearch =
+      (c.contract_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.payee_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ((c as { internal_reference?: string }).internal_reference || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || c.status?.toLowerCase() === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -120,19 +133,47 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
 
   return (
     <div className="space-y-4">
-      {contracts.length === 0 ? (
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Search contracts..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9"
+        />
+        <div className="sm:w-[200px]">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-11 w-full rounded-xl border-border text-sm shadow-sm sm:h-9">
+              <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="generated">Generated</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="signed">Signed</SelectItem>
+              <SelectItem value="executed">Executed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {filteredContracts.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
           <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">No contracts found</p>
           <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-            Generate a Subcontractor Project Agreement from an accepted quote.
+            {searchQuery || statusFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'Generate a Subcontractor Project Agreement from an accepted quote.'}
           </p>
         </div>
       ) : (
           <>
             {/* Contract Cards - shown on all screen sizes */}
             <div className="space-y-2">
-              {contracts.map((c) => (
+              {filteredContracts.map((c) => (
                 <MobileListCard
                   key={c.id}
                   leading={<DocumentLeadingIcon documentType="contract" />}
