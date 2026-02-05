@@ -24,7 +24,7 @@ export const checkTimeOverlap = async (
   excludeId?: string
 ): Promise<OverlapCheckResult> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('expenses')
       .select(`
         id,
@@ -37,38 +37,31 @@ export const checkTimeOverlap = async (
         )
       `)
       .eq('payee_id', payeeId)
-      .eq('expense_date', date)
       .eq('category', 'labor_internal')
       .not('start_time', 'is', null)
-      .not('end_time', 'is', null);
+      .not('end_time', 'is', null)
+      .lt('start_time', endTime.toISOString())
+      .gt('end_time', startTime.toISOString());
+
+    if (excludeId) {
+      query = query.neq('id', excludeId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
-    const overlapping = (data || [])
-      .filter(entry => {
-        if (excludeId && entry.id === excludeId) return false;
-        
-        const existingStart = new Date(entry.start_time);
-        const existingEnd = new Date(entry.end_time);
-        
-        return (
-          (startTime >= existingStart && startTime < existingEnd) ||
-          (endTime > existingStart && endTime <= existingEnd) ||
-          (startTime <= existingStart && endTime >= existingEnd)
-        );
-      });
-
-    if (overlapping.length > 0) {
+    if (data && data.length > 0) {
       return {
         hasOverlap: true,
-        overlappingEntries: overlapping.map(e => ({
+        overlappingEntries: data.map(e => ({
           id: e.id,
           startTime: format(new Date(e.start_time), 'h:mm a'),
           endTime: format(new Date(e.end_time), 'h:mm a'),
           description: e.description || 'Time Entry',
           projectName: e.projects?.project_name
         })),
-        message: `Overlaps with existing entry: ${format(new Date(overlapping[0].start_time), 'h:mm a')} - ${format(new Date(overlapping[0].end_time), 'h:mm a')}`
+        message: `Overlaps with existing entry: ${format(new Date(data[0].start_time), 'h:mm a')} - ${format(new Date(data[0].end_time), 'h:mm a')}`
       };
     }
 
