@@ -118,6 +118,37 @@ export const validateTimeEntryHours = (
 };
 
 /**
+ * Validate time entry hours (V2) — supports overnight shifts.
+ * Accepts startTime and endTime as Date objects where endTime is already overnight-adjusted.
+ *
+ * @returns valid, optional message, optional isOvernight
+ */
+export const validateTimeEntryHoursV2 = (
+  startTime: Date,
+  endTime: Date
+): { valid: boolean; message?: string; isOvernight?: boolean } => {
+  const hours = (endTime.getTime() - startTime.getTime()) / 3600000;
+
+  if (hours <= 0) {
+    return { valid: false, message: 'Invalid time range' };
+  }
+  if (hours > 24) {
+    return {
+      valid: false,
+      message: `Entry is ${hours.toFixed(1)} hours — maximum 24 hours per entry`,
+    };
+  }
+  if (hours > 16) {
+    return {
+      valid: true,
+      message: `Entry is ${hours.toFixed(1)} hours — please verify`,
+      isOvernight: hours > 12,
+    };
+  }
+  return { valid: true, isOvernight: hours > 12 };
+};
+
+/**
  * Check if timer has been running too long
  */
 export const checkStaleTimer = (startTime: Date): {

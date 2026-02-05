@@ -90,3 +90,33 @@ export const LUNCH_DURATION_OPTIONS = [
  */
 export const DEFAULT_LUNCH_DURATION = 30;
 
+/**
+ * Build start and end Date objects from date + HH:mm strings with overnight adjustment.
+ * When endTime <= startTime (HH:mm comparison), end is treated as next calendar day.
+ *
+ * @param date - YYYY-MM-DD
+ * @param startTime - HH:mm
+ * @param endTime - HH:mm
+ * @returns startDateTime, endDateTime (overnight-adjusted), isOvernight
+ */
+export function buildTimeEntryDateTimes(
+  date: string,
+  startTime: string,
+  endTime: string
+): { startDateTime: Date; endDateTime: Date; isOvernight: boolean } {
+  // Use noon base to avoid timezone day-shift, then set time from HH:mm
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  const startDateTime = new Date(date + 'T12:00:00');
+  startDateTime.setHours(startH, startM, 0, 0);
+  const endDateTime = new Date(date + 'T12:00:00');
+  endDateTime.setHours(endH, endM, 0, 0);
+
+  const isOvernight = endTime <= startTime;
+  if (isOvernight) {
+    endDateTime.setDate(endDateTime.getDate() + 1);
+  }
+
+  return { startDateTime, endDateTime, isOvernight };
+}
+
