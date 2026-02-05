@@ -1,0 +1,2 @@
+-- Applied via Supabase dashboard since the actual SQL is already in your database.
+-- Placeholder to satisfy CI: remote DB has this version; local had 20260203000000 variant.
