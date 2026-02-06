@@ -191,8 +191,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                 >
                   <Checkbox
                     checked={filters.status.includes(option.value)}
-                    onCheckedChange={() => toggleStatus(option.value)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 pointer-events-none"
                   />
                   <label className="text-sm cursor-pointer flex-1">
                     {option.label}
@@ -255,8 +254,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.clientName.includes(client.client_name)}
-                        onCheckedChange={() => toggleClient(client.client_name)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span>{client.client_name}</span>
                     </div>
@@ -319,8 +317,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.projectName.includes(project.project_name)}
-                        onCheckedChange={() => toggleProject(project.project_name)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span className="truncate">{project.project_number} - {project.project_name}</span>
                     </div>
@@ -381,8 +378,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                 >
                   <Checkbox
                     checked={filters.categories.includes(option.value)}
-                    onCheckedChange={() => toggleCategory(option.value)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 pointer-events-none"
                   />
                   <label className="text-sm cursor-pointer flex-1">
                     {option.label}

@@ -30,7 +30,6 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -113,44 +112,42 @@ export const ProjectSelector = ({
               "No projects found."
             )}
           </CommandEmpty>
-          <CommandList>
-            <CommandGroup>
-              {estimates.map((estimate) => (
-                <CommandItem
-                  key={estimate.id}
-                  value={`${estimate.project_name} ${estimate.estimate_number}`}
-                  onSelect={() => {
-                    onSelect(estimate);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedEstimate?.id === estimate.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{estimate.project_name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {estimate.estimate_number} • {formatCurrency(estimate.total_amount)}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-              {estimates.length > 0 && onCreateNew && (
-                <CommandItem
-                  onSelect={() => {
-                    onCreateNew();
-                    setOpen(false);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span>Create New Project</span>
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </CommandList>
+          <CommandGroup className="max-h-64 overflow-auto">
+            {estimates.map((estimate) => (
+              <CommandItem
+                key={estimate.id}
+                value={`${estimate.project_name} ${estimate.estimate_number}`}
+                onSelect={() => {
+                  onSelect(estimate);
+                  setOpen(false);
+                }}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selectedEstimate?.id === estimate.id ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                <div className="flex flex-col">
+                  <span className="font-medium">{estimate.project_name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {estimate.estimate_number} • {formatCurrency(estimate.total_amount)}
+                  </span>
+                </div>
+              </CommandItem>
+            ))}
+            {estimates.length > 0 && onCreateNew && (
+              <CommandItem
+                onSelect={() => {
+                  onCreateNew();
+                  setOpen(false);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Create New Project</span>
+              </CommandItem>
+            )}
+          </CommandGroup>
         </Command>
       </PopoverContent>
     </Popover>

@@ -150,8 +150,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
                 >
                   <Checkbox
                     checked={filters.status.includes(option.value)}
-                    onCheckedChange={() => toggleStatus(option.value)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 pointer-events-none"
                   />
                   <label className="text-sm cursor-pointer flex-1">
                     {option.label}
@@ -217,8 +216,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.payeeIds.includes(payee.id)}
-                        onCheckedChange={() => togglePayee(payee.id)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span>{payee.name}</span>
                     </div>
@@ -284,8 +282,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.projectIds.includes(project.id)}
-                        onCheckedChange={() => toggleProject(project.id)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span>{project.number} - {project.name}</span>
                     </div>

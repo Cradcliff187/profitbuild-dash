@@ -140,8 +140,7 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
                 >
                   <Checkbox
                     checked={filters.status.includes(option.value)}
-                    onCheckedChange={() => toggleStatus(option.value)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 pointer-events-none"
                   />
                   <label className="text-sm cursor-pointer flex-1">
                     {option.label}
@@ -207,8 +206,7 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.workerIds.includes(worker.id)}
-                        onCheckedChange={() => toggleWorker(worker.id)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span>{worker.name}</span>
                     </div>
@@ -274,8 +272,7 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.projectIds.includes(project.id)}
-                        onCheckedChange={() => toggleProject(project.id)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span>{project.number} - {project.name}</span>
                     </div>

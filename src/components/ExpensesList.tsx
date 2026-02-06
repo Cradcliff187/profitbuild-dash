@@ -1803,8 +1803,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   <div className="flex items-center gap-2 w-full">
                     <Checkbox
                       checked={filterProjects.includes(project.id)}
-                      onCheckedChange={() => toggleProject(project.id)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 pointer-events-none"
                     />
                     <span className="text-sm truncate">
                       {project.project_number} - {project.project_name}
@@ -1863,8 +1862,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                     >
                       <Checkbox
                         checked={filterCategories.includes(value)}
-                        onCheckedChange={() => toggleCategory(value)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <label className="text-sm cursor-pointer flex-1">
                         {label}
@@ -1920,8 +1918,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                     >
                       <Checkbox
                         checked={filterTransactionTypes.includes(value)}
-                        onCheckedChange={() => toggleTransactionType(value)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <label className="text-sm cursor-pointer flex-1">
                         {label}
@@ -1975,8 +1972,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   >
                     <Checkbox
                       checked={filterMatchStatuses.includes("unassigned")}
-                      onCheckedChange={() => toggleMatchStatus("unassigned")}
-                      className="h-4 w-4"
+                      className="h-4 w-4 pointer-events-none"
                     />
                     <label className="text-sm cursor-pointer flex-1">
                       ⚠️ Needs Assignment
@@ -1988,8 +1984,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   >
                     <Checkbox
                       checked={filterMatchStatuses.includes("unmatched")}
-                      onCheckedChange={() => toggleMatchStatus("unmatched")}
-                      className="h-4 w-4"
+                      className="h-4 w-4 pointer-events-none"
                     />
                     <label className="text-sm cursor-pointer flex-1">
                       ⚠️ Unallocated
@@ -2001,8 +1996,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                   >
                     <Checkbox
                       checked={filterMatchStatuses.includes("matched")}
-                      onCheckedChange={() => toggleMatchStatus("matched")}
-                      className="h-4 w-4"
+                      className="h-4 w-4 pointer-events-none"
                     />
                     <label className="text-sm cursor-pointer flex-1">
                       ✅ Allocated
@@ -2061,8 +2055,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                     >
                       <Checkbox
                         checked={filterApprovalStatuses.includes(value)}
-                        onCheckedChange={() => toggleApprovalStatus(value)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <label className="text-sm cursor-pointer flex-1">
                         {label}
@@ -2121,8 +2114,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                     >
                       <Checkbox
                         checked={filterSplitStatuses.includes(value)}
-                        onCheckedChange={() => toggleSplitStatus(value)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <label className="text-sm cursor-pointer flex-1">
                         {label}
@@ -2182,8 +2174,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                         <div className="flex items-center gap-2 w-full">
                           <Checkbox
                             checked={filterPayees.includes(payee.id)}
-                            onCheckedChange={() => togglePayee(payee.id)}
-                            className="h-4 w-4"
+                            className="h-4 w-4 pointer-events-none"
                           />
                           <span className="text-sm truncate">
                             {payee.payee_name}
@@ -2249,8 +2240,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                     >
                       <Checkbox
                         checked={filterPayeeTypes.includes(value)}
-                        onCheckedChange={() => togglePayeeType(value)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <label className="text-sm cursor-pointer flex-1">
                         {label}

@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Trash2, Users, X, Building2 } from "lucide-react";
+import { Trash2, Users, X, Building2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
+import { cn } from "@/lib/utils";
 
 interface ExpenseBulkActionsProps {
   selectedExpenseIds: string[];
@@ -424,8 +425,14 @@ export const ExpenseBulkActions = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Project Assignment Dialog */}
-      <AlertDialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
+      {/* Project Assignment Dialog - mirrors Projects filter (Command + CommandGroup scroll) */}
+      <AlertDialog
+        open={showProjectDialog}
+        onOpenChange={(open) => {
+          setShowProjectDialog(open);
+          if (!open) setSelectedProject(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Assign to Project</AlertDialogTitle>
@@ -435,12 +442,30 @@ export const ExpenseBulkActions = ({
           </AlertDialogHeader>
           
           <div className="py-4">
-            <ProjectSelectorNew
-              projects={projects}
-              selectedProject={selectedProject}
-              onSelect={setSelectedProject}
-              placeholder="Select a project..."
-            />
+            <Command className="rounded-md border">
+              <CommandInput placeholder="Search projects..." className="h-9" />
+              <CommandEmpty>No project found.</CommandEmpty>
+              <CommandGroup className="max-h-64 overflow-auto">
+                {projects.map((project) => (
+                  <CommandItem
+                    key={project.id}
+                    value={`${project.project_number} ${project.project_name}`}
+                    onSelect={() => setSelectedProject(project)}
+                    className="text-sm"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        selectedProject?.id === project.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="text-sm truncate">
+                      {project.project_number} - {project.project_name}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
           </div>
           
           <AlertDialogFooter>

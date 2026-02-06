@@ -169,8 +169,7 @@ export const ProjectFilters = ({
                 >
                   <Checkbox
                     checked={filters.status.includes(option.value as ProjectStatus)}
-                    onCheckedChange={() => toggleStatus(option.value as ProjectStatus)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 pointer-events-none"
                   />
                   <label className="text-sm cursor-pointer flex-1">
                     {option.label}
@@ -229,8 +228,7 @@ export const ProjectFilters = ({
                 >
                   <Checkbox
                     checked={filters.jobType.includes(type)}
-                    onCheckedChange={() => toggleJobType(type)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 pointer-events-none"
                   />
                   <label className="text-sm cursor-pointer flex-1">
                     {type}
@@ -293,8 +291,7 @@ export const ProjectFilters = ({
                     <div className="flex items-center gap-2 w-full">
                       <Checkbox
                         checked={filters.clientName.includes(client.client_name)}
-                        onCheckedChange={() => toggleClient(client.client_name)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 pointer-events-none"
                       />
                       <span>{client.client_name}</span>
                     </div>

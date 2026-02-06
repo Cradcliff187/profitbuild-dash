@@ -37,7 +37,6 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -121,7 +120,7 @@ export const ProjectSelectorNew = ({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="z-50 w-full p-0 bg-background border shadow-md" align="start">
+        <PopoverContent className="z-[100] w-full p-0 bg-background border shadow-md" align="start">
           <Command>
             <CommandInput placeholder="Search projects..." />
             <CommandEmpty>
@@ -143,43 +142,41 @@ export const ProjectSelectorNew = ({
                 "No projects found."
               )}
             </CommandEmpty>
-            <CommandList>
-              <CommandGroup>
-                {[...projects].sort((a, b) => {
-                  // Sort by project_number descending (highest to lowest)
-                  // Compare as strings for alphanumeric project numbers
-                  return b.project_number.localeCompare(a.project_number, undefined, { numeric: true, sensitivity: 'base' });
-                }).map((project) => (
-                  <CommandItem
-                    key={project.id}
-                    value={`${project.project_name} ${project.project_number}`}
-                    onSelect={() => {
-                      onSelect(project);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedProject?.id === project.id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{project.project_name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {project.client_name}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-                {projects.length > 0 && !hideCreateButton && (
-                  <CommandItem onSelect={handleCreateNewClick}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span>Create New Project</span>
-                  </CommandItem>
-                )}
-              </CommandGroup>
-            </CommandList>
+            <CommandGroup className="max-h-64 overflow-auto">
+              {[...projects].sort((a, b) => {
+                // Sort by project_number descending (highest to lowest)
+                // Compare as strings for alphanumeric project numbers
+                return b.project_number.localeCompare(a.project_number, undefined, { numeric: true, sensitivity: 'base' });
+              }).map((project) => (
+                <CommandItem
+                  key={project.id}
+                  value={`${project.project_name} ${project.project_number}`}
+                  onSelect={() => {
+                    onSelect(project);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedProject?.id === project.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{project.project_name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {project.client_name}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
+              {projects.length > 0 && !hideCreateButton && (
+                <CommandItem onSelect={handleCreateNewClick}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Create New Project</span>
+                </CommandItem>
+              )}
+            </CommandGroup>
           </Command>
         </PopoverContent>
       </Popover>

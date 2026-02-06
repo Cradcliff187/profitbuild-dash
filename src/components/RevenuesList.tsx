@@ -731,8 +731,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                       <div className="flex items-center gap-2 w-full">
                         <Checkbox
                           checked={filterProjects.includes(project.id)}
-                          onCheckedChange={() => toggleProject(project.id)}
-                          className="h-4 w-4"
+                          className="h-4 w-4 pointer-events-none"
                         />
                         <span className="text-sm truncate">
                           {project.number} - {project.name}
@@ -794,8 +793,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                       <div className="flex items-center gap-2 w-full">
                         <Checkbox
                           checked={filterClients.includes(client.name)}
-                          onCheckedChange={() => toggleClient(client.name)}
-                          className="h-4 w-4"
+                          className="h-4 w-4 pointer-events-none"
                         />
                         <span className="text-sm truncate">
                           {client.name}
