@@ -387,16 +387,14 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Load expense line item matches and splits
     useEffect(() => {
       const fetchExpenseMatches = async () => {
-        if (expenses.length === 0) return;
+        const expenseIds = expenses.map((e) => e.id).filter(Boolean);
+        if (expenseIds.length === 0) return;
 
         try {
           const { data, error } = await supabase
             .from("expense_line_item_correlations")
             .select("expense_id, correlation_type, estimate_line_item_id, quote_id, change_order_line_item_id")
-            .in(
-              "expense_id",
-              expenses.map((e) => e.id),
-            );
+            .in("expense_id", expenseIds);
 
           if (error) throw error;
 

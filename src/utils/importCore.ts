@@ -9,6 +9,7 @@
 import { ExpenseCategory, TransactionType } from '@/types/expense';
 import { PayeeType } from '@/types/payee';
 import { jaroWinklerSimilarity } from './fuzzyPayeeMatcher';
+import { resolveQBAccountCategory } from './quickbooksMapping';
 
 // Re-exports from existing utilities
 export { resolveQBAccountCategory, QB_ACCOUNT_MAPPING } from './quickbooksMapping';
@@ -196,7 +197,6 @@ export const categorizeExpense = (
     if (staticMapping !== null) return staticMapping;
     
     // Also check resolveQBAccountCategory from quickbooksMapping
-    const { resolveQBAccountCategory } = require('./quickbooksMapping');
     const qbMapping = resolveQBAccountCategory(accountPath);
     if (qbMapping !== ExpenseCategory.OTHER) return qbMapping;
   }

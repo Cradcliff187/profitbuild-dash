@@ -1345,6 +1345,9 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Import Transactions from CSV</DialogTitle>
+          <DialogDescription className="sr-only">
+            Upload and review a QuickBooks CSV file to import transactions
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto px-6 py-4">
