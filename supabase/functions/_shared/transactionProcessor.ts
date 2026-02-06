@@ -1,6 +1,10 @@
 /**
  * Shared transaction processing logic for QuickBooks imports
  * This module is used by both frontend CSV import and backend API sync
+ *
+ * IMPORTANT: Logic in this file must stay aligned with src/utils/importCore.ts
+ * When updating matching/mapping/dedup logic, update BOTH files.
+ * Last synced: 2026-02-06
  */
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
@@ -44,6 +48,12 @@ export interface PayeeMatchInfo {
   matchType: 'exact' | 'fuzzy' | 'auto';
 }
 
+export interface PendingPayeeReview {
+  qbName: string;
+  suggestedPayeeType: string;
+  accountFullName: string;
+}
+
 export interface TransactionImportResult {
   expenses: ExpenseImportData[];
   revenues: RevenueImportData[];
@@ -56,12 +66,15 @@ export interface TransactionImportResult {
   revenueDatabaseDuplicatesSkipped: number;
   revenueInFileDuplicatesSkipped: number;
   fuzzyMatches: PayeeMatchInfo[];
+  /** @deprecated Use pendingPayeeReviews instead. Always empty. */
   autoCreatedPayees: Array<{
     qbName: string;
     payeeId: string;
     payeeType: string;
   }>;
+  /** @deprecated Always 0. Payees are no longer auto-created. */
   autoCreatedCount: number;
+  pendingPayeeReviews: PendingPayeeReview[];
   mappingStats: {
     databaseMapped: number;
     staticMapped: number;
@@ -126,11 +139,7 @@ export async function processTransactionImport(
   const errors: string[] = [];
   const categoryMappingsUsed: Record<string, string> = {};
   const fuzzyMatches: PayeeMatchInfo[] = [];
-  const autoCreatedPayees: Array<{
-    qbName: string;
-    payeeId: string;
-    payeeType: string;
-  }> = [];
+  const pendingPayeeReviews: PendingPayeeReview[] = [];
   const unmappedAccounts: string[] = [];
 
   let mappingStats = {
@@ -186,17 +195,29 @@ export async function processTransactionImport(
   }
 
   // Load reference data
-  const [clientsResponse, payeesResponse, projectsResponse, mappingsResponse] = await Promise.all([
+  const [clientsResponse, payeesResponse, projectsResponse, mappingsResponse, aliasesResponse] = await Promise.all([
     supabase.from('clients').select('*'),
     supabase.from('payees').select('*'),
     supabase.from('projects').select('*'),
-    supabase.from('quickbooks_account_mappings').select('*').eq('is_active', true)
+    supabase.from('quickbooks_account_mappings').select('*').eq('is_active', true),
+    supabase.from('project_aliases').select('*').eq('is_active', true)
   ]);
 
   const clients = clientsResponse.data || [];
   const payees = payeesResponse.data || [];
   const projects = projectsResponse.data || [];
   const dbMappings = mappingsResponse.data || [];
+  const projectAliases: ProjectAliasEdge[] = (aliasesResponse.data || []).map((a: any) => ({
+    project_id: a.project_id,
+    alias: a.alias,
+    match_type: a.match_type,
+    is_active: a.is_active
+  }));
+  const partialProjects: PartialProjectEdge[] = projects.map((p: any) => ({
+    id: p.id,
+    project_number: p.project_number,
+    project_name: p.project_name || ''
+  }));
 
   // Create lookup maps
   const clientMap = new Map<string, string>();
@@ -241,58 +262,25 @@ export async function processTransactionImport(
       const accountName = row['Account name']?.trim() || '';
       const qbTransactionId = row['QB_Transaction_Id'] || '';
 
-      // Find project
+      // Find project using fuzzy matching with aliases
       let project_id = UNASSIGNED_PROJECT_ID;
       let isUnassigned = true;
 
       if (projectWO) {
-        let mappedProjectWO = projectWO;
-        const normalizedProjectWO = normalizeString(projectWO);
-
-        if (normalizedProjectWO.startsWith('fuel')) {
-          mappedProjectWO = '001-GAS';
-        } else if (normalizedProjectWO === 'ga') {
-          mappedProjectWO = '002-GA';
-        }
-
-        const foundProjectId = projectMap.get(normalizeString(mappedProjectWO));
-        if (foundProjectId) {
-          project_id = foundProjectId;
+        const projectMatch = fuzzyMatchProjectEdge(projectWO, partialProjects, projectAliases);
+        if (projectMatch) {
+          project_id = projectMatch.project_id;
           isUnassigned = false;
         }
       }
 
-      // Find or create payee
+      // Find payee or add to pending review queue (no auto-creation)
       let payee_id: string | undefined;
       if (name) {
         const normalizedName = normalizeString(name);
         payee_id = payeeMap.get(normalizedName);
 
-        if (!payee_id) {
-          const createdPayeeId = await createPayeeFromTransaction(
-            supabase,
-            name,
-            accountFullName
-          );
-          if (createdPayeeId) {
-            payee_id = createdPayeeId;
-            payeeMap.set(normalizedName, createdPayeeId);
-            const payeeType = detectPayeeTypeFromAccount(accountFullName);
-            autoCreatedPayees.push({
-              qbName: name,
-              payeeId: createdPayeeId,
-              payeeType
-            });
-
-            fuzzyMatches.push({
-              qbName: name,
-              matchedPayeeId: createdPayeeId,
-              matchedPayeeName: name,
-              confidence: 100,
-              matchType: 'auto'
-            });
-          }
-        } else {
+        if (payee_id) {
           fuzzyMatches.push({
             qbName: name,
             matchedPayeeId: payee_id,
@@ -300,6 +288,15 @@ export async function processTransactionImport(
             confidence: 100,
             matchType: 'exact'
           });
+        } else {
+          // Add to pending review queue instead of auto-creating
+          if (!pendingPayeeReviews.some(p => p.qbName === name)) {
+            pendingPayeeReviews.push({
+              qbName: name,
+              suggestedPayeeType: detectPayeeTypeFromAccount(accountFullName),
+              accountFullName
+            });
+          }
         }
       }
 
@@ -340,8 +337,17 @@ export async function processTransactionImport(
       }
 
       // Priority 2: Check by composite key (fallback for CSV imports or transactions without QB ID)
-      const primaryKey = createExpenseKey(date, amount, name);
-      const existingExpense = existingExpenses.get(primaryKey);
+      // Strategy 2a: 4-part key (new — includes account_full_name)
+      let existingExpense: { id: string; description: string } | undefined;
+      if (accountFullName) {
+        const fourPartKey = createExpenseKey(date, amount, name, accountFullName);
+        existingExpense = existingExpenses.get(fourPartKey);
+      }
+      // Strategy 2b: 3-part key fallback (backward compat with old records)
+      if (!existingExpense) {
+        const threePartKey = createExpenseKey(date, amount, name);
+        existingExpense = existingExpenses.get(threePartKey);
+      }
 
       if (existingExpense) {
         databaseDuplicatesSkipped++;
@@ -386,23 +392,14 @@ export async function processTransactionImport(
       const invoiceNumber = row['Invoice #']?.trim() || '';
       const qbTransactionId = row['QB_Transaction_Id'] || '';
 
-      // Find project
+      // Find project using fuzzy matching with aliases
       let project_id = UNASSIGNED_PROJECT_ID;
       let isUnassigned = true;
 
       if (projectWO) {
-        let mappedProjectWO = projectWO;
-        const normalizedProjectWO = normalizeString(projectWO);
-
-        if (normalizedProjectWO.startsWith('fuel')) {
-          mappedProjectWO = '001-GAS';
-        } else if (normalizedProjectWO === 'ga') {
-          mappedProjectWO = '002-GA';
-        }
-
-        const foundProjectId = projectMap.get(normalizeString(mappedProjectWO));
-        if (foundProjectId) {
-          project_id = foundProjectId;
+        const projectMatch = fuzzyMatchProjectEdge(projectWO, partialProjects, projectAliases);
+        if (projectMatch) {
+          project_id = projectMatch.project_id;
           isUnassigned = false;
         }
       }
@@ -465,8 +462,9 @@ export async function processTransactionImport(
     revenueDatabaseDuplicatesSkipped,
     revenueInFileDuplicatesSkipped: revenueInFileDuplicates.length,
     fuzzyMatches,
-    autoCreatedPayees,
-    autoCreatedCount: autoCreatedPayees.length,
+    autoCreatedPayees: [],
+    autoCreatedCount: 0,
+    pendingPayeeReviews,
     mappingStats,
     unmappedAccounts
   };
@@ -476,6 +474,134 @@ export async function processTransactionImport(
 
 function normalizeString(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+interface PartialProjectEdge {
+  id: string;
+  project_number: string;
+  project_name: string;
+}
+
+interface ProjectAliasEdge {
+  project_id: string;
+  alias: string;
+  match_type: 'exact' | 'starts_with' | 'contains';
+  is_active: boolean;
+}
+
+/**
+ * Jaro-Winkler similarity for project/entity matching (inline for Deno edge fn)
+ * Aligned with src/utils/fuzzyPayeeMatcher.ts
+ */
+function jaroWinklerSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1.0;
+  if (!str1.length || !str2.length) return 0.0;
+
+  const maxDist = Math.floor(Math.max(str1.length, str2.length) / 2) - 1;
+  if (maxDist < 0) return 0.0;
+
+  const s1Matches = new Array(str1.length).fill(false);
+  const s2Matches = new Array(str2.length).fill(false);
+
+  let matches = 0;
+  let transpositions = 0;
+
+  for (let i = 0; i < str1.length; i++) {
+    const start = Math.max(0, i - maxDist);
+    const end = Math.min(i + maxDist + 1, str2.length);
+
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j] || str1[i] !== str2[j]) continue;
+      s1Matches[i] = true;
+      s2Matches[j] = true;
+      matches++;
+      break;
+    }
+  }
+
+  if (matches === 0) return 0.0;
+
+  let k = 0;
+  for (let i = 0; i < str1.length; i++) {
+    if (!s1Matches[i]) continue;
+    while (!s2Matches[k]) k++;
+    if (str1[i] !== str2[k]) transpositions++;
+    k++;
+  }
+
+  const jaro = (matches / str1.length + matches / str2.length + (matches - transpositions / 2) / matches) / 3;
+
+  let prefix = 0;
+  for (let i = 0; i < Math.min(str1.length, str2.length, 4); i++) {
+    if (str1[i] === str2[i]) prefix++;
+    else break;
+  }
+
+  return jaro + prefix * 0.1 * (1 - jaro);
+}
+
+/**
+ * Fuzzy match a QB Project/WO# field against known projects and aliases.
+ * Aligned with src/utils/importCore.ts fuzzyMatchProject()
+ */
+function fuzzyMatchProjectEdge(
+  qbProjectWO: string,
+  projects: PartialProjectEdge[],
+  aliases: ProjectAliasEdge[]
+): { project_id: string; confidence: number; matchType: string } | null {
+  if (!qbProjectWO || !qbProjectWO.trim()) return null;
+  const normalized = qbProjectWO.trim().toLowerCase();
+
+  // Priority 1: Exact project_number
+  for (const p of projects) {
+    if (p.project_number.toLowerCase().trim() === normalized) {
+      return { project_id: p.id, confidence: 100, matchType: 'exact_number' };
+    }
+  }
+  // Priority 2: Exact project_name
+  for (const p of projects) {
+    if (p.project_name.toLowerCase().trim() === normalized) {
+      return { project_id: p.id, confidence: 100, matchType: 'exact_name' };
+    }
+  }
+  // Priority 3: Aliases
+  const active = aliases.filter(a => a.is_active);
+  for (const alias of active) {
+    if (alias.match_type === 'exact' && normalized === alias.alias.toLowerCase().trim()) {
+      return { project_id: alias.project_id, confidence: 95, matchType: 'alias_exact' };
+    }
+  }
+  const normalizedAlphaNum = normalized.replace(/[^a-z0-9]/g, '');
+  for (const alias of active) {
+    if (alias.match_type === 'starts_with' && normalizedAlphaNum.startsWith(alias.alias.toLowerCase().trim())) {
+      return { project_id: alias.project_id, confidence: 90, matchType: 'alias_starts_with' };
+    }
+  }
+  for (const alias of active) {
+    if (alias.match_type === 'contains' && normalizedAlphaNum.includes(alias.alias.toLowerCase().trim())) {
+      return { project_id: alias.project_id, confidence: 85, matchType: 'alias_contains' };
+    }
+  }
+  // Priority 4: Fuzzy on project_number
+  let bestFuzzy: { project_id: string; confidence: number } | null = null;
+  for (const p of projects) {
+    const sim = jaroWinklerSimilarity(normalized, p.project_number.toLowerCase().trim()) * 100;
+    if (sim >= 85 && (!bestFuzzy || sim > bestFuzzy.confidence)) {
+      bestFuzzy = { project_id: p.id, confidence: Math.round(sim) };
+    }
+  }
+  if (bestFuzzy) return { ...bestFuzzy, matchType: 'fuzzy' };
+  // Priority 5: Regex extraction
+  const m = qbProjectWO.match(/^(\d{2,4}[-]\d{2,4})/);
+  if (m) {
+    const ext = m[1].toLowerCase();
+    for (const p of projects) {
+      if (p.project_number.toLowerCase().trim() === ext) {
+        return { project_id: p.id, confidence: 80, matchType: 'regex' };
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -661,6 +787,10 @@ function detectPayeeTypeFromAccount(accountPath?: string): string {
   return 'other';
 }
 
+/**
+ * @deprecated No longer called during import. Payees are now added to pendingPayeeReviews
+ * for manual resolution. Kept for potential post-resolution use.
+ */
 async function createPayeeFromTransaction(
   supabase: SupabaseClient,
   qbName: string,
@@ -720,10 +850,10 @@ function categorizeExpense(
   if (desc.includes('contractor') || desc.includes('subcontractor')) {
     return 'subcontractors';
   }
-  if (desc.includes('material') || desc.includes('supply') || desc.includes('lumber')) {
+  if (desc.includes('material') || desc.includes('supply') || desc.includes('lumber') || desc.includes('concrete')) {
     return 'materials';
   }
-  if (desc.includes('equipment') || desc.includes('rental') || desc.includes('tool')) {
+  if (desc.includes('equipment') || desc.includes('rental') || desc.includes('tool') || desc.includes('machinery')) {
     return 'equipment';
   }
   if (desc.includes('permit') || desc.includes('fee') || desc.includes('license')) {
@@ -736,11 +866,21 @@ function categorizeExpense(
   return 'other';
 }
 
-function createExpenseKey(date: string | Date, amount: number, name: string): string {
+function createExpenseKey(
+  date: string | Date,
+  amount: number,
+  name: string,
+  accountFullName?: string
+): string {
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
   const normalizedAmount = Math.abs(amount).toFixed(2);
   const normalizedName = (name || '').toLowerCase().trim();
-  return `${dateStr}|${normalizedAmount}|${normalizedName}`;
+  const base = `${dateStr}|${normalizedAmount}|${normalizedName}`;
+  return accountFullName ? `${base}|${accountFullName.toLowerCase().trim()}` : base;
+}
+
+function normalizeAmount(amount: number): string {
+  return Math.abs(amount).toFixed(2);
 }
 
 function createRevenueKey(
@@ -750,10 +890,10 @@ function createRevenueKey(
   name: string
 ): string {
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-  const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+  const normalizedAmt = normalizeAmount(amount);
   const normalizedName = (name || '').toLowerCase().trim();
   const normalizedInvoice = (invoiceNumber || '').toLowerCase().trim();
-  return `rev|${normalizedAmount}|${dateStr}|${normalizedInvoice}|${normalizedName}`;
+  return `rev|${normalizedAmt}|${dateStr}|${normalizedInvoice}|${normalizedName}`;
 }
 
 /**
@@ -824,7 +964,7 @@ async function fetchExistingExpenses(
   supabase: SupabaseClient,
   startDate: string,
   endDate: string
-): Promise<Map<string, { id: string; description: string }>> {
+): Promise<Map<string, { id: string; description: string; is_split?: boolean }>> {
   const { data: existingExpenses, error } = await supabase
     .from('expenses')
     .select(`
@@ -833,20 +973,21 @@ async function fetchExistingExpenses(
       amount,
       payee_id,
       description,
+      account_full_name,
+      is_split,
       payees!expenses_payee_id_fkey (
         payee_name
       )
     `)
     .gte('expense_date', startDate)
-    .lte('expense_date', endDate)
-    .eq('is_split', false);
+    .lte('expense_date', endDate);
 
   if (error) {
     console.error('Error fetching existing expenses:', error);
     return new Map();
   }
 
-  const existingMap = new Map<string, { id: string; description: string }>();
+  const existingMap = new Map<string, { id: string; description: string; is_split?: boolean }>();
 
   for (const expense of existingExpenses || []) {
     let extractedName = '';
@@ -868,18 +1009,30 @@ async function fetchExistingExpenses(
       new Date(expense.expense_date).toISOString().split('T')[0] : 
       expense.expense_date;
 
-    const primaryKey = createExpenseKey(normalizedDate, expense.amount, extractedName);
-    existingMap.set(primaryKey, {
+    const mapEntry = {
       id: expense.id,
-      description: expense.description || ''
-    });
+      description: expense.description || '',
+      is_split: (expense as any).is_split === true ? true : undefined
+    };
+
+    // 3-part key (backward compat)
+    const primaryKey = createExpenseKey(normalizedDate, expense.amount, extractedName);
+    existingMap.set(primaryKey, mapEntry);
+
+    // 4-part key if account_full_name is available
+    if ((expense as any).account_full_name) {
+      const fourPartKey = createExpenseKey(
+        normalizedDate,
+        expense.amount,
+        extractedName,
+        (expense as any).account_full_name
+      );
+      existingMap.set(fourPartKey, mapEntry);
+    }
 
     if (payeeName && payeeName !== extractedName) {
       const payeeKey = createExpenseKey(normalizedDate, expense.amount, payeeName);
-      existingMap.set(payeeKey, {
-        id: expense.id,
-        description: expense.description || ''
-      });
+      existingMap.set(payeeKey, mapEntry);
     }
   }
 

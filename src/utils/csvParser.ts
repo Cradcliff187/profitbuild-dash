@@ -28,7 +28,9 @@ export interface ParseResult {
   headers: string[];
 }
 
+/** @deprecated Use parseTransactionCSV from enhancedTransactionImporter.ts instead */
 export const parseCSVFile = (file: File): Promise<ParseResult> => {
+  console.warn('DEPRECATED: parseCSVFile is deprecated. Use parseTransactionCSV from enhancedTransactionImporter.ts');
   return new Promise((resolve) => {
     Papa.parse(file, {
       header: true,
@@ -52,12 +54,14 @@ export const parseCSVFile = (file: File): Promise<ParseResult> => {
   });
 };
 
+/** @deprecated Use processTransactionImport from enhancedTransactionImporter.ts instead */
 export const mapCSVToExpenses = (
   data: CSVRow[],
   mapping: ColumnMapping,
   projectId: string,
   fileName: string
 ): Expense[] => {
+  console.warn('DEPRECATED: mapCSVToExpenses is deprecated. Use processTransactionImport from enhancedTransactionImporter.ts');
   return data.map((row, index) => {
     const dateStr = mapping.expense_date ? row[mapping.expense_date] : '';
     const amountStr = mapping.amount ? row[mapping.amount] : '0';
@@ -142,7 +146,9 @@ const categorizeExpense = (
   return ExpenseCategory.OTHER;
 };
 
+/** @deprecated Use parseTransactionCSV from enhancedTransactionImporter.ts which handles validation internally */
 export const validateCSVData = (data: CSVRow[], mapping: ColumnMapping): string[] => {
+  console.warn('DEPRECATED: validateCSVData is deprecated. Use parseTransactionCSV from enhancedTransactionImporter.ts');
   const errors: string[] = [];
   
   if (!mapping.amount) {
@@ -170,12 +176,18 @@ export const validateCSVData = (data: CSVRow[], mapping: ColumnMapping): string[
 };
 
 // QuickBooks-specific interfaces
+/**
+ * @deprecated Use parseTransactionCSV from enhancedTransactionImporter.ts instead
+ */
 export interface QBParseResult {
   data: QBTransaction[];
   errors: string[];
   headers: string[];
 }
 
+/**
+ * @deprecated Use TransactionCSVRow from enhancedTransactionImporter.ts instead
+ */
 export interface QBTransaction {
   date: string;
   transaction_type: string;
@@ -186,6 +198,9 @@ export interface QBTransaction {
   [key: string]: string;
 }
 
+/**
+ * @deprecated Use PayeeMatchInfo from enhancedTransactionImporter.ts instead
+ */
 export interface PayeeMatchInfo {
   qbName: string;
   matchedPayee: PartialPayee;
@@ -193,6 +208,9 @@ export interface PayeeMatchInfo {
   matchType: 'exact' | 'fuzzy' | 'auto';
 }
 
+/**
+ * @deprecated Use TransactionImportResult from enhancedTransactionImporter.ts instead
+ */
 export interface QBImportResult {
   total: number;
   successful: number;
@@ -428,8 +446,10 @@ const detectDuplicates = (transactions: QBTransaction[]) => {
  * Parses QuickBooks CSV file, skipping the first 4 header rows
  * @param file - The CSV file to parse
  * @returns Promise resolving to parsed QuickBooks data with errors
+ * @deprecated Use parseTransactionCSV from enhancedTransactionImporter.ts instead
  */
 export const parseQuickBooksCSV = (file: File): Promise<QBParseResult> => {
+  console.warn('parseQuickBooksCSV is deprecated. Use parseTransactionCSV from enhancedTransactionImporter.ts instead.');
   return new Promise((resolve) => {
     Papa.parse(file, {
       skipEmptyLines: true,
@@ -499,11 +519,13 @@ const mapQBTransactionType = (qbType: string): TransactionType => {
  * @param transactions - Array of QuickBooks transactions to process
  * @param fileName - Name of the source file for reference
  * @returns Promise resolving to comprehensive import result with statistics
+ * @deprecated Use processTransactionImport from enhancedTransactionImporter.ts instead
  */
 export const mapQuickBooksToExpenses = async (
   transactions: QBTransaction[],
   fileName: string
 ): Promise<QBImportResult> => {
+  console.warn('mapQuickBooksToExpenses is deprecated. Use processTransactionImport from enhancedTransactionImporter.ts instead.');
   // Detect and filter duplicates
   const duplicates: Array<{ transaction: QBTransaction; reason: string }> = [];
   const uniqueTransactions = detectDuplicates(transactions);

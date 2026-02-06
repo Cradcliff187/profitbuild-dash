@@ -49,7 +49,7 @@ const levenshteinDistance = (str1: string, str2: string): number => {
 };
 
 // Calculate Jaro-Winkler similarity
-const jaroWinklerSimilarity = (str1: string, str2: string): number => {
+export const jaroWinklerSimilarity = (str1: string, str2: string): number => {
   if (str1 === str2) return 1.0;
   
   const len1 = str1.length;
@@ -104,7 +104,7 @@ const jaroWinklerSimilarity = (str1: string, str2: string): number => {
 };
 
 // Normalize string for better matching
-const normalizeString = (str: string): string => {
+export const normalizeBusinessName = (str: string): string => {
   return str
     .toLowerCase()
     .replace(/[^\w\s]/g, '') // Remove punctuation
@@ -115,11 +115,11 @@ const normalizeString = (str: string): string => {
 
 // Extract tokens for token-based matching
 const tokenize = (str: string): string[] => {
-  return normalizeString(str).split(/\s+/).filter(token => token.length > 1);
+  return normalizeBusinessName(str).split(/\s+/).filter(token => token.length > 1);
 };
 
 // Calculate token-based similarity
-const tokenSimilarity = (str1: string, str2: string): number => {
+export const tokenSimilarity = (str1: string, str2: string): number => {
   const tokens1 = new Set(tokenize(str1));
   const tokens2 = new Set(tokenize(str2));
   
@@ -139,12 +139,12 @@ const tokenSimilarity = (str1: string, str2: string): number => {
   
   for (const payeeName of payeeNames) {
     // Exact match
-    if (normalizeString(qbName) === normalizeString(payeeName)) {
+    if (normalizeBusinessName(qbName) === normalizeBusinessName(payeeName)) {
       return 100;
     }
     
     // Calculate different similarity metrics
-    const jaroWinkler = jaroWinklerSimilarity(normalizeString(qbName), normalizeString(payeeName)) * 100;
+    const jaroWinkler = jaroWinklerSimilarity(normalizeBusinessName(qbName), normalizeBusinessName(payeeName)) * 100;
     
     const maxLen = Math.max(qbName.length, payeeName.length);
     const levenshtein = ((maxLen - levenshteinDistance(qbName, payeeName)) / maxLen) * 100;

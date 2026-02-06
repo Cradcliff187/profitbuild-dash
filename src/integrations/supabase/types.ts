@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -1195,6 +1195,7 @@ export type Database = {
           expense_date: string | null
           gross_hours: number | null
           id: string
+          import_batch_id: string | null
           invoice_number: string | null
           is_locked: boolean | null
           is_planned: boolean | null
@@ -1231,6 +1232,7 @@ export type Database = {
           expense_date?: string | null
           gross_hours?: number | null
           id?: string
+          import_batch_id?: string | null
           invoice_number?: string | null
           is_locked?: boolean | null
           is_planned?: boolean | null
@@ -1267,6 +1269,7 @@ export type Database = {
           expense_date?: string | null
           gross_hours?: number | null
           id?: string
+          import_batch_id?: string | null
           invoice_number?: string | null
           is_locked?: boolean | null
           is_planned?: boolean | null
@@ -1293,6 +1296,13 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
             referencedColumns: ["id"]
           },
           {
@@ -1365,6 +1375,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      import_batches: {
+        Row: {
+          duplicates_skipped: number | null
+          errors: number | null
+          expenses_imported: number | null
+          file_name: string
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          match_log: Json | null
+          revenues_imported: number | null
+          status: string | null
+          total_rows: number | null
+        }
+        Insert: {
+          duplicates_skipped?: number | null
+          errors?: number | null
+          expenses_imported?: number | null
+          file_name: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          match_log?: Json | null
+          revenues_imported?: number | null
+          status?: string | null
+          total_rows?: number | null
+        }
+        Update: {
+          duplicates_skipped?: number | null
+          errors?: number | null
+          expenses_imported?: number | null
+          file_name?: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          match_log?: Json | null
+          revenues_imported?: number | null
+          status?: string | null
+          total_rows?: number | null
+        }
+        Relationships: []
       }
       media_comments: {
         Row: {
@@ -1516,6 +1568,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_payee_reviews: {
+        Row: {
+          account_full_name: string | null
+          created_at: string | null
+          id: string
+          import_batch_id: string
+          matched_payee_id: string | null
+          qb_name: string
+          resolution: string | null
+          resolved_at: string | null
+          suggested_payee_type: string | null
+        }
+        Insert: {
+          account_full_name?: string | null
+          created_at?: string | null
+          id?: string
+          import_batch_id: string
+          matched_payee_id?: string | null
+          qb_name: string
+          resolution?: string | null
+          resolved_at?: string | null
+          suggested_payee_type?: string | null
+        }
+        Update: {
+          account_full_name?: string | null
+          created_at?: string | null
+          id?: string
+          import_batch_id?: string
+          matched_payee_id?: string | null
+          qb_name?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          suggested_payee_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_payee_reviews_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_payee_reviews_matched_payee_id_fkey"
+            columns: ["matched_payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1565,6 +1668,41 @@ export type Database = {
             columns: ["deactivated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_aliases: {
+        Row: {
+          alias: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          match_type: string | null
+          project_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          match_type?: string | null
+          project_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          match_type?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_aliases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1807,6 +1945,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          import_batch_id: string | null
           invoice_date: string
           invoice_number: string | null
           is_split: boolean | null
@@ -1822,6 +1961,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          import_batch_id?: string | null
           invoice_date?: string
           invoice_number?: string | null
           is_split?: boolean | null
@@ -1837,6 +1977,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          import_batch_id?: string | null
           invoice_date?: string
           invoice_number?: string | null
           is_split?: boolean | null
@@ -1853,6 +1994,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_revenues_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_revenues_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1863,6 +2011,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          actual_hours: number | null
           actual_margin: number | null
           address: string | null
           adjusted_est_costs: number | null
@@ -1870,6 +2019,7 @@ export type Database = {
           category: Database["public"]["Enums"]["project_category"]
           client_id: string | null
           client_name: string
+          contingency_amount: number | null
           contingency_remaining: number | null
           contracted_amount: number | null
           created_at: string | null
@@ -1877,6 +2027,7 @@ export type Database = {
           customer_po_number: string | null
           do_not_exceed: number | null
           end_date: string | null
+          estimated_hours: number | null
           id: string
           job_type: string | null
           last_synced_at: string | null
@@ -1902,6 +2053,7 @@ export type Database = {
           work_order_counter: number | null
         }
         Insert: {
+          actual_hours?: number | null
           actual_margin?: number | null
           address?: string | null
           adjusted_est_costs?: number | null
@@ -1909,6 +2061,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["project_category"]
           client_id?: string | null
           client_name: string
+          contingency_amount?: number | null
           contingency_remaining?: number | null
           contracted_amount?: number | null
           created_at?: string | null
@@ -1916,6 +2069,7 @@ export type Database = {
           customer_po_number?: string | null
           do_not_exceed?: number | null
           end_date?: string | null
+          estimated_hours?: number | null
           id?: string
           job_type?: string | null
           last_synced_at?: string | null
@@ -1941,6 +2095,7 @@ export type Database = {
           work_order_counter?: number | null
         }
         Update: {
+          actual_hours?: number | null
           actual_margin?: number | null
           address?: string | null
           adjusted_est_costs?: number | null
@@ -1948,6 +2103,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["project_category"]
           client_id?: string | null
           client_name?: string
+          contingency_amount?: number | null
           contingency_remaining?: number | null
           contracted_amount?: number | null
           created_at?: string | null
@@ -1955,6 +2111,7 @@ export type Database = {
           customer_po_number?: string | null
           do_not_exceed?: number | null
           end_date?: string | null
+          estimated_hours?: number | null
           id?: string
           job_type?: string | null
           last_synced_at?: string | null
@@ -3598,4 +3755,3 @@ export const Constants = {
     },
   },
 } as const
-

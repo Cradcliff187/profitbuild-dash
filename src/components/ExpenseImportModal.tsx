@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,27 +13,38 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   parseTransactionCSV, 
   processTransactionImport,
+  createPayeeFromTransaction,
   TransactionCSVRow, 
   TransactionImportResult,
   ExpenseImportData,
-  RevenueImportData
+  RevenueImportData,
+  PendingPayeeReview,
+  PendingClientReview,
 } from '@/utils/enhancedTransactionImporter';
+import { createExpenseKey, createRevenueKey, fuzzyMatchProject, suggestCategoryFromAccountName, PartialProject, ProjectAlias } from '@/utils/importCore';
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { formatCurrency, cn } from '@/lib/utils';
+import { TransactionSelectionControls } from '@/components/import/TransactionSelectionControls';
+import { TransactionSelectionTable, type CategorizedTransaction, type TransactionStatus } from '@/components/import/TransactionSelectionTable';
+
+const AccountMappingsManagerLazy = lazy(() =>
+  import('@/components/AccountMappingsManager').then(mod => ({ default: mod.AccountMappingsManager }))
+);
 
 interface StepperProps {
-  currentStep: 'upload' | 'preview' | 'complete';
+  currentStep: 'upload' | 'preview' | 'resolve_payees' | 'complete';
 }
 
 const ImportStepper: React.FC<StepperProps> = ({ currentStep }) => {
   const steps = [
     { id: 'upload', label: 'Upload', number: 1 },
     { id: 'preview', label: 'Review', number: 2 },
-    { id: 'complete', label: 'Complete', number: 3 },
+    { id: 'resolve_payees', label: 'Resolve Entities', number: 3 },
+    { id: 'complete', label: 'Complete', number: 4 },
   ];
 
   const getStepStatus = (stepId: string) => {
-    const stepOrder = ['upload', 'preview', 'complete'];
+    const stepOrder = ['upload', 'preview', 'resolve_payees', 'complete'];
     const currentIndex = stepOrder.indexOf(currentStep);
     const stepIndex = stepOrder.indexOf(stepId);
     
@@ -160,7 +172,24 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [step, setStep] = useState<'upload' | 'preview' | 'complete'>('upload');
+  const [step, setStep] = useState<'upload' | 'preview' | 'resolve_payees' | 'complete'>('upload');
+  const [pendingPayees, setPendingPayees] = useState<PendingPayeeReview[]>([]);
+  const [payeeResolutions, setPayeeResolutions] = useState<Map<string, {
+    action: 'create_new' | 'match_existing' | 'skip';
+    matchedPayeeId?: string;
+  }>>(new Map());
+  const [pendingClients, setPendingClients] = useState<PendingClientReview[]>([]);
+  const [clientResolutions, setClientResolutions] = useState<Map<string, {
+    action: 'create_new' | 'match_existing' | 'skip';
+    matchedClientId?: string;
+  }>>(new Map());
+  const [accountCategoryMappings, setAccountCategoryMappings] = useState<Map<string, ExpenseCategory>>(new Map());
+  const [showMappingsManager, setShowMappingsManager] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [txStatusFilter, setTxStatusFilter] = useState<'all' | 'new' | 'duplicate' | 'unassigned'>('all');
+  const [txSearchQuery, setTxSearchQuery] = useState('');
+  const [processResult, setProcessResult] = useState<TransactionImportResult | null>(null);
+  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
   const [importResults, setImportResults] = useState<{
     expenses: ExpenseImportData[];
     revenues: RevenueImportData[];
@@ -191,7 +220,12 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       descriptionMapped: number;
       unmapped: number;
     };
-    unmappedAccounts?: string[];
+    unmappedAccounts?: Array<{
+      accountFullName: string;
+      transactionCount: number;
+      totalAmount: number;
+      suggestedCategory?: ExpenseCategory;
+    }>;
     revenueReconciliation?: {
       totalExistingRevenues: number;
       totalDuplicateAmount: number;
@@ -199,6 +233,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       isAligned: boolean;
       threshold: number;
     };
+    reimportedDuplicateCount?: number;
+    skippedNotSelectedCount?: number;
   } | null>(null);
   const [validationResults, setValidationResults] = useState<{
     matchedProjects: number;
@@ -246,89 +282,100 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   } | null>(null);
   const { toast } = useToast();
 
-  // Separate transactions into new vs already-imported
-  const categorizeTransactions = useMemo(() => {
-    if (!validationResults || !csvData.length) {
-      return {
-        newRecords: csvData,
-        alreadyImported: [],
-        newExpenses: [],
-        newRevenues: [],
-        existingExpenses: [],
-        existingRevenues: [],
-      };
+  // Build enriched CategorizedTransaction[] with status, matchKey, matchInfo for every row
+  const allCategorized = useMemo((): CategorizedTransaction[] => {
+    if (!csvData.length) return [];
+
+    // Build duplicate index → matchKey map
+    const duplicateIndexMap = new Map<number, { matchKey?: string; matchInfo?: string }>();
+
+    if (validationResults) {
+      // In-file duplicates (expenses)
+      validationResults.inFileDuplicates?.forEach((d: any) => {
+        const idx = csvData.findIndex(row =>
+          row.Date === d.transaction.Date &&
+          row.Amount === d.transaction.Amount &&
+          row.Name === d.transaction.Name
+        );
+        if (idx >= 0) duplicateIndexMap.set(idx, { matchInfo: d.reason });
+      });
+
+      // Database duplicates (expenses)
+      validationResults.databaseDuplicates?.forEach((d: any) => {
+        const idx = csvData.findIndex(row =>
+          row.Date === d.transaction.Date &&
+          row.Amount === d.transaction.Amount &&
+          row.Name === d.transaction.Name
+        );
+        if (idx >= 0) duplicateIndexMap.set(idx, { matchKey: d.matchKey, matchInfo: `Matches expense ${d.existingExpenseId?.slice(0, 8)}` });
+      });
+
+      // Database duplicates (revenues)
+      validationResults.revenueDatabaseDuplicates?.forEach((d: any) => {
+        const idx = csvData.findIndex(row =>
+          row.Date === d.transaction.Date &&
+          row.Amount === d.transaction.Amount &&
+          row.Name === d.transaction.Name
+        );
+        if (idx >= 0) duplicateIndexMap.set(idx, { matchKey: d.matchKey, matchInfo: `Matches revenue ${d.existingRevenueId?.slice(0, 8)}` });
+      });
+
+      // Revenue in-file duplicates
+      validationResults.revenueInFileDuplicates?.forEach((d: any) => {
+        const idx = csvData.findIndex(row =>
+          row.Date === d.transaction.Date &&
+          row.Amount === d.transaction.Amount &&
+          row.Name === d.transaction.Name
+        );
+        if (idx >= 0) duplicateIndexMap.set(idx, { matchInfo: d.reason });
+      });
     }
 
-    // Get all duplicate indices
-    const duplicateIndices = new Set<number>();
-    
-    // In-file duplicates
-    validationResults.inFileDuplicates?.forEach((d: any) => {
-      const idx = csvData.findIndex(row => 
-        row.Date === d.transaction.Date && 
-        row.Amount === d.transaction.Amount && 
-        row.Name === d.transaction.Name
-      );
-      if (idx >= 0) duplicateIndices.add(idx);
-    });
+    // Unassigned project set (from validation)
+    const unmatchedProjectSet = new Set(
+      (validationResults?.unmatchedProjectNumbers || []).map((n: string) => n.toLowerCase().trim())
+    );
 
-    // Database duplicates (expenses)
-    validationResults.databaseDuplicates?.forEach((d: any) => {
-      const idx = csvData.findIndex(row => 
-        row.Date === d.transaction.Date && 
-        row.Amount === d.transaction.Amount && 
-        row.Name === d.transaction.Name
-      );
-      if (idx >= 0) duplicateIndices.add(idx);
-    });
+    return csvData.map((row, index): CategorizedTransaction => {
+      const isDuplicate = duplicateIndexMap.has(index);
+      const dupInfo = duplicateIndexMap.get(index);
+      const amount = parseFloat(row['Amount']?.replace(/[,$()]/g, '') || '0');
+      const date = row['Date'] || '';
+      const projectWO = row['Project/WO #']?.trim() || '';
+      const hasValidDate = date && !isNaN(new Date(date).getTime());
+      const hasValidAmount = !isNaN(amount) && amount !== 0;
 
-    // Database duplicates (revenues)
-    validationResults.revenueDatabaseDuplicates?.forEach((d: any) => {
-      const idx = csvData.findIndex(row => 
-        row.Date === d.transaction.Date && 
-        row.Amount === d.transaction.Amount && 
-        row.Name === d.transaction.Name
-      );
-      if (idx >= 0) duplicateIndices.add(idx);
-    });
-
-    // Revenue in-file duplicates
-    validationResults.revenueInFileDuplicates?.forEach((d: any) => {
-      const idx = csvData.findIndex(row => 
-        row.Date === d.transaction.Date && 
-        row.Amount === d.transaction.Amount && 
-        row.Name === d.transaction.Name
-      );
-      if (idx >= 0) duplicateIndices.add(idx);
-    });
-
-    // Separate new from existing
-    const newRecords: TransactionCSVRow[] = [];
-    const alreadyImported: TransactionCSVRow[] = [];
-
-    csvData.forEach((row, index) => {
-      if (duplicateIndices.has(index)) {
-        alreadyImported.push(row);
-      } else {
-        newRecords.push(row);
+      // Determine status
+      let status: TransactionStatus = 'new';
+      if (!hasValidDate || !hasValidAmount) {
+        status = 'error';
+      } else if (isDuplicate) {
+        status = 'duplicate';
+      } else if (!projectWO || unmatchedProjectSet.has(projectWO.toLowerCase().trim())) {
+        status = 'unassigned';
       }
-    });
 
-    // Further categorize new records
+      return {
+        row,
+        originalIndex: index,
+        status,
+        matchKey: dupInfo?.matchKey,
+        matchInfo: dupInfo?.matchInfo,
+      };
+    });
+  }, [csvData, validationResults]);
+
+  // Derived convenience arrays for backward compat with the rest of the component
+  const categorizeTransactions = useMemo(() => {
+    const newRecords = allCategorized.filter(tx => tx.status === 'new' || tx.status === 'unassigned').map(tx => tx.row);
+    const alreadyImported = allCategorized.filter(tx => tx.status === 'duplicate').map(tx => tx.row);
     const newExpenses = newRecords.filter(r => r['Transaction type'] !== 'Invoice');
     const newRevenues = newRecords.filter(r => r['Transaction type'] === 'Invoice');
     const existingExpenses = alreadyImported.filter(r => r['Transaction type'] !== 'Invoice');
     const existingRevenues = alreadyImported.filter(r => r['Transaction type'] === 'Invoice');
 
-    return {
-      newRecords,
-      alreadyImported,
-      newExpenses,
-      newRevenues,
-      existingExpenses,
-      existingRevenues,
-    };
-  }, [csvData, validationResults]);
+    return { newRecords, alreadyImported, newExpenses, newRevenues, existingExpenses, existingRevenues };
+  }, [allCategorized]);
 
   // Calculate issues ONLY for new records (not duplicates)
   const newRecordIssues = useMemo(() => {
@@ -433,6 +480,59 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     };
   }, [validationResults, categorizeTransactions]);
 
+  // Initialize selection: new/unassigned = checked, duplicate/error = unchecked
+  useEffect(() => {
+    if (allCategorized.length > 0) {
+      const initial = new Set<number>();
+      allCategorized.forEach(tx => {
+        if (tx.status === 'new' || tx.status === 'unassigned') {
+          initial.add(tx.originalIndex);
+        }
+      });
+      setSelectedRows(initial);
+    }
+  }, [allCategorized]);
+
+  // Bulk action handlers
+  const selectAllNew = useCallback(() => {
+    const next = new Set(selectedRows);
+    allCategorized.forEach(tx => {
+      if (tx.status === 'new') next.add(tx.originalIndex);
+    });
+    setSelectedRows(next);
+  }, [selectedRows, allCategorized]);
+
+  const selectAllDuplicates = useCallback(() => {
+    const next = new Set(selectedRows);
+    allCategorized.forEach(tx => {
+      if (tx.status === 'duplicate') next.add(tx.originalIndex);
+    });
+    setSelectedRows(next);
+  }, [selectedRows, allCategorized]);
+
+  const selectAll = useCallback(() => {
+    const next = new Set<number>();
+    allCategorized.forEach(tx => {
+      if (tx.status !== 'error') next.add(tx.originalIndex);
+    });
+    setSelectedRows(next);
+  }, [allCategorized]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedRows(new Set());
+  }, []);
+
+  // Selection counts
+  const selectionCounts = useMemo(() => {
+    const totalNew = allCategorized.filter(tx => tx.status === 'new').length;
+    const totalDuplicates = allCategorized.filter(tx => tx.status === 'duplicate').length;
+    const totalErrors = allCategorized.filter(tx => tx.status === 'error').length;
+    const totalUnassigned = allCategorized.filter(tx => tx.status === 'unassigned').length;
+    const totalSelectable = allCategorized.filter(tx => tx.status !== 'error').length;
+    const selectedDuplicateCount = allCategorized.filter(tx => tx.status === 'duplicate' && selectedRows.has(tx.originalIndex)).length;
+    return { totalNew, totalDuplicates, totalErrors, totalUnassigned, totalSelectable, selectedDuplicateCount };
+  }, [allCategorized, selectedRows]);
+
   const resetState = () => {
     setSelectedFile(null);
     setCsvData([]);
@@ -443,6 +543,16 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     setStep('upload');
     setImportResults(null);
     setValidationResults(null);
+    setPendingPayees([]);
+    setPayeeResolutions(new Map());
+    setPendingClients([]);
+    setClientResolutions(new Map());
+    setAccountCategoryMappings(new Map());
+    setSelectedRows(new Set());
+    setTxStatusFilter('all');
+    setTxSearchQuery('');
+    setProcessResult(null);
+    setCurrentBatchId(null);
   };
 
   const handleClose = () => {
@@ -451,11 +561,37 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   };
 
   const validateMatches = async (data: TransactionCSVRow[]) => {
-    // Fetch all projects and payees for matching
-    const { data: projects } = await supabase.from('projects').select('project_number, project_name, id');
-    const { data: payees } = await supabase.from('payees').select('payee_name, full_name, id');
+    // Safe date parser — returns '' instead of throwing on invalid dates
+    const safeDateISO = (dateStr: string | undefined): string => {
+      if (!dateStr || !dateStr.trim()) return '';
+      try {
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+      } catch {
+        return '';
+      }
+    };
+
+    // Fetch all projects, payees, and aliases for matching
+    const [{ data: projects }, { data: payees }, { data: projectAliasData }] = await Promise.all([
+      supabase.from('projects').select('project_number, project_name, id'),
+      supabase.from('payees').select('payee_name, full_name, id'),
+      supabase.from('project_aliases').select('*').eq('is_active', true)
+    ]);
     
-    const projectNumbers = new Set(projects?.map(p => p.project_number.toLowerCase().trim()) || []);
+    const partialProjects = (projects || []).map(p => ({
+      id: p.id,
+      project_number: p.project_number,
+      project_name: p.project_name || ''
+    }));
+    const projectAliases = (projectAliasData || []).map((a: any) => ({
+      id: a.id,
+      project_id: a.project_id,
+      alias: a.alias,
+      match_type: a.match_type as 'exact' | 'starts_with' | 'contains',
+      is_active: a.is_active
+    }));
+    
     const payeeNames = new Set(payees?.flatMap(p => [
       p.payee_name.toLowerCase().trim(),
       ...(p.full_name ? [p.full_name.toLowerCase().trim()] : [])
@@ -478,13 +614,12 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         return;
       }
       
-      const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
-      const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-      const amountStr = Math.abs(amount).toFixed(2); // Format as string with 2 decimals
-      const name = row['Name']?.trim().toLowerCase() || '';
+      const date = safeDateISO(row['Date']);
+      const amount = parseFloat(row['Amount']?.replace(/[,$()]/g, '') || '0');
+      const name = row['Name']?.trim() || '';
       
-      // Create key: date|amount|name
-      const key = `${date}|${amountStr}|${name}`.toLowerCase();
+      // Use shared key function for consistency
+      const key = createExpenseKey(date, amount, name);
       
       if (seenInFile.has(key)) {
         const firstOccurrence = seenInFile.get(key)!;
@@ -531,13 +666,13 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           amount, 
           payee_id, 
           description,
+          is_split,
           payees!expenses_payee_id_fkey (
             payee_name
           )
         `)
         .gte('expense_date', minDate.toISOString().split('T')[0])
-        .lte('expense_date', maxDate.toISOString().split('T')[0])
-        .eq('is_split', false);
+        .lte('expense_date', maxDate.toISOString().split('T')[0]);
       
       if (!error && existingExpensesData) {
         for (const expense of existingExpensesData) {
@@ -571,11 +706,9 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           
           // Normalize date to ISO format (YYYY-MM-DD) to match CSV date format
           const normalizedDate = expense.expense_date ? new Date(expense.expense_date).toISOString().split('T')[0] : '';
-          // Format amount as string with 2 decimals for consistent key generation
-          const amountStr = Math.abs(expense.amount).toFixed(2);
           
           // Primary key: date|amount|name (using extracted name - matches CSV format)
-          const primaryKey = `${normalizedDate}|${amountStr}|${extractedName.toLowerCase().trim()}`;
+          const primaryKey = createExpenseKey(normalizedDate, expense.amount, extractedName);
           existingExpenses.set(primaryKey, { 
             id: expense.id, 
             description: expense.description || '' 
@@ -584,7 +717,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           // ALWAYS create key with payee name (not just when different)
           // This handles cases where CSV Name is empty but DB has payee_name
           if (payeeName) {
-            const payeeKey = `${normalizedDate}|${amountStr}|${payeeName.toLowerCase().trim()}`;
+            const payeeKey = createExpenseKey(normalizedDate, expense.amount, payeeName);
             // Only set if different from primary key to avoid overwriting
             if (payeeKey !== primaryKey) {
               existingExpenses.set(payeeKey, { 
@@ -595,12 +728,6 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           }
           
           // Create key with empty name for expenses with empty names (regardless of description format)
-          // This handles cases where CSV has empty Name but DB expense has payee_name
-          // We create this key if:
-          // 1. Description is truly empty, OR
-          // 2. Description matches pattern "expense - " (empty name after extraction), OR
-          // 3. Extracted name looks auto-generated (contains "no vendor", "no payee", etc.)
-          // This allows CSV rows with empty names to match DB expenses that have payee_names or auto-generated text
           const looksAutoGenerated = extractedName && /no vendor|no payee|unassigned|unknown/i.test(extractedName);
           const shouldCreateEmptyKey = 
             !expense.description || 
@@ -610,7 +737,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             looksAutoGenerated;
           
           if (shouldCreateEmptyKey) {
-            const emptyKey = `${normalizedDate}|${amountStr}|`;
+            const emptyKey = createExpenseKey(normalizedDate, expense.amount, '');
             // Only set if different from primary key to avoid overwriting
             if (emptyKey !== primaryKey) {
               existingExpenses.set(emptyKey, { 
@@ -627,24 +754,11 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       const projectWO = row['Project/WO #']?.trim() || '';
       const name = row['Name']?.trim().toLowerCase();
       
-      // Check project match
+      // Check project match using fuzzy matching with aliases
       if (projectWO) {
-        // Special project mappings: Fuel/fuel (or variations like "Fuel - Mike") → 001-GAS, GA → 002-GA
-        let mappedProjectWO = projectWO;
-        const normalizedProjectWO = projectWO.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const projectMatch = fuzzyMatchProject(projectWO, partialProjects, projectAliases);
         
-        // Check if normalized starts with "fuel" (handles "Fuel", "fuel", "Fuel - Mike", etc.)
-        if (normalizedProjectWO.startsWith('fuel')) {
-          mappedProjectWO = '001-GAS';
-        } else if (normalizedProjectWO === 'ga') {
-          // Exact match for "GA" (case-insensitive)
-          mappedProjectWO = '002-GA';
-        }
-        
-        // Normalize for lookup (same as how projectNumbers Set is created: lowercase + trim)
-        const lookupKey = mappedProjectWO.toLowerCase().trim();
-        
-        if (projectNumbers.has(lookupKey)) {
+        if (projectMatch) {
           matchedProjects++;
         } else {
           unmatchedProjects++;
@@ -666,9 +780,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       
       // Check for database duplicate (only for expenses, not invoices)
       if (row['Transaction type'] !== 'Invoice') {
-        const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
-        const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-        const amountStr = Math.abs(amount).toFixed(2); // Format as string with 2 decimals
+        const date = safeDateISO(row['Date']);
+        const amount = parseFloat(row['Amount']?.replace(/[,$()]/g, '') || '0');
         const rowName = row['Name']?.trim() || '';
         
         // Try multiple matching strategies to handle empty names and mismatches
@@ -676,15 +789,14 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         let matchKey = '';
         
         // Strategy 1: Primary key with CSV Name (exact match)
-        const primaryKey = `${date}|${amountStr}|${rowName.toLowerCase().trim()}`;
+        const primaryKey = createExpenseKey(date, amount, rowName);
         existingExpense = existingExpenses.get(primaryKey);
         if (existingExpense) {
           matchKey = primaryKey;
         } else {
           // Strategy 2: If CSV Name is empty, try empty name key
-          // This handles cases where both CSV and DB have empty names
           if (!rowName) {
-            const emptyKey = `${date}|${amountStr}|`;
+            const emptyKey = createExpenseKey(date, amount, '');
             existingExpense = existingExpenses.get(emptyKey);
             if (existingExpense) {
               matchKey = emptyKey;
@@ -736,7 +848,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       // Sum amounts from all duplicate transactions (both in-file and database duplicates)
       let totalDuplicateAmount = 0;
       for (const dup of [...databaseDuplicates, ...inFileDuplicates]) {
-        const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0');
+        const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$()]/g, '') || '0');
         totalDuplicateAmount += Math.abs(amount);
       }
       
@@ -763,16 +875,13 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         return;
       }
       
-      const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
-      const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-      const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+      const date = safeDateISO(row['Date']);
+      const amount = parseFloat(row['Amount']?.replace(/[,$()]/g, '') || '0');
       const invoiceNumber = row['Invoice #']?.trim() || '';
       const name = row['Name']?.trim() || '';
       
-      // Create key: rev|amount|date|invoice#|name (matching createRevenueKey format)
-      const normalizedInvoice = invoiceNumber.toLowerCase().trim();
-      const normalizedName = name.toLowerCase().trim();
-      const key = `rev|${normalizedAmount}|${date}|${normalizedInvoice}|${normalizedName}`;
+      // Use shared key function for consistency
+      const key = createRevenueKey(amount, date, invoiceNumber, name);
       
       if (revenueSeenInFile.has(key)) {
         const firstOccurrence = revenueSeenInFile.get(key)!;
@@ -824,12 +933,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           const descMatch = revenue.description?.match(/^Invoice from\s+(.+?)(?:\s*\(|$)/i);
           const extractedName = descMatch ? descMatch[1].trim() : clientName;
           
-          const normalizedAmount = Math.round(Math.abs(revenue.amount) * 100) / 100;
-          const normalizedInvoice = (revenue.invoice_number || '').toLowerCase().trim();
-          const normalizedName = extractedName.toLowerCase().trim();
-          
-          // Key: rev|amount|date|invoice#|name
-          const key = `rev|${normalizedAmount}|${revenue.invoice_date}|${normalizedInvoice}|${normalizedName}`;
+          const key = createRevenueKey(revenue.amount, revenue.invoice_date, revenue.invoice_number || '', extractedName);
           existingRevenues.set(key, { 
             id: revenue.id, 
             description: revenue.description || '' 
@@ -843,28 +947,13 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           return;
         }
         
-        const date = row['Date'] ? new Date(row['Date']).toISOString().split('T')[0] : '';
-        const amount = parseFloat(row['Amount']?.replace(/[,$]/g, '') || '0');
-        const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+        const date = safeDateISO(row['Date']);
+        const amount = parseFloat(row['Amount']?.replace(/[,$()]/g, '') || '0');
         const invoiceNumber = row['Invoice #']?.trim() || '';
         const name = row['Name']?.trim() || '';
-        const projectWO = row['Project/WO #']?.trim() || '';
         
-        // Special project mappings: Fuel/fuel (or variations like "Fuel - Mike") → 001-GAS, GA → 002-GA
-        let mappedProjectWO = projectWO;
-        if (projectWO) {
-          const normalizedProjectWO = projectWO.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (normalizedProjectWO.startsWith('fuel')) {
-            mappedProjectWO = '001-GAS';
-          } else if (normalizedProjectWO === 'ga') {
-            mappedProjectWO = '002-GA';
-          }
-        }
-        
-        // Use name in key to match database format (same as fetchExistingRevenues)
-        const normalizedInvoice = invoiceNumber.toLowerCase().trim();
-        const normalizedName = name.toLowerCase().trim();
-        const key = `rev|${normalizedAmount}|${date}|${normalizedInvoice}|${normalizedName}`;
+        // Use shared key function for consistency
+        const key = createRevenueKey(amount, date, invoiceNumber, name);
         const existingRevenue = existingRevenues.get(key);
         
         if (existingRevenue) {
@@ -907,7 +996,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       
       let totalDuplicateAmount = 0;
       for (const dup of [...revenueDatabaseDuplicates, ...revenueInFileDuplicates]) {
-        const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$]/g, '') || '0');
+        const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$()]/g, '') || '0');
         totalDuplicateAmount += Math.abs(amount);
       }
       
@@ -965,7 +1054,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         setErrors([]);
       }
     } catch (error) {
-      setErrors(['Failed to parse CSV file']);
+      console.error('CSV import error:', error);
+      setErrors([`Failed to parse CSV file: ${error instanceof Error ? error.message : String(error)}`]);
     } finally {
       setIsUploading(false);
     }
@@ -985,20 +1075,144 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     }
   }, []);
 
-  const handleImport = async () => {
-    if (!csvData.length) return;
+  /**
+   * Step 1: Process the CSV and decide whether to show payee resolution or import directly
+   */
+  const handleProcessCSV = async () => {
+    if (!csvData.length || selectedRows.size === 0) return;
 
     setIsImporting(true);
     
     try {
-      const result = await processTransactionImport(csvData);
-      
-      // Import expenses
-      let successCount = 0;
-      const errorMessages: string[] = [...result.errors];
+      // Filter to selected rows only
+      const selectedData = csvData.filter((_, index) => selectedRows.has(index));
 
-      if (result.expenses.length > 0) {
-        for (const expense of result.expenses) {
+      // Build overrideDedup set from selected duplicate rows
+      const overrideKeys = new Set<string>();
+      allCategorized.forEach(tx => {
+        if (tx.status === 'duplicate' && selectedRows.has(tx.originalIndex) && tx.matchKey) {
+          overrideKeys.add(tx.matchKey);
+        }
+      });
+
+      // Create import batch record
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: batch, error: batchError } = await supabase
+        .from('import_batches')
+        .insert([{
+          file_name: selectedFile?.name || 'unknown.csv',
+          imported_by: userData.user?.id,
+          total_rows: selectedData.length,
+          status: 'processing'
+        }])
+        .select('id')
+        .single();
+
+      if (batchError || !batch) {
+        throw new Error(`Failed to create import batch: ${batchError?.message}`);
+      }
+
+      setCurrentBatchId(batch.id);
+      const result = await processTransactionImport(selectedData, batch.id, {
+        overrideDedup: overrideKeys.size > 0 ? overrideKeys : undefined
+      });
+
+      // Check if there are unmatched payees or clients that need user review
+      const hasUnmatchedPayees = result.pendingPayeeReviews.length > 0;
+      const hasUnmatchedClients = result.pendingClientReviews.length > 0;
+      
+      if (hasUnmatchedPayees || hasUnmatchedClients) {
+        setProcessResult(result);
+        
+        if (hasUnmatchedPayees) {
+          setPendingPayees(result.pendingPayeeReviews);
+          const initialResolutions = new Map<string, { action: 'create_new' | 'match_existing' | 'skip'; matchedPayeeId?: string }>();
+          result.pendingPayeeReviews.forEach(review => {
+            initialResolutions.set(review.qbName, { action: 'create_new' });
+          });
+          setPayeeResolutions(initialResolutions);
+        }
+        
+        if (hasUnmatchedClients) {
+          setPendingClients(result.pendingClientReviews);
+          const initialClientResolutions = new Map<string, { action: 'create_new' | 'match_existing' | 'skip'; matchedClientId?: string }>();
+          result.pendingClientReviews.forEach(review => {
+            initialClientResolutions.set(review.qbName, { action: 'skip' });
+          });
+          setClientResolutions(initialClientResolutions);
+        }
+        
+        setStep('resolve_payees');
+      } else {
+        // No pending payees or clients — proceed directly to final import
+        await handleFinalImport(result, batch.id);
+      }
+    } catch (error) {
+      console.error('Import processing failed:', error);
+      toast({
+        title: "Import failed",
+        description: "Failed to process transactions. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  /**
+   * Step 2: Apply payee resolutions, insert expenses/revenues, finalize batch
+   */
+  const handleFinalImport = async (result?: TransactionImportResult, batchId?: string) => {
+    const theResult = result || processResult;
+    const theBatchId = batchId || currentBatchId;
+    
+    if (!theResult) return;
+
+    setIsImporting(true);
+
+    try {
+      // Build a map of qbName -> payee_id from resolutions
+      const resolvedPayeeMap = new Map<string, string>();
+      const createdPayees: Array<{ qbName: string; payeeId: string; payeeType: string }> = [];
+
+      for (const [qbName, resolution] of payeeResolutions.entries()) {
+        if (resolution.action === 'create_new') {
+          const review = pendingPayees.find(p => p.qbName === qbName);
+          const createdId = await createPayeeFromTransaction(qbName, review?.accountFullName);
+          if (createdId) {
+            resolvedPayeeMap.set(qbName, createdId);
+            createdPayees.push({
+              qbName,
+              payeeId: createdId,
+              payeeType: review?.suggestedPayeeType || 'other',
+            });
+          }
+        } else if (resolution.action === 'match_existing' && resolution.matchedPayeeId) {
+          resolvedPayeeMap.set(qbName, resolution.matchedPayeeId);
+        }
+        // 'skip' — leave payee_id undefined
+      }
+
+      // Apply resolved payee_ids to expenses
+      for (const expense of theResult.expenses) {
+        if (!expense.payee_id) {
+          // Extract the name portion from description "type - Name (Unassigned)"
+          const descMatch = expense.description.match(/^.+?\s*-\s*(.+?)(?:\s*\(|$)/i);
+          const expenseName = descMatch ? descMatch[1].trim() : '';
+          const resolvedId = resolvedPayeeMap.get(expenseName);
+          if (resolvedId) {
+            expense.payee_id = resolvedId;
+          }
+        }
+      }
+
+      // Insert expenses
+      let expenseSuccessCount = 0;
+      let revenueSuccessCount = 0;
+      const errorMessages: string[] = [...theResult.errors];
+
+      if (theResult.expenses.length > 0) {
+        for (const expense of theResult.expenses) {
           try {
             const { error } = await supabase
               .from('expenses')
@@ -1007,7 +1221,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             if (error) {
               errorMessages.push(`Failed to import expense "${expense.description}": ${error.message}`);
             } else {
-              successCount++;
+              expenseSuccessCount++;
             }
           } catch (err) {
             errorMessages.push(`Failed to import expense "${expense.description}": ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -1015,9 +1229,9 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         }
       }
 
-      // Import revenues
-      if (result.revenues.length > 0) {
-        for (const revenue of result.revenues) {
+      // Insert revenues
+      if (theResult.revenues.length > 0) {
+        for (const revenue of theResult.revenues) {
           try {
             const { error } = await supabase
               .from('project_revenues')
@@ -1026,7 +1240,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             if (error) {
               errorMessages.push(`Failed to import revenue "${revenue.description}": ${error.message}`);
             } else {
-              successCount++;
+              revenueSuccessCount++;
             }
           } catch (err) {
             errorMessages.push(`Failed to import revenue "${revenue.description}": ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -1034,24 +1248,51 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         }
       }
 
+      // Update batch record with final stats
+      const successCount = expenseSuccessCount + revenueSuccessCount;
+      const duplicatesSkipped = (theResult.databaseDuplicatesSkipped || 0) + 
+                                (theResult.inFileDuplicatesSkipped || 0) + 
+                                (theResult.revenueDatabaseDuplicatesSkipped || 0) + 
+                                (theResult.revenueInFileDuplicatesSkipped || 0);
+      
+      if (theBatchId) {
+        await supabase
+          .from('import_batches')
+          .update({
+            expenses_imported: expenseSuccessCount,
+            revenues_imported: revenueSuccessCount,
+            duplicates_skipped: duplicatesSkipped,
+            errors: errorMessages.length,
+            status: 'completed',
+            match_log: theResult.matchLog || []
+          })
+          .eq('id', theBatchId);
+      }
+
       const finalResults = {
-        expenses: result.expenses,
-        revenues: result.revenues,
-        unassociated_expenses: result.unassociated_expenses,
-        unassociated_revenues: result.unassociated_revenues,
-        category_mappings_used: result.category_mappings_used,
+        expenses: theResult.expenses,
+        revenues: theResult.revenues,
+        unassociated_expenses: theResult.unassociated_expenses,
+        unassociated_revenues: theResult.unassociated_revenues,
+        category_mappings_used: theResult.category_mappings_used,
         errors: errorMessages,
         successCount,
-        databaseDuplicatesSkipped: result.databaseDuplicatesSkipped,
-        inFileDuplicatesSkipped: result.inFileDuplicatesSkipped,
-        revenueDatabaseDuplicatesSkipped: result.revenueDatabaseDuplicatesSkipped,
-        revenueInFileDuplicatesSkipped: result.revenueInFileDuplicatesSkipped,
-        fuzzyMatches: result.fuzzyMatches,
-        autoCreatedPayees: result.autoCreatedPayees,
-        autoCreatedCount: result.autoCreatedCount,
-        mappingStats: result.mappingStats,
-        unmappedAccounts: result.unmappedAccounts,
-        revenueReconciliation: result.revenueReconciliation
+        databaseDuplicatesSkipped: theResult.databaseDuplicatesSkipped,
+        inFileDuplicatesSkipped: theResult.inFileDuplicatesSkipped,
+        revenueDatabaseDuplicatesSkipped: theResult.revenueDatabaseDuplicatesSkipped,
+        revenueInFileDuplicatesSkipped: theResult.revenueInFileDuplicatesSkipped,
+        fuzzyMatches: theResult.fuzzyMatches,
+        autoCreatedPayees: createdPayees.map(p => ({
+          qbName: p.qbName,
+          payeeId: p.payeeId,
+          payeeType: p.payeeType as any,
+        })),
+        autoCreatedCount: createdPayees.length,
+        mappingStats: theResult.mappingStats,
+        unmappedAccounts: theResult.unmappedAccounts,
+        revenueReconciliation: theResult.revenueReconciliation,
+        reimportedDuplicateCount: theResult.reimportedDuplicates?.length || 0,
+        skippedNotSelectedCount: csvData.length - selectedRows.size,
       };
 
       setImportResults(finalResults);
@@ -1072,12 +1313,15 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           duplicateInfo.push(`${finalResults.revenueInFileDuplicatesSkipped} revenue in-file duplicate(s)`);
         }
         const duplicateText = duplicateInfo.length > 0 ? ` Skipped ${duplicateInfo.join(', ')}.` : '';
-        const autoCreatedText = finalResults.autoCreatedCount && finalResults.autoCreatedCount > 0 
-          ? ` Auto-created ${finalResults.autoCreatedCount} payee(s).` 
+        const reimportText = (finalResults.reimportedDuplicateCount || 0) > 0
+          ? ` Re-imported ${finalResults.reimportedDuplicateCount} duplicate(s).`
+          : '';
+        const createdText = createdPayees.length > 0 
+          ? ` Created ${createdPayees.length} payee(s).` 
           : '';
         toast({
           title: "Import completed",
-          description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}.${duplicateText}${autoCreatedText}${errorMessages.length > 0 ? ` ${errorMessages.length} failed.` : ''}`,
+          description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}.${reimportText}${duplicateText}${createdText}${errorMessages.length > 0 ? ` ${errorMessages.length} failed.` : ''}`,
           variant: errorMessages.length > 0 ? "destructive" : "default"
         });
         onSuccess();
@@ -1093,10 +1337,6 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       setIsImporting(false);
     }
   };
-
-  const calculateImportCount = useCallback(() => {
-    return categorizeTransactions.newRecords.length;
-  }, [categorizeTransactions.newRecords.length]);
 
   const previewData = csvData.slice(0, 10);
 
@@ -1266,7 +1506,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                       {newRecordIssues.newPayees > 0 && (
                         <div className="flex items-center gap-2 text-blue-600">
                           <Info className="h-4 w-4" />
-                          <span>{newRecordIssues.newPayees} will be auto-created</span>
+                          <span>{newRecordIssues.newPayees} will need review</span>
                         </div>
                       )}
                     </div>
@@ -1306,6 +1546,34 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                 </div>
               )}
 
+              {/* Unmatched Projects Warning */}
+              {validationResults && validationResults.unmatchedProjectNumbers.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                    <h4 className="text-sm font-semibold text-amber-800">
+                      {validationResults.unmatchedProjectNumbers.length} Unmatched Project{validationResults.unmatchedProjectNumbers.length > 1 ? 's' : ''}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    These project codes from the CSV could not be matched. Transactions will be assigned to "UNASSIGNED".
+                  </p>
+                  <div className="space-y-1">
+                    {validationResults.unmatchedProjectNumbers.slice(0, 10).map((proj: string, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs bg-white/50 rounded px-2 py-1.5">
+                        <Badge variant="outline" className="text-amber-700 border-amber-300 text-[10px]">{proj || '(blank)'}</Badge>
+                        <span className="text-gray-500">→ will be UNASSIGNED</span>
+                      </div>
+                    ))}
+                    {validationResults.unmatchedProjectNumbers.length > 10 && (
+                      <p className="text-xs text-amber-600">
+                        +{validationResults.unmatchedProjectNumbers.length - 10} more unmatched projects
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Financial Before/After Snapshot */}
               {categorizeTransactions.newRecords.length > 0 && financialSnapshot && (
                 <div className="space-y-2">
@@ -1317,144 +1585,33 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                 </div>
               )}
 
-              {/* No New Records Message */}
-              {categorizeTransactions.newRecords.length === 0 && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                  <CheckCircle2 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <h4 className="font-medium text-gray-700">All caught up!</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    All {csvData.length} transactions in this file are already in the system.
-                  </p>
+              {/* Transaction Selection — replaces old New/Already Imported tabs */}
+              {allCategorized.length > 0 && (
+                <div className="space-y-3">
+                  <TransactionSelectionControls
+                    totalNew={selectionCounts.totalNew}
+                    totalDuplicates={selectionCounts.totalDuplicates}
+                    totalErrors={selectionCounts.totalErrors}
+                    totalUnassigned={selectionCounts.totalUnassigned}
+                    selectedCount={selectedRows.size}
+                    totalSelectable={selectionCounts.totalSelectable}
+                    onSelectAllNew={selectAllNew}
+                    onSelectAllDuplicates={selectAllDuplicates}
+                    onSelectAll={selectAll}
+                    onDeselectAll={deselectAll}
+                    statusFilter={txStatusFilter}
+                    onStatusFilterChange={setTxStatusFilter}
+                    searchQuery={txSearchQuery}
+                    onSearchChange={setTxSearchQuery}
+                  />
+                  <TransactionSelectionTable
+                    transactions={allCategorized}
+                    selectedRows={selectedRows}
+                    onSelectionChange={setSelectedRows}
+                    statusFilter={txStatusFilter}
+                    searchQuery={txSearchQuery}
+                  />
                 </div>
-              )}
-
-              {/* Tabs - Simplified */}
-              {categorizeTransactions.newRecords.length > 0 && (
-                <Tabs defaultValue="new" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="new" className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      New Records ({categorizeTransactions.newRecords.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="existing" className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Already Imported ({categorizeTransactions.alreadyImported.length})
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* New Records Tab */}
-                  <TabsContent value="new" className="mt-4">
-                    <div className="border rounded-lg overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-gray-50">
-                            <TableHead className="text-xs font-medium">Date</TableHead>
-                            <TableHead className="text-xs font-medium">Type</TableHead>
-                            <TableHead className="text-xs font-medium">Amount</TableHead>
-                            <TableHead className="text-xs font-medium">Name</TableHead>
-                            <TableHead className="text-xs font-medium">Project</TableHead>
-                            <TableHead className="text-xs font-medium">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {categorizeTransactions.newRecords.slice(0, 10).map((row, index) => {
-                            const isRevenue = row['Transaction type'] === 'Invoice';
-                            const hasProject = row['Project/WO #']?.trim();
-                            const projectExists = hasProject && validationResults?.unmatchedProjectNumbers && 
-                              !validationResults.unmatchedProjectNumbers.includes(hasProject);
-                            
-                            return (
-                              <TableRow key={index}>
-                                <TableCell className="text-xs py-2">{row.Date}</TableCell>
-                                <TableCell className="text-xs py-2">
-                                  <Badge 
-                                    variant={isRevenue ? "default" : "secondary"} 
-                                    className="text-xs"
-                                  >
-                                    {isRevenue ? 'Revenue' : 'Expense'}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-xs py-2 font-mono">{row.Amount}</TableCell>
-                                <TableCell className="text-xs py-2 max-w-[150px] truncate">{row.Name}</TableCell>
-                                <TableCell className="text-xs py-2">
-                                  {hasProject ? (
-                                    <span className={projectExists ? "text-gray-900" : "text-amber-600"}>
-                                      {hasProject}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-xs py-2">
-                                  {projectExists ? (
-                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">
-                                      Ready
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
-                                      Unassigned
-                                    </Badge>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                      {categorizeTransactions.newRecords.length > 10 && (
-                        <div className="text-xs text-gray-500 p-2 text-center border-t bg-gray-50">
-                          Showing 10 of {categorizeTransactions.newRecords.length} new records
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  {/* Already Imported Tab */}
-                  <TabsContent value="existing" className="mt-4">
-                    <div className="bg-gray-50 border rounded-lg p-4 mb-4">
-                      <p className="text-sm text-gray-600">
-                        These {categorizeTransactions.alreadyImported.length} transactions are already in your system 
-                        and will be skipped automatically. This is normal for YTD imports.
-                      </p>
-                    </div>
-                    <div className="border rounded-lg overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-gray-50">
-                            <TableHead className="text-xs font-medium">Date</TableHead>
-                            <TableHead className="text-xs font-medium">Type</TableHead>
-                            <TableHead className="text-xs font-medium">Amount</TableHead>
-                            <TableHead className="text-xs font-medium">Name</TableHead>
-                            <TableHead className="text-xs font-medium">Project</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {categorizeTransactions.alreadyImported.map((row, index) => {
-                            const isRevenue = row['Transaction type'] === 'Invoice';
-                            return (
-                              <TableRow key={index} className="text-gray-400">
-                                <TableCell className="text-xs py-2">{row.Date}</TableCell>
-                                <TableCell className="text-xs py-2">
-                                  <Badge variant="outline" className="text-xs opacity-50">
-                                    {isRevenue ? 'Revenue' : 'Expense'}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-xs py-2 font-mono">{row.Amount}</TableCell>
-                                <TableCell className="text-xs py-2 max-w-[150px] truncate">{row.Name}</TableCell>
-                                <TableCell className="text-xs py-2">{row['Project/WO #'] || '-'}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                      {categorizeTransactions.alreadyImported.length > 0 && (
-                        <div className="text-xs text-gray-500 p-2 text-center border-t bg-gray-50">
-                          Showing all {categorizeTransactions.alreadyImported.length} already imported transactions
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
               )}
 
               {/* Reconciliation - Only show if there's a meaningful difference */}
@@ -1496,20 +1653,25 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
 
             {/* Sticky Footer */}
             <div className="sticky bottom-0 bg-white border-t pt-4 mt-4 flex items-center justify-between">
-              <Button variant="outline" onClick={() => setStep('upload')}>
+              <Button variant="outline" onClick={() => setStep('upload')} className="min-h-[48px]">
                 Back
               </Button>
               
               <div className="flex items-center gap-3">
-                {categorizeTransactions.newRecords.length > 0 ? (
+                {selectedRows.size > 0 ? (
                   <>
                     <span className="text-sm text-gray-500">
-                      {categorizeTransactions.newRecords.length} new record{categorizeTransactions.newRecords.length !== 1 ? 's' : ''} will be imported
+                      {selectedRows.size} transaction{selectedRows.size !== 1 ? 's' : ''} selected
+                      {selectionCounts.selectedDuplicateCount > 0 && (
+                        <span className="text-amber-600 ml-1">
+                          ({selectionCounts.selectedDuplicateCount} re-import{selectionCounts.selectedDuplicateCount !== 1 ? 's' : ''})
+                        </span>
+                      )}
                     </span>
                     <Button
-                      onClick={handleImport}
+                      onClick={handleProcessCSV}
                       disabled={isImporting}
-                      className="min-w-[160px]"
+                      className="min-w-[160px] min-h-[48px]"
                     >
                       {isImporting ? (
                         <>
@@ -1517,20 +1679,357 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                           Importing...
                         </>
                       ) : (
-                        <>Import {categorizeTransactions.newRecords.length} New Records</>
+                        <>Import {selectedRows.size} Transaction{selectedRows.size !== 1 ? 's' : ''}</>
                       )}
                     </Button>
                   </>
                 ) : (
                   <>
                     <span className="text-sm text-gray-500">
-                      No new records to import
+                      No transactions selected
                     </span>
-                    <Button variant="secondary" onClick={handleClose}>
+                    <Button variant="secondary" onClick={handleClose} className="min-h-[48px]">
                       Close
                     </Button>
                   </>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 'resolve_payees' && (
+          <div className="flex flex-col h-[calc(90vh-120px)]">
+            <ImportStepper currentStep={step} />
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-amber-900">
+                  Resolve Unmatched Entities
+                </h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  {pendingPayees.length > 0 && `${pendingPayees.length} payee${pendingPayees.length !== 1 ? 's' : ''}`}
+                  {pendingPayees.length > 0 && pendingClients.length > 0 && ' and '}
+                  {pendingClients.length > 0 && `${pendingClients.length} client${pendingClients.length !== 1 ? 's' : ''}`}
+                  {' weren\'t found in your system. Choose how to handle each one before importing.'}
+                </p>
+              </div>
+
+              {pendingPayees.length > 0 && (
+                <h4 className="text-sm font-semibold text-gray-700">Unmatched Payees</h4>
+              )}
+
+              {pendingPayees.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="text-xs font-medium">CSV Name</TableHead>
+                      <TableHead className="text-xs font-medium">Suggested Type</TableHead>
+                      <TableHead className="text-xs font-medium">Best Match</TableHead>
+                      <TableHead className="text-xs font-medium">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingPayees.map((review, index) => {
+                      const resolution = payeeResolutions.get(review.qbName);
+                      const topSuggestion = review.suggestions[0];
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="text-sm py-3 font-medium max-w-[180px] truncate">
+                            {review.qbName}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {review.suggestedPayeeType.replace(/_/g, ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3 text-sm">
+                            {topSuggestion ? (
+                              <span className="text-gray-700">
+                                {topSuggestion.payee.payee_name}{' '}
+                                <span className="text-xs text-gray-400">({topSuggestion.confidence}%)</span>
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">No matches found</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex gap-1">
+                                <Button
+                                  variant={resolution?.action === 'create_new' ? 'default' : 'outline'}
+                                  size="sm"
+                                  className="min-h-[48px] min-w-[48px] text-xs"
+                                  onClick={() => {
+                                    const next = new Map(payeeResolutions);
+                                    next.set(review.qbName, { action: 'create_new' });
+                                    setPayeeResolutions(next);
+                                  }}
+                                >
+                                  Create New
+                                </Button>
+                                <Button
+                                  variant={resolution?.action === 'skip' ? 'default' : 'outline'}
+                                  size="sm"
+                                  className="min-h-[48px] min-w-[48px] text-xs"
+                                  onClick={() => {
+                                    const next = new Map(payeeResolutions);
+                                    next.set(review.qbName, { action: 'skip' });
+                                    setPayeeResolutions(next);
+                                  }}
+                                >
+                                  Skip
+                                </Button>
+                              </div>
+                              {review.suggestions.length > 0 && (
+                                <select
+                                  className={cn(
+                                    "min-h-[48px] text-xs border rounded-md px-2 py-1 w-full",
+                                    resolution?.action === 'match_existing' 
+                                      ? "border-blue-500 bg-blue-50" 
+                                      : "border-gray-300"
+                                  )}
+                                  value={resolution?.action === 'match_existing' ? resolution.matchedPayeeId || '' : ''}
+                                  onChange={(e) => {
+                                    const payeeId = e.target.value;
+                                    if (payeeId) {
+                                      const next = new Map(payeeResolutions);
+                                      next.set(review.qbName, { action: 'match_existing', matchedPayeeId: payeeId });
+                                      setPayeeResolutions(next);
+                                    }
+                                  }}
+                                >
+                                  <option value="">Match Existing...</option>
+                                  {review.suggestions.map((s, si) => (
+                                    <option key={si} value={s.payee.id}>
+                                      {s.payee.payee_name} ({s.confidence}%)
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              )}
+
+              {/* Unmatched Clients Section */}
+              {pendingClients.length > 0 && (
+                <>
+                  <h4 className="text-sm font-semibold text-gray-700 mt-4">Unmatched Clients</h4>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="text-xs font-medium">CSV Name</TableHead>
+                          <TableHead className="text-xs font-medium">Best Match</TableHead>
+                          <TableHead className="text-xs font-medium">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingClients.map((review, index) => {
+                          const resolution = clientResolutions.get(review.qbName);
+                          const topSuggestion = review.suggestions[0];
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className="text-sm py-3 font-medium max-w-[180px] truncate">
+                                {review.qbName}
+                              </TableCell>
+                              <TableCell className="py-3 text-sm">
+                                {topSuggestion ? (
+                                  <span className="text-gray-700">
+                                    {topSuggestion.client.client_name}{' '}
+                                    <span className="text-xs text-gray-400">({topSuggestion.confidence}%)</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">No matches found</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <div className="flex flex-col gap-2">
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant={resolution?.action === 'create_new' ? 'default' : 'outline'}
+                                      size="sm"
+                                      className="min-h-[48px] min-w-[48px] text-xs"
+                                      onClick={() => {
+                                        const next = new Map(clientResolutions);
+                                        next.set(review.qbName, { action: 'create_new' });
+                                        setClientResolutions(next);
+                                      }}
+                                    >
+                                      Create New
+                                    </Button>
+                                    <Button
+                                      variant={resolution?.action === 'skip' ? 'default' : 'outline'}
+                                      size="sm"
+                                      className="min-h-[48px] min-w-[48px] text-xs"
+                                      onClick={() => {
+                                        const next = new Map(clientResolutions);
+                                        next.set(review.qbName, { action: 'skip' });
+                                        setClientResolutions(next);
+                                      }}
+                                    >
+                                      Skip
+                                    </Button>
+                                  </div>
+                                  {review.suggestions.length > 0 && (
+                                    <select
+                                      className={cn(
+                                        "min-h-[48px] text-xs border rounded-md px-2 py-1 w-full",
+                                        resolution?.action === 'match_existing' 
+                                          ? "border-blue-500 bg-blue-50" 
+                                          : "border-gray-300"
+                                      )}
+                                      value={resolution?.action === 'match_existing' ? resolution.matchedClientId || '' : ''}
+                                      onChange={(e) => {
+                                        const clientId = e.target.value;
+                                        if (clientId) {
+                                          const next = new Map(clientResolutions);
+                                          next.set(review.qbName, { action: 'match_existing', matchedClientId: clientId });
+                                          setClientResolutions(next);
+                                        }
+                                      }}
+                                    >
+                                      <option value="">Match Existing...</option>
+                                      {review.suggestions.map((s, si) => (
+                                        <option key={si} value={s.client.id}>
+                                          {s.client.client_name} ({s.confidence}%)
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+
+              {/* Unmapped Accounts Section */}
+              {processResult && processResult.unmappedAccounts.length > 0 && (
+                <>
+                  <h4 className="text-sm font-semibold text-gray-700 mt-4">Unmapped Accounts</h4>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Assign categories to these accounts. Mappings will be saved for future imports.
+                  </p>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="text-xs font-medium">Account Name</TableHead>
+                          <TableHead className="text-xs font-medium">Transactions</TableHead>
+                          <TableHead className="text-xs font-medium">Total</TableHead>
+                          <TableHead className="text-xs font-medium">Category</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {processResult.unmappedAccounts.map((acct, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="text-sm py-3 font-medium max-w-[200px] truncate">
+                              {acct.accountFullName}
+                            </TableCell>
+                            <TableCell className="py-3 text-sm text-gray-600">
+                              {acct.transactionCount}
+                            </TableCell>
+                            <TableCell className="py-3 text-sm text-gray-600">
+                              {formatCurrency(acct.totalAmount)}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <select
+                                className="min-h-[48px] text-xs border rounded-md px-2 py-1 w-full border-gray-300"
+                                value={accountCategoryMappings.get(acct.accountFullName) || acct.suggestedCategory || ''}
+                                onChange={(e) => {
+                                  const next = new Map(accountCategoryMappings);
+                                  if (e.target.value) {
+                                    next.set(acct.accountFullName, e.target.value as ExpenseCategory);
+                                  } else {
+                                    next.delete(acct.accountFullName);
+                                  }
+                                  setAccountCategoryMappings(next);
+                                }}
+                              >
+                                <option value="">No mapping</option>
+                                {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([key, label]) => (
+                                  <option key={key} value={key}>{label}</option>
+                                ))}
+                              </select>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {accountCategoryMappings.size > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 min-h-[48px]"
+                      onClick={async () => {
+                        const mappings = Array.from(accountCategoryMappings.entries()).map(([name, category]) => ({
+                          qb_account_name: name.split(':').pop()?.trim() || name,
+                          qb_account_full_path: name,
+                          app_category: category,
+                          is_active: true,
+                        }));
+                        const { error } = await supabase.from('quickbooks_account_mappings').upsert(mappings, {
+                          onConflict: 'qb_account_full_path'
+                        });
+                        if (!error) {
+                          toast({ title: `Saved ${mappings.length} account mapping(s)` });
+                        } else {
+                          toast({ title: 'Error saving mappings', description: error.message, variant: 'destructive' });
+                        }
+                      }}
+                    >
+                      Save {accountCategoryMappings.size} Mapping{accountCategoryMappings.size !== 1 ? 's' : ''}
+                    </Button>
+                  )}
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-xs text-blue-600 mt-1"
+                    onClick={() => setShowMappingsManager(true)}
+                  >
+                    Manage All Mappings →
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="sticky bottom-0 bg-white border-t pt-4 mt-4 flex items-center justify-between">
+              <Button variant="outline" onClick={() => setStep('preview')}>
+                Back
+              </Button>
+              
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">
+                  {pendingPayees.length + pendingClients.length} entit{(pendingPayees.length + pendingClients.length) !== 1 ? 'ies' : 'y'} to resolve
+                </span>
+                <Button
+                  onClick={() => handleFinalImport()}
+                  disabled={isImporting || !Array.from(payeeResolutions.values()).every(r => r.action)}
+                  className="min-h-[48px] min-w-[160px]"
+                >
+                  {isImporting ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      Importing...
+                    </>
+                  ) : (
+                    <>Confirm & Import</>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -1548,39 +2047,64 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             
             <div className="bg-green-50 p-4 rounded-lg">
               <h4 className="font-medium mb-2">Import Results</h4>
+
+              {/* Primary summary breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-green-200">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-semibold text-green-700">{importResults.successCount || 0}</span>
+                    <span className="text-gray-600 ml-1">
+                      new transaction{(importResults.successCount || 0) !== 1 ? 's' : ''} imported
+                    </span>
+                  </div>
+                </div>
+                {(importResults.reimportedDuplicateCount || 0) > 0 && (
+                  <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-amber-200">
+                    <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                    <div className="text-sm">
+                      <span className="font-semibold text-amber-700">{importResults.reimportedDuplicateCount}</span>
+                      <span className="text-gray-600 ml-1">
+                        duplicate{importResults.reimportedDuplicateCount !== 1 ? 's' : ''} re-imported
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {(importResults.skippedNotSelectedCount || 0) > 0 && (
+                  <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
+                    <CheckCircle2 className="h-4 w-4 text-gray-400 shrink-0" />
+                    <div className="text-sm">
+                      <span className="font-semibold text-gray-500">{importResults.skippedNotSelectedCount}</span>
+                      <span className="text-gray-600 ml-1">
+                        transaction{importResults.skippedNotSelectedCount !== 1 ? 's' : ''} skipped (not selected)
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {importResults.errors.length > 0 && (
+                  <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-red-200">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                    <div className="text-sm">
+                      <span className="font-semibold text-red-700">{importResults.errors.length}</span>
+                      <span className="text-gray-600 ml-1">
+                        error{importResults.errors.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Detail breakdown */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Successfully Imported:</span> {importResults.successCount || 0}
+                  <span className="font-medium">Expenses Imported:</span> {importResults.expenses.length}
                 </div>
                 <div>
                   <span className="font-medium">Revenues Imported:</span> {importResults.revenues.length}
                 </div>
                 <div>
-                  <span className="font-medium">Expenses Imported:</span> {importResults.expenses.length}
-                </div>
-                <div>
                   <span className="font-medium">Unassigned to "000-UNASSIGNED":</span> {importResults.unassociated_expenses + importResults.unassociated_revenues}
                 </div>
-                {importResults.databaseDuplicatesSkipped !== undefined && importResults.databaseDuplicatesSkipped > 0 && (
-                  <div>
-                    <span className="font-medium">Expense DB Duplicates Skipped:</span> {importResults.databaseDuplicatesSkipped}
-                  </div>
-                )}
-                {importResults.inFileDuplicatesSkipped !== undefined && importResults.inFileDuplicatesSkipped > 0 && (
-                  <div>
-                    <span className="font-medium">Expense In-File Duplicates Skipped:</span> {importResults.inFileDuplicatesSkipped}
-                  </div>
-                )}
-                {importResults.revenueDatabaseDuplicatesSkipped !== undefined && importResults.revenueDatabaseDuplicatesSkipped > 0 && (
-                  <div>
-                    <span className="font-medium">Revenue DB Duplicates Skipped:</span> {importResults.revenueDatabaseDuplicatesSkipped}
-                  </div>
-                )}
-                {importResults.revenueInFileDuplicatesSkipped !== undefined && importResults.revenueInFileDuplicatesSkipped > 0 && (
-                  <div>
-                    <span className="font-medium">Revenue In-File Duplicates Skipped:</span> {importResults.revenueInFileDuplicatesSkipped}
-                  </div>
-                )}
                 {importResults.autoCreatedCount !== undefined && importResults.autoCreatedCount > 0 && (
                   <div>
                     <span className="font-medium">Payees Auto-Created:</span> {importResults.autoCreatedCount}
@@ -1628,10 +2152,17 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
               {/* Unmapped Accounts */}
               {importResults.unmappedAccounts && importResults.unmappedAccounts.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-green-200">
-                  <h5 className="font-medium text-sm mb-2">Unmapped Accounts</h5>
-                  <div className="text-xs text-amber-700">
-                    {importResults.unmappedAccounts.slice(0, 5).join(', ')}
-                    {importResults.unmappedAccounts.length > 5 && ` +${importResults.unmappedAccounts.length - 5} more`}
+                  <h5 className="font-medium text-sm mb-2">Unmapped Accounts ({importResults.unmappedAccounts.length})</h5>
+                  <div className="text-xs text-amber-700 space-y-1">
+                    {importResults.unmappedAccounts.slice(0, 5).map((acct, i) => (
+                      <div key={i}>
+                        {acct.accountFullName} ({acct.transactionCount} txns, {formatCurrency(acct.totalAmount)})
+                        {acct.suggestedCategory && <span className="text-green-600"> — suggested: {acct.suggestedCategory}</span>}
+                      </div>
+                    ))}
+                    {importResults.unmappedAccounts.length > 5 && (
+                      <div>+{importResults.unmappedAccounts.length - 5} more</div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1682,6 +2213,23 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         )}
         </div>
       </DialogContent>
+
+      {/* Account Mappings Manager Sheet */}
+      <Sheet open={showMappingsManager} onOpenChange={setShowMappingsManager}>
+        <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Account Mappings Manager</SheetTitle>
+            <SheetDescription>
+              Manage QuickBooks account to category mappings for all imports.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <Suspense fallback={<div className="text-sm text-gray-500">Loading...</div>}>
+              <AccountMappingsManagerLazy />
+            </Suspense>
+          </div>
+        </SheetContent>
+      </Sheet>
     </Dialog>
   );
 };

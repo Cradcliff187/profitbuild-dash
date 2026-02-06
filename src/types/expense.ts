@@ -90,6 +90,8 @@ export interface Expense {
   // Receipt linking fields
   receipt_id?: string | null;
   receipt_image_url?: string; // For display - populated from joins
+  // Import tracking
+  import_batch_id?: string;
 }
 
 export interface ProjectExpenseSummary {

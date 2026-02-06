@@ -7,6 +7,9 @@ import { Client } from '@/types/client';
 import { parseDateOnly, parseCsvDateForDB } from '@/utils/dateUtils';
 
 // Enhanced QB transaction interface
+/**
+ * @deprecated Use TransactionCSVRow from enhancedTransactionImporter.ts instead
+ */
 export interface QBTransaction {
   date: string;
   transaction_type: string;
@@ -19,6 +22,9 @@ export interface QBTransaction {
 }
 
 // Client matching interfaces
+/**
+ * @deprecated Use client matching from enhancedTransactionImporter.ts instead
+ */
 export interface ClientMatchInfo {
   qbName: string;
   matchedClient: Partial<Client>;
@@ -27,6 +33,9 @@ export interface ClientMatchInfo {
 }
 
 // Enhanced import result with dual streams
+/**
+ * @deprecated Use TransactionImportResult from enhancedTransactionImporter.ts instead
+ */
 export interface EnhancedQBImportResult {
   total: number;
   revenue_transactions: number;
@@ -103,11 +112,15 @@ const parseQuickBooksAmount = (amount: string | number): number => {
 };
 
 // Enhanced CSV parsing for QuickBooks format
+/**
+ * @deprecated Use parseTransactionCSV from enhancedTransactionImporter.ts instead
+ */
 export const parseEnhancedQuickBooksCSV = (file: File): Promise<{
   data: QBTransaction[];
   errors: string[];
   headers: string[];
 }> => {
+  console.warn('parseEnhancedQuickBooksCSV is deprecated. Use parseTransactionCSV from enhancedTransactionImporter.ts instead.');
   return new Promise((resolve) => {
     Papa.parse(file, {
       header: true,
@@ -452,10 +465,14 @@ const correlateExpenseWithLineItems = async (
 };
 
 // Main enhanced import function
+/**
+ * @deprecated Use processTransactionImport from enhancedTransactionImporter.ts instead
+ */
 export const processEnhancedQuickBooksImport = async (
   transactions: QBTransaction[],
   fileName: string
 ): Promise<EnhancedQBImportResult> => {
+  console.warn('processEnhancedQuickBooksImport is deprecated. Use processTransactionImport from enhancedTransactionImporter.ts instead.');
   const result: EnhancedQBImportResult = {
     total: transactions.length,
     revenue_transactions: 0,

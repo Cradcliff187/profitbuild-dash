@@ -17,6 +17,7 @@ import { RevenueFormSheet } from "@/components/RevenueFormSheet";
 import { RevenuesList } from "@/components/RevenuesList";
 import { QuickBooksSyncModal } from "@/components/QuickBooksSyncModal";
 import { QuickBooksSyncHistory } from "@/components/QuickBooksSyncHistory";
+import { ImportHistory } from "@/components/ImportHistory";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { ProjectRevenue } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +28,7 @@ import { parseDateOnly } from "@/utils/dateUtils";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
 
-type ViewMode = "overview" | "list" | "invoices";
+type ViewMode = "overview" | "list" | "invoices" | "import-history";
 
 // Helper to filter out all split parent expenses (defensive)
 const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
@@ -53,6 +54,7 @@ const Expenses = () => {
     { value: "overview", label: "Overview", icon: BarChart3 },
     { value: "list", label: "All Expenses", icon: List },
     { value: "invoices", label: "Invoices", icon: DollarSign },
+    { value: "import-history", label: "Import History", icon: History },
   ];
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -562,6 +564,10 @@ const Expenses = () => {
               columnOrder={revenueColumnOrder}
               onColumnOrderChange={setRevenueColumnOrder}
             />
+          </TabsContent>
+
+          <TabsContent value="import-history">
+            <ImportHistory />
           </TabsContent>
         </Tabs>
 

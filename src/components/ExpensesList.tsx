@@ -1512,8 +1512,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         case 'description':
           if (row._isSplitRow) return null;
           return (
-            <div className="text-xs text-muted-foreground truncate max-w-xs">
-              {row.description || '-'}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-xs">
+              <span className="truncate">{row.description || '-'}</span>
+              {row.import_batch_id && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 flex-shrink-0 text-blue-600 border-blue-200">
+                  CSV Import
+                </Badge>
+              )}
             </div>
           );
         
