@@ -557,7 +557,7 @@ export const processTransactionImport = async (
 
       // === DATABASE DUPLICATE CHECK - ENHANCED MULTI-KEY MATCHING ===
       // Try multiple matching strategies to handle empty names and mismatches
-      let existingExpense: { id: string; description: string } | undefined;
+      let existingExpense: { id: string; description: string; is_split?: boolean } | undefined;
       let matchKey = '';
       
       // Strategy 1a: 4-part key (new — includes account_full_name)
@@ -619,7 +619,7 @@ export const processTransactionImport = async (
       }
       
       if (existingExpense) {
-        const resolvedKey = matchKey || primaryKey;
+        const resolvedKey = matchKey || createExpenseKey(date, amount, name);
         // Check if user explicitly selected this duplicate for re-import
         if (options?.overrideDedup?.has(resolvedKey)) {
           reimportedDuplicates.push({

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { 
   parseTransactionCSV, 
   processTransactionImport,
@@ -1264,7 +1265,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             duplicates_skipped: duplicatesSkipped,
             errors: errorMessages.length,
             status: 'completed',
-            match_log: theResult.matchLog || []
+            match_log: (theResult.matchLog || []) as unknown as Json
           })
           .eq('id', theBatchId);
       }

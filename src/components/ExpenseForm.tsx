@@ -191,7 +191,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     setLoading(true);
     try {
       const expenseData = {
-        id: expense?.id,
         project_id: data.project_id,
         description: data.description,
         category: data.category as any, // Cast enum to database string

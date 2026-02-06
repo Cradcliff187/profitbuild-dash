@@ -8,7 +8,7 @@
 
 import { ExpenseCategory, TransactionType } from '@/types/expense';
 import { PayeeType } from '@/types/payee';
-import { jaroWinklerSimilarity } from './fuzzyPayeeMatcher';
+import { jaroWinklerSimilarity, normalizeBusinessName, tokenSimilarity } from './fuzzyPayeeMatcher';
 import { resolveQBAccountCategory } from './quickbooksMapping';
 
 // Re-exports from existing utilities

@@ -84,7 +84,7 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
         `).eq('import_batch_id', batchId).order('invoice_date', { ascending: false })
       ]);
 
-      if (batchRes.data) setBatch(batchRes.data as BatchInfo);
+      if (batchRes.data) setBatch(batchRes.data as unknown as BatchInfo);
       if (expensesRes.data) setExpenses(expensesRes.data as any[]);
       if (revenuesRes.data) setRevenues(revenuesRes.data as any[]);
 
