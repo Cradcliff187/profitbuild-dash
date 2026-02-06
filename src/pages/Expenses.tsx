@@ -435,7 +435,7 @@ const Expenses = () => {
   };
 
   const handleTabChange = (value: string) => {
-    if (value === "overview" || value === "list" || value === "invoices") {
+    if (value === "overview" || value === "list" || value === "invoices" || value === "import-history") {
       setViewMode(value as ViewMode);
     }
   };
