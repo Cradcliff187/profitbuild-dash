@@ -61,16 +61,8 @@ export function QuoteAttachmentUpload({
   };
 
   const handleFile = useCallback((file: File) => {
-    console.log('📁 [UPLOAD DEBUG] File selected:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      timestamp: new Date().toISOString()
-    });
-    
     const error = validateFile(file);
     if (error) {
-      console.log('❌ [UPLOAD DEBUG] File validation failed:', error);
       toast({
         title: 'Invalid file',
         description: error,
@@ -78,7 +70,6 @@ export function QuoteAttachmentUpload({
       });
       return;
     }
-    console.log('✅ [UPLOAD DEBUG] File validation passed');
     setSelectedFile(file);
   }, [toast]);
 
@@ -86,42 +77,27 @@ export function QuoteAttachmentUpload({
   const uploadFile = useCallback(async (fileToUpload?: File) => {
     // Use passed file OR fall back to state
     const file = fileToUpload || selectedFile;
-    
-    console.log('🚀 [UPLOAD DEBUG] uploadFile() called', {
-      passedFile: fileToUpload?.name,
-      selectedFile: selectedFile?.name,
-      usingFile: file?.name,
-      projectId,
-      relatedQuoteId,
-      online: navigator.onLine
-    });
-    
+
     if (!file) {
-      console.log('❌ [UPLOAD DEBUG] No file available - aborting');
       return;
     }
 
     setIsUploading(true);
     try {
-      console.log('👤 [UPLOAD DEBUG] Getting user...');
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+
       if (authError) {
-        console.log('❌ [UPLOAD DEBUG] Auth error:', authError);
         throw new Error('Not authenticated');
       }
       if (!user) {
-        console.log('❌ [UPLOAD DEBUG] No user found');
         throw new Error('Not authenticated');
       }
-      console.log('✅ [UPLOAD DEBUG] User authenticated:', user.id);
 
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${projectId}/quotes/${timestamp}-${sanitizedFileName}`;
-      console.log('📤 [UPLOAD DEBUG] Starting storage upload to:', filePath);
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('project-documents')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -129,19 +105,15 @@ export function QuoteAttachmentUpload({
         });
 
       if (uploadError) {
-        console.log('❌ [UPLOAD DEBUG] Storage upload failed:', uploadError);
         throw uploadError;
       }
-      console.log('✅ [UPLOAD DEBUG] Storage upload success:', uploadData);
 
       const { data: { publicUrl } } = supabase.storage
         .from('project-documents')
         .getPublicUrl(filePath);
-      console.log('🔗 [UPLOAD DEBUG] Public URL:', publicUrl);
 
       // Create record in project_documents table
-      console.log('💾 [UPLOAD DEBUG] Inserting into project_documents...');
-      const { data: dbData, error: dbError } = await supabase
+      const { error: dbError } = await supabase
         .from('project_documents')
         .insert({
           project_id: projectId,
@@ -156,25 +128,16 @@ export function QuoteAttachmentUpload({
         .select();
 
       if (dbError) {
-        console.log('❌ [UPLOAD DEBUG] Database insert failed:', dbError);
         throw dbError;
       }
-      console.log('✅ [UPLOAD DEBUG] Database insert success:', dbData);
 
       // Update the quote's attachment_url directly so it appears in Quote PDFs tab
       if (relatedQuoteId) {
-        console.log('🔗 [UPLOAD DEBUG] Updating quote attachment_url...');
-        const { error: quoteUpdateError } = await supabase
+        await supabase
           .from('quotes')
           .update({ attachment_url: publicUrl })
           .eq('id', relatedQuoteId);
-
-        if (quoteUpdateError) {
-          console.error('⚠️ [UPLOAD DEBUG] Failed to update quote attachment_url:', quoteUpdateError);
-          // Don't throw - the file is already uploaded, just warn
-        } else {
-          console.log('✅ [UPLOAD DEBUG] Quote attachment_url updated successfully');
-        }
+        // Don't throw - the file is already uploaded, just continue
       }
 
       toast({
@@ -182,18 +145,15 @@ export function QuoteAttachmentUpload({
         description: 'Quote document uploaded successfully',
       });
 
-      console.log('🎉 [UPLOAD DEBUG] Calling onUploadSuccess with URL:', publicUrl);
       setSelectedFile(null);
       onUploadSuccess(publicUrl);
     } catch (error) {
-      console.error('💥 [UPLOAD DEBUG] Caught error:', error);
       toast({
         title: 'Upload failed',
         description: error instanceof Error ? error.message : 'Failed to upload document',
         variant: 'destructive',
       });
     } finally {
-      console.log('🏁 [UPLOAD DEBUG] Upload process complete, isUploading=false');
       setIsUploading(false);
     }
   }, [selectedFile, projectId, relatedQuoteId, onUploadSuccess, toast]);
@@ -205,18 +165,15 @@ export function QuoteAttachmentUpload({
     if (file) {
       handleFile(file);
       // Auto-upload after drag-drop - pass file directly to avoid state timing issues
-      console.log('🚀 [UPLOAD DEBUG] Drag-drop detected - auto-triggering upload in 100ms');
       setTimeout(() => uploadFile(file), 100);
     }
   }, [handleFile, uploadFile]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('📱 [UPLOAD DEBUG] handleFileInput triggered');
     const file = e.target.files?.[0];
     if (file) {
       handleFile(file);
       // Auto-upload for ALL devices - pass file directly to avoid state timing issues
-      console.log('🚀 [UPLOAD DEBUG] Auto-triggering upload in 100ms');
       setTimeout(() => uploadFile(file), 100);
     }
   };

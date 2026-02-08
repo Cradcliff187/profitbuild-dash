@@ -19,7 +19,6 @@ import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP, EstimateSta
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { LineItemTable } from "@/components/LineItemTable";
@@ -1195,13 +1194,29 @@ useEffect(() => {
                   </div>
                 ) : (
                   <>
-                    <ProjectSelectorNew
-                      projects={availableProjects}
-                      selectedProject={selectedProject}
-                      onSelect={handleProjectSelect}
-                      placeholder="Select existing project..."
-                      hideCreateButton={true}
-                    />
+                    <Select
+                      value={projectId}
+                      onValueChange={(value) => {
+                        const project = availableProjects.find((p) => p.id === value);
+                        if (project) handleProjectSelect(project);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select project..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableProjects
+                          .slice()
+                          .sort((a, b) =>
+                            b.project_number.localeCompare(a.project_number, undefined, { numeric: true, sensitivity: "base" })
+                          )
+                          .map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.project_number} - {project.project_name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       type="button"
                       variant="outline"
@@ -1765,13 +1780,29 @@ useEffect(() => {
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <div className="flex-1 min-w-0">
-                    <ProjectSelectorNew
-                      projects={availableProjects}
-                      selectedProject={selectedProject}
-                      onSelect={handleProjectSelect}
-                      placeholder="Select existing project..."
-                      hideCreateButton={true}
-                    />
+                    <Select
+                      value={projectId}
+                      onValueChange={(value) => {
+                        const project = availableProjects.find((p) => p.id === value);
+                        if (project) handleProjectSelect(project);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select project..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableProjects
+                          .slice()
+                          .sort((a, b) =>
+                            b.project_number.localeCompare(a.project_number, undefined, { numeric: true, sensitivity: "base" })
+                          )
+                          .map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.project_number} - {project.project_name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button
                     type="button"

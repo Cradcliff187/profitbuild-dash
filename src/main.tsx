@@ -7,9 +7,6 @@ import { startSyncService } from '@/utils/backgroundSync';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 
-// Debug: Check if running as standalone PWA
-const isPWAStandalone = window.matchMedia('(display-mode: standalone)').matches;
-
 createRoot(document.getElementById("root")!).render(<App />);
 
 // Initialize background sync service

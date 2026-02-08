@@ -715,7 +715,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       createdAt: initialQuote?.createdAt || new Date()
     };
 
-    console.log('💾 [QUOTE FORM DEBUG] Saving quote with attachment_url:', attachmentUrl, 'Quote object:', quote);
     onSave(quote);
     // Success toast moved to Quotes.tsx handleSaveQuote (shown after DB confirms save)
   };
@@ -782,7 +781,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                   Project <span className="text-destructive">*</span>
                 </Label>
                 <Select 
-                  value={selectedProjectId} 
+                  value={selectedProjectId ?? ""} 
                   onValueChange={(value) => {
                     setSelectedProjectId(value);
                     setSelectedEstimate(undefined); // Reset estimate when project changes
@@ -808,7 +807,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                   Estimate <span className="text-destructive">*</span>
                 </Label>
                 <Select 
-                  value={selectedEstimate?.id} 
+                  value={selectedEstimate?.id ?? ""} 
                   onValueChange={(value) => {
                     const estimate = estimates.find(e => e.id === value);
                     if (estimate) setSelectedEstimate(estimate);
@@ -1489,7 +1488,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
               <QuoteAttachmentUpload
                 projectId={selectedEstimate?.project_id ?? initialQuote!.project_id}
                 onUploadSuccess={(url) => {
-                  console.log('📎 [QUOTE FORM DEBUG] Attachment URL received from upload:', url);
                   setAttachmentUrl(url);
                 }}
                 onRemove={async () => {
