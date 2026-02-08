@@ -13,6 +13,7 @@ interface ChangeOrderModalProps {
   projectId: string;
   editingChangeOrder: ChangeOrder | null;
   onSuccess: () => void;
+  onCancel: () => void;
 }
 
 export function ChangeOrderModal({
@@ -21,6 +22,7 @@ export function ChangeOrderModal({
   projectId,
   editingChangeOrder,
   onSuccess,
+  onCancel,
 }: ChangeOrderModalProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -54,6 +56,7 @@ export function ChangeOrderModal({
             }}
             onCancel={() => {
               onOpenChange(false);
+              onCancel();
             }}
           />
         </div>

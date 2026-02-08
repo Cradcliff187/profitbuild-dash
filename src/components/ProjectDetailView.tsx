@@ -494,6 +494,9 @@ export const ProjectDetailView = () => {
             setEditingChangeOrder(null);
             loadProjectData();
           }}
+          onCancel={() => {
+            setEditingChangeOrder(null);
+          }}
         />
       </div>
     );
@@ -742,6 +745,9 @@ export const ProjectDetailView = () => {
         onSuccess={() => {
           setEditingChangeOrder(null);
           loadProjectData();
+        }}
+        onCancel={() => {
+          setEditingChangeOrder(null);
         }}
       />
       </div>
