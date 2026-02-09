@@ -211,6 +211,61 @@ export async function getExpenseSplits(expenseId: string): Promise<ExpenseSplit[
 }
 
 /**
+ * Get splits for multiple expenses in a single query (batch fetch).
+ * Returns a Record keyed by expense_id, each containing an array of ExpenseSplit.
+ * This replaces the N+1 pattern of calling getExpenseSplits() in a loop.
+ */
+export async function getExpenseSplitsBatch(
+  expenseIds: string[]
+): Promise<Record<string, ExpenseSplit[]>> {
+  if (expenseIds.length === 0) return {};
+
+  try {
+    const { data, error } = await supabase
+      .from('expense_splits')
+      .select(`
+        *,
+        projects (
+          project_name,
+          project_number
+        )
+      `)
+      .in('expense_id', expenseIds)
+      .order('created_at');
+
+    if (error) throw error;
+
+    const result: Record<string, ExpenseSplit[]> = {};
+
+    (data || []).forEach(split => {
+      const mapped: ExpenseSplit = {
+        id: split.id,
+        expense_id: split.expense_id,
+        project_id: split.project_id,
+        split_amount: split.split_amount,
+        split_percentage: split.split_percentage,
+        notes: split.notes,
+        created_at: new Date(split.created_at),
+        updated_at: new Date(split.updated_at),
+        created_by: split.created_by,
+        project_name: split.projects?.project_name,
+        project_number: split.projects?.project_number,
+      };
+
+      if (!result[split.expense_id]) {
+        result[split.expense_id] = [];
+      }
+      result[split.expense_id].push(mapped);
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error batch-fetching expense splits:', error);
+    return {};
+  }
+}
+
+/**
  * Update splits for an expense (deletes old splits and creates new ones)
  */
 export async function updateExpenseSplits(

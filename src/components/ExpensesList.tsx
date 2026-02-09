@@ -59,7 +59,7 @@ import {
   TRANSACTION_TYPE_DISPLAY,
 } from "@/types/expense";
 import { PayeeType } from "@/types/payee";
-import { getExpenseSplits, calculateProjectExpenses } from "@/utils/expenseSplits";
+import { getExpenseSplitsBatch, calculateProjectExpenses } from "@/utils/expenseSplits";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -426,19 +426,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       const fetchExpenseSplits = async () => {
         if (expenses.length === 0) return;
 
-        const splitExpenses = expenses.filter((e) => e.is_split);
-        if (splitExpenses.length === 0) return;
+        const splitExpenseIds = expenses
+          .filter((e) => e.is_split && e.id)
+          .map((e) => e.id);
+        if (splitExpenseIds.length === 0) return;
 
         try {
-          const splitsData: Record<string, ExpenseSplit[]> = {};
-
-          await Promise.all(
-            splitExpenses.map(async (expense) => {
-              const splits = await getExpenseSplits(expense.id);
-              splitsData[expense.id] = splits;
-            }),
-          );
-
+          const splitsData = await getExpenseSplitsBatch(splitExpenseIds);
           setExpenseSplits(splitsData);
         } catch (error) {
           console.error("Error fetching expense splits:", error);

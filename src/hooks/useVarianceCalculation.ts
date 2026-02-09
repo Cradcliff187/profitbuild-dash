@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
-import { getExpenseSplits } from "@/utils/expenseSplits";
+import { getExpenseSplitsBatch } from "@/utils/expenseSplits";
 
 export interface LineItemDetail {
   description: string;
@@ -214,24 +214,30 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
       });
 
       // Process expenses (with split-aware calculation)
+      // Batch-fetch all splits upfront instead of N+1 individual queries
+      const splitExpenseIds = (expenseData || [])
+        .filter((item: any) => item.is_split && item.id)
+        .map((item: any) => item.id);
+      const allSplitsMap = await getExpenseSplitsBatch(splitExpenseIds);
+
       for (const item of expenseData || []) {
         const category = item.category as LineItemCategory;
         const description = item.description || 'Unnamed Item';
-        
+
         // Calculate split-aware amount
         let amount = 0;
         if (item.is_split && item.id) {
-          // Get splits for this expense and sum only those for this project
-          const splits = await getExpenseSplits(item.id);
+          // Use batch-fetched splits, filter to this project only
+          const splits = allSplitsMap[item.id] || [];
           const projectSplits = splits.filter(s => s.project_id === projectId);
           amount = projectSplits.reduce((sum, split) => sum + split.split_amount, 0);
         } else {
           // Not split, use full amount
           amount = Number(item.amount) || 0;
         }
-        
+
         allCategories.add(category);
-        
+
         if (!categoryMap.has(category)) {
           categoryMap.set(category, {
             estimated: 0,
@@ -240,7 +246,7 @@ export const useVarianceCalculation = (projectId: string): UseVarianceCalculatio
             lineItemsMap: new Map()
           });
         }
-        
+
         const categoryData = categoryMap.get(category)!;
         categoryData.actual += amount;
         
