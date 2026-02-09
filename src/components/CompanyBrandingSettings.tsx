@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 
 export function CompanyBrandingSettings() {
   const [branding, setBranding] = useState<any>(null);
@@ -73,7 +74,7 @@ export function CompanyBrandingSettings() {
     return (
       <Card className="hidden md:block">
         <CardContent className="pt-6 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <BrandedLoader size="sm" />
         </CardContent>
       </Card>
     );

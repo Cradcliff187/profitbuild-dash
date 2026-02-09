@@ -1,3 +1,11 @@
+/**
+ * @deprecated Use BrandedLoader from '@/components/ui/branded-loader' instead.
+ * - For page/section loading: <BrandedLoader size="lg" />
+ * - For card/compact loading: <BrandedLoader size="sm" />
+ * - For inline button spinners: use Loader2 from lucide-react directly
+ *
+ * This component will be removed in a future cleanup.
+ */
 import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";

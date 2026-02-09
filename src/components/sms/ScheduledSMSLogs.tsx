@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, Eye, Loader2 } from 'lucide-react';
+import { RefreshCw, Eye } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -111,8 +112,7 @@ export function ScheduledSMSLogs({ scheduleIdFilter }: ScheduledSMSLogsProps = {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading execution logs...</p>
+          <BrandedLoader size="md" message="Loading execution logs..." />
         </CardContent>
       </Card>
     );

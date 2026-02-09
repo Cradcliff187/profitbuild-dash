@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, RefreshCw } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -151,10 +152,7 @@ export default function FieldSchedule() {
 
       {isLoading && !tasks.length ? (
         <Card className="p-8">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading schedule...</p>
-          </div>
+          <BrandedLoader size="md" message="Loading schedule..." />
         </Card>
       ) : (
         <FieldScheduleTable

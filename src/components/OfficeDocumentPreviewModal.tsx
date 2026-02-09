@@ -8,7 +8,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, ExternalLink, FileText, Loader2, AlertCircle, Printer } from 'lucide-react';
+import { Download, ExternalLink, FileText, AlertCircle, Printer } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -189,10 +190,7 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
                 <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
                   {!contentLoaded && !loadError && (
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Loading document...</p>
-                      </div>
+                      <BrandedLoader size="sm" message="Loading document..." />
                     </div>
                   )}
                   <iframe
@@ -237,10 +235,7 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
                   {/* Loading indicator */}
                   {!contentLoaded && !loadError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted/20 z-10">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Loading document...</p>
-                      </div>
+                      <BrandedLoader size="sm" message="Loading document..." />
                     </div>
                   )}
                   

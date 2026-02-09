@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { AlertCircle, Download, ArrowUpDown, BarChart3, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import TaskEditPanel from './TaskEditPanel';
 import ScheduleWarningBanner from './ScheduleWarningBanner';
 import ScheduleStats from './ScheduleStats';
@@ -640,11 +640,7 @@ export default function ProjectScheduleView({
 
   if (isLoading || progressLoading) {
     return (
-      <LoadingSpinner 
-        variant="page" 
-        size="lg" 
-        message="Loading project schedule..." 
-      />
+      <BrandedLoader size="md" message="Loading project schedule..." />
     );
   }
 

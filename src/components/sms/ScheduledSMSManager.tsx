@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Clock, Plus, Edit, Trash2, Play, Pause, Send, Loader2, AlertCircle, FileText, ChevronDown } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -528,8 +529,7 @@ export function ScheduledSMSManager() {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scheduled messages...</p>
+          <BrandedLoader size="md" message="Loading scheduled messages..." />
         </CardContent>
       </Card>
     );

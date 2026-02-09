@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { Mic, MicOff, Send, Loader2, Trash2, User } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
@@ -151,7 +152,7 @@ export function BidNotesTimeline({ bidId }: BidNotesTimelineProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <BrandedLoader size="sm" />
       </div>
     );
   }

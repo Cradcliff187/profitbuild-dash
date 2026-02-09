@@ -6,7 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, ArrowLeft, Info } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowLeft, Info } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
@@ -143,8 +144,7 @@ export function ImportEstimateModal({ isOpen, onClose, onImport }: Props) {
           {/* PROCESSING STEP */}
           {step === 'processing' && (
             <div className="text-center py-12">
-              <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
-              <p className="text-lg font-medium">Analyzing budget sheet...</p>
+              <BrandedLoader size="lg" message="Analyzing budget sheet..." />
               <p className="text-sm text-muted-foreground mt-2">Extracting line items deterministically</p>
               <Progress value={66} className="w-64 mx-auto mt-6" />
             </div>

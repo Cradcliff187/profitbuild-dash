@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Eye, RefreshCw } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { formatCurrency } from '@/lib/utils';
 import { ImportBatchDetail } from './ImportBatchDetail';
 
@@ -84,7 +85,9 @@ export const ImportHistory = () => {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-8 text-gray-500">Loading import history...</div>
+          <div className="text-center py-8">
+            <BrandedLoader size="sm" message="Loading import history..." />
+          </div>
         ) : batches.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />

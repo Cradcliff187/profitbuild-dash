@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, ArrowLeft, Clock, ExternalLink, CheckCircle, FileText, Film, Download, AlertCircle } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { TrainingContent } from '@/types/training';
 import { useMyTraining } from '@/hooks/useTrainingAssignments';
@@ -134,7 +135,7 @@ export default function TrainingViewer() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <BrandedLoader size="md" message="Loading training content..." />
       </div>
     );
   }
@@ -192,8 +193,7 @@ export default function TrainingViewer() {
         if (!fileUrl) {
           return (
             <div className="text-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-              <p className="text-muted-foreground">Loading document...</p>
+              <BrandedLoader size="sm" message="Loading document..." />
             </div>
           );
         }
@@ -252,10 +252,10 @@ export default function TrainingViewer() {
                 <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
                   {!contentLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <BrandedLoader size="sm" />
                     </div>
                   )}
-                  
+
                   {isIOSDevice() && dataUrl ? (
                     <embed
                       type="application/pdf"
@@ -316,8 +316,7 @@ export default function TrainingViewer() {
         if (!fileUrl) {
           return (
             <div className="text-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-              <p className="text-muted-foreground">Loading presentation...</p>
+              <BrandedLoader size="sm" message="Loading presentation..." />
             </div>
           );
         }
@@ -364,10 +363,10 @@ export default function TrainingViewer() {
                 <div className="w-full relative bg-muted/20 rounded-lg border" style={{ height: '60vh', minHeight: '400px' }}>
                   {!contentLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-muted/20">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <BrandedLoader size="sm" />
                     </div>
                   )}
-                  
+
                   <iframe
                     src={googleViewerUrl}
                     className="absolute inset-0 w-full h-full rounded-lg border-0"

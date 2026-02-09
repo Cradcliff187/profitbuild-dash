@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, FileText, Download, Loader2, Trash2, Eye } from 'lucide-react';
+import { Filter, FileText, Download, Trash2, Eye } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -126,7 +127,7 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <BrandedLoader size="md" message="Loading contracts..." />
       </div>
     );
   }

@@ -10,6 +10,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useTrainingAssignments } from '@/hooks/useTrainingAssignments';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Loader2, Users, UserCheck } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -278,8 +279,7 @@ export const TrainingAssignmentDialog = ({
             <div className="border rounded-md max-h-[300px] overflow-y-auto">
               {isLoading ? (
                 <div className="p-4 text-center">
-                  <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Loading users...</p>
+                  <BrandedLoader size="sm" message="Loading users..." />
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">

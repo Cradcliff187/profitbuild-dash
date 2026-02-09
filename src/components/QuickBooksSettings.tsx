@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Link2, Unlink, CheckCircle2, AlertTriangle, RefreshCw, Database } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { useQuickBooksConnection } from '@/hooks/useQuickBooksConnection';
 import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
 import { QuickBooksBackfillModal } from '@/components/QuickBooksBackfillModal';
@@ -27,7 +28,7 @@ export function QuickBooksSettings() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <BrandedLoader size="sm" />
         </CardContent>
       </Card>
     );
@@ -60,7 +61,7 @@ export function QuickBooksSettings() {
       <CardContent className="space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <BrandedLoader size="sm" />
           </div>
         ) : isConnected && connection ? (
           // Connected State

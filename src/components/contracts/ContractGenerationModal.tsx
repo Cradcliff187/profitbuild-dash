@@ -41,6 +41,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, Calendar as CalendarIcon, AlertCircle, FileText, Download, Plus, Trash2 } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -351,10 +352,7 @@ export function ContractGenerationModal({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Loading contract data...</span>
-          </div>
+          <BrandedLoader size="md" message="Loading contract data..." />
         </DialogContent>
       </Dialog>
     );

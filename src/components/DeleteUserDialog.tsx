@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle, ShieldBan } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Badge } from '@/components/ui/badge';
 import type { AppRole } from '@/contexts/RoleContext';
 
@@ -164,7 +165,7 @@ export function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: Delete
           <AlertDialogDescription className="space-y-4 pt-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <BrandedLoader size="sm" />
               </div>
             ) : (
               <>

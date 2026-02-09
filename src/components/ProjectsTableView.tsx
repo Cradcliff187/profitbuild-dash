@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1231,7 +1230,7 @@ export const ProjectsTableView = ({
                 >
                   {deletingProjectId === project.id ? (
                     <>
-                      <LoadingSpinner size="sm" className="mr-2" />
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Deleting...
                     </>
                   ) : (
@@ -1486,7 +1485,7 @@ export const ProjectsTableView = ({
               >
                 {deletingProjectId === deleteConfirm.project?.id ? (
                   <>
-                    <LoadingSpinner size="sm" className="mr-2" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Deleting...
                   </>
                 ) : (
