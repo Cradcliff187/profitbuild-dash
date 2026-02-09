@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,8 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
   const [mediaCounts, setMediaCounts] = useState({ photos: 0, videos: 0 });
   const [documentCount, setDocumentCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  const currentProjectIdRef = useRef(projectId);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -289,6 +291,9 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
         changeOrderCosts
       } as ProjectWithFinancials;
 
+      // Guard: if projectId changed while we were fetching, discard stale results
+      if (projectId !== currentProjectIdRef.current) return;
+
       setProject(projectWithFinancials);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
@@ -327,7 +332,9 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
         )
       });
     } finally {
-      setIsLoading(false);
+      if (projectId === currentProjectIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [projectId, navigate, toast]);
 
@@ -398,6 +405,7 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
   }, [projectId, toast, loadProjectData, navigate]);
 
   useEffect(() => {
+    currentProjectIdRef.current = projectId;
     if (projectId) {
       loadProjectData();
     }
