@@ -23,7 +23,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProjectStatus, PROJECT_STATUSES } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface ProjectStatusSelectorProps {
@@ -47,7 +47,6 @@ export const ProjectStatusSelector = ({
   disabled = false,
   showLabel = false
 }: ProjectStatusSelectorProps) => {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null);
@@ -120,17 +119,10 @@ export const ProjectStatusSelector = ({
 
       onStatusChange?.(newStatus);
       
-      toast({
-        title: "Status Updated",
-        description: `Project "${projectName}" is now ${newStatus.replace(/_/g, ' ')}.`
-      });
+      toast.success("Status Updated", { description: `Project "${projectName}" is now ${newStatus.replace(/_/g, ' ')}.` });
     } catch (error) {
       console.error('Error updating project status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update project status. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to update project status. Please try again.");
     } finally {
       setIsLoading(false);
       setShowConfirmDialog(false);

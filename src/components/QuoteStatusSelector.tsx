@@ -33,7 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QuoteStatus } from "@/types/quote";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface QuoteStatusSelectorProps {
@@ -59,7 +59,6 @@ export const QuoteStatusSelector = ({
   disabled = false,
   showLabel = false
 }: QuoteStatusSelectorProps) => {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
@@ -152,20 +151,13 @@ export const QuoteStatusSelector = ({
       // Trigger project margin recalculation
       await supabase.rpc('calculate_project_margins', { p_project_id: projectId });
 
-      toast({
-        title: "Status Updated",
-        description: `Quote ${quoteNumber} status changed to ${newStatus.toLowerCase()}`,
-      });
+      toast.success(`Quote ${quoteNumber} status changed to ${newStatus.toLowerCase()}`);
 
       onStatusChange?.(newStatus);
       
     } catch (error) {
       console.error('Error updating quote status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update quote status. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to update quote status. Please try again.");
     } finally {
       setIsLoading(false);
       setShowConfirmDialog(false);
@@ -183,11 +175,7 @@ export const QuoteStatusSelector = ({
 
   const confirmRejection = () => {
     if (rejectionReason.trim().length < 10) {
-      toast({
-        title: "Rejection Reason Required",
-        description: "Please provide a reason (at least 10 characters)",
-        variant: "destructive"
-      });
+      toast.error("Please provide a reason (at least 10 characters)");
       return;
     }
     if (pendingStatus) {

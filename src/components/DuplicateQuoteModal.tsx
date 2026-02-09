@@ -5,7 +5,7 @@ import { Quote } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { EstimateSelector } from "./EstimateSelector";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { AlertCircle, Copy } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,7 +25,6 @@ export const DuplicateQuoteModal = ({
   estimates,
   onSuccess
 }: DuplicateQuoteModalProps) => {
-  const { toast } = useToast();
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate>();
   const [duplicating, setDuplicating] = useState(false);
 
@@ -36,11 +35,7 @@ export const DuplicateQuoteModal = ({
 
   const handleDuplicate = async () => {
     if (!selectedEstimate) {
-      toast({
-        title: "Error",
-        description: "Please select an estimate version",
-        variant: "destructive"
-      });
+      toast.error("Please select an estimate version");
       return;
     }
 
@@ -53,20 +48,13 @@ export const DuplicateQuoteModal = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Quote Duplicated",
-        description: "Quote has been duplicated. Please review and link line items to the new estimate."
-      });
+      toast.success("Quote Duplicated", { description: "Quote has been duplicated. Please review and link line items to the new estimate." });
 
       onOpenChange(false);
       onSuccess(data);
     } catch (error) {
       console.error('Error duplicating quote:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to duplicate quote",
-        variant: "destructive"
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to duplicate quote");
     } finally {
       setDuplicating(false);
     }

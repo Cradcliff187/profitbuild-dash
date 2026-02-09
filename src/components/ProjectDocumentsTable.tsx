@@ -21,7 +21,7 @@ import { MobileListCard } from "@/components/ui/mobile-list-card";
 import { DocumentLeadingIcon } from "@/utils/documentFileType";
 import { useDocumentPreview } from "@/hooks/useDocumentPreview";
 import { DocumentPreviewModals } from "@/components/documents/DocumentPreviewModals";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, differenceInDays, parseISO } from "date-fns";
 import type { ProjectDocument, DocumentType } from "@/types/document";
@@ -39,7 +39,6 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
   const [typeFilter, setTypeFilter] = useState<DocumentType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const preview = useDocumentPreview();
@@ -110,10 +109,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
 
       if (error) throw error;
 
-      toast({
-        title: "Document deleted",
-        description: "Document removed successfully",
-      });
+      toast.success("Document deleted", { description: "Document removed successfully" });
 
       refetch();
       onDocumentDeleted?.();
@@ -121,11 +117,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
       if (import.meta.env.DEV) {
         console.error("Delete error:", error);
       }
-      toast({
-        title: "Delete failed",
-        description: error instanceof Error ? error.message : "Failed to delete document",
-        variant: "destructive",
-      });
+      toast.error("Delete failed", { description: error instanceof Error ? error.message : "Failed to delete document" });
     } finally {
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);

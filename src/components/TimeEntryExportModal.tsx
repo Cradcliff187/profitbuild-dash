@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Download, Clock, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntryListItem, TimeEntryFilters } from "@/types/timeEntry";
@@ -52,7 +52,6 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
   filters,
   totalCount
 }) => {
-  const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'csv',
@@ -194,38 +193,24 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
       let entriesToExport = entries;
 
       if (exportOptions.exportScope === 'all_filtered') {
-        toast({
-          title: "Fetching entries",
-          description: `Loading all ${totalCount} filtered entries...`,
-        });
+        toast.info(`Loading all ${totalCount} filtered entries...`);
         entriesToExport = await fetchAllFilteredEntries();
       }
 
       if (entriesToExport.length === 0) {
-        toast({
-          title: "No data to export",
-          description: "No time entries match the current filters.",
-          variant: "destructive",
-        });
+        toast.error("No data to export", { description: "No time entries match the current filters." });
         setIsExporting(false);
         return;
       }
 
       await exportToCSV(entriesToExport);
 
-      toast({
-        title: "Export successful",
-        description: `Successfully exported ${entriesToExport.length} time entries`,
-      });
+      toast.success(`Successfully exported ${entriesToExport.length} time entries`);
 
       onClose();
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: "There was an error exporting the data",
-        variant: "destructive",
-      });
+      toast.error("There was an error exporting the data");
     } finally {
       setIsExporting(false);
     }

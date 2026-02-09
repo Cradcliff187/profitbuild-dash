@@ -18,7 +18,7 @@ import { EditableField, CalculatedField, ReadOnlyField } from "@/components/ui/f
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP, EstimateStatus } from "@/types/estimate";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { LineItemTable } from "@/components/LineItemTable";
@@ -54,7 +54,6 @@ interface EstimateFormProps {
 }
 
 export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjectId, preselectedProjectType, availableEstimates = [], onSave, onCancel, hideNavigationButtons = false }: EstimateFormProps) => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const sourceEstimateIdFromUrl = searchParams.get('sourceEstimateId');
@@ -149,21 +148,14 @@ useEffect(() => {
       const isNetworkError = error instanceof TypeError && 
                              error.message.includes('fetch');
       
-      toast({
-        title: isNetworkError ? "Connection Error" : "Error Loading Projects",
-        description: isNetworkError 
+      toast.error(isNetworkError ? "Connection Error" : "Error Loading Projects", {
+        description: isNetworkError
           ? "Please check your internet connection and try again."
           : "Failed to load projects. If this persists, contact support.",
-        variant: "destructive",
-        action: (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => loadAvailableProjects()}
-          >
-            Retry
-          </Button>
-        )
+        action: {
+          label: "Retry",
+          onClick: () => loadAvailableProjects(),
+        },
       });
     } finally {
       setProjectsLoading(false);
@@ -295,17 +287,10 @@ useEffect(() => {
 
       setLineItems(items as LineItem[]);
       
-      toast({
-        title: "Estimate Copied",
-        description: `Copied ${items.length} line items from estimate ${estimateData.estimate_number}`,
-      });
+      toast.success("Estimate Copied", { description: `Copied ${items.length} line items from estimate ${estimateData.estimate_number}` });
     } catch (error) {
       console.error('Error copying estimate:', error);
-      toast({
-        title: "Error",
-        description: "Failed to copy estimate data",
-        variant: "destructive"
-      });
+      toast.error("Failed to copy estimate data");
     }
   };
 
@@ -466,10 +451,7 @@ useEffect(() => {
 
   const handleImportItems = (items: any[]) => {
     setLineItems(prev => [...prev, ...items]);
-    toast({
-      title: "Items Imported",
-      description: `Added ${items.length} line items to estimate`,
-    });
+    toast.success("Items Imported", { description: `Added ${items.length} line items to estimate` });
   };
 
   const duplicateLineItem = (lineItem: LineItem) => {
@@ -594,11 +576,7 @@ useEffect(() => {
     const validLineItems = lineItems.filter(item => item.description.trim());
     
     if (validLineItems.length === 0) {
-      toast({
-        title: "Missing Line Items",
-        description: "Please add at least one line item with a description.",
-        variant: "destructive"
-      });
+      toast.error("Please add at least one line item with a description.");
       return;
     }
 
@@ -611,29 +589,18 @@ useEffect(() => {
     });
     
     if (negativeMarkupItems.length > 0) {
-      toast({
-        title: "⚠️ Negative Markup Detected",
-        description: `${negativeMarkupItems.length} line item${negativeMarkupItems.length > 1 ? 's are' : ' is'} priced below cost. Verify this is intentional.`,
-        variant: "default",
-      });
+      toast.warning(`${negativeMarkupItems.length} line item${negativeMarkupItems.length > 1 ? 's are' : ' is'} priced below cost. Verify this is intentional.`);
     }
 
     if (!projectId) {
-      toast({
-        title: "Missing Project",
-        description: "Please select a project for this estimate.",
-        variant: "destructive"
-      });
+      toast.error("Please select a project for this estimate.");
       return;
     }
 
     setIsLoading(true);
     
     // Optimistic update: Show saving state
-    toast({
-      title: initialEstimate ? "Updating Estimate" : "Creating Estimate",
-      description: "Processing estimate details...",
-    });
+    toast.info(initialEstimate ? "Updating Estimate" : "Creating Estimate", { description: "Processing estimate details..." });
     
     // Get project data to pass project number to estimate generation
     const { data: projectData, error: projectError } = await supabase
@@ -644,11 +611,7 @@ useEffect(() => {
     
     if (projectError) {
       console.error('Error fetching project:', projectError);
-      toast({
-        title: "Error",
-        description: "Failed to fetch project information",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch project information");
       setIsLoading(false);
       return;
     }
@@ -755,10 +718,7 @@ useEffect(() => {
 
           onSave(newVersionEstimate);
           
-          toast({
-            title: "New Version Created",
-            description: `New estimate version v${estimateData.version_number} created successfully.`
-          });
+          toast.success("New Version Created", { description: `New estimate version v${estimateData.version_number} created successfully.` });
 
         } else {
           // Regular editing for non-approved estimates
@@ -873,10 +833,7 @@ useEffect(() => {
 
           onSave(updatedEstimate);
           
-          toast({
-            title: "Estimate Updated",
-            description: `Estimate has been updated successfully.`
-          });
+          toast.success("Estimate Updated", { description: `Estimate has been updated successfully.` });
         }
 
       } else {
@@ -996,10 +953,7 @@ useEffect(() => {
 
           onSave(newEstimate);
           
-          toast({
-            title: "New Version Created",
-            description: `New estimate version v${estimateData.version_number} created successfully.`
-          });
+          toast.success("New Version Created", { description: `New estimate version v${estimateData.version_number} created successfully.` });
 
         } else {
           // Project has no estimates - create first estimate
@@ -1107,10 +1061,7 @@ useEffect(() => {
 
           onSave(newEstimate);
           
-          toast({
-            title: "First Estimate Created",
-            description: `Estimate ${estimateNumber} has been created successfully.`
-          });
+          toast.success("First Estimate Created", { description: `Estimate ${estimateNumber} has been created successfully.` });
         }
       }
 
@@ -1126,11 +1077,7 @@ useEffect(() => {
         lineItemsCount: validLineItems.length
       });
       
-      toast({
-        title: "Error",
-        description: `Failed to save estimate: ${error?.message || 'Unknown error'}. Please check the console for details.`,
-        variant: "destructive"
-      });
+      toast.error(`Failed to save estimate: ${error?.message || 'Unknown error'}. Please check the console for details.`);
     } finally {
       setIsLoading(false);
     }

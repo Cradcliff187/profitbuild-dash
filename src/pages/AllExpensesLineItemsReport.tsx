@@ -9,7 +9,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { parseDateOnly } from "@/utils/dateUtils";
 import { ExpenseCategory, TRANSACTION_TYPE_DISPLAY, EXPENSE_CATEGORY_DISPLAY } from "@/types/expense";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { ReportField } from "@/utils/reportExporter";
@@ -37,7 +37,6 @@ const AllExpensesLineItemsReport = () => {
   const [expenses, setExpenses] = useState<ExpenseLineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const toggleCard = (id: string) => {
@@ -99,11 +98,7 @@ const AllExpensesLineItemsReport = () => {
       setExpenses(transformedExpenses);
     } catch (error: any) {
       console.error("Error loading expenses:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load expenses: " + (error.message || "Unknown error"),
-        variant: "destructive",
-      });
+      toast.error("Failed to load expenses: " + (error.message || "Unknown error"));
     } finally {
       setLoading(false);
     }

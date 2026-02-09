@@ -7,7 +7,7 @@ import { BrandedLoader } from "@/components/ui/branded-loader";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { ReportField } from "@/utils/reportExporter";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -34,7 +34,6 @@ const AllRevenuesLineItemsReport = () => {
   const [revenues, setRevenues] = useState<RevenueLineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const toggleCard = (id: string) => {
@@ -133,11 +132,7 @@ const AllRevenuesLineItemsReport = () => {
       setRevenues(transformedRevenues);
     } catch (error: any) {
       console.error("Error loading revenues:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load revenues: " + (error.message || "Unknown error"),
-        variant: "destructive",
-      });
+      toast.error("Failed to load revenues: " + (error.message || "Unknown error"));
     } finally {
       setLoading(false);
     }

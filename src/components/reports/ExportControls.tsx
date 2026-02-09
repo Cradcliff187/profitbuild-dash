@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
 import { exportToPDF, exportToExcel, exportToCSV, downloadBlob, ReportField } from "@/utils/reportExporter";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -17,7 +17,6 @@ interface ExportControlsProps {
 }
 
 export function ExportControls({ reportName, data, fields }: ExportControlsProps) {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const handleExportPDF = async () => {
@@ -29,16 +28,9 @@ export function ExportControls({ reportName, data, fields }: ExportControlsProps
       });
       const filename = `${reportName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       downloadBlob(blob, filename);
-      toast({
-        title: "PDF Exported",
-        description: `Report exported as ${filename}`
-      });
+      toast.success("PDF Exported", { description: `Report exported as ${filename}` });
     } catch (error: any) {
-      toast({
-        title: "Export Failed",
-        description: error.message || "Failed to export PDF",
-        variant: "destructive"
-      });
+      toast.error("Export Failed", { description: error.message || "Failed to export PDF" });
     }
   };
 
@@ -50,16 +42,9 @@ export function ExportControls({ reportName, data, fields }: ExportControlsProps
       });
       const filename = `${reportName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xls`;
       downloadBlob(blob, filename);
-      toast({
-        title: "Excel Exported",
-        description: `Report exported as ${filename}`
-      });
+      toast.success("Excel Exported", { description: `Report exported as ${filename}` });
     } catch (error: any) {
-      toast({
-        title: "Export Failed",
-        description: error.message || "Failed to export Excel",
-        variant: "destructive"
-      });
+      toast.error("Export Failed", { description: error.message || "Failed to export Excel" });
     }
   };
 
@@ -71,16 +56,9 @@ export function ExportControls({ reportName, data, fields }: ExportControlsProps
       });
       const filename = `${reportName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
       downloadBlob(blob, filename);
-      toast({
-        title: "CSV Exported",
-        description: `Report exported as ${filename}`
-      });
+      toast.success("CSV Exported", { description: `Report exported as ${filename}` });
     } catch (error: any) {
-      toast({
-        title: "Export Failed",
-        description: error.message || "Failed to export CSV",
-        variant: "destructive"
-      });
+      toast.error("Export Failed", { description: error.message || "Failed to export CSV" });
     }
   };
 

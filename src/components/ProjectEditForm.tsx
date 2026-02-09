@@ -17,7 +17,7 @@ import { Project, ProjectType, ProjectStatus, JOB_TYPES, PROJECT_STATUSES } from
 import { Client } from "@/types/client";
 import { ClientSelector } from "@/components/ClientSelector";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface ProjectEditFormProps {
   project: Project;
@@ -26,8 +26,6 @@ interface ProjectEditFormProps {
 }
 
 export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormProps) => {
-  const { toast } = useToast();
-  
   const [projectName, setProjectName] = useState(project.project_name);
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
@@ -94,20 +92,12 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
   const validateForm = async () => {
     if (!projectName.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Project name is required.",
-        variant: "destructive"
-      });
+      toast.error("Missing Information", { description: "Project name is required." });
       return false;
     }
 
     if (!selectedClientId) {
-      toast({
-        title: "Missing Information",
-        description: "Client selection is required.",
-        variant: "destructive"
-      });
+      toast.error("Missing Information", { description: "Client selection is required." });
       return false;
     }
 
@@ -171,18 +161,11 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
       onSave(formattedProject);
       
-      toast({
-        title: "Project Updated",
-        description: `Project "${projectName}" has been updated successfully.`
-      });
+      toast.success("Project Updated", { description: `Project "${projectName}" has been updated successfully.` });
 
     } catch (error) {
       console.error('Error updating project:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update project. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to update project. Please try again.");
     } finally {
       setIsLoading(false);
     }

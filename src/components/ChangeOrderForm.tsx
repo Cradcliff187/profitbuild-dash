@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,6 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   const [changeOrderNumber, setChangeOrderNumber] = useState("");
   const [contingencyRemaining, setContingencyRemaining] = useState<number>(0);
   const [lineItems, setLineItems] = useState<ChangeOrderLineItemInput[]>([]);
-  const { toast } = useToast();
 
   const form = useForm<ChangeOrderFormData>({
     resolver: zodResolver(changeOrderSchema),
@@ -163,22 +162,14 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
   const validateLineItems = (): boolean => {
     if (lineItems.length === 0) {
-      toast({
-        title: "Line Items Required",
-        description: "Add at least one line item to document the work being performed",
-        variant: "destructive"
-      });
+      toast.error("Line Items Required", { description: "Add at least one line item to document the work being performed" });
       return false;
     }
 
     // Check for empty descriptions
     const hasEmptyDescriptions = lineItems.some(item => !item.description || item.description.trim() === '');
     if (hasEmptyDescriptions) {
-      toast({
-        title: "Incomplete Line Items",
-        description: "All line items must have a description",
-        variant: "destructive"
-      });
+      toast.error("Incomplete Line Items", { description: "All line items must have a description" });
       return false;
     }
 
@@ -234,10 +225,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
         if (liError) throw liError;
 
-        toast({
-          title: "Success",
-          description: "Change order updated successfully",
-        });
+        toast.success("Change order updated successfully");
       } else {
         // Create new change order
         const { data: changeOrderData, error: coError } = await supabase
@@ -278,20 +266,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
         if (liError) throw liError;
 
-        toast({
-          title: "Success",
-          description: "Change order created successfully",
-        });
+        toast.success("Change order created successfully");
       }
 
       onSuccess();
     } catch (error) {
       console.error('Error saving change order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save change order. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to save change order. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

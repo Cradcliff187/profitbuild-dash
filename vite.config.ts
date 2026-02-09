@@ -42,7 +42,6 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-accordion',
             '@radix-ui/react-alert-dialog',
             '@radix-ui/react-popover',
-            '@radix-ui/react-toast',
             '@radix-ui/react-tooltip',
             '@radix-ui/react-checkbox',
             '@radix-ui/react-radio-group',

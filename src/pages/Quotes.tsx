@@ -16,7 +16,7 @@ import { Quote, QuoteStatus } from "@/types/quote";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contract } from "@/types/contract";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/tooltip";
 
 const Quotes = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
@@ -112,17 +111,13 @@ const Quotes = () => {
       }
       const { error } = await supabase.from("contracts").delete().eq("id", contractId);
       if (error) throw error;
-      toast({ title: "Contract deleted", description: "The contract has been removed." });
+      toast.success("Contract deleted", { description: "The contract has been removed." });
       await fetchQuoteContracts();
     } catch (err) {
       console.error("Error deleting contract:", err);
-      toast({
-        title: "Delete failed",
-        description: err instanceof Error ? err.message : "Failed to delete contract",
-        variant: "destructive",
-      });
+      toast.error("Delete failed", { description: err instanceof Error ? err.message : "Failed to delete contract" });
     }
-  }, [fetchQuoteContracts, toast]);
+  }, [fetchQuoteContracts]);
 
   // Apply filters when quotes or filters change
   useEffect(() => {
@@ -231,15 +226,11 @@ const Quotes = () => {
       } else if (estimates.length > 0) {
         // Estimates loaded but estimate not found
         setView('create');
-        toast({
-          title: "Estimate not found",
-          description: "Please select the estimate manually",
-          variant: "default"
-        });
+        toast.info("Estimate not found", { description: "Please select the estimate manually" });
         window.history.replaceState({}, '', '/quotes');
       }
     }
-  }, [searchParams, estimates, view, toast]);
+  }, [searchParams, estimates, view]);
 
   const loadClients = async () => {
     const { data, error } = await supabase
@@ -569,11 +560,7 @@ const Quotes = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load quotes and estimates.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load quotes and estimates.");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -681,11 +668,7 @@ const Quotes = () => {
               });
             
             if (rpcError || !newQuoteNumber) {
-              toast({
-                title: "Error",
-                description: "Failed to generate new quote number",
-                variant: "destructive",
-              });
+              toast.error("Failed to generate new quote number");
               throw quoteError;
             }
             
@@ -725,10 +708,7 @@ const Quotes = () => {
       setView('list');
       setSelectedQuote(undefined);
       
-      toast({
-        title: selectedQuote ? "Quote Updated" : "Quote Created",
-        description: `Quote ${quote.quoteNumber} has been ${selectedQuote ? 'updated' : 'created'} successfully.`
-      });
+      toast.success(selectedQuote ? "Quote Updated" : "Quote Created", { description: `Quote ${quote.quoteNumber} has been ${selectedQuote ? 'updated' : 'created'} successfully.` });
 
       // Navigate back to originating page if returnUrl exists
       if (returnUrl) {
@@ -740,11 +720,7 @@ const Quotes = () => {
     } catch (error) {
       console.error('Error saving quote:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to save quote. Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to save quote. Please try again.");
     }
   };
 
@@ -760,17 +736,10 @@ const Quotes = () => {
       
       await fetchData(); // Refresh the data
       
-      toast({
-        title: "Quote Deleted",
-        description: "The quote has been successfully deleted."
-      });
+      toast.success("Quote Deleted", { description: "The quote has been successfully deleted." });
     } catch (error) {
       console.error('Error deleting quote:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete quote. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete quote. Please try again.");
     }
   };
 
@@ -987,12 +956,9 @@ const Quotes = () => {
             quoteId={selectedQuote.id}
             payeeId={selectedQuote.payee_id}
             onSuccess={(result) => {
-              toast({
-                title: "Contract generated",
-                description: result.docxUrl
+              toast.success("Contract generated", { description: result.docxUrl
                   ? "Download available from the project's Documents > Contracts tab."
-                  : `Contract ${result.contractNumber} created.`,
-              });
+                  : `Contract ${result.contractNumber} created.` });
               setShowContractModal(false);
               fetchData();
               // Refetch contracts to show the newly generated one

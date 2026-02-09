@@ -18,7 +18,7 @@ import { DocumentLeadingIcon } from '@/utils/documentFileType';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Contract } from '@/types/contract';
@@ -48,7 +48,6 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<(Contract & { payee_name?: string }) | null>(null);
-  const { toast } = useToast();
   const preview = useDocumentPreview();
 
   const fetchContracts = useCallback(async () => {
@@ -74,15 +73,11 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
       setContracts(rows);
     } catch (err) {
       console.error('Error fetching contracts:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load contracts.',
-        variant: 'destructive',
-      });
+      toast.error("Failed to load contracts.");
     } finally {
       setLoading(false);
     }
-  }, [projectId, toast]);
+  }, [projectId]);
 
   const handleDeleteContract = async () => {
     if (!contractToDelete) return;
@@ -96,15 +91,11 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
       }
       const { error } = await supabase.from('contracts').delete().eq('id', contractToDelete.id);
       if (error) throw error;
-      toast({ title: 'Contract deleted', description: 'The contract has been removed. Related document records were cleaned up.' });
+      toast.success("Contract deleted", { description: "The contract has been removed. Related document records were cleaned up." });
       fetchContracts();
     } catch (err) {
       console.error('Error deleting contract:', err);
-      toast({
-        title: 'Delete failed',
-        description: err instanceof Error ? err.message : 'Failed to delete contract',
-        variant: 'destructive',
-      });
+      toast.error("Delete failed", { description: err instanceof Error ? err.message : "Failed to delete contract" });
     } finally {
       setDeleteDialogOpen(false);
       setContractToDelete(null);

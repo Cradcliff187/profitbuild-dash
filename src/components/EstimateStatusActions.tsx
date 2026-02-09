@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EstimateStatus } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface EstimateStatusActionsProps {
   estimateId: string;
@@ -25,7 +25,6 @@ export const EstimateStatusActions = ({
   onStatusUpdate,
   className 
 }: EstimateStatusActionsProps) => {
-  const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const updateStatus = async (newStatus: EstimateStatus) => {
@@ -45,10 +44,7 @@ export const EstimateStatusActions = ({
 
       // Guard: Prevent no-op transitions (already in target status)
       if (freshStatus === newStatus) {
-        toast({
-          title: "No Change",
-          description: `Estimate is already in ${newStatus} status`,
-        });
+        toast.info(`Estimate is already in ${newStatus} status`);
         return;
       }
 
@@ -92,8 +88,7 @@ export const EstimateStatusActions = ({
 
         if (projectError) throw projectError;
 
-        toast({
-          title: "Estimate Approved",
+        toast.success("Estimate Approved", {
           description: `Estimate approved and set as contract value (${new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD'
@@ -133,10 +128,7 @@ export const EstimateStatusActions = ({
 
         if (projectError) throw projectError;
 
-        toast({
-          title: "Status Updated",
-          description: `Estimate status changed to ${newStatus} and contract value cleared`,
-        });
+        toast.success(`Estimate status changed to ${newStatus} and contract value cleared`);
       } else {
         // Simple status update (non-approval transitions)
         const { error: updateError } = await supabase
@@ -149,21 +141,14 @@ export const EstimateStatusActions = ({
 
         if (updateError) throw updateError;
 
-        toast({
-          title: "Status Updated",
-          description: `Estimate status changed to ${newStatus}`,
-        });
+        toast.success(`Estimate status changed to ${newStatus}`);
       }
 
       onStatusUpdate(newStatus);
       
     } catch (error) {
       console.error('Error updating estimate status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update estimate status and contract value",
-        variant: "destructive"
-      });
+      toast.error("Failed to update estimate status and contract value");
     } finally {
       setIsUpdating(false);
     }

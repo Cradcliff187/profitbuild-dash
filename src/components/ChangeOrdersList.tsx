@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChangeOrderStatusBadge, ChangeOrderStatus } from './ChangeOrderStatusBadge';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
@@ -45,7 +45,6 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ChangeOrderStatus | 'all'>('all');
-  const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -66,11 +65,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       setChangeOrders(data || []);
     } catch (error) {
       console.error('Error fetching change orders:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load change orders.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load change orders.");
     } finally {
       setLoading(false);
     }
@@ -125,28 +120,17 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
       if (error) throw error;
 
       setChangeOrders(prev => prev.filter(co => co.id !== id));
-      toast({
-        title: "Change Order Deleted",
-        description: "The change order and related quotes have been successfully deleted.",
-      });
+      toast.success("Change Order Deleted", { description: "The change order and related quotes have been successfully deleted." });
     } catch (error) {
       console.error('Error deleting change order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete change order.",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete change order.");
     }
   };
 
   const handleApprove = async (changeOrder: ChangeOrder) => {
     try {
       if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to approve change orders.",
-          variant: "destructive",
-        });
+        toast.error("You must be logged in to approve change orders.");
         return;
       }
 
@@ -240,17 +224,10 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           : co
       ));
       
-      toast({
-        title: "Change Order Approved",
-        description: `${changeOrder.change_order_number} approved and quote ${quoteNumber} created automatically.`,
-      });
+      toast.success("Change Order Approved", { description: `${changeOrder.change_order_number} approved and quote ${quoteNumber} created automatically.` });
     } catch (error) {
       console.error('Error approving change order:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to approve change order.",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to approve change order.");
     }
   };
 
@@ -273,17 +250,10 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           : co
       ));
       
-      toast({
-        title: "Change Order Rejected",
-        description: `Change Order ${changeOrder.change_order_number} has been rejected.`,
-      });
+      toast.success("Change Order Rejected", { description: `Change Order ${changeOrder.change_order_number} has been rejected.` });
     } catch (error) {
       console.error('Error rejecting change order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reject change order.",
-        variant: "destructive",
-      });
+      toast.error("Failed to reject change order.");
     }
   };
 

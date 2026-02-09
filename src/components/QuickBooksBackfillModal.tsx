@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 
@@ -61,7 +61,6 @@ export const QuickBooksBackfillModal: React.FC<QuickBooksBackfillModalProps> = (
   const [isLoading, setIsLoading] = useState(false);
   const [previewResult, setPreviewResult] = useState<BackfillResult | null>(null);
   const [finalResult, setFinalResult] = useState<BackfillResult | null>(null);
-  const { toast } = useToast();
 
   const handleClose = () => {
     if (!isLoading) {
@@ -102,11 +101,7 @@ export const QuickBooksBackfillModal: React.FC<QuickBooksBackfillModalProps> = (
       setPreviewResult(data as BackfillResult);
     } catch (error) {
       console.error('Preview error:', error);
-      toast({
-        title: 'Preview Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive'
-      });
+      toast.error("Preview Failed", { description: error instanceof Error ? error.message : "Unknown error occurred" });
     } finally {
       setIsLoading(false);
     }
@@ -141,19 +136,12 @@ export const QuickBooksBackfillModal: React.FC<QuickBooksBackfillModalProps> = (
       setFinalResult(result);
       setStep('complete');
       
-      toast({
-        title: 'Backfill Complete',
-        description: `Updated ${result.expensesUpdated} expenses and ${result.revenuesUpdated} revenues`,
-      });
+      toast.success("Backfill Complete", { description: `Updated ${result.expensesUpdated} expenses and ${result.revenuesUpdated} revenues` });
 
       onSuccess();
     } catch (error) {
       console.error('Backfill error:', error);
-      toast({
-        title: 'Backfill Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive'
-      });
+      toast.error("Backfill Failed", { description: error instanceof Error ? error.message : "Unknown error occurred" });
       setStep('preview');
     } finally {
       setIsLoading(false);

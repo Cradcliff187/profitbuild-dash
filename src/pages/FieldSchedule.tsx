@@ -5,7 +5,7 @@ import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useScheduleTasks } from '@/components/schedule/hooks/useScheduleTasks';
 import { FieldScheduleTable } from '@/components/schedule/FieldScheduleTable';
@@ -14,7 +14,6 @@ import { ScheduleTask } from '@/types/schedule';
 export default function FieldSchedule() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [projectName, setProjectName] = useState<string>('');
   const [projectStartDate, setProjectStartDate] = useState<string>('');
   const [projectEndDate, setProjectEndDate] = useState<string>('');
@@ -33,11 +32,7 @@ export default function FieldSchedule() {
 
       if (error) {
         console.error('Error loading project:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load project details',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load project details');
         return;
       }
 
@@ -49,7 +44,7 @@ export default function FieldSchedule() {
     };
 
     loadProject();
-  }, [projectId, toast]);
+  }, [projectId]);
 
   const {
     tasks,
@@ -67,26 +62,16 @@ export default function FieldSchedule() {
     setIsRefreshing(true);
     await loadTasks();
     setIsRefreshing(false);
-    toast({
-      title: 'Refreshed',
-      description: 'Schedule data updated',
-    });
+    toast.success("Schedule data updated");
   };
 
   const handleTaskUpdate = async (task: ScheduleTask) => {
     try {
       await updateTask(task);
-      toast({
-        title: 'Updated',
-        description: 'Task updated successfully',
-      });
+      toast.success('Task updated successfully');
     } catch (error) {
       console.error('Error updating task:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update task',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update task');
     }
   };
 

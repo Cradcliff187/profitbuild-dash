@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, cn } from '@/lib/utils';
 
@@ -216,8 +216,6 @@ export const QuickBooksSyncModal: React.FC<QuickBooksSyncModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [previewResult, setPreviewResult] = useState<SyncResult | null>(null);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  const { toast } = useToast();
-
   const resetState = () => {
     setStep('configure');
     setPreviewResult(null);
@@ -236,20 +234,12 @@ export const QuickBooksSyncModal: React.FC<QuickBooksSyncModalProps> = ({
 
   const handlePreview = async () => {
     if (!startDate || !endDate) {
-      toast({
-        title: 'Invalid Date Range',
-        description: 'Please select both start and end dates',
-        variant: 'destructive'
-      });
+      toast.error("Invalid Date Range", { description: 'Please select both start and end dates' });
       return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      toast({
-        title: 'Invalid Date Range',
-        description: 'Start date must be before end date',
-        variant: 'destructive'
-      });
+      toast.error("Invalid Date Range", { description: 'Start date must be before end date' });
       return;
     }
 
@@ -287,11 +277,7 @@ export const QuickBooksSyncModal: React.FC<QuickBooksSyncModalProps> = ({
       setStep('preview');
     } catch (error) {
       console.error('Preview error:', error);
-      toast({
-        title: 'Preview Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive'
-      });
+      toast.error("Preview Failed", { description: error instanceof Error ? error.message : 'Unknown error occurred' });
     } finally {
       setIsLoading(false);
     }
@@ -299,20 +285,12 @@ export const QuickBooksSyncModal: React.FC<QuickBooksSyncModalProps> = ({
 
   const handleConfirmImport = async () => {
     if (!startDate || !endDate) {
-      toast({
-        title: 'Invalid Date Range',
-        description: 'Please select both start and end dates',
-        variant: 'destructive'
-      });
+      toast.error("Invalid Date Range", { description: 'Please select both start and end dates' });
       return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      toast({
-        title: 'Invalid Date Range',
-        description: 'Start date must be before end date',
-        variant: 'destructive'
-      });
+      toast.error("Invalid Date Range", { description: 'Start date must be before end date' });
       return;
     }
 
@@ -351,25 +329,14 @@ export const QuickBooksSyncModal: React.FC<QuickBooksSyncModalProps> = ({
       setStep('complete');
 
       if (result.success) {
-        toast({
-          title: 'Sync Completed',
-          description: `Successfully imported ${result.expensesImported} expenses and ${result.revenuesImported} revenues`,
-        });
+        toast.success("Sync Completed", { description: `Successfully imported ${result.expensesImported} expenses and ${result.revenuesImported} revenues` });
         onSuccess();
       } else {
-        toast({
-          title: 'Sync Completed with Errors',
-          description: `${result.errors.length} error(s) occurred during sync`,
-          variant: 'destructive'
-        });
+        toast.error("Sync Completed with Errors", { description: `${result.errors.length} error(s) occurred during sync` });
       }
     } catch (error) {
       console.error('Sync error:', error);
-      toast({
-        title: 'Sync Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive'
-      });
+      toast.error("Sync Failed", { description: error instanceof Error ? error.message : 'Unknown error occurred' });
       setStep('configure');
     } finally {
       setIsLoading(false);

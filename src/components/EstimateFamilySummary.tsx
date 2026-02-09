@@ -6,7 +6,7 @@ import { Calculator, Eye, Plus, TrendingUp, Clock } from "lucide-react";
 import { EstimateStatusBadge } from "@/components/ui/status-badge";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Estimate } from "@/types/estimate";
 import { formatCurrency } from "@/lib/utils";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -24,7 +24,6 @@ export const EstimateFamilySummary = ({
   onCreateEstimate,
   onViewEstimate 
 }: EstimateFamilySummaryProps) => {
-  const { toast } = useToast();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -72,11 +71,7 @@ export const EstimateFamilySummary = ({
       setEstimates(formattedEstimates);
     } catch (error) {
       console.error('Error loading estimates:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load estimates.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load estimates.");
     } finally {
       setLoading(false);
     }
@@ -98,10 +93,7 @@ export const EstimateFamilySummary = ({
 
       if (error) throw error;
 
-      toast({
-        title: "New Version Created",
-        description: "A new estimate version has been created."
-      });
+      toast.success("New Version Created", { description: "A new estimate version has been created." });
 
       // Navigate to edit the new version
       if (onViewEstimate) {
@@ -109,11 +101,7 @@ export const EstimateFamilySummary = ({
       }
     } catch (error) {
       console.error('Error creating version:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create new version.",
-        variant: "destructive"
-      });
+      toast.error("Failed to create new version.");
     }
   };
 

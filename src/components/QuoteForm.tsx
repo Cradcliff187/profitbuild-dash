@@ -21,7 +21,7 @@ import { Info } from "lucide-react";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { Quote, QuoteLineItem, QuoteStatus } from "@/types/quote";
 import { Payee, PayeeType } from "@/types/payee";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
@@ -104,7 +104,6 @@ interface QuoteFormProps {
 }
 
 export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote, projectNumber, payeeName, onDeleteContract }: QuoteFormProps) => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const isEdit = !!initialQuote;
   const isViewMode = mode === 'view';
@@ -575,45 +574,26 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
 
   const handleSave = async () => {
     if (!selectedEstimate && !initialQuote) {
-      toast({
-        title: "Missing Project",
-        description: "Please select a project estimate.",
-        variant: "destructive"
-      });
+      toast.error("Please select a project estimate.");
       return;
     }
 
     if (!selectedPayee) {
-      toast({
-        title: "Missing Payee",
-        description: "Please select a payee/vendor.",
-        variant: "destructive"
-      });
+      toast.error("Please select a payee/vendor.");
       return;
     }
 
     // Optimistic update: Show saving state
-    toast({
-      title: "Saving Quote",
-      description: "Processing quote details...",
-    });
+    toast.info("Saving Quote", { description: "Processing quote details..." });
 
     // Only validate line item selection if we have an estimate (not for change order quotes)
     if (selectedEstimate && selectedLineItemIds.length === 0) {
-      toast({
-        title: "No Line Items Selected",
-        description: "Please select at least one line item to quote.",
-        variant: "destructive"
-      });
+      toast.error("Please select at least one line item to quote.");
       return;
     }
 
     if (lineItems.every(item => !item.description.trim())) {
-      toast({
-        title: "Missing Line Items",
-        description: "Please add at least one line item.",
-        variant: "destructive"
-      });
+      toast.error("Please add at least one line item.");
       return;
     }
 
@@ -641,11 +621,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
 
     // Prevent save if critical errors exist
     if (hasErrors) {
-      toast({
-        title: "Validation Errors",
-        description: "Please fix the critical validation errors before saving.",
-        variant: "destructive"
-      });
+      toast.error("Please fix the critical validation errors before saving.");
       return;
     }
 
@@ -1511,24 +1487,13 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                         .eq('id', initialQuote.id);
                       
                       if (quoteError) {
-                        toast({
-                          title: 'Failed to remove attachment',
-                          description: quoteError.message,
-                          variant: 'destructive',
-                        });
+                        toast.error(quoteError.message);
                         return;
                       }
                       
-                      toast({
-                        title: 'Attachment removed',
-                        description: 'Quote attachment removed successfully',
-                      });
+                      toast.success('Quote attachment removed successfully');
                     } catch (err) {
-                      toast({
-                        title: 'Failed to remove attachment',
-                        description: err instanceof Error ? err.message : 'An error occurred',
-                        variant: 'destructive',
-                      });
+                      toast.error(err instanceof Error ? err.message : 'An error occurred');
                       return;
                     }
                   }

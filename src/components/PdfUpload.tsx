@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Upload, File, X, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 
 interface PdfUploadProps {
   onUpload: (url: string, fileName: string) => void;
@@ -19,24 +19,15 @@ export const PdfUpload: React.FC<PdfUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const validateFile = (file: File): boolean => {
     if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid File Type",
-        description: "Please select a PDF file only.",
-        variant: "destructive",
-      });
+      toast.error("Invalid File Type", { description: "Please select a PDF file only." });
       return false;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast({
-        title: "File Too Large",
-        description: "Please select a file smaller than 10MB.",
-        variant: "destructive",
-      });
+      toast.error("File Too Large", { description: "Please select a file smaller than 10MB." });
       return false;
     }
 
@@ -68,17 +59,10 @@ export const PdfUpload: React.FC<PdfUploadProps> = ({
 
       onUpload(publicUrl, file.name);
       
-      toast({
-        title: "File Uploaded",
-        description: "PDF has been attached successfully.",
-      });
+      toast.success("File Uploaded", { description: "PDF has been attached successfully." });
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload PDF. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Upload Failed", { description: "Failed to upload PDF. Please try again." });
     } finally {
       setUploading(false);
     }

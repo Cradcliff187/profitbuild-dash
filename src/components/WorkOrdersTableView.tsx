@@ -31,7 +31,7 @@ import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -104,7 +104,6 @@ export const WorkOrdersTableView = ({
 }: WorkOrdersTableViewProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; workOrder: Project | null}>({
     open: false,
     workOrder: null
@@ -256,25 +255,14 @@ export const WorkOrdersTableView = ({
         .eq('id', workOrder.id);
 
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update work order status",
-          variant: "destructive",
-        });
+        toast.error("Failed to update work order status");
         return;
       }
 
-      toast({
-        title: "Success",
-        description: "Work order marked as complete",
-      });
+      toast.success("Work order marked as complete");
       if (onUpdate) onUpdate();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast.error("An unexpected error occurred");
     }
   };
 

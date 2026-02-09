@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoles } from '@/contexts/RoleContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 import { SMSComposer } from '@/components/sms/SMSComposer';
@@ -18,7 +18,6 @@ import { useState } from 'react';
 export default function SMSAdmin() {
   const { isAdmin, isManager, loading: rolesLoading, roles } = useRoles();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const hasCheckedAccess = useRef(false);
   const [activeTab, setActiveTab] = useState('compose');
 
@@ -60,16 +59,12 @@ export default function SMSAdmin() {
     // After loading is complete, check if user has required permissions
     if (!hasAdminAccess) {
       console.log('📱 SMSAdmin: Access denied (roles:', roles, '), redirecting');
-      toast({
-        title: 'Access Denied',
-        description: 'Only administrators and managers can send SMS messages',
-        variant: 'destructive',
-      });
+      toast.error("Access Denied", { description: 'Only administrators and managers can send SMS messages' });
       navigate('/');
     } else {
       console.log('📱 SMSAdmin: Access granted! (roles:', roles, ')');
     }
-  }, [isAdmin, isManager, rolesLoading, roles, navigate, toast]);
+  }, [isAdmin, isManager, rolesLoading, roles, navigate]);
 
   if (rolesLoading) {
     return (

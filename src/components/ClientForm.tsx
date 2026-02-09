@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { EditableField } from "@/components/ui/field-types";
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientType, CLIENT_TYPES, CreateClientRequest, PAYMENT_TERMS } from "@/types/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientFormProps {
@@ -35,18 +35,13 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
     notes: client?.notes || "",
   });
   
-  const { toast } = useToast();
   const isEditing = !!client;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.client_name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Client name is required",
-        variant: "destructive",
-      });
+      toast.error("Client name is required");
       return;
     }
 
@@ -64,10 +59,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Client updated successfully",
-        });
+        toast.success("Client updated successfully");
       } else {
         const { data: createdClient, error } = await supabase
           .from("clients")
@@ -77,10 +69,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Client created successfully",
-        });
+        toast.success("Client created successfully");
 
         onSave(createdClient as Client);
         return;
@@ -89,11 +78,7 @@ export const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
       onSave();
     } catch (error) {
       console.error("Error saving client:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save client",
-        variant: "destructive",
-      });
+      toast.error("Failed to save client");
     } finally {
       setIsLoading(false);
     }

@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { Project } from '@/types/project';
@@ -70,7 +70,7 @@ export const RevenueSplitDialog: React.FC<RevenueSplitDialogProps> = ({
   ]);
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const { toast } = useToast();
+
 
   // ============================================================================
   // EFFECTS
@@ -98,18 +98,14 @@ export const RevenueSplitDialog: React.FC<RevenueSplitDialogProps> = ({
         setProjects(transformedProjects);
       } catch (error) {
         console.error('Error loading projects:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load projects',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load projects');
       }
     };
 
     if (open) {
       loadProjects();
     }
-  }, [open, toast]);
+  }, [open]);
 
   // Load existing splits when dialog opens
   useEffect(() => {
@@ -263,20 +259,13 @@ export const RevenueSplitDialog: React.FC<RevenueSplitDialogProps> = ({
         throw new Error(result.error);
       }
 
-      toast({
-        title: 'Success',
-        description: `Invoice split across ${splits.length} projects`,
-      });
+      toast.success(`Invoice split across ${splits.length} projects`);
 
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error saving splits:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to save splits',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to save splits');
     } finally {
       setLoading(false);
     }
@@ -293,21 +282,13 @@ export const RevenueSplitDialog: React.FC<RevenueSplitDialogProps> = ({
         throw new Error(result.error);
       }
 
-      toast({
-        title: 'Success',
-        description: 'Invoice splits removed',
-      });
+      toast.success('Invoice splits removed');
 
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error removing splits:', error);
-      toast({
-        title: 'Error',
-        description:
-          error instanceof Error ? error.message : 'Failed to remove splits',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to remove splits');
     } finally {
       setLoading(false);
     }

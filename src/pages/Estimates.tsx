@@ -13,7 +13,7 @@ import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import type { Estimate } from "@/types/estimate";
 import { Plus, BarChart3, Download, Calculator } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -32,7 +32,6 @@ const EstimatesPage = () => {
   const [clients, setClients] = useState<Array<{ id: string; client_name: string }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; project_name: string; project_number: string }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchText: "",
@@ -351,11 +350,7 @@ const EstimatesPage = () => {
       setEstimates(formattedEstimates);
     } catch (error) {
       console.error("Error loading estimates:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load estimates.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load estimates.");
     } finally {
       setLoading(false);
     }
@@ -398,11 +393,7 @@ const EstimatesPage = () => {
     try {
       const estimate = estimates.find((e) => e.id === id);
       if (!estimate) {
-        toast({
-          title: "Error",
-          description: "Estimate not found.",
-          variant: "destructive",
-        });
+        toast.error("Estimate not found.");
         return;
       }
 
@@ -413,12 +404,7 @@ const EstimatesPage = () => {
         .eq("status", "accepted");
 
       if (acceptedQuotes && acceptedQuotes.length > 0) {
-        toast({
-          title: "Cannot Delete Estimate",
-          description: `This estimate has ${acceptedQuotes.length} accepted quote(s): ${acceptedQuotes.map((q) => q.quote_number).join(", ")}. You must reject or delete these quotes first.`,
-          variant: "destructive",
-          duration: 8000,
-        });
+        toast.error("Cannot Delete Estimate", { description: `This estimate has ${acceptedQuotes.length} accepted quote(s): ${acceptedQuotes.map((q) => q.quote_number).join(", ")}. You must reject or delete these quotes first.`, duration: 8000 });
         return;
       }
 
@@ -428,12 +414,7 @@ const EstimatesPage = () => {
         .eq("parent_estimate_id", id);
 
       if (childVersions && childVersions.length > 0) {
-        toast({
-          title: "Cannot Delete Estimate",
-          description: `This estimate has ${childVersions.length} child version(s). Delete the child versions first: ${childVersions.map((v) => v.estimate_number).join(", ")}`,
-          variant: "destructive",
-          duration: 8000,
-        });
+        toast.error("Cannot Delete Estimate", { description: `This estimate has ${childVersions.length} child version(s). Delete the child versions first: ${childVersions.map((v) => v.estimate_number).join(", ")}`, duration: 8000 });
         return;
       }
 
@@ -447,13 +428,7 @@ const EstimatesPage = () => {
 
       if (estimateError) {
         if (estimateError.message.includes("foreign key") || estimateError.code === "23503") {
-          toast({
-            title: "Cannot Delete Estimate",
-            description:
-              "This estimate is referenced by other records in the database. Please contact support for assistance.",
-            variant: "destructive",
-            duration: 8000,
-          });
+          toast.error("Cannot Delete Estimate", { description: "This estimate is referenced by other records in the database. Please contact support for assistance.", duration: 8000 });
         } else {
           throw estimateError;
         }
@@ -462,17 +437,10 @@ const EstimatesPage = () => {
 
       setEstimates((prev) => prev.filter((e) => e.id !== id));
 
-      toast({
-        title: "Estimate Deleted",
-        description: "The estimate and all related data have been successfully deleted.",
-      });
+      toast.success("Estimate Deleted", { description: "The estimate and all related data have been successfully deleted." });
     } catch (error) {
       console.error("Error deleting estimate:", error);
-      toast({
-        title: "Error",
-        description: `Failed to delete estimate: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to delete estimate: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 

@@ -18,7 +18,7 @@ import { MobileListCard } from '@/components/ui/mobile-list-card';
 import { DocumentLeadingIcon } from '@/utils/documentFileType';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { format, parseISO } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 
@@ -51,7 +51,6 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const preview = useDocumentPreview();
   
@@ -113,10 +112,7 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
     a.href = quote.attachment_url;
     a.download = `Quote-${quote.quote_number}.pdf`;
     a.click();
-    toast({
-      title: 'Download started',
-      description: 'Your PDF is being downloaded',
-    });
+    toast.success("Download started", { description: "Your PDF is being downloaded" });
   };
 
   const handleDelete = async () => {
@@ -130,19 +126,12 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
 
       if (error) throw error;
 
-      toast({
-        title: 'Quote deleted',
-        description: 'Quote removed successfully',
-      });
+      toast.success("Quote deleted", { description: "Quote removed successfully" });
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Delete error:', error);
       }
-      toast({
-        title: 'Delete failed',
-        description: error instanceof Error ? error.message : 'Failed to delete quote',
-        variant: 'destructive',
-      });
+      toast.error("Delete failed", { description: error instanceof Error ? error.message : "Failed to delete quote" });
     } finally {
       setDeleteDialogOpen(false);
       setQuoteToDelete(null);

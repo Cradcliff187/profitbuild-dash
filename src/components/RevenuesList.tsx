@@ -13,7 +13,7 @@ import { CompletePagination } from "@/components/ui/complete-pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
@@ -83,7 +83,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   columnOrder: externalColumnOrder,
   onColumnOrderChange,
 }) => {
-  const { toast } = useToast();
+
   const isMobile = useIsMobile();
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [searchTerm, setSearchTerm] = useState("");
@@ -414,18 +414,11 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
       if (error) throw error;
 
       onDelete(revenueToDelete.id);
-      toast({
-        title: "Invoice Deleted",
-        description: "The invoice has been successfully deleted.",
-      });
+      toast.success("Invoice Deleted", { description: "The invoice has been successfully deleted." });
       onRefresh();
     } catch (error: any) {
       console.error('Error deleting revenue:', error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to delete invoice. Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to delete invoice. Please try again.");
     } finally {
       setDeleteDialogOpen(false);
       setRevenueToDelete(null);

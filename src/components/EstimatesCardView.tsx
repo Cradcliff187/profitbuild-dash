@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { Estimate } from "@/types/estimate";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/BudgetComparisonBadge";
 import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +22,6 @@ export interface EstimatesCardViewProps {
 }
 
 export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesCardViewProps) => {
-  const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
   
@@ -49,10 +48,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
   const handleDeleteConfirm = () => {
     if (estimateToDelete) {
       onDelete(estimateToDelete);
-      toast({
-        title: "Estimate Deleted",
-        description: "The estimate has been successfully deleted."
-      });
+      toast.success("Estimate Deleted", { description: "The estimate has been successfully deleted." });
     }
     setDeleteDialogOpen(false);
     setEstimateToDelete(null);

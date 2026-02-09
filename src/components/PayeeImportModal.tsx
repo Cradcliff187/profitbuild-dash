@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { 
   parsePayeeCSVFile, 
@@ -50,7 +50,6 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
     updated: { payee_name: string; id: string }[];
     duplicates: { payee_name: string; reason: 'existing' | 'in_file'; matchedPayeeName?: string; confidence?: number; mergedNames?: string[] }[];
   }>({ success: 0, errors: [], created: [], updated: [], duplicates: [] });
-  const { toast } = useToast();
 
   const resetState = () => {
     setSelectedFile(null);
@@ -252,19 +251,12 @@ export const PayeeImportModal: React.FC<PayeeImportModalProps> = ({ open, onClos
         const parts = [];
         if (created.length > 0) parts.push(`${created.length} created`);
         if (updated.length > 0) parts.push(`${updated.length} updated`);
-        toast({
-          title: "Import completed",
-          description: `${parts.join(', ')}${errorMessages.length > 0 ? `; ${errorMessages.length} error(s)` : ''}`,
-        });
+        toast.success("Import completed", { description: `${parts.join(', ')}${errorMessages.length > 0 ? `; ${errorMessages.length} error(s)` : ''}` });
         onSuccess();
       }
     } catch (error) {
       console.error('Import failed:', error);
-      toast({
-        title: "Import failed",
-        description: "Failed to import payees. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Import failed", { description: "Failed to import payees. Please try again." });
     } finally {
       setIsImporting(false);
     }

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { History, Plus } from "lucide-react";
 import { format } from "date-fns";
@@ -16,7 +16,6 @@ interface EstimateVersionManagerProps {
 }
 
 export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateVersionManagerProps) => {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [versions, setVersions] = useState<Estimate[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,11 +65,7 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
       setVersions(formattedVersions);
     } catch (error) {
       console.error('Error loading version history:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load version history.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load version history.");
     }
   };
 
@@ -83,10 +78,7 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
 
       if (error) throw error;
 
-      toast({
-        title: "Version Created",
-        description: "New estimate version created successfully."
-      });
+      toast.success("Version Created", { description: "New estimate version created successfully." });
 
       // Reload version history
       await loadVersionHistory();
@@ -153,11 +145,7 @@ export const EstimateVersionManager = ({ estimate, onVersionCreated }: EstimateV
       }
     } catch (error) {
       console.error('Error creating version:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create new version.",
-        variant: "destructive"
-      });
+      toast.error("Failed to create new version.");
     } finally {
       setIsLoading(false);
     }

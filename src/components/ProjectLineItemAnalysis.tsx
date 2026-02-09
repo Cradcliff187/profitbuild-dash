@@ -16,7 +16,7 @@ import {
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface LineItemAnalysisData {
   category: string;
@@ -53,7 +53,6 @@ export const ProjectLineItemAnalysis = ({
   projectId, 
   projectName 
 }: ProjectLineItemAnalysisProps) => {
-  const { toast } = useToast();
   const [categoryData, setCategoryData] = useState<CategorySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalSummary, setTotalSummary] = useState({
@@ -217,11 +216,7 @@ export const ProjectLineItemAnalysis = ({
       setCategoryData(categories);
     } catch (error) {
       console.error('Error loading analysis data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load line item analysis data.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load line item analysis data.");
     } finally {
       setIsLoading(false);
     }

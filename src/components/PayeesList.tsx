@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -48,7 +48,6 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const isSubmittingRef = useRef(false);
 
@@ -157,11 +156,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
   });
 
   if (error) {
-    toast({
-      title: "Error",
-      description: "Failed to load payees",
-      variant: "destructive",
-    });
+    toast.error("Failed to load payees");
   }
 
   // Filtered payees based on search and filters
@@ -210,19 +205,12 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Payee deleted successfully",
-      });
+      toast.success("Payee deleted successfully");
 
       queryClient.invalidateQueries({ queryKey: ["payees"] });
     } catch (error) {
       console.error("Error deleting payee:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete payee",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete payee");
     }
   };
 
@@ -235,19 +223,12 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${payeeIds.length} payee(s) deleted successfully`,
-      });
+      toast.success(`${payeeIds.length} payee(s) deleted successfully`);
 
       queryClient.invalidateQueries({ queryKey: ["payees"] });
     } catch (error) {
       console.error("Error bulk deleting payees:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete payees",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete payees");
     }
   };
 
@@ -260,19 +241,12 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${payeeIds.length} payee(s) updated successfully`,
-      });
+      toast.success(`${payeeIds.length} payee(s) updated successfully`);
 
       queryClient.invalidateQueries({ queryKey: ["payees"] });
     } catch (error) {
       console.error("Error bulk updating payees:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update payees",
-        variant: "destructive",
-      });
+      toast.error("Failed to update payees");
     }
   };
 

@@ -3,7 +3,7 @@ import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircl
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
@@ -88,7 +88,6 @@ interface ActiveTimer {
 }
 
 export const MobileTimeTracker: React.FC = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -199,11 +198,7 @@ export const MobileTimeTracker: React.FC = () => {
           // Perform auto-close
           await completeClockOut();
           
-          toast({
-            title: 'Timer Auto-Closed',
-            description: 'Your timer was running for over 24 hours and has been automatically closed.',
-            variant: 'destructive'
-          });
+          toast.error('Timer Auto-Closed', { description: 'Your timer was running for over 24 hours and has been automatically closed.' });
           
           setShowStaleTimerWarning(false);
           await loadTodayEntries();
@@ -251,12 +246,7 @@ export const MobileTimeTracker: React.FC = () => {
           
           if (staleCheck.isStale) {
             setShowStaleTimerWarning(true);
-            toast({
-              title: 'Long Running Timer',
-              description: staleCheck.message,
-              variant: 'destructive',
-              duration: 10000
-            });
+            toast.error('Long Running Timer', { description: staleCheck.message, duration: 10000 });
           }
         }
       }
@@ -267,12 +257,7 @@ export const MobileTimeTracker: React.FC = () => {
           if (timer.payees?.user_id !== user?.id && timer.start_time) {
             const staleCheck = checkStaleTimer(new Date(timer.start_time));
             if (staleCheck.shouldAutoClose) {
-              toast({
-                title: 'Stale Timer Alert',
-                description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`,
-                variant: 'destructive',
-                duration: 15000
-              });
+              toast.error('Stale Timer Alert', { description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`, duration: 15000 });
             }
           }
         }
@@ -281,7 +266,7 @@ export const MobileTimeTracker: React.FC = () => {
     } catch (error) {
       console.error('Error loading active timers:', error);
     }
-  }, [user, isAdmin, isManager, toast]);
+  }, [user, isAdmin, isManager]);
 
 
   // Refresh timer when app returns to foreground (iOS background handling)
@@ -412,11 +397,7 @@ export const MobileTimeTracker: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast({
-        title: 'Error Loading Data',
-        description: 'Failed to load projects and team members',
-        variant: 'destructive'
-      });
+      toast.error('Error Loading Data', { description: 'Failed to load projects and team members' });
     } finally {
       setDataLoading(false);
     }
@@ -587,11 +568,7 @@ export const MobileTimeTracker: React.FC = () => {
   const captureLocation = async () => {
     try {
       if (!navigator.geolocation) {
-        toast({
-          title: 'Location not available',
-          description: 'GPS is not supported on this device',
-          variant: 'destructive'
-        });
+        toast.error('Location not available', { description: 'GPS is not supported on this device' });
         return null;
       }
       
@@ -602,30 +579,16 @@ export const MobileTimeTracker: React.FC = () => {
             // Handle specific error codes with user-friendly messages
             switch (error.code) {
               case error.PERMISSION_DENIED:
-                toast({
-                  title: 'Location Permission Denied',
-                  description: 'Enable location services in your device settings to track work sites',
-                  variant: 'destructive'
-                });
+                toast.error('Location Permission Denied', { description: 'Enable location services in your device settings to track work sites' });
                 break;
               case error.POSITION_UNAVAILABLE:
-                toast({
-                  title: 'Location Unavailable',
-                  description: 'Unable to determine your position. GPS may be unavailable.'
-                });
+                toast.warning('Location Unavailable', { description: 'Unable to determine your position. GPS may be unavailable.' });
                 break;
               case error.TIMEOUT:
-                toast({
-                  title: 'Location Timeout',
-                  description: 'Location request took too long. Please try again.'
-                });
+                toast.warning('Location Timeout', { description: 'Location request took too long. Please try again.' });
                 break;
               default:
-                toast({
-                  title: 'Failed to get location',
-                  description: 'An unknown error occurred while accessing GPS',
-                  variant: 'destructive'
-                });
+                toast.error('Failed to get location', { description: 'An unknown error occurred while accessing GPS' });
             }
             reject(error);
           },
@@ -691,11 +654,7 @@ export const MobileTimeTracker: React.FC = () => {
 
   const handleClockIn = async () => {
     if (!selectedTeamMember || !selectedProject) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please select team member and project first',
-        variant: 'destructive'
-      });
+      toast.error('Missing Information', { description: 'Please select team member and project first' });
       return;
     }
 
@@ -761,20 +720,13 @@ export const MobileTimeTracker: React.FC = () => {
         });
       }
       
-      toast({
-        title: 'Clocked In',
-        description: `Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`,
-      });
+      toast.success(`Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`);
 
       // Refresh active timers list
       await loadActiveTimers();
     } catch (error) {
       console.error('Error clocking in:', error);
-      toast({
-        title: 'Clock In Failed',
-        description: 'Failed to start timer',
-        variant: 'destructive'
-      });
+      toast.error('Clock In Failed', { description: 'Failed to start timer' });
     } finally {
       setLoading(false);
     }
@@ -793,19 +745,12 @@ export const MobileTimeTracker: React.FC = () => {
 
         if (error) throw error;
 
-        toast({
-          title: 'Receipt Added',
-          description: 'Receipt attached to time entry',
-        });
+        toast.success('Receipt attached to time entry');
 
         await loadTodayEntries();
       } catch (error) {
         console.error('Error linking receipt:', error);
-        toast({
-          title: 'Receipt Link Failed',
-          description: 'Receipt saved but failed to link to time entry',
-          variant: 'destructive'
-        });
+        toast.error('Receipt Link Failed', { description: 'Receipt saved but failed to link to time entry' });
       }
     }
     
@@ -832,11 +777,7 @@ export const MobileTimeTracker: React.FC = () => {
 
       // Validate net hours are reasonable
       if (netHours <= 0) {
-        toast({
-          title: 'Invalid Time Entry',
-          description: 'Lunch duration cannot exceed shift duration',
-          variant: 'destructive'
-        });
+        toast.error('Lunch duration cannot exceed shift duration');
         setLoading(false);
         return null;
       }
@@ -844,11 +785,7 @@ export const MobileTimeTracker: React.FC = () => {
       // Validate hours are reasonable
       const hoursValidation = validateTimeEntryHours(activeTimer.startTime, endTime);
       if (!hoursValidation.valid) {
-        toast({
-          title: 'Invalid Time Entry',
-          description: hoursValidation.message,
-          variant: 'destructive'
-        });
+        toast.error(hoursValidation.message);
         setLoading(false);
         return null;
       }
@@ -887,11 +824,7 @@ export const MobileTimeTracker: React.FC = () => {
           payee_name: activeTimer.teamMember.payee_name
         });
         
-        toast({
-          title: 'Cannot Close Timer',
-          description: 'This timer belongs to another user. Only the timer owner can clock out.',
-          variant: 'destructive'
-        });
+        toast.error('Cannot Close Timer', { description: 'This timer belongs to another user. Only the timer owner can clock out.' });
         
         setLoading(false);
         return null;
@@ -966,12 +899,9 @@ export const MobileTimeTracker: React.FC = () => {
         setTimeout(() => setShowSuccess(false), 3000);
 
         // Keep toast for accessibility
-        toast({
-          title: 'Clocked Out',
-          description: lunchTaken 
+        toast.success(lunchTaken
             ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch)`
-            : `Saved ${netHours.toFixed(2)} hours`,
-        });
+            : `Saved ${netHours.toFixed(2)} hours`);
 
         await loadTodayEntries();
         await loadActiveTimers();
@@ -1004,12 +934,9 @@ export const MobileTimeTracker: React.FC = () => {
         setTimeout(() => setShowSuccess(false), 3000);
 
         // Keep toast for accessibility
-        toast({
-          title: 'Clocked Out (Offline)',
-          description: lunchTaken
+        toast.success(lunchTaken
             ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch) - will sync when online`
-            : `Saved ${netHours.toFixed(2)} hours - will sync when online`,
-        });
+            : `Saved ${netHours.toFixed(2)} hours - will sync when online`);
 
         setActiveTimer(null);
         setLocation(null);
@@ -1022,13 +949,9 @@ export const MobileTimeTracker: React.FC = () => {
       const isRlsError = errorMessage.toLowerCase().includes('row-level security') || 
                          errorMessage.toLowerCase().includes('policy');
       
-      toast({
-        title: 'Clock Out Failed',
-        description: isRlsError
+      toast.error('Clock Out Failed', { description: isRlsError
           ? 'Your account is missing permission to save time entries. Please contact an administrator.'
-          : 'Failed to save time entry. Please try again.',
-        variant: 'destructive'
-      });
+          : 'Failed to save time entry. Please try again.' });
       return null;
     } finally {
       setLoading(false);

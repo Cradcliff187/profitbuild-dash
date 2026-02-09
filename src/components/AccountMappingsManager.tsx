@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Save, AlertCircle } from "lucide-react";
 import type { QuickBooksAccountMapping } from "@/types/quickbooks";
@@ -15,7 +15,6 @@ export const AccountMappingsManager = () => {
   const [editingMappings, setEditingMappings] = useState<Record<string, { qb_account_name: string; qb_account_full_path: string }>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
 
   const categoryLabels = {
     [ExpenseCategory.LABOR]: "Labor (Internal)",
@@ -43,11 +42,7 @@ export const AccountMappingsManager = () => {
       setMappings(data || []);
     } catch (error) {
       console.error('Error fetching account mappings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load account mappings",
-        variant: "destructive",
-      });
+      toast.error("Failed to load account mappings");
     } finally {
       setIsLoading(false);
     }
@@ -90,17 +85,10 @@ export const AccountMappingsManager = () => {
       delete newEditingMappings[mappingId];
       setEditingMappings(newEditingMappings);
 
-      toast({
-        title: "Success",
-        description: "Account mapping updated successfully",
-      });
+      toast.success("Account mapping updated successfully");
     } catch (error) {
       console.error('Error updating account mapping:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update account mapping",
-        variant: "destructive",
-      });
+      toast.error("Failed to update account mapping");
     } finally {
       setIsSaving(false);
     }

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Building, CheckCircle, DollarSign, Zap, User, AlertTriangle, X } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { 
@@ -34,7 +34,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
   expenseId,
   onSuccess
 }) => {
-  const { toast } = useToast();
+
   const [isLoading, setIsLoading] = useState(false);
   const [expense, setExpense] = useState<any>(null);
   const [lineItems, setLineItems] = useState<LineItemForMatching[]>([]);
@@ -303,11 +303,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
     } catch (error) {
       console.error('Error loading expense data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load expense data.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load expense data.");
     } finally {
       setIsLoading(false);
     }
@@ -366,10 +362,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
       if (updateError) throw updateError;
       
-      toast({
-        title: "Allocation Removed",
-        description: `Removed allocation from ${currentAllocation.lineItem.description}`
-      });
+      toast.success("Allocation Removed", { description: `Removed allocation from ${currentAllocation.lineItem.description}` });
       
       setCurrentAllocation(null);
       onSuccess();
@@ -377,11 +370,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
     } catch (error) {
       console.error('Error removing allocation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove allocation.",
-        variant: "destructive"
-      });
+      toast.error("Failed to remove allocation.");
     } finally {
       setIsLoading(false);
     }
@@ -419,10 +408,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
       if (updateError) throw updateError;
       
-      toast({
-        title: "Allocation Complete",
-        description: `Allocated ${formatCurrency(expense.amount)} to ${selectedLineItem.type} line item.`
-      });
+      toast.success("Allocation Complete", { description: `Allocated ${formatCurrency(expense.amount)} to ${selectedLineItem.type} line item.` });
       
       setSelectedLineItem(null);
       onSuccess();
@@ -430,11 +416,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       
     } catch (error) {
       console.error('Error allocating expense:', error);
-      toast({
-        title: "Error",
-        description: "Failed to allocate expense.",
-        variant: "destructive"
-      });
+      toast.error("Failed to allocate expense.");
     } finally {
       setIsLoading(false);
     }

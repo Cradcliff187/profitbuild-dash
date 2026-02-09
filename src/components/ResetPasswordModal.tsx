@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Copy, Check } from 'lucide-react';
 
@@ -16,7 +16,6 @@ interface ResetPasswordModalProps {
 }
 
 export default function ResetPasswordModal({ open, onOpenChange, userId, userEmail }: ResetPasswordModalProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState<'temporary_password' | 'email_reset' | 'permanent_password'>('temporary_password');
   const [permanentPassword, setPermanentPassword] = useState('');
@@ -45,29 +44,16 @@ export default function ResetPasswordModal({ open, onOpenChange, userId, userEma
       // Handle response based on method
       if (method === 'email_reset') {
         setEmailSent(true);
-        toast({
-          title: 'Password Reset Email Sent',
-          description: `Reset link sent to ${userEmail}`,
-        });
+        toast.success("Password Reset Email Sent", { description: `Reset link sent to ${userEmail}` });
       } else if (method === 'temporary_password') {
         setTemporaryPassword(data.tempPassword);
-        toast({
-          title: 'Password Reset',
-          description: 'Temporary password generated. Copy it before closing.',
-        });
+        toast.success("Password Reset", { description: 'Temporary password generated. Copy it before closing.' });
       } else {
-        toast({
-          title: 'Password Updated',
-          description: 'Password updated successfully',
-        });
+        toast.success("Password Updated", { description: 'Password updated successfully' });
       }
     } catch (error: any) {
       console.error('Error resetting password:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to reset password',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }

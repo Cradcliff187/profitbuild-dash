@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ReceiptPreviewModal } from '@/components/ReceiptPreviewModal';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 
 interface Receipt {
   id: string;
@@ -46,7 +46,6 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
   const [receiptToDelete, setReceiptToDelete] = useState<Receipt | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>({
@@ -143,10 +142,7 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
     a.href = receipt.image_url;
     a.download = `Receipt-${receipt.id}.jpg`;
     a.click();
-    toast({
-      title: 'Download started',
-      description: 'Your receipt is being downloaded',
-    });
+    toast.success("Download started", { description: "Your receipt is being downloaded" });
   };
 
   const handleDelete = async () => {
@@ -163,19 +159,12 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
       queryClient.invalidateQueries({ queryKey: ['project-receipts', projectId] });
       queryClient.invalidateQueries({ queryKey: receiptQueryKeys.all });
 
-      toast({
-        title: 'Receipt deleted',
-        description: 'Receipt removed successfully',
-      });
+      toast.success("Receipt deleted", { description: "Receipt removed successfully" });
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Delete error:', error);
       }
-      toast({
-        title: 'Delete failed',
-        description: error instanceof Error ? error.message : 'Failed to delete receipt',
-        variant: 'destructive',
-      });
+      toast.error("Delete failed", { description: error instanceof Error ? error.message : "Failed to delete receipt" });
     } finally {
       setDeleteDialogOpen(false);
       setReceiptToDelete(null);

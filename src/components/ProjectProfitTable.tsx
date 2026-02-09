@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { markProjectAsSynced, resetProjectSyncStatus } from '@/utils/syncUtils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { VarianceBadge } from '@/components/ui/variance-badge';
 import { CompletePagination } from '@/components/ui/complete-pagination';
@@ -37,8 +37,6 @@ export default function ProjectProfitTable({
   const [sortField, setSortField] = useState<SortField>('actualProfit');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [projectSyncData, setProjectSyncData] = useState<Record<string, ProjectSyncData>>({});
-  const { toast } = useToast();
-
   // Pagination
   const pagination = usePagination({
     totalItems: data.length,
@@ -87,10 +85,7 @@ export default function ProjectProfitTable({
       const { error } = await markProjectAsSynced(projectId);
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Project marked as synced",
-      });
+      toast.success("Project marked as synced");
 
       // Refresh sync data
       const { data: syncData } = await supabase
@@ -104,11 +99,7 @@ export default function ProjectProfitTable({
       }
     } catch (error) {
       console.error("Error marking project as synced:", error);
-      toast({
-        title: "Error",
-        description: "Failed to mark project as synced",
-        variant: "destructive",
-      });
+      toast.error("Failed to mark project as synced");
     }
   };
 
@@ -117,10 +108,7 @@ export default function ProjectProfitTable({
       const { error } = await resetProjectSyncStatus(projectId);
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Project sync status reset",
-      });
+      toast.success("Project sync status reset");
 
       // Refresh sync data
       const { data: syncData } = await supabase
@@ -134,11 +122,7 @@ export default function ProjectProfitTable({
       }
     } catch (error) {
       console.error("Error resetting project sync:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reset project sync status",
-        variant: "destructive",
-      });
+      toast.error("Failed to reset project sync status");
     }
   };
 

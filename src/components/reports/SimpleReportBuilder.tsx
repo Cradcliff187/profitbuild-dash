@@ -16,7 +16,7 @@ import { useReportTemplates } from "@/hooks/useReportTemplates";
 import { ReportField } from "@/utils/reportExporter";
 import { ArrowRight, CheckCircle2, Save } from "lucide-react";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Constants } from "@/integrations/supabase/types";
 
 export interface FieldMetadata {
@@ -234,8 +234,6 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
   const [saveDescription, setSaveDescription] = useState('');
   const [saveCategory, setSaveCategory] = useState<'financial' | 'operational' | 'client' | 'vendor' | 'schedule'>('operational');
   const { saveReport, loadSavedReports } = useReportTemplates();
-  const { toast } = useToast();
-
   const availableFields = (AVAILABLE_FIELDS[dataSource] || []).map(f => ({
     key: f.key,
     label: f.label,
@@ -374,11 +372,7 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
 
   const handleSaveReport = async () => {
     if (!saveName.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter a name for the report",
-        variant: "destructive"
-      });
+      toast.error("Name required", { description: "Please enter a name for the report" });
       return;
     }
 
@@ -416,21 +410,14 @@ export function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: Rep
     );
 
     if (reportId) {
-      toast({
-        title: "Report saved",
-        description: "Your custom report has been saved successfully",
-      });
+      toast.success("Report saved", { description: "Your custom report has been saved successfully" });
       setSaveDialogOpen(false);
       setSaveName('');
       setSaveDescription('');
       // Refresh saved reports list
       await loadSavedReports();
     } else {
-      toast({
-        title: "Failed to save",
-        description: "Could not save the report. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to save", { description: "Could not save the report. Please try again." });
     }
   };
 

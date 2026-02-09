@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EstimateStatus } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type EstimateWithQuotes = {
@@ -46,8 +46,6 @@ export const EstimateActionsMenu = ({
   onDelete,
   className 
 }: EstimateActionsMenuProps) => {
-  const { toast } = useToast();
-
   const createVersion = async () => {
     try {
       // Create new version in DB
@@ -112,20 +110,13 @@ export const EstimateActionsMenu = ({
         targetMarginPercent: newVersionData.target_margin_percent || 20,
       };
 
-      toast({
-        title: "Version Created",
-        description: "Opening new version with copied line items",
-      });
+      toast.success("Version Created", { description: "Opening new version with copied line items" });
 
       // Open the editor with the populated estimate instead of reloading
       onEdit(newVersion);
     } catch (error) {
       console.error('Error creating version:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create new version",
-        variant: "destructive"
-      });
+      toast.error("Failed to create new version");
     }
   };
 
@@ -135,11 +126,7 @@ export const EstimateActionsMenu = ({
       await createVersion();
     } catch (error) {
       console.error('Error duplicating estimate:', error);
-      toast({
-        title: "Error",
-        description: "Failed to duplicate estimate",
-        variant: "destructive"
-      });
+      toast.error("Failed to duplicate estimate");
     }
   };
 

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 
 const ResetPassword = () => {
@@ -14,8 +14,6 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
-
   useEffect(() => {
     let attempts = 0;
     const maxAttempts = 3;
@@ -59,11 +57,7 @@ const ResetPassword = () => {
         retryTimeout = setTimeout(checkToken, 500);
       } else {
         console.error('❌ No reset token found after 3 attempts');
-        toast({
-          title: 'Invalid Link',
-          description: 'This password reset link is invalid or has expired. Please request a new reset link.',
-          variant: 'destructive',
-        });
+        toast.error("Invalid Link", { description: 'This password reset link is invalid or has expired. Please request a new reset link.' });
         navigate('/auth');
       }
     };
@@ -74,26 +68,18 @@ const ResetPassword = () => {
     return () => {
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, [navigate, toast]);
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match',
-        variant: 'destructive',
-      });
+      toast.error('Passwords do not match');
       return;
     }
 
     if (newPassword.length < 6) {
-      toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters',
-        variant: 'destructive',
-      });
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -106,21 +92,14 @@ const ResetPassword = () => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Password Updated',
-        description: 'Your password has been reset successfully. Please sign in.',
-      });
+      toast.success("Password Updated", { description: 'Your password has been reset successfully. Please sign in.' });
 
       // Sign out and redirect to login
       await supabase.auth.signOut();
       navigate('/auth');
     } catch (error: any) {
       console.error('Error resetting password:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to reset password',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }

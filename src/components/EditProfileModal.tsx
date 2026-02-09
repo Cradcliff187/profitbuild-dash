@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, UserCog } from 'lucide-react';
 
@@ -22,7 +22,6 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ open, onOpenChange, user, onSuccess }: EditProfileModalProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(user.full_name || '');
   const [phone, setPhone] = useState(user.phone || '');
@@ -66,20 +65,13 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
 
       if (error) throw error;
 
-      toast({
-        title: 'Profile Updated',
-        description: 'User profile updated successfully',
-      });
+      toast.success("Profile Updated", { description: "User profile updated successfully" });
 
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update profile',
-        variant: 'destructive',
-      });
+      toast.error(error.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }

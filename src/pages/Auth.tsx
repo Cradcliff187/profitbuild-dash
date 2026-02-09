@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCompanyBranding } from '@/utils/companyBranding';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 const logoStackedDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Stacked%20Icon+Logo%20Transparent%202000x2000.png';
 
@@ -31,8 +31,6 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect');
-  const { toast } = useToast();
-  
   // Dynamic Branding State
   const [logoStacked, setLogoStacked] = useState(logoStackedDefault);
   const [companyName, setCompanyName] = useState('RCG Work');
@@ -85,11 +83,7 @@ export default function Auth() {
     e.preventDefault();
 
     if (!forgotEmail.trim()) {
-      toast({
-        title: 'Email Required',
-        description: 'Please enter your email address.',
-        variant: 'destructive',
-      });
+      toast.error("Email Required", { description: 'Please enter your email address.' });
       return;
     }
 
@@ -103,17 +97,10 @@ export default function Auth() {
       if (error) throw error;
 
       setForgotSent(true);
-      toast({
-        title: 'Reset Link Sent',
-        description: 'If an account exists with that email, you will receive a password reset link.',
-      });
+      toast.success("Reset Link Sent", { description: 'If an account exists with that email, you will receive a password reset link.' });
     } catch (error: any) {
       console.error('Forgot password error:', error);
-      toast({
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setForgotLoading(false);
     }

@@ -52,7 +52,7 @@ import { Project } from '@/types/project';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { RevenueSplitDialog } from '@/components/RevenueSplitDialog';
 import { parseDateOnly } from '@/utils/dateUtils';
 
@@ -99,7 +99,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSplitDialog, setShowSplitDialog] = useState(false);
-  const { toast } = useToast();
+
 
   const form = useForm<RevenueFormData>({
     resolver: zodResolver(revenueSchema),
@@ -157,16 +157,12 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
         }
       } catch (error) {
         console.error('Error loading projects:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load projects.',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load projects.');
       }
     };
 
     loadData();
-  }, [toast, defaultProjectId, revenue]);
+  }, [defaultProjectId, revenue]);
 
   // Update selected project when project_id changes
   useEffect(() => {
@@ -275,20 +271,12 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
 
       onSave(transformedRevenue);
 
-      toast({
-        title: revenue ? 'Invoice Updated' : 'Invoice Added',
-        description: `The invoice has been successfully ${
+      toast.success(revenue ? 'Invoice Updated' : 'Invoice Added', { description: `The invoice has been successfully ${
           revenue ? 'updated' : 'added'
-        }.`,
-      });
+        }.` });
     } catch (error: any) {
       console.error('Error saving revenue:', error);
-      toast({
-        title: 'Error',
-        description:
-          error?.message || 'Failed to save invoice. Please try again.',
-        variant: 'destructive',
-      });
+      toast.error(error?.message || 'Failed to save invoice. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -337,17 +325,10 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       // Call onSave to trigger parent refresh
       onSave(transformedRevenue);
 
-      toast({
-        title: 'Splits Updated',
-        description: 'Invoice allocation has been updated successfully.',
-      });
+      toast.success('Splits Updated', { description: 'Invoice allocation has been updated successfully.' });
     } catch (error) {
       console.error('Error refreshing revenue after split update:', error);
-      toast({
-        title: 'Warning',
-        description: 'Splits were updated, but failed to refresh invoice data. Please refresh the page.',
-        variant: 'destructive',
-      });
+      toast.warning('Splits were updated, but failed to refresh invoice data. Please refresh the page.');
     }
   };
 

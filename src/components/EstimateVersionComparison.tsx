@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Estimate } from "@/types/estimate";
 import { formatCurrency } from "@/lib/utils";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -17,7 +17,6 @@ interface EstimateVersionComparisonProps {
 }
 
 export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersionComparisonProps) => {
-  const { toast } = useToast();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [selectedVersion1, setSelectedVersion1] = useState<string>("");
   const [selectedVersion2, setSelectedVersion2] = useState<string>("");
@@ -76,11 +75,7 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
       }
     } catch (error) {
       console.error('Error loading estimates:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load estimates for comparison.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load estimates for comparison.");
     } finally {
       setLoading(false);
     }

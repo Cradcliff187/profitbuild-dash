@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Download, FileText, Table, Calendar } from "lucide-react";
 import type { QuoteSearchFilters } from "./QuoteFilters";
 
@@ -30,7 +30,6 @@ export const QuoteExportModal: React.FC<QuoteExportModalProps> = ({
   onClose,
   filters
 }) => {
-  const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'csv',
@@ -128,20 +127,13 @@ export const QuoteExportModal: React.FC<QuoteExportModalProps> = ({
         await exportToExcel(quotes);
       }
 
-      toast({
-        title: "Export Complete",
-        description: `Successfully exported ${quotes?.length || 0} quotes`
-      });
+      toast.success("Export Complete", { description: `Successfully exported ${quotes?.length || 0} quotes` });
 
       onClose();
       
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting the data",
-        variant: "destructive"
-      });
+      toast.error("Export Failed", { description: "There was an error exporting the data" });
     } finally {
       setIsExporting(false);
     }
@@ -225,20 +217,12 @@ export const QuoteExportModal: React.FC<QuoteExportModalProps> = ({
 
   const exportToPDF = async (quotes: any[]) => {
     await exportToCSV(quotes);
-    toast({
-      title: "PDF Export",
-      description: "PDF export converted to CSV format for now",
-      variant: "default"
-    });
+    toast.info("PDF Export", { description: "PDF export converted to CSV format for now" });
   };
 
   const exportToExcel = async (quotes: any[]) => {
     await exportToCSV(quotes);
-    toast({
-      title: "Excel Export",
-      description: "Excel export converted to CSV format for now",
-      variant: "default"
-    });
+    toast.info("Excel Export", { description: "Excel export converted to CSV format for now" });
   };
 
   return (

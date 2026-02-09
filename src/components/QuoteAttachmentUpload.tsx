@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Upload, File, X, FileText, Eye, Download, Printer, MoreHorizontal, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isIOSPWA } from '@/utils/platform';
 import {
@@ -46,7 +46,6 @@ export function QuoteAttachmentUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
@@ -63,15 +62,11 @@ export function QuoteAttachmentUpload({
   const handleFile = useCallback((file: File) => {
     const error = validateFile(file);
     if (error) {
-      toast({
-        title: 'Invalid file',
-        description: error,
-        variant: 'destructive',
-      });
+      toast.error(error);
       return;
     }
     setSelectedFile(file);
-  }, [toast]);
+  }, []);
 
   // Define uploadFile as useCallback - accepts optional file to avoid state timing issues
   const uploadFile = useCallback(async (fileToUpload?: File) => {
@@ -140,23 +135,16 @@ export function QuoteAttachmentUpload({
         // Don't throw - the file is already uploaded, just continue
       }
 
-      toast({
-        title: 'Success',
-        description: 'Quote document uploaded successfully',
-      });
+      toast.success('Quote document uploaded successfully');
 
       setSelectedFile(null);
       onUploadSuccess(publicUrl);
     } catch (error) {
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload document',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to upload document');
     } finally {
       setIsUploading(false);
     }
-  }, [selectedFile, projectId, relatedQuoteId, onUploadSuccess, toast]);
+  }, [selectedFile, projectId, relatedQuoteId, onUploadSuccess]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -182,9 +170,7 @@ export function QuoteAttachmentUpload({
     if (disabled) return;
     
     if (isIOSPWA()) {
-      toast({
-        title: "Device upload tip",
-        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+      toast.info("Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.", {
         duration: 4000,
       });
     }

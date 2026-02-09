@@ -15,7 +15,7 @@ import { AIReportChat } from "@/components/reports/AIReportChat";
 import { useReportExecution, ReportConfig, ReportFilter } from "@/hooks/useReportExecution";
 import { ReportTemplate, useReportTemplates } from "@/hooks/useReportTemplates";
 import { ReportField } from "@/utils/reportExporter";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FieldMetadata, AVAILABLE_FIELDS } from "@/components/reports/SimpleReportBuilder";
@@ -42,7 +42,6 @@ const ReportsPage = () => {
   const [currentDataSource, setCurrentDataSource] = useState<ReportConfig['data_source']>('projects');
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const { executeReport, isLoading } = useReportExecution();
-  const { toast } = useToast();
   const { templates, savedReports } = useReportTemplates();
 
   // Convert filters object to array for FilterSummary
@@ -94,16 +93,9 @@ const ReportsPage = () => {
     if (result) {
       setReportData(result.data);
       setFiltersSheetOpen(false);
-      toast({
-        title: "Filters Applied",
-        description: `Report updated with ${result.data.length} rows`
-      });
+      toast.success("Filters Applied", { description: `Report updated with ${result.data.length} rows` });
     } else {
-      toast({
-        title: "Failed to apply filters",
-        description: "Could not refresh the report",
-        variant: "destructive"
-      });
+      toast.error("Failed to apply filters", { description: "Could not refresh the report" });
     }
   };
 
@@ -229,11 +221,7 @@ const ReportsPage = () => {
       setReportData(result.data);
       setHasResults(true);
     } else {
-      toast({
-        title: "Failed to run template",
-        description: "Could not execute the template report",
-        variant: "destructive"
-      });
+      toast.error("Failed to run template", { description: "Could not execute the template report" });
     }
   };
 
@@ -250,16 +238,9 @@ const ReportsPage = () => {
       setReportData(result.data);
       setReportName(`Custom ${config.data_source} Report`);
       setHasResults(true);
-      toast({
-        title: "Report Generated",
-        description: `Found ${result.data.length} rows`
-      });
+      toast.success("Report Generated", { description: `Found ${result.data.length} rows` });
     } else {
-      toast({
-        title: "Failed to generate report",
-        description: "Could not execute the report",
-        variant: "destructive"
-      });
+      toast.error("Failed to generate report", { description: "Could not execute the report" });
     }
   };
 

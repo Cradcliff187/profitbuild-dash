@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Upload, File, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import type { DocumentType } from '@/types/document';
 
 interface DocumentUploadProps {
@@ -37,7 +37,6 @@ export function DocumentUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { toast } = useToast();
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
@@ -52,15 +51,11 @@ export function DocumentUpload({
   const handleFile = useCallback((file: File) => {
     const error = validateFile(file);
     if (error) {
-      toast({
-        title: 'Invalid file',
-        description: error,
-        variant: 'destructive',
-      });
+      toast.error("Invalid file", { description: error });
       return;
     }
     setSelectedFile(file);
-  }, [toast]);
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -113,20 +108,13 @@ export function DocumentUpload({
 
       if (dbError) throw dbError;
 
-      toast({
-        title: 'Success',
-        description: 'Document uploaded successfully',
-      });
+      toast.success("Document uploaded successfully");
 
       setSelectedFile(null);
       onUploadSuccess();
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload document',
-        variant: 'destructive',
-      });
+      toast.error("Upload failed", { description: error instanceof Error ? error.message : "Failed to upload document" });
     } finally {
       setIsUploading(false);
     }

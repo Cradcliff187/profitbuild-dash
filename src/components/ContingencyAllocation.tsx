@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,7 +31,7 @@ export const ContingencyAllocation = ({
   onAllocationComplete,
   onCancel 
 }: ContingencyAllocationProps) => {
-  const { toast } = useToast();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -65,20 +65,12 @@ export const ContingencyAllocation = ({
     const amount = parseFloat(data.amount);
     
     if (amount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than 0.",
-        variant: "destructive"
-      });
+      toast.error("Invalid Amount", { description: "Please enter a valid amount greater than 0." });
       return;
     }
 
     if (amount > contingencyRemaining) {
-      toast({
-        title: "Insufficient Contingency",
-        description: `Amount cannot exceed remaining contingency of ${formatCurrency(contingencyRemaining)}.`,
-        variant: "destructive"
-      });
+      toast.error("Insufficient Contingency", { description: `Amount cannot exceed remaining contingency of ${formatCurrency(contingencyRemaining)}.` });
       return;
     }
 
@@ -127,20 +119,13 @@ export const ContingencyAllocation = ({
         // Don't throw error as the expense was created successfully
       }
 
-      toast({
-        title: "Contingency Allocated",
-        description: `${formatCurrency(amount)} has been allocated from contingency.`
-      });
+      toast.success("Contingency Allocated", { description: `${formatCurrency(amount)} has been allocated from contingency.` });
 
       onAllocationComplete?.();
 
     } catch (error) {
       console.error('Error allocating contingency:', error);
-      toast({
-        title: "Allocation Failed",
-        description: "There was an error allocating the contingency. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Allocation Failed", { description: "There was an error allocating the contingency. Please try again." });
     } finally {
       setIsSubmitting(false);
     }

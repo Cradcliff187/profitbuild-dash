@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDateOnly } from "@/utils/dateUtils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface TimeEntry {
   id: string;
@@ -82,18 +82,11 @@ export const TimeEntriesCardView = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Entry Approved",
-        description: "Time entry has been approved successfully.",
-      });
+      toast.success("Time entry has been approved successfully.");
       onRefresh();
     } catch (error) {
       console.error("Error approving entry:", error);
-      toast({
-        title: "Error",
-        description: "Failed to approve time entry.",
-        variant: "destructive",
-      });
+      toast.error("Failed to approve time entry.");
     }
   };
 

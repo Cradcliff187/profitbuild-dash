@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { QuoteStatus } from "@/types/quote";
 import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -31,7 +31,6 @@ export function QuoteViewRoute() {
   const { quoteId } = useParams<{ quoteId: string }>();
   const { project, quotes, estimates, projectId, loadProjectData } = useProjectContext();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const [showContractModal, setShowContractModal] = useState(false);
   const [quoteContracts, setQuoteContracts] = useState<Contract[]>([]);
@@ -83,17 +82,13 @@ export function QuoteViewRoute() {
       }
       const { error } = await supabase.from("contracts").delete().eq("id", contractId);
       if (error) throw error;
-      toast({ title: "Contract deleted", description: "The contract has been removed." });
+      toast.success("Contract deleted", { description: "The contract has been removed." });
       await fetchQuoteContracts();
     } catch (err) {
       console.error("Error deleting contract:", err);
-      toast({
-        title: "Delete failed",
-        description: err instanceof Error ? err.message : "Failed to delete contract",
-        variant: "destructive",
-      });
+      toast.error("Delete failed", { description: err instanceof Error ? err.message : "Failed to delete contract" });
     }
-  }, [fetchQuoteContracts, toast]);
+  }, [fetchQuoteContracts]);
 
   if (!quote) {
     return (

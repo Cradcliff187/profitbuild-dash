@@ -17,7 +17,7 @@ import { CalendarDays, DollarSign, FileText, Plus, CheckCircle, Trash2 } from "l
 import { Project, ProjectStatus } from "@/types/project";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatCurrency } from '@/lib/utils';
 
 interface WorkOrderCardProps {
@@ -33,8 +33,6 @@ interface WorkOrderCardProps {
 
 const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-
   // Removed - now using ProjectStatusBadge component
 
   const handleAddExpense = () => {
@@ -58,25 +56,14 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
         .eq('id', workOrder.id);
 
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update work order status",
-          variant: "destructive",
-        });
+        toast.error("Failed to update work order status");
         return;
       }
 
-      toast({
-        title: "Success",
-        description: "Work order marked as complete",
-      });
+      toast.success("Work order marked as complete");
       onUpdate();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast.error("An unexpected error occurred");
     }
   };
 
@@ -88,25 +75,14 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
         .eq('id', workOrder.id);
 
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete work order",
-          variant: "destructive",
-        });
+        toast.error("Failed to delete work order");
         return;
       }
 
-      toast({
-        title: "Success",
-        description: "Work order deleted successfully",
-      });
+      toast.success("Work order deleted successfully");
       onUpdate();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast.error("An unexpected error occurred");
     }
   };
 

@@ -19,7 +19,7 @@ import { Payee, PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Split } from 'lucide-react';
 import { ExpenseSplitDialog } from '@/components/ExpenseSplitDialog';
@@ -59,14 +59,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   const [hoursWorked, setHoursWorked] = useState<string>('');
   const [isInternalLabor, setIsInternalLabor] = useState(false);
   const [showSplitDialog, setShowSplitDialog] = useState(false);
-  const { toast } = useToast();
+
 
   const handleSplitsUpdated = () => {
     setShowSplitDialog(false);
-    toast({
-      title: "Success",
-      description: "Expense splits updated successfully. The form will refresh with updated split data.",
-    });
+    toast.success("Expense splits updated successfully. The form will refresh with updated split data.");
   };
 
   const form = useForm<ExpenseFormData>({
@@ -106,16 +103,12 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         setProjects(transformedProjects);
       } catch (error) {
         console.error('Error loading data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load projects.",
-          variant: "destructive",
-        });
+        toast.error("Failed to load projects.");
       }
     };
 
     loadData();
-  }, [toast]);
+  }, []);
 
   // Load project contingency data when project is selected
   useEffect(() => {
@@ -251,17 +244,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
 
       onSave(transformedExpense);
       
-      toast({
-        title: expense ? "Expense Updated" : "Expense Added",
-        description: `The expense has been successfully ${expense ? 'updated' : 'added'}.`,
-      });
+      toast.success(expense ? "Expense Updated" : "Expense Added", { description: `The expense has been successfully ${expense ? 'updated' : 'added'}.` });
     } catch (error) {
       console.error('Error saving expense:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save expense. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to save expense. Please try again.");
     } finally {
       setLoading(false);
     }

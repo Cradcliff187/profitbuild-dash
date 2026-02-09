@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -43,8 +42,6 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
   const currentProjectIdRef = useRef(projectId);
 
   const navigate = useNavigate();
-  const { toast } = useToast();
-
   const loadProjectData = useCallback(async () => {
     if (!projectId) return;
 
@@ -60,11 +57,7 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
 
       if (projectError) {
         if (projectError.code === 'PGRST116') {
-          toast({
-            title: "Project Not Found",
-            description: "The requested project could not be found.",
-            variant: "destructive"
-          });
+          toast.error("Project Not Found", { description: "The requested project could not be found." });
           navigate('/projects');
           return;
         }
@@ -315,28 +308,18 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
       const isNetworkError = error instanceof TypeError &&
                              error.message.includes('fetch');
 
-      toast({
-        title: isNetworkError ? "Connection Error" : "Error Loading Data",
+      toast.error(isNetworkError ? "Connection Error" : "Error Loading Data", {
         description: isNetworkError
           ? "Please check your internet connection and try again."
           : "Failed to load project data. If this persists, contact support.",
-        variant: "destructive",
-        action: (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => loadProjectData()}
-          >
-            Retry
-          </Button>
-        )
+        action: { label: "Retry", onClick: () => loadProjectData() }
       });
     } finally {
       if (projectId === currentProjectIdRef.current) {
         setIsLoading(false);
       }
     }
-  }, [projectId, navigate, toast]);
+  }, [projectId, navigate]);
 
   const handleSaveQuote = useCallback(async (quote: Quote) => {
     try {
@@ -387,22 +370,15 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
         if (lineItemsError) throw lineItemsError;
       }
 
-      toast({
-        title: "Quote saved",
-        description: `Quote ${quote.quoteNumber} has been created successfully.`,
-      });
+      toast.success("Quote saved", { description: `Quote ${quote.quoteNumber} has been created successfully.` });
 
       await loadProjectData();
       navigate(`/projects/${projectId}/estimates?tab=quotes`);
     } catch (error) {
       console.error('Error saving quote:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save quote. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to save quote. Please try again.");
     }
-  }, [projectId, toast, loadProjectData, navigate]);
+  }, [projectId, loadProjectData, navigate]);
 
   useEffect(() => {
     currentProjectIdRef.current = projectId;

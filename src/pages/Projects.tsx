@@ -17,7 +17,7 @@ import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectWithFinancials } from "@/utils/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,7 +38,6 @@ import {
 type ViewMode = 'list' | 'create';
 
 const Projects = () => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
@@ -268,11 +267,7 @@ const Projects = () => {
       setExpenses(displayableExpenses);
     } catch (error) {
       console.error('Error loading projects:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load projects.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load projects.");
     } finally {
       setIsLoading(false);
     }
@@ -313,17 +308,10 @@ const Projects = () => {
         prevProjects.filter(p => p.id !== projectId)
       );
 
-      toast({
-        title: "Success",
-        description: "Project and all related data deleted successfully",
-      });
+      toast.success("Project and all related data deleted successfully");
     } catch (error: any) {
       console.error('Failed to delete project:', error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to delete project. Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to delete project. Please try again.");
     }
   };
 
@@ -354,20 +342,13 @@ const Projects = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`,
-      });
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`);
 
       setSelectedIds([]);
       loadProjects();
     } catch (error: any) {
       console.error('Error updating project status:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update project status",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to update project status");
     }
   };
 
@@ -383,21 +364,14 @@ const Projects = () => {
         if (error) throw error;
       }
 
-      toast({
-        title: "Success",
-        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} deleted successfully`,
-      });
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} deleted successfully`);
 
       setSelectedIds([]);
       setBulkDeleteDialogOpen(false);
       loadProjects();
     } catch (error: any) {
       console.error('Error deleting projects:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete projects",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to delete projects");
     }
   };
 

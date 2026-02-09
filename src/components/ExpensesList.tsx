@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFoo
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
 import { isOverheadProject, ProjectCategory, isOperationalProject, isSystemProjectByCategory } from "@/types/project";
@@ -145,7 +145,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [expenseToAllocate, setExpenseToAllocate] = useState<string | null>(null);
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-    const { toast } = useToast();
+
     
     // Receipt linking state
     const [receiptLinkModalOpen, setReceiptLinkModalOpen] = useState(false);
@@ -586,20 +586,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Expense deleted successfully.",
-        });
+        toast.success("Expense deleted successfully.");
 
         onDelete(expenseId);
         onRefresh();
       } catch (error) {
         console.error("Error deleting expense:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete expense.",
-          variant: "destructive",
-        });
+        toast.error("Failed to delete expense.");
       }
     };
 
@@ -633,19 +626,12 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: `Expense ${action === "submit" ? "submitted for approval" : action === "approve" ? "approved" : "rejected"}.`,
-        });
+        toast.success(`Expense ${action === "submit" ? "submitted for approval" : action === "approve" ? "approved" : "rejected"}.`);
 
         onRefresh();
       } catch (error) {
         console.error("Error updating approval status:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update approval status.",
-          variant: "destructive",
-        });
+        toast.error("Failed to update approval status.");
       }
     };
 
@@ -672,11 +658,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           setReceiptPreviewOpen(true);
         }
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to load receipt',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load receipt');
       }
     };
 
@@ -686,17 +668,10 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       
       try {
         await unlinkReceiptFromExpense({ expenseId: expense.id });
-        toast({
-          title: 'Receipt Unlinked',
-          description: 'The receipt has been unlinked from this expense.',
-        });
+        toast.success('Receipt Unlinked', { description: 'The receipt has been unlinked from this expense.' });
         onRefresh?.();
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to unlink receipt',
-          variant: 'destructive',
-        });
+        toast.error('Failed to unlink receipt');
       }
     };
 
@@ -800,10 +775,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       link.click();
       document.body.removeChild(link);
 
-      toast({
-        title: "Export successful",
-        description: `${filteredExpenses.length} expenses (${totalRows} total rows including splits) exported to CSV`,
-      });
+      toast.success("Export successful", { description: `${filteredExpenses.length} expenses (${totalRows} total rows including splits) exported to CSV` });
     };
 
     const handleSelectAll = () => {

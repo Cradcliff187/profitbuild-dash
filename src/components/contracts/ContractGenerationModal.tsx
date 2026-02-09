@@ -43,7 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Loader2, Calendar as CalendarIcon, AlertCircle, FileText, Download, Plus, Trash2 } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
 import { useContractData } from '@/hooks/useContractData';
@@ -137,7 +137,6 @@ export function ContractGenerationModal({
   payeeId,
   onSuccess,
 }: ContractGenerationModalProps) {
-  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState<'configure' | 'preview' | 'complete'>('configure');
   const [previewData, setPreviewData] = useState<ContractFieldValues | null>(null);
@@ -284,11 +283,7 @@ export function ContractGenerationModal({
     if (!validation.isValid) {
       const [firstField, firstMessage] = Object.entries(validation.errors)[0];
       const fieldLabel = fieldPathToLabel(firstField);
-      toast({
-        title: 'Missing Required Field',
-        description: `${fieldLabel}: ${firstMessage}`,
-        variant: 'destructive',
-      });
+      toast.error("Missing Required Field", { description: `${fieldLabel}: ${firstMessage}` });
       return;
     }
     setPreviewData(completeFieldValues);
@@ -332,17 +327,10 @@ export function ContractGenerationModal({
       setGenerationResult(result);
       setCurrentStep('complete');
       onSuccess?.(result);
-      toast({
-        title: 'Contract Generated',
-        description: `Subcontractor Project Agreement ${(result as { internalReference?: string }).internalReference || result.contractNumber || ''} has been created successfully.`,
-      });
+      toast.success("Contract Generated", { description: `Subcontractor Project Agreement ${(result as { internalReference?: string }).internalReference || result.contractNumber || ''} has been created successfully.` });
     } catch (err) {
       console.error('Contract generation error:', err);
-      toast({
-        title: 'Generation Failed',
-        description: err instanceof Error ? err.message : 'Failed to generate contract',
-        variant: 'destructive',
-      });
+      toast.error("Generation Failed", { description: err instanceof Error ? err.message : 'Failed to generate contract' });
     } finally {
       setIsGenerating(false);
     }

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Download, FileText, Table, Calendar } from "lucide-react";
 import type { SearchFilters } from "./EstimateSearchFilters";
 
@@ -30,7 +30,6 @@ export const EstimateExportModal: React.FC<EstimateExportModalProps> = ({
   onClose,
   filters
 }) => {
-  const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'csv',
@@ -101,20 +100,13 @@ export const EstimateExportModal: React.FC<EstimateExportModalProps> = ({
         await exportToExcel(estimates);
       }
 
-      toast({
-        title: "Export Complete",
-        description: `Successfully exported ${estimates?.length || 0} estimates`
-      });
+      toast.success("Export Complete", { description: `Successfully exported ${estimates?.length || 0} estimates` });
 
       onClose();
       
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting the data",
-        variant: "destructive"
-      });
+      toast.error("Export Failed", { description: "There was an error exporting the data" });
     } finally {
       setIsExporting(false);
     }
@@ -186,22 +178,14 @@ export const EstimateExportModal: React.FC<EstimateExportModalProps> = ({
     // For PDF export, we'd typically use a library like jsPDF
     // For now, we'll convert to CSV as a fallback
     await exportToCSV(estimates);
-    toast({
-      title: "PDF Export",
-      description: "PDF export converted to CSV format for now",
-      variant: "default"
-    });
+    toast.info("PDF Export", { description: "PDF export converted to CSV format for now" });
   };
 
   const exportToExcel = async (estimates: any[]) => {
     // For Excel export, we'd typically use a library like xlsx
     // For now, we'll convert to CSV as a fallback
     await exportToCSV(estimates);
-    toast({
-      title: "Excel Export",
-      description: "Excel export converted to CSV format for now",
-      variant: "default"
-    });
+    toast.info("Excel Export", { description: "Excel export converted to CSV format for now" });
   };
 
   return (

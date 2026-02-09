@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as DatePicker } from "@/components/ui/calendar";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Download, Table, Calendar, CalendarDays, Building2, FileText, Eye, X } from "lucide-react";
 import { format } from "date-fns";
 import { exportScheduleToCSV, exportScheduleToMSProject, exportScheduleByDay, exportAllProjectsSchedule } from '@/utils/scheduleExport';
@@ -49,7 +49,6 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
   clientName,
   ganttContainerRef
 }) => {
-  const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -77,20 +76,12 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
 
   const handlePreview = async () => {
     if (exportOptions.format !== 'pdf') {
-      toast({
-        title: "Preview Unavailable",
-        description: "Preview is only available for PDF exports",
-        variant: "destructive"
-      });
+      toast.error("Preview is only available for PDF exports");
       return;
     }
 
     if (!ganttContainerRef?.current) {
-      toast({
-        title: "PDF Preview Unavailable",
-        description: "Gantt chart view is required for PDF preview. Please switch to Gantt view.",
-        variant: "destructive"
-      });
+      toast.error("PDF Preview Unavailable", { description: "Gantt chart view is required for PDF preview. Please switch to Gantt view." });
       return;
     }
 
@@ -117,11 +108,7 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
       }
     } catch (error) {
       console.error('Preview error:', error);
-      toast({
-        title: "Preview Failed",
-        description: error instanceof Error ? error.message : "Could not generate preview",
-        variant: "destructive"
-      });
+      toast.error("Preview Failed", { description: error instanceof Error ? error.message : "Could not generate preview" });
     } finally {
       setIsGeneratingPreview(false);
     }
@@ -130,22 +117,14 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
   const handleExport = async () => {
     // If exporting all projects, don't need current project tasks
     if (!exportOptions.includeAllProjects && tasks.length === 0) {
-      toast({
-        title: "No Tasks to Export",
-        description: "The schedule has no tasks to export",
-        variant: "destructive"
-      });
+      toast.error("No Tasks to Export", { description: "The schedule has no tasks to export" });
       return;
     }
 
     // For PDF export, check if Gantt container is available
     if (exportOptions.format === 'pdf') {
       if (!ganttContainerRef?.current) {
-        toast({
-          title: "PDF Export Unavailable",
-          description: "Gantt chart view is required for PDF export. Please switch to Gantt view.",
-          variant: "destructive"
-        });
+        toast.error("PDF Export Unavailable", { description: "Gantt chart view is required for PDF export. Please switch to Gantt view." });
         return;
       }
     }
@@ -156,22 +135,14 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
       if (exportOptions.includeAllProjects) {
         // Export all projects (PDF not supported for all projects)
         if (exportOptions.format === 'pdf') {
-          toast({
-            title: "PDF Export Unavailable",
-            description: "PDF export is only available for individual projects",
-            variant: "destructive"
-          });
+          toast.error("PDF export is only available for individual projects");
           setIsExporting(false);
           return;
         }
         
         const result = await exportAllProjectsSchedule(exportOptions.format);
         
-        toast({
-          title: "✓ Export Complete",
-          description: `Successfully exported ${result.projectCount} project${result.projectCount === 1 ? '' : 's'} with ${result.taskCount} task${result.taskCount === 1 ? '' : 's'}`,
-          duration: 3000
-        });
+        toast.success(`Successfully exported ${result.projectCount} project${result.projectCount === 1 ? '' : 's'} with ${result.taskCount} task${result.taskCount === 1 ? '' : 's'}`, { duration: 3000 });
       } else {
         // Export single project
         if (exportOptions.format === 'pdf') {
@@ -188,32 +159,16 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
             includeTaskDetails: exportOptions.includeTaskDetails
           });
 
-          toast({
-            title: "✓ PDF Export Complete",
-            description: `Successfully exported Gantt chart as PDF`,
-            duration: 3000
-          });
+          toast.success(`Successfully exported Gantt chart as PDF`, { duration: 3000 });
         } else if (exportOptions.format === 'ms-project') {
           exportScheduleToMSProject(tasks, projectName);
-          toast({
-            title: "✓ Export Complete",
-            description: `Successfully exported ${tasks.length} task${tasks.length === 1 ? '' : 's'}`,
-            duration: 3000
-          });
+          toast.success(`Successfully exported ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, { duration: 3000 });
         } else if (exportOptions.format === 'daily-activity') {
           exportScheduleByDay(tasks, projectName);
-          toast({
-            title: "✓ Export Complete",
-            description: `Successfully exported ${tasks.length} task${tasks.length === 1 ? '' : 's'}`,
-            duration: 3000
-          });
+          toast.success(`Successfully exported ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, { duration: 3000 });
         } else {
           exportScheduleToCSV(tasks, projectName, exportOptions);
-          toast({
-            title: "✓ Export Complete",
-            description: `Successfully exported ${tasks.length} task${tasks.length === 1 ? '' : 's'}`,
-            duration: 3000
-          });
+          toast.success(`Successfully exported ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, { duration: 3000 });
         }
       }
 
@@ -221,11 +176,7 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
       
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: "✗ Export Failed",
-        description: error instanceof Error ? error.message : "There was an error exporting the schedule",
-        variant: "destructive"
-      });
+      toast.error("Export Failed", { description: error instanceof Error ? error.message : "There was an error exporting the schedule" });
     } finally {
       setIsExporting(false);
     }

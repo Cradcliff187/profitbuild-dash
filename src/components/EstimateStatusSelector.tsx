@@ -23,7 +23,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EstimateStatus } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface EstimateStatusSelectorProps {
@@ -47,7 +47,6 @@ export const EstimateStatusSelector = ({
   disabled = false,
   showLabel = false
 }: EstimateStatusSelectorProps) => {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<EstimateStatus | null>(null);
@@ -153,10 +152,7 @@ export const EstimateStatusSelector = ({
 
         if (projectError) throw projectError;
 
-        toast({
-          title: "Estimate Approved",
-          description: `${estimateNumber} approved and set as contract value`,
-        });
+        toast.success("Estimate Approved", { description: `${estimateNumber} approved and set as contract value` });
       } else if (currentStatus === ('approved' as EstimateStatus) && newStatus !== ('approved' as EstimateStatus)) {
         // When un-approving, clear the contract value and current version
         const { error: estimateError } = await supabase
@@ -181,10 +177,7 @@ export const EstimateStatusSelector = ({
 
         if (projectError) throw projectError;
 
-        toast({
-          title: "Status Updated",
-          description: `${estimateNumber} status changed to ${newStatus}`,
-        });
+        toast.success(`${estimateNumber} status changed to ${newStatus}`);
       } else {
         // For all other status changes (not involving approval)
         const { error: updateError } = await supabase
@@ -197,21 +190,14 @@ export const EstimateStatusSelector = ({
 
         if (updateError) throw updateError;
 
-        toast({
-          title: "Status Updated",
-          description: `${estimateNumber} status changed to ${newStatus}`,
-        });
+        toast.success(`${estimateNumber} status changed to ${newStatus}`);
       }
 
       onStatusChange?.(newStatus);
       
     } catch (error) {
       console.error('Error updating estimate status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update estimate status. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to update estimate status. Please try again.");
     } finally {
       setIsLoading(false);
       setShowConfirmDialog(false);

@@ -18,6 +18,7 @@ export function showCaptionPrompt({
   toast(message, {
     duration,
     dismissible: true,
+    closeButton: false,
     action: (
       <div className="flex gap-1.5">
         <Button

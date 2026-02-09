@@ -1,25 +1,19 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoles } from '@/contexts/RoleContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { SMSComposer } from '@/components/sms/SMSComposer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SMS() {
   const { isAdmin, isManager, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
   useEffect(() => {
     if (!rolesLoading && !isAdmin && !isManager) {
-      toast({
-        title: 'Access Denied',
-        description: 'Only administrators and managers can send SMS messages',
-        variant: 'destructive',
-      });
+      toast.error("Access Denied", { description: 'Only administrators and managers can send SMS messages' });
       navigate('/');
     }
-  }, [isAdmin, isManager, rolesLoading, navigate, toast]);
+  }, [isAdmin, isManager, rolesLoading, navigate]);
 
   if (rolesLoading) {
     return (

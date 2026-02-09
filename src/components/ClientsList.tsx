@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Client, ClientType, CLIENT_TYPES } from "@/types/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { EntityTableTemplate } from "./EntityTableTemplate";
 import { ClientDetailsModal } from "./ClientDetailsModal";
 import { ClientForm } from "./ClientForm";
@@ -46,7 +46,6 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: clients = [], isLoading, error, refetch: refetchClients } = useQuery({
@@ -140,19 +139,12 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
 
       if (error) throw error;
 
-      toast({
-        title: "Client deleted",
-        description: "Client has been successfully deactivated."
-      });
+      toast.success("Client deleted", { description: "Client has been successfully deactivated." });
 
       queryClient.invalidateQueries({ queryKey: ["clients"] });
     } catch (error) {
       console.error('Error deleting client:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete client. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to delete client. Please try again.");
     }
   };
 
@@ -186,11 +178,7 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
   };
 
   if (error) {
-    toast({
-      title: "Error",
-      description: "Failed to load clients",
-      variant: "destructive",
-    });
+    toast.error("Failed to load clients");
   }
 
   const columns = [

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Payee } from "@/types/payee";
 import { PayeeType } from "@/types/payee";
@@ -66,7 +66,6 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
       isSubmittingRef.current = isSubmitting;
     }
   }, [isSubmitting, isSubmittingRef]);
-  const { toast } = useToast();
 
   const form = useForm<PayeeFormData>({
     resolver: zodResolver(payeeSchema),
@@ -140,10 +139,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Payee updated successfully",
-        });
+        toast.success("Payee updated successfully");
       } else {
         // Create new payee
         const payeeData = {
@@ -177,20 +173,13 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Payee created successfully",
-        });
+        toast.success("Payee created successfully");
       }
 
       onSuccess();
     } catch (error) {
       console.error("Error saving payee:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save payee",
-        variant: "destructive",
-      });
+      toast.error("Failed to save payee");
     } finally {
       setIsSubmitting(false);
     }

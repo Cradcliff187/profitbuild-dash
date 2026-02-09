@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Users, X, Building2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ export const ExpenseBulkActions = ({
   const [selectedType, setSelectedType] = useState<TransactionType | "">("");
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
-  const { toast } = useToast();
+
 
   // Load projects when project dialog opens
   const loadProjects = async () => {
@@ -45,11 +45,7 @@ export const ExpenseBulkActions = ({
       setProjects(data || []);
     } catch (error) {
       console.error("Error loading projects:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load projects",
-        variant: "destructive",
-      });
+      toast.error("Failed to load projects");
     }
   };
 
@@ -63,21 +59,14 @@ export const ExpenseBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedExpenseIds.length} expenses deleted successfully`,
-      });
-      
+      toast.success(`${selectedExpenseIds.length} expenses deleted successfully`);
+
       onSelectionChange(new Set());
       onComplete();
       setShowDeleteDialog(false);
     } catch (error) {
       console.error("Error deleting expenses:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete expenses",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete expenses");
     } finally {
       setIsLoading(false);
     }
@@ -95,22 +84,15 @@ export const ExpenseBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedExpenseIds.length} expenses updated successfully`,
-      });
-      
+      toast.success(`${selectedExpenseIds.length} expenses updated successfully`);
+
       onSelectionChange(new Set());
       onComplete();
       setShowCategoryDialog(false);
       setSelectedCategory("");
     } catch (error) {
       console.error("Error updating expense categories:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update expense categories",
-        variant: "destructive",
-      });
+      toast.error("Failed to update expense categories");
     } finally {
       setIsLoading(false);
     }
@@ -128,22 +110,15 @@ export const ExpenseBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedExpenseIds.length} expenses updated successfully`,
-      });
-      
+      toast.success(`${selectedExpenseIds.length} expenses updated successfully`);
+
       onSelectionChange(new Set());
       onComplete();
       setShowTypeDialog(false);
       setSelectedType("");
     } catch (error) {
       console.error("Error updating expense types:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update expense types",
-        variant: "destructive",
-      });
+      toast.error("Failed to update expense types");
     } finally {
       setIsLoading(false);
     }
@@ -161,22 +136,15 @@ export const ExpenseBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedExpenseIds.length} expenses assigned to ${selectedProject.project_name}`,
-      });
-      
+      toast.success(`${selectedExpenseIds.length} expenses assigned to ${selectedProject.project_name}`);
+
       onSelectionChange(new Set());
       onComplete();
       setShowProjectDialog(false);
       setSelectedProject(null);
     } catch (error) {
       console.error("Error assigning expenses to project:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign expenses to project",
-        variant: "destructive",
-      });
+      toast.error("Failed to assign expenses to project");
     } finally {
       setIsLoading(false);
     }
@@ -215,20 +183,13 @@ export const ExpenseBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedExpenseIds.length} expenses ${action === 'submit' ? 'submitted for approval' : action === 'approve' ? 'approved' : 'rejected'}`,
-      });
-      
+      toast.success(`${selectedExpenseIds.length} expenses ${action === 'submit' ? 'submitted for approval' : action === 'approve' ? 'approved' : 'rejected'}`);
+
       onSelectionChange(new Set());
       onComplete();
     } catch (error) {
       console.error('Error updating approval status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update approval status",
-        variant: "destructive",
-      });
+      toast.error("Failed to update approval status");
     } finally {
       setIsLoading(false);
     }

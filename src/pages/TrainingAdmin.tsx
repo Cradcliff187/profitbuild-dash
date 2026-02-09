@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -84,7 +84,6 @@ interface User {
 export default function TrainingAdmin() {
   const { isAdmin, isManager, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const { content, isLoading, createContent, updateContent, deleteContent, setContentStatus, fetchContent } = useTrainingContent();
   const { assignments, createAssignments, sendNotifications } = useTrainingAssignments();
@@ -128,14 +127,10 @@ export default function TrainingAdmin() {
   // Access control
   useEffect(() => {
     if (!rolesLoading && !isAdmin && !isManager) {
-      toast({
-        title: 'Access Denied',
-        description: 'Only administrators and managers can manage training content',
-        variant: 'destructive',
-      });
+      toast.error("Access Denied", { description: 'Only administrators and managers can manage training content' });
       navigate('/');
     }
-  }, [isAdmin, isManager, rolesLoading, navigate, toast]);
+  }, [isAdmin, isManager, rolesLoading, navigate]);
 
   // Load users for assignment
   useEffect(() => {
@@ -255,11 +250,7 @@ export default function TrainingAdmin() {
 
   const handleAssignmentSubmit = async () => {
     if (!selectedContentId || selectedUserIds.size === 0) {
-      toast({
-        title: 'Error',
-        description: 'Please select at least one user',
-        variant: 'destructive',
-      });
+      toast.error('Please select at least one user');
       return;
     }
 
@@ -851,16 +842,9 @@ export default function TrainingAdmin() {
                         if (result.success && result.path) {
                           setUploadedFile({ name: file.name, path: result.path });
                           form.setValue('storage_path', result.path);
-                          toast({
-                            title: 'File uploaded successfully',
-                            description: 'The file is ready to be saved.',
-                          });
+                          toast.success("File uploaded successfully", { description: 'The file is ready to be saved.' });
                         } else {
-                          toast({
-                            title: 'Upload failed',
-                            description: result.error || 'Failed to upload file',
-                            variant: 'destructive',
-                          });
+                          toast.error("Upload failed", { description: result.error || 'Failed to upload file' });
                         }
                         
                         e.target.value = '';

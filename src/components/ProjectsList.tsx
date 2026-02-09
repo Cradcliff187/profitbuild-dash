@@ -32,7 +32,7 @@ import { Project, ProjectStatus, ProjectType } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from "@/utils/thresholdUtils";
 import { usePagination } from "@/hooks/usePagination";
 import { CompletePagination } from "@/components/ui/complete-pagination";
@@ -259,7 +259,6 @@ export const ProjectsList = ({
   enablePagination = false,
   pageSize = 12 
 }: ProjectsListProps) => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
@@ -358,36 +357,22 @@ export const ProjectsList = ({
         .eq('id', projectId);
 
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete project",
-          variant: "destructive",
-        });
+        toast.error("Failed to delete project");
         return;
       }
 
-      toast({
-        title: "Success",
-        description: "Project deleted successfully",
-      });
+      toast.success("Project deleted successfully");
       onDelete(projectId);
       onRefresh();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast.error("An unexpected error occurred");
     }
   };
 
   const handleDuplicateProject = (project: Project) => {
     // For now, just route to create new project page
     // In the future, this could pre-populate the form with project data
-    toast({
-      title: "Feature Coming Soon",
-      description: "Project duplication will be available in a future update",
-    });
+    toast.info("Feature Coming Soon", { description: "Project duplication will be available in a future update" });
   };
 
 

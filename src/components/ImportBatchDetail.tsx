@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ArrowLeft, Trash2, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface ImportBatchDetailProps {
   batchId: string;
@@ -64,7 +64,7 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
   const [isRollingBack, setIsRollingBack] = useState(false);
   const [showRollbackConfirm, setShowRollbackConfirm] = useState(false);
   const [matchLogOpen, setMatchLogOpen] = useState(false);
-  const { toast } = useToast();
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,15 +109,11 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
       // Update batch status
       await supabase.from('import_batches').update({ status: 'rolled_back' }).eq('id', batchId);
 
-      toast({ title: 'Import rolled back successfully' });
+      toast.success('Import rolled back successfully');
       setShowRollbackConfirm(false);
       onBack();
     } catch (error) {
-      toast({
-        title: 'Rollback failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive'
-      });
+      toast.error('Rollback failed', { description: error instanceof Error ? error.message : 'Unknown error' });
     } finally {
       setIsRollingBack(false);
     }

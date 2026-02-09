@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { ProjectFinancialSummary } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface ProjectFinancialReconciliationProps {
   projectId?: string;
@@ -32,8 +32,6 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<ProjectFinancialSummary | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     fetchFinancialData();
   }, [projectId]);
@@ -60,11 +58,7 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
       
     } catch (error) {
       console.error('Error fetching financial data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load financial data",
-        variant: "destructive",
-      });
+      toast.error("Failed to load financial data");
     } finally {
       setLoading(false);
     }
@@ -81,19 +75,12 @@ export const ProjectFinancialReconciliation: React.FC<ProjectFinancialReconcilia
       
       if (error) throw error;
       
-      toast({
-        title: "Financials Updated",
-        description: "Project financial calculations have been refreshed.",
-      });
+      toast.success("Financials Updated", { description: "Project financial calculations have been refreshed." });
       
       await fetchFinancialData();
     } catch (error) {
       console.error('Error refreshing financials:', error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh financials. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to refresh financials. Please try again.");
     } finally {
       setIsRefreshing(false);
     }

@@ -8,7 +8,7 @@ import { TimesheetGridCell } from "@/components/TimesheetGridCell";
 import { TimesheetWeekSelector } from "@/components/TimesheetWeekSelector";
 import { TimesheetSummary } from "@/components/TimesheetSummary";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Payee, PayeeType } from "@/types/payee";
 import { Project } from "@/types/project";
@@ -35,7 +35,6 @@ interface TimesheetGridViewProps {
 }
 
 export function TimesheetGridView({ open, onClose, onSuccess, preselectedProjectId }: TimesheetGridViewProps) {
-  const { toast } = useToast();
   const [projectId, setProjectId] = useState(preselectedProjectId || "");
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [startDate, setStartDate] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -155,11 +154,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
 
   const handleSaveTimesheet = async () => {
     if (!projectId) {
-      toast({
-        title: "Project Required",
-        description: "Please select a project before saving",
-        variant: "destructive"
-      });
+      toast.error("Please select a project before saving");
       return;
     }
 
@@ -168,11 +163,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
     
     const criticalErrors = errors.filter(e => e.type === 'error');
     if (criticalErrors.length > 0) {
-      toast({
-        title: "Cannot Save",
-        description: `Please fix ${criticalErrors.length} error(s) before saving`,
-        variant: "destructive"
-      });
+      toast.error(`Please fix ${criticalErrors.length} error(s) before saving`);
       return;
     }
 
@@ -196,11 +187,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
     });
 
     if (expenseRecords.length === 0) {
-      toast({
-        title: "No Hours Entered",
-        description: "Please enter hours before saving",
-        variant: "destructive"
-      });
+      toast.error("Please enter hours before saving");
       return;
     }
 
@@ -219,10 +206,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${expenseRecords.length} labor expenses created successfully`
-      });
+      toast.success(`${expenseRecords.length} labor expenses created successfully`);
 
       onSuccess();
       onClose();
@@ -230,11 +214,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
       setProjectId("");
     } catch (error) {
       console.error('Error saving timesheet:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save timesheet. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to save timesheet. Please try again.");
     } finally {
       setLoading(false);
     }

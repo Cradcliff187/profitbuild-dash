@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 
@@ -12,7 +12,6 @@ export function CompanyBrandingSettings() {
   const [branding, setBranding] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchBranding();
@@ -26,11 +25,7 @@ export function CompanyBrandingSettings() {
       .single();
     
     if (error) {
-      toast({
-        title: "Error loading branding",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error("Error loading branding", { description: error.message });
     } else {
       setBranding(data);
     }
@@ -56,16 +51,9 @@ export function CompanyBrandingSettings() {
       .eq('id', branding.id);
 
     if (error) {
-      toast({
-        title: "Error saving settings",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error("Error saving settings", { description: error.message });
     } else {
-      toast({
-        title: "Settings saved",
-        description: "Company branding updated successfully"
-      });
+      toast.success("Settings saved", { description: "Company branding updated successfully" });
     }
     setSaving(false);
   };

@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { 
@@ -281,7 +281,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       reason: string;
     }>;
   } | null>(null);
-  const { toast } = useToast();
+
 
   // Build enriched CategorizedTransaction[] with status, matchKey, matchInfo for every row
   const allCategorized = useMemo((): CategorizedTransaction[] => {
@@ -1150,11 +1150,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
     } catch (error) {
       console.error('Import processing failed:', error);
-      toast({
-        title: "Import failed",
-        description: "Failed to process transactions. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Import failed", { description: "Failed to process transactions. Please try again." });
     } finally {
       setIsImporting(false);
     }
@@ -1320,20 +1316,16 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         const createdText = createdPayees.length > 0 
           ? ` Created ${createdPayees.length} payee(s).` 
           : '';
-        toast({
-          title: "Import completed",
-          description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}.${reimportText}${duplicateText}${createdText}${errorMessages.length > 0 ? ` ${errorMessages.length} failed.` : ''}`,
-          variant: errorMessages.length > 0 ? "destructive" : "default"
-        });
+        if (errorMessages.length > 0) {
+          toast.error("Import completed", { description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}.${reimportText}${duplicateText}${createdText} ${errorMessages.length} failed.` });
+        } else {
+          toast.success("Import completed", { description: `Successfully imported ${successCount} transaction${successCount === 1 ? '' : 's'}.${reimportText}${duplicateText}${createdText}` });
+        }
         onSuccess();
       }
     } catch (error) {
       console.error('Import failed:', error);
-      toast({
-        title: "Import failed",
-        description: "Failed to import transactions. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Import failed", { description: "Failed to import transactions. Please try again." });
     } finally {
       setIsImporting(false);
     }
@@ -1989,9 +1981,9 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                           onConflict: 'qb_account_full_path'
                         });
                         if (!error) {
-                          toast({ title: `Saved ${mappings.length} account mapping(s)` });
+                          toast.success(`Saved ${mappings.length} account mapping(s)`);
                         } else {
-                          toast({ title: 'Error saving mappings', description: error.message, variant: 'destructive' });
+                          toast.error('Error saving mappings', { description: error.message });
                         }
                       }}
                     >

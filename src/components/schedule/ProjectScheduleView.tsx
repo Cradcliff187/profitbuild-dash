@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, Download, ArrowUpDown, BarChart3, Calendar } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import TaskEditPanel from './TaskEditPanel';
@@ -47,7 +47,6 @@ export default function ProjectScheduleView({
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
   const [isRealtimeSynced, setIsRealtimeSynced] = useState(false);
   const ganttContainerRef = React.useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
 
@@ -236,12 +235,7 @@ export default function ProjectScheduleView({
     } catch (error) {
       console.error('Error loading schedule:', error);
       // FIX 2: Add duration to toast
-      toast({
-        title: 'Error',
-        description: 'Failed to load project schedule',
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error('Failed to load project schedule', { duration: 5000 });
     } finally {
       setIsLoading(false);
     }
@@ -540,21 +534,12 @@ export default function ProjectScheduleView({
         ? `${scheduleTask.name} - Phase ${phaseNumber}` 
         : scheduleTask.name;
       
-      toast({
-        title: '✓ Schedule Updated',
-        description: `${displayName} moved to ${task.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-        duration: 3000,
-      });
+      toast.success(`${displayName} moved to ${task.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, { duration: 3000 });
 
     } catch (error) {
       console.error('Error updating task:', error);
       isUpdatingRef.current = false; // Reset on exception
-      toast({
-        title: '✗ Update Failed',
-        description: 'Could not save schedule changes. Please try again.',
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error('Could not save schedule changes. Please try again.', { duration: 5000 });
     } finally {
       dragTimeoutRef.current = setTimeout(() => {
         isDraggingRef.current = false;
@@ -861,22 +846,13 @@ export default function ProjectScheduleView({
                 throw error;
               }
 
-              toast({
-                title: '✓ Task Updated',
-                description: 'Schedule changes saved successfully',
-                duration: 3000,
-              });
+              toast.success('Schedule changes saved successfully', { duration: 3000 });
 
               setSelectedTask(null);
 
             } catch (error) {
               console.error('Error saving task:', error);
-              toast({
-                title: '✗ Save Failed',
-                description: 'Could not save task changes. Please try again.',
-                variant: 'destructive',
-                duration: 5000,
-              });
+              toast.error('Could not save task changes. Please try again.', { duration: 5000 });
             }
           }}
         />

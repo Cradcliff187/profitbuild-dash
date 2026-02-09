@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -36,7 +36,6 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
   const [processing, setProcessing] = useState(false);
   const [lunchTaken, setLunchTaken] = useState(false);
   const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
-  const { toast } = useToast();
 
   const loadActiveTimers = async () => {
     try {
@@ -70,11 +69,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       setTimers(formatted);
     } catch (error) {
       console.error('Error loading active timers:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load active timers',
-        variant: 'destructive'
-      });
+      toast.error('Failed to load active timers');
     } finally {
       setLoading(false);
     }
@@ -106,11 +101,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       const startTimeDate = new Date(selectedTimer.start_time);
       
       if (endTimeDate <= startTimeDate) {
-        toast({
-          title: 'Invalid Time',
-          description: 'End time must be after start time',
-          variant: 'destructive'
-        });
+        toast.error('End time must be after start time');
         setProcessing(false);
         return;
       }
@@ -120,11 +111,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       const netHours = Math.max(0, grossHours - lunchHours);
       
       if (netHours <= 0) {
-        toast({
-          title: 'Invalid Time Entry',
-          description: 'Lunch duration cannot exceed shift duration',
-          variant: 'destructive'
-        });
+        toast.error('Lunch duration cannot exceed shift duration');
         setProcessing(false);
         return;
       }
@@ -147,12 +134,9 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
 
       if (error) throw error;
 
-      toast({
-        title: 'Timer Closed',
-        description: lunchTaken
+      toast.success(lunchTaken
           ? `Clocked out ${selectedTimer.payee_name} (${netHours.toFixed(2)} hours, ${lunchDuration}min lunch)`
-          : `Clocked out ${selectedTimer.payee_name} (${netHours.toFixed(2)} hours)`
-      });
+          : `Clocked out ${selectedTimer.payee_name} (${netHours.toFixed(2)} hours)`);
 
       setForceClockOutOpen(false);
       setSelectedTimer(null);
@@ -164,11 +148,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       
     } catch (error) {
       console.error('Error force clocking out:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to clock out timer',
-        variant: 'destructive'
-      });
+      toast.error('Failed to clock out timer');
     } finally {
       setProcessing(false);
     }

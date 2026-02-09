@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientType, CLIENT_TYPES } from "@/types/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +30,6 @@ export const ClientBulkActions = ({
 }: ClientBulkActionsProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [bulkClientType, setBulkClientType] = useState<ClientType>("residential");
-  const { toast } = useToast();
 
   const handleBulkDelete = async () => {
     setIsLoading(true);
@@ -42,20 +41,13 @@ export const ClientBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedClientIds.length} clients deleted successfully`,
-      });
+      toast.success(`${selectedClientIds.length} clients deleted successfully`);
       
       onSelectionChange(new Set());
       onComplete();
     } catch (error) {
       console.error("Error deleting clients:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete clients",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete clients");
     } finally {
       setIsLoading(false);
     }
@@ -71,20 +63,13 @@ export const ClientBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedClientIds.length} clients updated successfully`,
-      });
+      toast.success(`${selectedClientIds.length} clients updated successfully`);
       
       onSelectionChange(new Set());
       onComplete();
     } catch (error) {
       console.error("Error updating clients:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update client types",
-        variant: "destructive",
-      });
+      toast.error("Failed to update client types");
     } finally {
       setIsLoading(false);
     }
@@ -100,20 +85,13 @@ export const ClientBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedClientIds.length} clients ${activate ? 'activated' : 'deactivated'} successfully`,
-      });
+      toast.success(`${selectedClientIds.length} clients ${activate ? 'activated' : 'deactivated'} successfully`);
       
       onSelectionChange(new Set());
       onComplete();
     } catch (error) {
       console.error("Error updating client status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update client status",
-        variant: "destructive",
-      });
+      toast.error("Failed to update client status");
     } finally {
       setIsLoading(false);
     }

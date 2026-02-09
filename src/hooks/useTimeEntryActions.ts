@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
 
 /**
@@ -68,10 +68,7 @@ export const useTimeEntryActions = ({
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: `${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} approved`,
-      });
+      toast.success(`${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} approved`);
       setSelectedIds([]);
       refreshTimeEntries();
     } catch (error: any) {
@@ -82,22 +79,14 @@ export const useTimeEntryActions = ({
         error: errorMessage,
         stack: error?.stack
       });
-      toast({
-        title: "Error",
-        description: `Failed to approve ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}: ${errorMessage}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to approve ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}: ${errorMessage}`);
     }
   }, [user?.id, refreshTimeEntries, setSelectedIds]);
 
   const handleReject = useCallback(async (entryIds: string[], reason: string) => {
     if (entryIds.length === 0) return;
     if (!reason || reason.trim().length === 0) {
-      toast({
-        title: "Error",
-        description: "Rejection reason is required",
-        variant: "destructive",
-      });
+      toast.error("Rejection reason is required");
       return;
     }
 
@@ -122,10 +111,7 @@ export const useTimeEntryActions = ({
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: `${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} rejected`,
-      });
+      toast.success(`${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} rejected`);
       setSelectedIds([]);
       if (setRejectDialogOpen) {
         setRejectDialogOpen(false);
@@ -139,11 +125,7 @@ export const useTimeEntryActions = ({
         error: errorMessage,
         stack: error?.stack
       });
-      toast({
-        title: "Error",
-        description: `Failed to reject ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}: ${errorMessage}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to reject ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}: ${errorMessage}`);
     }
   }, [refreshTimeEntries, setSelectedIds, setRejectDialogOpen]);
 
@@ -162,10 +144,7 @@ export const useTimeEntryActions = ({
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: `${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} deleted`,
-      });
+      toast.success(`${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"} deleted`);
       setSelectedIds([]);
       if (setDeleteDialogOpen) {
         setDeleteDialogOpen(false);
@@ -178,11 +157,7 @@ export const useTimeEntryActions = ({
         error: errorMessage,
         stack: error?.stack
       });
-      toast({
-        title: "Error",
-        description: `Failed to delete ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}: ${errorMessage}`,
-        variant: "destructive",
-      });
+      toast.error(`Failed to delete ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}: ${errorMessage}`);
     }
   }, [refreshTimeEntries, setSelectedIds, setDeleteDialogOpen]);
 

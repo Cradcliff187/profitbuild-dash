@@ -22,7 +22,7 @@ import { calculateEstimateTotalCost } from "@/utils/estimateFinancials";
 import { QuotesTableView } from "./QuotesTableView";
 import { DuplicateQuoteModal } from "./DuplicateQuoteModal";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatCurrency } from "@/lib/utils";
 
@@ -42,7 +42,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
   const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<'date' | 'project' | 'total'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const { toast } = useToast();
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
 
@@ -195,19 +194,14 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
         const expiredQuoteIds = expiredQuotes.map(q => q.id);
         onExpire?.(expiredQuoteIds);
         
-        toast({
-          title: "Quotes Auto-Expired",
+        toast.info("Quotes Auto-Expired", {
           description: `${expiredQuotes.length} quote(s) have been automatically expired due to past expiration dates.`,
         });
         
         return expiredQuoteIds;
       } catch (error) {
         console.error('Error expiring quotes:', error);
-        toast({
-          title: "Error",
-          description: "Failed to expire quotes. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Failed to expire quotes. Please try again.");
       }
     }
     

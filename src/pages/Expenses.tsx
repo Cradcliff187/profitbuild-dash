@@ -21,7 +21,7 @@ import { ImportHistory } from "@/components/ImportHistory";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { ProjectRevenue } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 import { parseDateOnly } from "@/utils/dateUtils";
@@ -63,7 +63,6 @@ const Expenses = () => {
   const [showQuickBooksSync, setShowQuickBooksSync] = useState(false);
   const [showSyncHistory, setShowSyncHistory] = useState(false);
   const expensesListRef = useRef<ExpensesListRef>(null);
-  const { toast } = useToast();
   const { isEnabled: isQuickBooksSyncEnabled, config: qbSyncConfig } = useQuickBooksSync();
 
   // Column visibility state with localStorage persistence
@@ -290,11 +289,7 @@ const Expenses = () => {
       setEstimates(estimatesResult.data || []);
     } catch (error) {
       console.error("Error loading data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load data.",
-        variant: "destructive",
-      });
+      toast.error("Failed to load data.");
     } finally {
       setLoading(false);
     }
@@ -405,11 +400,7 @@ const Expenses = () => {
       setRevenues(transformedRevenues);
     } catch (error: any) {
       console.error("Error loading revenues:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load invoices: " + (error.message || "Unknown error"),
-        variant: "destructive",
-      });
+      toast.error("Failed to load invoices: " + (error.message || "Unknown error"));
     }
   };
 

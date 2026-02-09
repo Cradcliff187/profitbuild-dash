@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 
 export default function ProjectEdit() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,11 +33,7 @@ export default function ProjectEdit() {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          toast({
-            title: "Project Not Found",
-            description: "The requested project could not be found.",
-            variant: "destructive"
-          });
+          toast.error("Project Not Found", { description: "The requested project could not be found." });
           navigate('/projects');
           return;
         }
@@ -57,11 +51,7 @@ export default function ProjectEdit() {
       setProject(formattedProject);
     } catch (error) {
       console.error('Error loading project:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load project data.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load project data.");
     } finally {
       setIsLoading(false);
     }

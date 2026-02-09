@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Download, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { Expense } from "@/types/expense";
@@ -51,7 +51,7 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
   onClose,
   expenses
 }) => {
-  const { toast } = useToast();
+
   const [isExporting, setIsExporting] = useState(false);
   const [expenseSplits, setExpenseSplits] = useState<Record<string, any[]>>({});
   const [expenseMatches, setExpenseMatches] = useState<Record<string, any>>({});
@@ -128,30 +128,19 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
       const filteredExpenses = getFilteredExpenses();
       
       if (filteredExpenses.length === 0) {
-        toast({
-          title: "No data to export",
-          description: "No expenses match the current filters.",
-          variant: "destructive",
-        });
+        toast.error("No data to export", { description: "No expenses match the current filters." });
         setIsExporting(false);
         return;
       }
 
       await exportToCSV(filteredExpenses);
       
-      toast({
-        title: "Export successful",
-        description: `Successfully exported ${filteredExpenses.length} expenses`,
-      });
+      toast.success("Export successful", { description: `Successfully exported ${filteredExpenses.length} expenses` });
 
       onClose();
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: "There was an error exporting the data",
-        variant: "destructive",
-      });
+      toast.error("Export failed", { description: "There was an error exporting the data" });
     } finally {
       setIsExporting(false);
     }

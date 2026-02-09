@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/types/project';
 import { calculateProjectMargin, type ProjectMargin, getContingencyUtilization } from '@/types/margin';
@@ -20,7 +20,6 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
   const [project, setProject] = useState<Project | null>(null);
   const [marginData, setMarginData] = useState<ProjectMargin | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -73,11 +72,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
         }
       } catch (error) {
         console.error('Error fetching project:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load project margin data.",
-          variant: "destructive"
-        });
+        toast.error("Failed to load project margin data.");
       } finally {
         setLoading(false);
       }
@@ -86,7 +81,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
     if (projectId) {
       fetchProjectData();
     }
-  }, [projectId, toast]);
+  }, [projectId]);
 
   if (loading) {
     return (

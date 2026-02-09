@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole } from '@/contexts/RoleContext';
 import { Loader2, Copy, Check } from 'lucide-react';
@@ -16,7 +16,6 @@ interface CreateUserModalProps {
 }
 
 export default function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUserModalProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -45,11 +44,7 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailRegex.test(email.trim())) {
-      toast({
-        title: 'Invalid Email',
-        description: 'Please enter a valid email address with a proper domain (e.g., user@example.com)',
-        variant: 'destructive',
-      });
+      toast.error("Invalid Email", { description: "Please enter a valid email address with a proper domain (e.g., user@example.com)" });
       return;
     }
     
@@ -76,21 +71,14 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
         setTemporaryPassword(data.tempPassword);
       }
 
-      toast({
-        title: 'User Created',
-        description: method === 'temporary_password'
+      toast.success("User Created", { description: method === 'temporary_password'
           ? 'User created successfully. Copy the temporary password before closing.'
-          : 'User created with permanent password and is ready to log in.',
-      });
+          : 'User created with permanent password and is ready to log in.' });
 
       onUserCreated();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create user',
-        variant: 'destructive',
-      });
+      toast.error(error.message || "Failed to create user");
     } finally {
       setLoading(false);
     }

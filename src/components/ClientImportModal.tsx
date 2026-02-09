@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { 
   parseClientCSVFile, 
@@ -35,7 +35,6 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({ open, onCl
   const [isImporting, setIsImporting] = useState(false);
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview' | 'complete'>('upload');
   const [importResults, setImportResults] = useState<{ success: number; errors: string[] }>({ success: 0, errors: [] });
-  const { toast } = useToast();
 
   const resetState = () => {
     setSelectedFile(null);
@@ -136,19 +135,12 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({ open, onCl
       setStep('complete');
 
       if (successCount > 0) {
-        toast({
-          title: "Import completed",
-          description: `Successfully imported ${successCount} client${successCount === 1 ? '' : 's'}${errorMessages.length > 0 ? ` with ${errorMessages.length} error${errorMessages.length === 1 ? '' : 's'}` : ''}`,
-        });
+        toast.success("Import completed", { description: `Successfully imported ${successCount} client${successCount === 1 ? '' : 's'}${errorMessages.length > 0 ? ` with ${errorMessages.length} error${errorMessages.length === 1 ? '' : 's'}` : ''}` });
         onSuccess();
       }
     } catch (error) {
       console.error('Import failed:', error);
-      toast({
-        title: "Import failed",
-        description: "Failed to import clients. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Import failed", { description: "Failed to import clients. Please try again." });
     } finally {
       setIsImporting(false);
     }

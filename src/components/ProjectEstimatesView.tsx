@@ -9,7 +9,7 @@ import { Edit, Plus, FileText, GitCompare, FileStack } from "lucide-react";
 import { EstimateForm } from "@/components/EstimateForm";
 import { QuotesList } from "@/components/QuotesList";
 import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -25,7 +25,6 @@ interface ProjectEstimatesViewProps {
 
 export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }: ProjectEstimatesViewProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") || "current";
   const [activeTab, setActiveTab] = useState(tabFromUrl);

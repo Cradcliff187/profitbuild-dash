@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Users, X, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 
 interface RevenueBulkActionsProps {
@@ -23,7 +23,7 @@ export const RevenueBulkActions = ({
   const [showProjectDialog, setShowProjectDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
-  const { toast } = useToast();
+
 
   // Load projects when project dialog opens
   const loadProjects = async () => {
@@ -37,11 +37,7 @@ export const RevenueBulkActions = ({
       setProjects(data || []);
     } catch (error) {
       console.error("Error loading projects:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load projects",
-        variant: "destructive",
-      });
+      toast.error("Failed to load projects");
     }
   };
 
@@ -55,21 +51,14 @@ export const RevenueBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedRevenueIds.length} invoice${selectedRevenueIds.length !== 1 ? 's' : ''} deleted successfully`,
-      });
-      
+      toast.success(`${selectedRevenueIds.length} invoice${selectedRevenueIds.length !== 1 ? 's' : ''} deleted successfully`);
+
       onSelectionChange(new Set());
       onComplete();
       setShowDeleteDialog(false);
     } catch (error) {
       console.error("Error deleting invoices:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete invoices",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete invoices");
     } finally {
       setIsLoading(false);
     }
@@ -87,22 +76,15 @@ export const RevenueBulkActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedRevenueIds.length} invoice${selectedRevenueIds.length !== 1 ? 's' : ''} assigned to ${selectedProject.project_name}`,
-      });
-      
+      toast.success(`${selectedRevenueIds.length} invoice${selectedRevenueIds.length !== 1 ? 's' : ''} assigned to ${selectedProject.project_name}`);
+
       onSelectionChange(new Set());
       onComplete();
       setShowProjectDialog(false);
       setSelectedProject(null);
     } catch (error) {
       console.error("Error assigning invoices to project:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign invoices to project",
-        variant: "destructive",
-      });
+      toast.error("Failed to assign invoices to project");
     } finally {
       setIsLoading(false);
     }

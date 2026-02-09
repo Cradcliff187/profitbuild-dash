@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
 import { createExpenseSplits, updateExpenseSplits, getExpenseSplits, validateSplitTotal } from '@/utils/expenseSplits';
 import { Expense } from '@/types/expense';
@@ -36,7 +36,7 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
   const [splits, setSplits] = useState<SplitInput[]>([{ project_id: '', split_amount: '', notes: '' }]);
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const { toast } = useToast();
+
 
   useEffect(() => {
     if (open) {
@@ -61,11 +61,7 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
       setProjects(data || []);
     } catch (error) {
       console.error('Error loading projects:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load projects.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load projects.");
     }
   };
 
@@ -178,20 +174,13 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
         throw new Error(result.error || 'Failed to save splits');
       }
 
-      toast({
-        title: "Success",
-        description: `Expense ${expense.is_split ? 'splits updated' : 'split'} successfully.`
-      });
+      toast.success(`Expense ${expense.is_split ? 'splits updated' : 'split'} successfully.`);
 
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error saving splits:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to save splits',
-        variant: "destructive"
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to save splits');
     } finally {
       setLoading(false);
     }

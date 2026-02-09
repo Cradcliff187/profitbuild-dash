@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChangeOrderForm } from '@/components/ChangeOrderForm';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -25,7 +25,6 @@ export function ChangeOrderModal({
   onCancel,
 }: ChangeOrderModalProps) {
   const isMobile = useIsMobile();
-  const { toast } = useToast();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,10 +48,7 @@ export function ChangeOrderModal({
             onSuccess={() => {
               onOpenChange(false);
               onSuccess();
-              toast({
-                title: "Success",
-                description: `Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`
-              });
+              toast.success(`Change order ${editingChangeOrder ? 'updated' : 'created'} successfully.`);
             }}
             onCancel={() => {
               onOpenChange(false);

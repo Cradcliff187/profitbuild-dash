@@ -32,7 +32,7 @@ import {
   Split
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY, type ExpenseSplit } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { ProjectCategory } from '@/types/project';
@@ -87,8 +87,6 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     lineItem: LineItemForMatching;
     confidence: number;
   }>>([]);
-  const { toast } = useToast();
-  
   // Calculate allocation statistics
   const allocatedCount = expenses.filter(e => e.match_status !== 'unallocated').length;
   const unallocatedCount = expenses.filter(e => e.match_status === 'unallocated').length;
@@ -498,11 +496,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       setProjects(projects);
     } catch (error) {
       console.error('Error loading matching data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load expense allocation data.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load expense allocation data.");
     } finally {
       setIsLoading(false);
     }
@@ -514,11 +508,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     const lineItem = lineItems.find(li => li.id === lineItemId);
     
     if (expenseIds.length === 0 && splitIds.length === 0) {
-      toast({
-        title: "No expenses or splits selected",
-        description: "Please select at least one expense or split to allocate",
-        variant: "destructive"
-      });
+      toast.error("No expenses or splits selected", { description: "Please select at least one expense or split to allocate" });
       return;
     }
     
@@ -538,19 +528,11 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         );
         
         if (invalid.length > 0) {
-          toast({
-            title: "Some expenses skipped",
-            description: `${invalid.length} split parent expense(s) cannot be correlated. Only individual splits can be assigned.`,
-            variant: "destructive"
-          });
+          toast.error("Some expenses skipped", { description: `${invalid.length} split parent expense(s) cannot be correlated. Only individual splits can be assigned.` });
           
           // If all expenses are invalid, stop here
           if (valid.length === 0 && splitIds.length === 0) {
-            toast({
-              title: "No valid expenses",
-              description: "All selected expenses are split parents. Please select individual split records instead.",
-              variant: "destructive"
-            });
+            toast.error("No valid expenses", { description: "All selected expenses are split parents. Please select individual split records instead." });
             return;
           }
         }
@@ -571,11 +553,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
         );
         
         if (invalidSplits.length > 0) {
-          toast({
-            title: "Invalid Split Allocation",
-            description: `Cannot allocate splits to line items in different projects. ${invalidSplits.length} split(s) belong to different projects.`,
-            variant: "destructive"
-          });
+          toast.error("Invalid Split Allocation", { description: `Cannot allocate splits to line items in different projects. ${invalidSplits.length} split(s) belong to different projects.` });
           return;
         }
       }
@@ -626,21 +604,14 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
       }
 
       const totalAllocated = expenseIds.length + splitIds.length;
-      toast({
-        title: "Allocation Complete",
-        description: `Allocated ${totalAllocated} item${totalAllocated === 1 ? '' : 's'} (${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'}, ${splitIds.length} split${splitIds.length === 1 ? '' : 's'}) to ${lineItem.type} line item.`
-      });
+      toast.success("Allocation Complete", { description: `Allocated ${totalAllocated} item${totalAllocated === 1 ? '' : 's'} (${expenseIds.length} expense${expenseIds.length === 1 ? '' : 's'}, ${splitIds.length} split${splitIds.length === 1 ? '' : 's'}) to ${lineItem.type} line item.` });
       
       setSelectedExpenses(new Set());
       setSelectedSplits(new Set());
       loadAllocationData();
     } catch (error) {
       console.error('Error allocating expenses:', error);
-      toast({
-        title: "Error",
-        description: "Failed to allocate expenses.",
-        variant: "destructive"
-      });
+      toast.error("Failed to allocate expenses.");
     }
   };
 
@@ -673,10 +644,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
     console.log('✅ High confidence expenses found:', highConfidenceExpenses.length);
 
     if (highConfidenceExpenses.length === 0) {
-      toast({
-        title: "No High-Confidence Allocations",
-        description: "No expenses found with high confidence allocations for auto-assignment."
-      });
+      toast.success("No High-Confidence Allocations", { description: "No expenses found with high confidence allocations for auto-assignment." });
       return;
     }
 
@@ -726,20 +694,13 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
 
       if (updateError) throw updateError;
 
-      toast({
-        title: "Auto-Allocation Complete",
-        description: `Automatically allocated ${previewAllocations.length} high-confidence expenses.`
-      });
+      toast.success("Auto-Allocation Complete", { description: `Automatically allocated ${previewAllocations.length} high-confidence expenses.` });
       
       setPreviewAllocations([]);
       loadAllocationData();
     } catch (error) {
       console.error('Error auto-allocating:', error);
-      toast({
-        title: "Error",
-        description: "Failed to auto-allocate expenses.",
-        variant: "destructive"
-      });
+      toast.error("Failed to auto-allocate expenses.");
     }
   };
 
@@ -1045,12 +1006,7 @@ export const GlobalExpenseAllocation: React.FC<GlobalExpenseAllocationProps> = (
                         category: expense.project_category
                       });
                       if (!validation.isValid) {
-                        toast({
-                          title: "Cannot select",
-                          description: validation.error,
-                          variant: "destructive",
-                          duration: 2000
-                        });
+                        toast.error("Cannot select", { description: validation.error, duration: 2000 });
                         return;
                       }
                       

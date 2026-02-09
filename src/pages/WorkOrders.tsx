@@ -16,7 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ExpenseFormSheet } from "@/components/ExpenseFormSheet";
 import { Expense } from "@/types/expense";
 import { WorkOrderEditSheet } from "@/components/WorkOrderEditSheet";
@@ -64,7 +64,6 @@ const columnDefinitions = [
 ];
 
 const WorkOrders = () => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const [workOrders, setWorkOrders] = useState<WorkOrderWithDetails[]>([]);
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
@@ -133,10 +132,7 @@ const WorkOrders = () => {
   }, [columnOrder]);
 
   const handleExport = () => {
-    toast({
-      title: "Export",
-      description: "Work order export functionality coming soon.",
-    });
+    toast.info("Export", { description: "Work order export functionality coming soon." });
     setShowExportModal(false);
   };
   const [filters, setFilters] = useState<WorkOrderSearchFilters>({
@@ -230,11 +226,7 @@ const WorkOrders = () => {
 
       if (error) {
         console.error('Error fetching work orders:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load work orders.",
-          variant: "destructive"
-        });
+        toast.error("Failed to load work orders.");
         return;
       }
 
@@ -295,11 +287,7 @@ const WorkOrders = () => {
       setWorkOrders(processedData);
     } catch (error) {
       console.error('Error loading work orders:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load work orders.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load work orders.");
     } finally {
       setIsLoading(false);
     }
@@ -323,10 +311,7 @@ const WorkOrders = () => {
 
   const handleSaveWorkOrder = (project: Project) => {
     loadWorkOrders();
-    toast({
-      title: "Success",
-      description: "Work order updated successfully",
-    });
+    toast.success("Work order updated successfully");
   };
 
   const handleDelete = async (workOrderId: string) => {
@@ -340,18 +325,11 @@ const WorkOrders = () => {
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: "Work order deleted successfully",
-      });
+      toast.success("Work order deleted successfully");
       loadWorkOrders();
     } catch (error: any) {
       console.error('Failed to delete work order:', error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to delete work order. Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error?.message || "Failed to delete work order. Please try again.");
     }
   };
 
@@ -362,10 +340,7 @@ const WorkOrders = () => {
 
   const handleSaveExpense = (expense: Expense) => {
     loadWorkOrders();
-    toast({
-      title: "Success",
-      description: "Expense added successfully",
-    });
+    toast.success("Expense added successfully");
   };
 
   // Calculate statistics
@@ -425,20 +400,13 @@ const WorkOrders = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'work order' : 'work orders'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`,
-      });
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'work order' : 'work orders'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`);
 
       setSelectedIds([]);
       loadWorkOrders();
     } catch (error: any) {
       console.error('Error updating work order status:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update work order status",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to update work order status");
     }
   };
 
@@ -453,21 +421,14 @@ const WorkOrders = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'work order' : 'work orders'} deleted successfully`,
-      });
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'work order' : 'work orders'} deleted successfully`);
 
       setSelectedIds([]);
       setBulkDeleteDialogOpen(false);
       loadWorkOrders();
     } catch (error: any) {
       console.error('Error deleting work orders:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete work orders",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to delete work orders");
     }
   };
 

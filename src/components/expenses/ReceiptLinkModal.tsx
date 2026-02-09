@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { formatCurrency, cn, parseLocalDate } from '@/lib/utils';
 import {
   Search,
@@ -46,7 +46,7 @@ export const ReceiptLinkModal: React.FC<ReceiptLinkModalProps> = ({
   expense,
   onSuccess,
 }) => {
-  const { toast } = useToast();
+
   const [receipts, setReceipts] = useState<ReceiptForLinking[]>([]);
   const [loading, setLoading] = useState(false);
   const [linking, setLinking] = useState(false);
@@ -76,11 +76,7 @@ export const ReceiptLinkModal: React.FC<ReceiptLinkModalProps> = ({
       const data = await fetchReceiptsForLinking();
       setReceipts(data);
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load receipts',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load receipts');
     } finally {
       setLoading(false);
     }
@@ -140,18 +136,11 @@ export const ReceiptLinkModal: React.FC<ReceiptLinkModalProps> = ({
         expenseId: expense.id,
         receiptId: selectedReceiptId,
       });
-      toast({
-        title: 'Receipt Linked',
-        description: 'The receipt has been linked to this expense.',
-      });
+      toast.success('Receipt Linked', { description: 'The receipt has been linked to this expense.' });
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to link receipt',
-        variant: 'destructive',
-      });
+      toast.error('Failed to link receipt');
     } finally {
       setLinking(false);
     }

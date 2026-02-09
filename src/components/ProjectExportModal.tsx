@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -29,7 +29,6 @@ interface ExportOptions {
 }
 
 export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportModalProps) {
-  const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'csv',
@@ -102,11 +101,7 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
       if (error) throw error;
 
       if (!projects || projects.length === 0) {
-        toast({
-          title: "No data to export",
-          description: "No projects match the current filters.",
-          variant: "destructive",
-        });
+        toast.error("No data to export", { description: "No projects match the current filters." });
         setIsExporting(false);
         return;
       }
@@ -117,25 +112,15 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
       } else {
         // PDF and Excel not yet implemented, fall back to CSV
         await exportToCSV(projects);
-        toast({
-          title: "Note",
-          description: `${exportOptions.format.toUpperCase()} export coming soon. Exported as CSV instead.`,
-        });
+        toast.info(`${exportOptions.format.toUpperCase()} export coming soon. Exported as CSV instead.`);
       }
 
-      toast({
-        title: "Export successful",
-        description: `Successfully exported ${projects.length} projects`,
-      });
+      toast.success("Export successful", { description: `Successfully exported ${projects.length} projects` });
 
       onClose();
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: "There was an error exporting the data",
-        variant: "destructive",
-      });
+      toast.error("Export failed", { description: "There was an error exporting the data" });
     } finally {
       setIsExporting(false);
     }

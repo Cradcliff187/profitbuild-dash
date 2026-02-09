@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Camera as CameraIcon, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { isIOSPWA } from '@/utils/platform';
@@ -19,7 +19,6 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
   onSkip
 }) => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
 
   const captureReceipt = async () => {
@@ -29,11 +28,7 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
 
     // Add iOS PWA guidance
     if (isIOSPWA()) {
-      toast({
-        title: "Device upload tip",
-        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
-        duration: 4000,
-      });
+      toast.info("Device upload tip", { description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.", duration: 4000 });
     }
 
     try {
@@ -106,11 +101,7 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
       
     } catch (error) {
       console.error('Receipt capture failed:', error);
-      toast({
-        title: 'Receipt Capture Failed',
-        description: 'Time entry will be saved without receipt',
-        variant: 'destructive'
-      });
+      toast.error('Receipt Capture Failed', { description: 'Time entry will be saved without receipt' });
       onSkip();
     } finally {
       setUploading(false);

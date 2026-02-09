@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Loader2, ShieldCheck, Users, UserPlus, KeyRound, Search, X, Trash2, Clock, Mail, Calendar, ChevronDown, Shield } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -46,7 +46,6 @@ interface UserWithRoles extends Profile {
 export default function RoleManagement() {
   const { isAdmin, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,11 +62,7 @@ export default function RoleManagement() {
 
   useEffect(() => {
     if (!rolesLoading && !isAdmin) {
-      toast({
-        title: 'Access Denied',
-        description: 'Only administrators can manage user roles',
-        variant: 'destructive',
-      });
+      toast.error("Access Denied", { description: 'Only administrators can manage user roles' });
       navigate('/');
     }
   }, [isAdmin, rolesLoading, navigate]);
@@ -99,15 +94,11 @@ export default function RoleManagement() {
       setUsers(usersWithRoles);
     } catch (error) {
       console.error('Error loading users:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load users',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
@@ -138,19 +129,12 @@ export default function RoleManagement() {
 
       if (error) throw error;
 
-      toast({
-        title: 'Role Added',
-        description: `Successfully assigned ${role} role`,
-      });
+      toast.success("Role Added", { description: `Successfully assigned ${role} role` });
       
       await loadUsers();
     } catch (error: any) {
       console.error('Error adding role:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to add role',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to add role');
     }
   };
 
@@ -164,19 +148,12 @@ export default function RoleManagement() {
 
       if (error) throw error;
 
-      toast({
-        title: 'Role Removed',
-        description: `Successfully removed ${role} role`,
-      });
+      toast.success("Role Removed", { description: `Successfully removed ${role} role` });
       
       await loadUsers();
     } catch (error: any) {
       console.error('Error removing role:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to remove role',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to remove role');
     }
   };
 
@@ -192,20 +169,13 @@ export default function RoleManagement() {
 
       if (error) throw error;
 
-      toast({
-        title: 'Roles Added',
-        description: `Successfully assigned ${role} to ${userIds.length} user(s)`,
-      });
+      toast.success("Roles Added", { description: `Successfully assigned ${role} to ${userIds.length} user(s)` });
       
       setSelectedUserIds(new Set());
       await loadUsers();
     } catch (error: any) {
       console.error('Error adding roles:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to add roles',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to add roles');
     }
   };
 

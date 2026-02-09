@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface TaskEditPanelProps {
   task: ScheduleTask;
@@ -26,7 +26,6 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
   const [singleDuration, setSingleDuration] = useState(
     Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) + 1
   );
-  const { toast } = useToast();
 
   // Initialize phases and notes from task
   useEffect(() => {
@@ -170,19 +169,12 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
       }
       
       onSave(finalTask);
-      toast({
-        title: 'Schedule Updated',
-        description: phases.length > 1 
+      toast.success(phases.length > 1
           ? `Task scheduled with ${phases.length} phases`
-          : 'Task schedule updated',
-      });
+          : 'Task schedule updated');
     } catch (error) {
       console.error('Error saving task:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save task schedule',
-        variant: 'destructive'
-      });
+      toast.error('Failed to save task schedule');
     }
   };
 

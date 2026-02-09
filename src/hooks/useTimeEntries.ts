@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TimeEntryListItem, TimeEntryFilters, TimeEntryStatistics } from '@/types/timeEntry';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { parseDateOnly } from '@/utils/dateUtils';
 
 export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25, currentPage: number = 1) => {
@@ -133,11 +133,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       
     } catch (error: any) {
       console.error('Error fetching time entries:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load time entries',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load time entries');
     } finally {
       setLoading(false);
     }
