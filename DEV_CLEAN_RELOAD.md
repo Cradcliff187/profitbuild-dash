@@ -5,7 +5,7 @@ If you don't see recent UI/code changes in the browser:
 1. **Stop the dev server** (Ctrl+C in the terminal).
 
 2. **Clear any existing service worker** (one-time, for the tab that had the app):
-   - Open http://localhost:8080
+   - Open http://localhost:5173
    - F12 → **Application** tab → **Service Workers**
    - Click **Unregister** for localhost if one is listed
    - Or **Application** → **Storage** → **Clear site data**
