@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown } from "lucide-react";
+import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderModal } from "@/components/project-detail/ChangeOrderModal";
 import { getNavigationGroups, getSectionLabel, getSectionIcon } from "@/components/project-detail/projectNavigation";
@@ -10,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ProjectOption, formatProjectLabel } from "@/components/projects/ProjectOption";
+import { formatProjectLabel } from "@/components/projects/ProjectOption";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -369,6 +375,28 @@ export const ProjectDetailView = () => {
                 </a>
               )}
             </div>
+
+            {/* Project Actions Menu - mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => navigate(`/projects/${project.id}/edit`)}
+                  className="min-h-[44px]"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Project
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Section Selector - Opens navigation sheet */}
@@ -604,19 +632,15 @@ export const ProjectDetailView = () => {
                         {projectOptions.map((proj) => (
                           <CommandItem
                             key={proj.id}
-                            value={`${formatProjectLabel(proj.project_number, proj.project_name)} ${proj.client_name ?? ''}`}
+                            value={formatProjectLabel(proj.project_number, proj.project_name)}
                             onSelect={() => handleProjectSwitch(proj.id)}
                           >
                             <div className="flex w-full items-center gap-2">
-                              <ProjectOption
-                                projectNumber={proj.project_number}
-                                projectName={proj.project_name}
-                                clientName={proj.client_name}
-                                size="sm"
-                                className="flex-1 min-w-0"
-                              />
+                              <span className="flex-1 min-w-0 truncate text-sm font-medium">
+                                {formatProjectLabel(proj.project_number, proj.project_name)}
+                              </span>
                               {proj.id === project.id && (
-                                <Check className="h-4 w-4 text-primary" />
+                                <Check className="h-4 w-4 text-primary shrink-0" />
                               )}
                             </div>
                           </CommandItem>
@@ -642,11 +666,6 @@ export const ProjectDetailView = () => {
                   )}>
                     {project.client_name}
                   </span>
-                  {project.customer_po_number && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      PO {project.customer_po_number}
-                    </span>
-                  )}
                 </div>
                 {project.address && (
                   <a 
@@ -674,15 +693,38 @@ export const ProjectDetailView = () => {
                 )}
               </div>
 
+              {/* Project Actions Menu - desktop */}
+              {!isMobile && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/projects/${project.id}/edit`)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
               {/* Divider (Desktop only) */}
               {!isMobile && (
                 <div className="hidden sm:block h-10 w-px bg-border flex-shrink-0" />
               )}
 
               {/* Status Badge */}
-              <ProjectStatusBadge 
-                status={project.status} 
-                size="sm" 
+              <ProjectStatusBadge
+                status={project.status}
+                size="sm"
                 className="flex-shrink-0"
               />
             </div>

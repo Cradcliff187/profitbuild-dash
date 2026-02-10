@@ -161,6 +161,12 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
           .eq('project_id', projectId)
       ]);
 
+      // Fetch reporting financials for this project (total_invoiced, total_expenses)
+      const { data: financials } = await supabase
+        .rpc('get_profit_analysis_data', { status_filter: [projectData.status] });
+
+      const projectFinancials = (financials || []).find((f: any) => f.id === projectId);
+
       // Format the project data
       const formattedProject: Project = {
         ...projectData,
@@ -278,10 +284,13 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
       const changeOrderCosts = approvedChangeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
 
       // Project financials are already calculated by database functions
+      // Merge reporting view financials for status-aware display
       const projectWithFinancials = {
         ...formattedProject,
         changeOrderRevenue,
-        changeOrderCosts
+        changeOrderCosts,
+        total_invoiced: projectFinancials?.total_invoiced ?? 0,
+        total_expenses: projectFinancials?.total_expenses ?? 0,
       } as ProjectWithFinancials;
 
       // Guard: if projectId changed while we were fetching, discard stale results

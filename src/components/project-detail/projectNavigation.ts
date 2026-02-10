@@ -40,12 +40,6 @@ export const getNavigationGroups = (): NavGroup[] => {
         { title: "Documents", url: "documents", icon: FileText },
       ],
     },
-    {
-      label: "ACTIONS",
-      items: [
-        { title: "Edit Project", url: "edit", icon: Edit },
-      ],
-    },
   ];
 
   // Add Schedule if feature flag is enabled

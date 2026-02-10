@@ -125,6 +125,113 @@ export function ProjectOperationalDashboard({
     }
   }, [project.id, project.status]);
 
+  // Labor cushion data from estimate_financial_summary
+  const [laborCushion, setLaborCushion] = useState<{
+    cushionHoursCapacity: number | null;
+    totalLaborCapacity: number | null;
+    totalLaborHours: number | null;
+    scheduleBufferPercent: number | null;
+  } | null>(null);
+
+  useEffect(() => {
+    async function fetchCushionData() {
+      if (!project.id) return;
+
+      // Step 1: Find the current version estimate for this project.
+      // Prefer is_current_version = true; fall back to most recent approved.
+      let estimateId: string | null = null;
+
+      const { data: currentEstimate } = await supabase
+        .from('estimates')
+        .select('id')
+        .eq('project_id', project.id)
+        .eq('is_current_version', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (currentEstimate) {
+        estimateId = currentEstimate.id;
+      } else {
+        // Fallback: most recent approved estimate
+        const { data: approvedEstimate } = await supabase
+          .from('estimates')
+          .select('id')
+          .eq('project_id', project.id)
+          .eq('status', 'approved')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (approvedEstimate) {
+          estimateId = approvedEstimate.id;
+        }
+      }
+
+      if (!estimateId) return;
+
+      // Step 2: Fetch financial summary for the resolved estimate
+      const { data } = await supabase
+        .from('estimate_financial_summary')
+        .select('cushion_hours_capacity, total_labor_capacity, total_labor_hours, schedule_buffer_percent')
+        .eq('estimate_id', estimateId)
+        .maybeSingle();
+
+      if (data) {
+        setLaborCushion({
+          cushionHoursCapacity: data.cushion_hours_capacity,
+          totalLaborCapacity: data.total_labor_capacity,
+          totalLaborHours: data.total_labor_hours,
+          scheduleBufferPercent: data.schedule_buffer_percent,
+        });
+      }
+    }
+
+    if (['approved', 'in_progress'].includes(project.status)) {
+      fetchCushionData();
+    }
+  }, [project.id, project.status]);
+
+  // Actual hours from time entries (expenses.category = 'labor_internal')
+  // project.actual_hours may not be populated, so aggregate from source.
+  const [actualHoursFromEntries, setActualHoursFromEntries] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function fetchActualHours() {
+      if (!project.id) return;
+
+      const { data } = await supabase
+        .from('expenses')
+        .select('hours')
+        .eq('project_id', project.id)
+        .eq('category', 'labor_internal');
+
+      if (data) {
+        const total = data.reduce((sum, entry) => sum + (entry.hours ?? 0), 0);
+        setActualHoursFromEntries(total);
+      }
+    }
+
+    if (['approved', 'in_progress'].includes(project.status)) {
+      fetchActualHours();
+    }
+  }, [project.id, project.status]);
+
+  // Owner name for reference card
+  const [ownerName, setOwnerName] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchOwner() {
+      if (!project.owner_id) return;
+      const { data } = await supabase
+        .from('payees')
+        .select('payee_name')
+        .eq('id', project.owner_id)
+        .single();
+      if (data) setOwnerName(data.payee_name);
+    }
+    fetchOwner();
+  }, [project.owner_id]);
+
   // Calculate operational metrics
   const needsAttention = useMemo(() => {
     const items = [];
@@ -385,6 +492,50 @@ export function ProjectOperationalDashboard({
 
   return (
     <div className="space-y-3">
+      {/* Project Reference Card */}
+      {(project.start_date || project.end_date || project.customer_po_number || project.do_not_exceed || ownerName) && (
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <FileSignature className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Project Details
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            {ownerName && (
+              <>
+                <span className="text-muted-foreground text-xs">Owner</span>
+                <span className="font-medium text-xs">{ownerName}</span>
+              </>
+            )}
+            {project.start_date && (
+              <>
+                <span className="text-muted-foreground text-xs">Start</span>
+                <span className="font-medium text-xs">{format(new Date(project.start_date), 'MMM d, yyyy')}</span>
+              </>
+            )}
+            {project.end_date && (
+              <>
+                <span className="text-muted-foreground text-xs">End</span>
+                <span className="font-medium text-xs">{format(new Date(project.end_date), 'MMM d, yyyy')}</span>
+              </>
+            )}
+            {project.customer_po_number && (
+              <>
+                <span className="text-muted-foreground text-xs">Customer PO</span>
+                <span className="font-mono font-medium text-xs">{project.customer_po_number}</span>
+              </>
+            )}
+            {project.do_not_exceed != null && project.do_not_exceed > 0 && (
+              <>
+                <span className="text-muted-foreground text-xs">DNE Cap</span>
+                <span className="font-mono font-medium text-xs">{formatCurrency(project.do_not_exceed)}</span>
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Needs Attention Section */}
       {needsAttention.length > 0 && (
         <Card className="border-l-4 border-l-destructive bg-destructive/5">
@@ -588,15 +739,28 @@ export function ProjectOperationalDashboard({
       )}
 
       {/* Labor + Schedule */}
+      {(() => {
+        // Effective estimated hours: project.estimated_hours may never be populated,
+        // so fall back to laborCushion.totalLaborHours from the current estimate.
+        const effectiveEstimatedHours = (project.estimated_hours ?? 0) > 0
+          ? (project.estimated_hours ?? 0)
+          : (laborCushion?.totalLaborHours ?? 0);
+        // Effective actual hours: project.actual_hours may never be populated,
+        // so fall back to aggregated time entry hours.
+        const effectiveActualHours = (project.actual_hours ?? 0) > 0
+          ? (project.actual_hours ?? 0)
+          : (actualHoursFromEntries ?? 0);
+        const showLabor = ['approved', 'in_progress'].includes(project.status) && effectiveEstimatedHours > 0;
+
+        return (
       <div className={cn(
         "grid gap-3",
-        ['approved', 'in_progress'].includes(project.status) && (project.estimated_hours ?? 0) > 0
+        showLabor
           ? "grid-cols-1 md:grid-cols-2"
           : "grid-cols-1"
       )}>
-        {/* Labor — only show for active projects with estimated hours */}
-        {['approved', 'in_progress'].includes(project.status) &&
-          (project.estimated_hours ?? 0) > 0 && (
+        {/* Labor — enhanced with cushion visibility */}
+        {showLabor && (
           <Card className="p-3">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -605,35 +769,109 @@ export function ProjectOperationalDashboard({
               </span>
             </div>
             <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-xs text-muted-foreground">Estimated</div>
-                  <div className="text-sm font-semibold">
-                    {(project.estimated_hours ?? 0).toFixed(0)}h
-                  </div>
+              {/* Hours breakdown */}
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Estimated Hours</span>
+                  <span className="font-mono font-semibold">
+                    {effectiveEstimatedHours.toFixed(0)}h
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Actual</div>
-                  <div className="text-sm font-semibold">
-                    {(project.actual_hours ?? 0).toFixed(0)}h
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Actual Hours</span>
+                  <span className={cn(
+                    "font-mono font-semibold",
+                    effectiveActualHours <= effectiveEstimatedHours
+                      ? "text-foreground"
+                      : laborCushion?.totalLaborCapacity && effectiveActualHours <= laborCushion.totalLaborCapacity
+                        ? "text-yellow-600"
+                        : laborCushion?.totalLaborCapacity && effectiveActualHours > laborCushion.totalLaborCapacity
+                          ? "text-red-600"
+                          : "text-foreground"
+                  )}>
+                    {effectiveActualHours.toFixed(0)}h
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Remaining</div>
-                  <div className="text-sm font-semibold">
-                    {Math.max(0, (project.estimated_hours ?? 0) - (project.actual_hours ?? 0)).toFixed(0)}h
-                  </div>
+
+                <Separator className="my-1" />
+
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Scheduled Remaining</span>
+                  <span className="font-mono font-semibold">
+                    {Math.max(0, effectiveEstimatedHours - effectiveActualHours).toFixed(0)}h
+                  </span>
                 </div>
+
+                {/* Cushion buffer — only if data available */}
+                {laborCushion?.cushionHoursCapacity != null && laborCushion.cushionHoursCapacity > 0 && (
+                  <div className="flex justify-between text-yellow-600">
+                    <span>+ Cushion Buffer</span>
+                    <span className="font-mono font-semibold">
+                      +{laborCushion.cushionHoursCapacity.toFixed(0)}h
+                    </span>
+                  </div>
+                )}
+
+                {/* Total remaining capacity */}
+                {laborCushion?.totalLaborCapacity != null && laborCushion.totalLaborCapacity > 0 && (
+                  <>
+                    <Separator className="my-1" />
+                    <div className="flex justify-between font-semibold">
+                      <span>Total Capacity Remaining</span>
+                      <span className="font-mono">
+                        {Math.max(0, laborCushion.totalLaborCapacity - effectiveActualHours).toFixed(0)}h
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
-              {(project.estimated_hours ?? 0) > 0 && (
-                <Progress
-                  value={Math.min(
-                    100,
-                    ((project.actual_hours ?? 0) / (project.estimated_hours ?? 0)) * 100
-                  )}
-                  className="h-2"
-                />
-              )}
+
+              {/* Progress bar — use total capacity as denominator when available */}
+              {(() => {
+                const denominator = laborCushion?.totalLaborCapacity ?? effectiveEstimatedHours;
+                const actual = effectiveActualHours;
+                const pct = denominator > 0 ? (actual / denominator) * 100 : 0;
+                const estimatedPct = denominator > 0 ? (effectiveEstimatedHours / denominator) * 100 : 0;
+
+                const inCushionZone = actual > effectiveEstimatedHours && laborCushion?.totalLaborCapacity;
+                const overCapacity = laborCushion?.totalLaborCapacity && actual > laborCushion.totalLaborCapacity;
+
+                return (
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Progress
+                        value={Math.min(pct, 100)}
+                        className={cn(
+                          "h-2",
+                          overCapacity
+                            ? "[&>div]:bg-destructive"
+                            : inCushionZone
+                              ? "[&>div]:bg-yellow-500"
+                              : "[&>div]:bg-primary"
+                        )}
+                      />
+                      {/* Estimated hours marker when cushion exists */}
+                      {laborCushion?.totalLaborCapacity && laborCushion.totalLaborCapacity > effectiveEstimatedHours && (
+                        <div
+                          className="absolute top-0 h-2 w-px bg-foreground/40"
+                          style={{ left: `${estimatedPct}%` }}
+                          title={`Estimated: ${effectiveEstimatedHours.toFixed(0)}h`}
+                        />
+                      )}
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        {pct.toFixed(0)}% of {laborCushion?.totalLaborCapacity ? 'capacity' : 'estimate'} used
+                      </span>
+                      {laborCushion?.scheduleBufferPercent != null && (
+                        <span>{laborCushion.scheduleBufferPercent.toFixed(0)}% buffer</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Data freshness */}
               {dataFreshness.lastTimeDays !== null && (
                 <div className="text-xs text-muted-foreground">
                   Last time entry:{' '}
@@ -700,6 +938,8 @@ export function ProjectOperationalDashboard({
           </CardContent>
         </Card>
       </div>
+        );
+      })()}
 
       {/* Change Orders */}
       <Card>

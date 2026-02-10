@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ const formSchema = z.object({
   payment_terms: z.string(),
   minimum_margin_threshold: z.number().min(0).max(100),
   target_margin: z.number().min(0).max(100),
+  owner_id: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -40,6 +41,19 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [internalEmployees, setInternalEmployees] = useState<Array<{ id: string; payee_name: string }>>([]);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const { data } = await supabase
+        .from('payees')
+        .select('id, payee_name')
+        .eq('is_internal', true)
+        .order('payee_name');
+      if (data) setInternalEmployees(data);
+    };
+    fetchEmployees();
+  }, []);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -54,6 +68,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
       payment_terms: "Net 30",
       minimum_margin_threshold: 10,
       target_margin: 20,
+      owner_id: "",
     },
   });
 
@@ -95,6 +110,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
           payment_terms: data.payment_terms,
           minimum_margin_threshold: data.minimum_margin_threshold,
           target_margin: data.target_margin,
+          owner_id: data.owner_id || null,
         })
         .select()
         .single();
@@ -352,6 +368,32 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
             )}
           />
         </div>
+
+        {/* Project Owner */}
+        <FormField
+          control={form.control}
+          name="owner_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Owner (Optional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select owner" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {internalEmployees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.payee_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">

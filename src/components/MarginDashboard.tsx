@@ -142,7 +142,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg font-bold font-mono">
               {formatCurrency(marginData.contracted_amount)}
             </div>
             <p className="text-xs text-muted-foreground">Total project value</p>
@@ -156,7 +156,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg font-bold font-mono">
               {formatCurrency(marginData.total_accepted_quotes || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Approved payee costs</p>
@@ -171,7 +171,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
           </CardHeader>
           <CardContent>
             <div 
-              className="text-2xl font-bold"
+              className="text-lg font-bold font-mono"
               style={{ color: statusColor }}
             >
               {formatCurrency(marginData.current_margin)}
@@ -188,7 +188,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className={`text-4xl font-bold ${getMarginColor(marginData.margin_percentage, marginData.minimum_threshold, marginData.target_margin)}`}>
+              <div className={`text-2xl font-bold font-mono ${getMarginColor(marginData.margin_percentage, marginData.minimum_threshold, marginData.target_margin)}`}>
                 {marginData.margin_percentage.toFixed(1)}%
               </div>
               <Badge 
@@ -230,7 +230,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg font-bold font-mono">
                   {formatCurrency(marginData.contingency_total)}
                 </div>
                 <p className="text-xs text-muted-foreground">Budgeted buffer</p>
@@ -244,7 +244,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
                 <Minus className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-lg font-bold font-mono text-red-600">
                   {formatCurrency(marginData.contingency_used)}
                 </div>
                 <p className="text-xs text-muted-foreground">Utilized so far</p>
@@ -258,7 +258,7 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
                 <Plus className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-lg font-bold font-mono text-green-600">
                   {formatCurrency(marginData.contingency_remaining)}
                 </div>
                 <p className="text-xs text-muted-foreground">Available buffer</p>

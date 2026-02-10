@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx vite build:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git -C \"C:/Dev/profitbuild-dash\" log --all --oneline --diff-filter=M -- src/components/ProjectDetailView.tsx)",
+      "Bash(git -C \"C:/Dev/profitbuild-dash\" show 938370f^:src/components/ProjectDetailView.tsx)",
+      "Bash(git checkout:*)",
+      "Bash(del \"C:\\\\Dev\\\\profitbuild-dash\\\\deploy-quickbooks-functions.ps1\")",
+      "Bash(npm run lint:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(git stash:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(grep:*)",
+      "Bash(git pull:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:claude.ai)"
+    ]
+  }
+}

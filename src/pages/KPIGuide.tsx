@@ -43,6 +43,8 @@ const KPI_GUIDE_METADATA = {
   lastUpdated: LAST_UPDATED,
   version: KPI_DEFINITIONS_VERSION,
   changelog: [
+    { date: '2026-02-09', version: '3.3', changes: 'expenses.hours (net/billable) is now a database-stored column, auto-calculated by trigger. Reports, exports, and dashboards now read hours from DB. weekly_labor_hours view updated to use SUM(expenses.hours) for total_hours.' },
+    { date: '2026-02-09', version: '3.2', changes: 'gross_hours is now a database-stored column (expenses.gross_hours), auto-calculated by trigger from start_time/end_time. weekly_labor_hours view updated to use SUM(expenses.gross_hours). Frontend and KPI definitions already use this field.' },
     { date: '2026-02-03', version: '3.1', changes: 'Added Labor Tracking section to Project KPIs: estimated_hours, actual_hours, hours_variance (3 new measures). Fixed contingency_amount field mapping from estimates to projects table. Applied database migration to add missing project fields (contingency_amount, estimated_hours, actual_hours).' },
     { date: '2026-01-29', version: '3.0', changes: 'Added View KPIs section (21 measures) for weekly_labor_hours and training_status views. Added 8 new expense KPIs for joined fields (worker_name, employee_number, hourly_rate, approval_status, description, project fields). Updated gross_hours to frontend-calculated.' },
     { date: '2026-01-23', version: '2.0', changes: 'Migrated to centralized KPI definitions library. Added semantic mappings, business rules, and validation. Fixed SQL examples for time tracking calculations.' },

@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,7 @@ const formSchema = z.object({
   estimated_cost: z.string().optional(),
   quoted_price: z.string().optional(),
   do_not_exceed: z.string().optional(),
+  owner_id: z.string().optional(),
   notes: z.string().optional(),
   start_date: z.date(),
   end_date: z.date().optional(),
@@ -41,6 +42,19 @@ interface QuickWorkOrderFormProps {
 const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [internalEmployees, setInternalEmployees] = useState<Array<{ id: string; payee_name: string }>>([]);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const { data } = await supabase
+        .from('payees')
+        .select('id, payee_name')
+        .eq('is_internal', true)
+        .order('payee_name');
+      if (data) setInternalEmployees(data);
+    };
+    fetchEmployees();
+  }, []);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -53,6 +67,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
       estimated_cost: "",
       quoted_price: "",
       do_not_exceed: "",
+      owner_id: "",
       notes: "",
       start_date: new Date(),
       end_date: undefined,
@@ -101,6 +116,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
           adjusted_est_costs: data.estimated_cost ? parseFloat(data.estimated_cost) : null,
           contracted_amount: data.quoted_price ? parseFloat(data.quoted_price) : null,
           do_not_exceed: data.do_not_exceed ? parseFloat(data.do_not_exceed) : null,
+          owner_id: data.owner_id || null,
           notes: data.notes || null,
         })
         .select()
@@ -422,6 +438,32 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
             )}
           />
         </div>
+
+        {/* Project Owner */}
+        <FormField
+          control={form.control}
+          name="owner_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Owner (Optional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select owner" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {internalEmployees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.payee_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">

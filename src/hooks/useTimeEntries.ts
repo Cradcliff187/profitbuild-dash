@@ -42,6 +42,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           lunch_taken,
           lunch_duration_minutes,
           gross_hours,
+          hours,
           payees!inner(payee_name, hourly_rate, employee_number),
           projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
@@ -78,13 +79,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       const formattedEntries: TimeEntryListItem[] = (data || []).map((entry: any) => {
         const lunchTaken = entry.lunch_taken || false;
         const lunchDurationMinutes = entry.lunch_duration_minutes || null;
-        const hours = calculateHours(
-          entry.start_time, 
-          entry.end_time, 
-          entry.description,
-          lunchTaken,
-          lunchDurationMinutes
-        );
+        const hours = entry.hours ?? 0;
         const hourlyRate = entry.payees?.hourly_rate || 0;
         
         // Use database gross_hours value
@@ -148,7 +143,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
 
       let statsQuery = supabase
         .from('expenses')
-        .select('approval_status, start_time, end_time, description, expense_date, lunch_taken, lunch_duration_minutes')
+        .select('approval_status, start_time, end_time, description, expense_date, lunch_taken, lunch_duration_minutes, hours')
         .eq('category', 'labor_internal');
 
       // Apply the same filters as the main query (except status filter)
@@ -175,26 +170,10 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           e.approval_status === 'approved' && 
           parseDateOnly(e.expense_date) >= weekStart
         );
-        const approvedThisWeekHours = approvedThisWeek.reduce((sum, e) => 
-          sum + calculateHours(
-            e.start_time, 
-            e.end_time, 
-            e.description,
-            e.lunch_taken || false,
-            e.lunch_duration_minutes || null
-          ), 0
-        );
+        const approvedThisWeekHours = approvedThisWeek.reduce((sum, e) => sum + (e.hours ?? 0), 0);
 
         const thisMonth = allEntries.filter(e => parseDateOnly(e.expense_date) >= monthStart);
-        const totalThisMonthHours = thisMonth.reduce((sum, e) => 
-          sum + calculateHours(
-            e.start_time, 
-            e.end_time, 
-            e.description,
-            e.lunch_taken || false,
-            e.lunch_duration_minutes || null
-          ), 0
-        );
+        const totalThisMonthHours = thisMonth.reduce((sum, e) => sum + (e.hours ?? 0), 0);
 
         setStatistics({
           pendingCount,
@@ -206,26 +185,6 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
     } catch (error) {
       console.error('Error fetching statistics:', error);
     }
-  };
-
-  const calculateHours = (
-    startTime: string | null, 
-    endTime: string | null, 
-    description: string,
-    lunchTaken: boolean = false,
-    lunchDurationMinutes: number | null = null
-  ): number => {
-    if (startTime && endTime) {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      const grossHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      const lunchHours = lunchTaken && lunchDurationMinutes ? lunchDurationMinutes / 60 : 0;
-      return Math.max(0, grossHours - lunchHours);
-    }
-    
-    // Fallback to description parsing for old entries
-    const timeMatch = description?.match(/(\d+\.?\d*)\s*hours?/i);
-    return timeMatch ? parseFloat(timeMatch[1]) : 0;
   };
 
   useEffect(() => {

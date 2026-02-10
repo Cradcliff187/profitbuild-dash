@@ -457,6 +457,7 @@ export const MobileTimeTracker: React.FC = () => {
           lunch_taken,
           lunch_duration_minutes,
           gross_hours,
+          hours,
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
         `)
@@ -487,7 +488,7 @@ export const MobileTimeTracker: React.FC = () => {
       // Parse entries from expenses
       const entries = filteredData.map((expense: any) => {
         const hourlyRate = expense.payees?.hourly_rate || 75;
-        const hours = expense.amount / hourlyRate;
+        const hours = expense.hours ?? (expense.amount / hourlyRate);
         
         // Prioritize database columns, fallback to description parsing
         let startTimeString: string | undefined;

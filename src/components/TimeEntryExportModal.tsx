@@ -82,24 +82,6 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
     setExportOptions({ ...exportOptions, ...updates });
   };
 
-  const calculateHours = (
-    startTime: string | null,
-    endTime: string | null,
-    description: string,
-    lunchTaken: boolean,
-    lunchDurationMinutes: number | null
-  ): number => {
-    if (startTime && endTime) {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      const grossHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      const lunchHours = lunchTaken && lunchDurationMinutes ? lunchDurationMinutes / 60 : 0;
-      return Math.max(0, grossHours - lunchHours);
-    }
-    const timeMatch = description?.match(/(\d+\.?\d*)\s*hours?/i);
-    return timeMatch ? parseFloat(timeMatch[1]) : 0;
-  };
-
   const fetchAllFilteredEntries = async (): Promise<TimeEntryListItem[]> => {
     let query = supabase
       .from('expenses')
@@ -124,6 +106,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
         lunch_taken,
         lunch_duration_minutes,
         gross_hours,
+        hours,
         payees!inner(payee_name, hourly_rate, employee_number),
         projects!inner(project_number, project_name, client_name, address)
       `)
@@ -143,13 +126,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
     return (data || []).map((entry: any) => {
       const lunchTaken = entry.lunch_taken || false;
       const lunchDurationMinutes = entry.lunch_duration_minutes ?? null;
-      const hours = calculateHours(
-        entry.start_time,
-        entry.end_time,
-        entry.description,
-        lunchTaken,
-        lunchDurationMinutes
-      );
+      const hours = entry.hours ?? 0;
       const grossHours = entry.gross_hours ?? hours;
 
       return {

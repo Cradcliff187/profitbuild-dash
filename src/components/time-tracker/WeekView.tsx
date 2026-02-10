@@ -93,28 +93,13 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
       if (entriesError) throw entriesError;
 
       const formattedEntries = entriesData.map(entry => {
-        // Calculate net hours from start/end time with lunch adjustment
-        let hours = 0;
-        
-        if (entry.start_time && entry.end_time) {
-          const start = new Date(entry.start_time);
-          const end = new Date(entry.end_time);
-          const shiftDuration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          const lunchHours = entry.lunch_taken && entry.lunch_duration_minutes 
-            ? entry.lunch_duration_minutes / 60 
-            : 0;
-          hours = Math.max(0, shiftDuration - lunchHours);
-        } else {
-          // Fallback: calculate from amount and rate
-          hours = entry.amount / (entry.payees?.hourly_rate || 75);
-        }
-        
+        const hours = entry.hours ?? 0;
         return {
           ...entry,
           payee: entry.payees,
           project: entry.projects,
           hours,
-          gross_hours: entry.gross_hours ?? hours  // USE DATABASE VALUE
+          gross_hours: entry.gross_hours ?? hours
         };
       });
 

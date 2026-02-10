@@ -59,6 +59,7 @@ export const ReceiptsGallery: React.FC = () => {
           description,
           amount,
           category,
+          hours,
           payees(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name)
         `)
@@ -78,7 +79,7 @@ export const ReceiptsGallery: React.FC = () => {
         attachment_url: expense.attachment_url,
         expense_date: expense.expense_date,
         description: expense.description,
-        hours: expense.amount / (expense.payees?.hourly_rate || 75),
+        hours: expense.hours ?? (expense.amount / (expense.payees?.hourly_rate || 75)),
         project: expense.projects,
         payee: expense.payees,
       })) || [];

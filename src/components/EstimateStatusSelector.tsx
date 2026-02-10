@@ -140,12 +140,21 @@ export const EstimateStatusSelector = ({
 
         if (unApproveError) throw unApproveError;
 
-        // Update project with contracted amount and status
+        // Only advance project status when in early stage (never regress)
+        const { data: project } = await supabase
+          .from('projects')
+          .select('status')
+          .eq('id', projectId)
+          .single();
+
+        const earlyStages = ['draft', 'pending', 'estimating'];
+        const shouldAdvanceStatus = project && earlyStages.includes(project.status);
+
         const { error: projectError } = await supabase
           .from('projects')
           .update({
             contracted_amount: totalAmount,
-            status: 'approved' as any,
+            ...(shouldAdvanceStatus ? { status: 'approved' as any } : {}),
             updated_at: new Date().toISOString()
           })
           .eq('id', projectId);

@@ -58,7 +58,7 @@ export const ProjectProfitMargin = ({
           <div className="space-y-4">
             {/* Main Profit Display */}
             <div className="text-center">
-              <div className={`text-3xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-xl font-bold font-mono ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                 {formatMarginCurrency(Math.abs(marginData.current_margin))}
               </div>
               <div className={`text-lg font-medium ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
@@ -200,7 +200,7 @@ export const ProjectProfitMargin = ({
         <div className="space-y-4">
           {/* Main Profit Display */}
           <div className="text-center">
-            <div className={`text-3xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-xl font-bold font-mono ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(Math.abs(profit))}
             </div>
             <div className={`text-lg font-medium ${isProfit ? 'text-green-600' : 'text-red-600'}`}>

@@ -1194,6 +1194,7 @@ export type Database = {
           end_time: string | null
           expense_date: string | null
           gross_hours: number | null
+          hours: number | null
           id: string
           import_batch_id: string | null
           invoice_number: string | null
@@ -1231,6 +1232,7 @@ export type Database = {
           end_time?: string | null
           expense_date?: string | null
           gross_hours?: number | null
+          hours?: number | null
           id?: string
           import_batch_id?: string | null
           invoice_number?: string | null
@@ -1268,6 +1270,7 @@ export type Database = {
           end_time?: string | null
           expense_date?: string | null
           gross_hours?: number | null
+          hours?: number | null
           id?: string
           import_batch_id?: string | null
           invoice_number?: string | null

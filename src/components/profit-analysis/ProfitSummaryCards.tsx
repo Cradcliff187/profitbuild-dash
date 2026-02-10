@@ -80,7 +80,7 @@ export function ProfitSummaryCards({ data, isLoading }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.value}</div>
+            <div className="text-lg font-bold font-mono">{card.value}</div>
             <p className="text-xs text-muted-foreground">{card.subtext}</p>
           </CardContent>
         </Card>

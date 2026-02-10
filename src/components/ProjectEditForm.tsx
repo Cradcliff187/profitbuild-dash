@@ -37,8 +37,24 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
   const [customerPoNumber, setCustomerPoNumber] = useState(project.customer_po_number || "");
   const [startDate, setStartDate] = useState<Date | undefined>(project.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(project.end_date);
+  const [doNotExceed, setDoNotExceed] = useState<string>(project.do_not_exceed?.toString() || '');
+  const [ownerId, setOwnerId] = useState<string>(project.owner_id || '');
+  const [internalEmployees, setInternalEmployees] = useState<Array<{ id: string; payee_name: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusValidationError, setStatusValidationError] = useState<string | null>(null);
+
+  // Fetch internal employees for owner selector
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const { data } = await supabase
+        .from('payees')
+        .select('id, payee_name')
+        .eq('is_internal', true)
+        .order('payee_name');
+      if (data) setInternalEmployees(data);
+    };
+    fetchEmployees();
+  }, []);
 
   // Fetch client data when component loads or client changes
   const fetchClientData = async (clientId: string) => {
@@ -143,6 +159,8 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
           notes: notes.trim() || null,
           start_date: startDate?.toISOString().split('T')[0] || null,
           end_date: endDate?.toISOString().split('T')[0] || null,
+          do_not_exceed: doNotExceed ? parseFloat(doNotExceed) : null,
+          owner_id: ownerId || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', project.id)
@@ -417,6 +435,41 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+          </div>
+
+          {/* Do Not Exceed + Owner */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="doNotExceed">Do Not Exceed (Optional)</Label>
+              <Input
+                id="doNotExceed"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Budget ceiling"
+                value={doNotExceed}
+                onChange={(e) => setDoNotExceed(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum budget cap. Dashboard will alert when expenses approach this limit.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Project Owner (Optional)</Label>
+              <Select value={ownerId} onValueChange={setOwnerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select owner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {internalEmployees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.payee_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
