@@ -21,17 +21,17 @@ export const getNavigationGroups = (): NavGroup[] => {
       ],
     },
     {
+      label: "COST MANAGEMENT",
+      items: [
+        { title: "Expenses", url: "expenses", icon: DollarSign },
+        { title: "Cost Tracking", url: "control", icon: Target },
+      ],
+    },
+    {
       label: "CONTRACTS & ESTIMATES",
       items: [
         { title: "Estimates & Quotes", url: "estimates", icon: FileText },
         { title: "Change Orders", url: "changes", icon: FileEdit },
-      ],
-    },
-    {
-      label: "COST MANAGEMENT",
-      items: [
-        { title: "Expenses", url: "expenses", icon: DollarSign },
-        { title: "Line Item Control", url: "control", icon: Target },
       ],
     },
     {
@@ -58,7 +58,7 @@ export const getSectionLabel = (section: string): string => {
     'estimates': 'Estimates & Quotes',
     'changes': 'Change Orders',
     'expenses': 'Expenses',
-    'control': 'Line Item Control',
+    'control': 'Cost Tracking',
     'documents': 'Documents',
     'schedule': 'Schedule',
     'edit': 'Edit Project',

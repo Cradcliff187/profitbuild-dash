@@ -126,13 +126,13 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         .maybeSingle();
 
       if (approvedError && import.meta.env.DEV) {
-        console.warn('[LineItemControl] Error fetching approved estimate:', approvedError);
+        console.warn('[CostTracking] Error fetching approved estimate:', approvedError);
       }
 
       if (approvedEstimate) {
         estimates = approvedEstimate;
         if (import.meta.env.DEV) {
-          console.debug('[LineItemControl] Using approved estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
+          console.debug('[CostTracking] Using approved estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
         }
       }
 
@@ -161,13 +161,13 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
           .maybeSingle();
 
         if (currentError && import.meta.env.DEV) {
-          console.warn('[LineItemControl] Error fetching current estimate:', currentError);
+          console.warn('[CostTracking] Error fetching current estimate:', currentError);
         }
 
         if (currentEstimate) {
           estimates = currentEstimate;
           if (import.meta.env.DEV) {
-            console.debug('[LineItemControl] Using current version estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
+            console.debug('[CostTracking] Using current version estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
           }
         }
       }
@@ -196,19 +196,19 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
           .maybeSingle();
 
         if (latestError && import.meta.env.DEV) {
-          console.warn('[LineItemControl] Error fetching latest estimate:', latestError);
+          console.warn('[CostTracking] Error fetching latest estimate:', latestError);
         }
 
         if (latestEstimate) {
           estimates = latestEstimate;
           if (import.meta.env.DEV) {
-            console.debug('[LineItemControl] Using latest estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
+            console.debug('[CostTracking] Using latest estimate', estimates.id, 'items:', estimates.estimate_line_items?.length ?? 0);
           }
         }
       }
 
       if (!estimates && import.meta.env.DEV) {
-        console.debug('[LineItemControl] No estimate found for project', projectId);
+        console.debug('[CostTracking] No estimate found for project', projectId);
       }
 
       // Fetch ALL quotes with line items and payee info
@@ -268,7 +268,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         .eq('status', 'approved');
 
       if (changeOrdersError && import.meta.env.DEV) {
-        console.warn('[LineItemControl] Error fetching change orders:', changeOrdersError);
+        console.warn('[CostTracking] Error fetching change orders:', changeOrdersError);
       }
 
       // Fetch all expenses - calculateProjectExpenses will handle split filtering
@@ -296,7 +296,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       const splitIds = (projectSplits || []).map((split: any) => split.id);
 
       if (import.meta.env.DEV) {
-        console.log(`[LineItemControl] Project ${projectId}: ${expenseIds.length} direct expenses, ${splitIds.length} expense splits`);
+        console.log(`[CostTracking] Project ${projectId}: ${expenseIds.length} direct expenses, ${splitIds.length} expense splits`);
       }
 
       let correlationData: any[] = [];
@@ -370,8 +370,8 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         correlationData = results.flatMap(r => r.data || []);
 
         if (import.meta.env.DEV) {
-          console.log(`[LineItemControl] Total correlations loaded: ${correlationData.length}`);
-          console.log(`[LineItemControl] Correlations by type:`, {
+          console.log(`[CostTracking] Total correlations loaded: ${correlationData.length}`);
+          console.log(`[CostTracking] Correlations by type:`, {
             direct: correlationData.filter(c => c.expense_id && !c.expense_split_id).length,
             split: correlationData.filter(c => c.expense_split_id).length,
             estimate: correlationData.filter(c => c.estimate_line_item_id).length,
@@ -455,13 +455,13 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                   
                   targetLineItemIds.push(closestCandidate.estimate_line_item_id);
                   if (import.meta.env.DEV) {
-                    console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
+                    console.warn(`[CostTracking] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
                   }
                 } else {
                   // No expense amount - use first candidate
                   targetLineItemIds.push(candidates[0].estimate_line_item_id);
                   if (import.meta.env.DEV) {
-                    console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Using first candidate (no expense amount available).`);
+                    console.warn(`[CostTracking] Quote ${corr.quote_id} has ${candidates.length} estimate line items. Using first candidate (no expense amount available).`);
                   }
                 }
               }
@@ -493,13 +493,13 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                   
                   targetLineItemIds.push(closestCandidate.change_order_line_item_id);
                   if (import.meta.env.DEV) {
-                    console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} change order line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
+                    console.warn(`[CostTracking] Quote ${corr.quote_id} has ${candidates.length} change order line items. Mapped expense $${expenseAmount} to closest match (cost diff: $${smallestDiff.toFixed(2)})`);
                   }
                 } else {
                   // No expense amount - use first candidate
                   targetLineItemIds.push(candidates[0].change_order_line_item_id);
                   if (import.meta.env.DEV) {
-                    console.warn(`[LineItemControl] Quote ${corr.quote_id} has ${candidates.length} change order line items. Using first candidate (no expense amount available).`);
+                    console.warn(`[CostTracking] Quote ${corr.quote_id} has ${candidates.length} change order line items. Using first candidate (no expense amount available).`);
                   }
                 }
               }
@@ -547,7 +547,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       }
       
       if (import.meta.env.DEV) {
-        console.log(`[LineItemControl] Loaded ${correlationData?.length || 0} correlations, mapped to ${correlationsByLineItem.size} line items`);
+        console.log(`[CostTracking] Loaded ${correlationData?.length || 0} correlations, mapped to ${correlationsByLineItem.size} line items`);
       }
 
       // Process and match data
@@ -873,7 +873,7 @@ async function calculateSummary(lineItems: LineItemControlData[], project: Proje
     : 0;
 
   if (import.meta.env.DEV) {
-    console.log('[LineItemControl] Summary:', {
+    console.log('[CostTracking] Summary:', {
       totalEstimatedCost,
       totalQuotedWithInternal,
       totalProjectExpenses,
@@ -883,7 +883,7 @@ async function calculateSummary(lineItems: LineItemControlData[], project: Proje
 
     // Debug first 3 line items
     if (lineItems.length > 0) {
-      console.log('[LineItemControl] First 3 line items allocated/actual:',
+      console.log('[CostTracking] First 3 line items allocated/actual:',
         lineItems.slice(0, 3).map(li => ({
           desc: li.description.substring(0, 30),
           allocated: li.allocatedAmount,

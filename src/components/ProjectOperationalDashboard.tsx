@@ -15,7 +15,8 @@ import {
   FileIcon,
   Calendar,
   DollarSign,
-  FileSignature
+  FileSignature,
+  ChevronRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -372,27 +373,6 @@ export function ProjectOperationalDashboard({
     };
   }, [changeOrders]);
 
-  const contractNarrative = useMemo(() => {
-    const currentContract = project.contracted_amount ?? 0;
-
-    // Derive change order impact from the changeOrders prop
-    const approvedCOs = changeOrders.filter(co => co.status === 'approved');
-    const coCount = approvedCOs.length;
-    const coRevenue = approvedCOs.reduce((sum, co) => sum + (co.client_amount ?? 0), 0);
-
-    // Original contract = current contract minus CO revenue additions
-    // This works because contracted_amount is updated by DB triggers when COs are approved
-    const baseContract = currentContract - coRevenue;
-
-    return {
-      baseContract,
-      changeOrderCount: coCount,
-      changeOrderRevenue: coRevenue,
-      currentContract,
-      showNarrative: currentContract > 0,
-    };
-  }, [project.contracted_amount, changeOrders]);
-
   const financialDisplay = useMemo(() => {
     const status = project.status;
     const currentEstimate = estimates?.find(e => e.is_current_version);
@@ -536,74 +516,6 @@ export function ProjectOperationalDashboard({
         </Card>
       )}
 
-      {/* Needs Attention Section */}
-      {needsAttention.length > 0 && (
-        <Card className="border-l-4 border-l-destructive bg-destructive/5">
-          <CardHeader className="p-3 pb-2">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <h3 className="text-sm font-semibold">Needs Attention</h3>
-              <Badge variant="destructive" className="h-5 text-xs">{needsAttention.length}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-1">
-            {needsAttention.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.type}
-                  onClick={item.onClick}
-                  className="w-full flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors text-left h-8"
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">{item.label}</span>
-                  </div>
-                  <Badge variant="outline" className="h-5 text-xs">{item.count}</Badge>
-                </button>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Contract Narrative */}
-      {contractNarrative.showNarrative && project.status !== 'estimating' && (
-        <Card className="p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <FileSignature className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Contract
-            </span>
-          </div>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Original Contract</span>
-              <span className="font-mono font-semibold">
-                {formatCurrency(contractNarrative.baseContract)}
-              </span>
-            </div>
-            {contractNarrative.changeOrderCount > 0 && (
-              <>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>+ Change Orders ({contractNarrative.changeOrderCount})</span>
-                  <span className="font-mono">
-                    {formatCurrency(contractNarrative.changeOrderRevenue)}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>Current Contract</span>
-                  <span className="font-mono">
-                    {formatCurrency(contractNarrative.currentContract)}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-      )}
-
       {/* Financial Summary */}
       <Card>
         <CardHeader className="p-3 pb-2">
@@ -676,11 +588,21 @@ export function ProjectOperationalDashboard({
               </span>
             </div>
           )}
+          {/* Navigation to Cost Tracking */}
+          {project.status !== 'estimating' && (
+            <button
+              onClick={() => navigate(`/projects/${project.id}/control`)}
+              className="mt-3 pt-2 border-t text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
+            >
+              View Cost Tracking
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          )}
         </CardContent>
       </Card>
 
       {/* Budget Status + Contingency */}
-      {financialDisplay.showBudgetStatus && (
+      {financialDisplay.showBudgetStatus && project.status !== 'cancelled' && (
         <Card>
           <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
@@ -707,7 +629,12 @@ export function ProjectOperationalDashboard({
                 }`}
               />
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{budgetStatus.percentSpent.toFixed(1)}% spent</span>
+                <button
+                  onClick={() => navigate(`/projects/${project.id}/expenses`)}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {budgetStatus.percentSpent.toFixed(1)}% spent →
+                </button>
                 <span className="font-medium">{formatCurrency(budgetStatus.remaining)} remaining</span>
               </div>
               {/* Contingency — inside Budget Status card, below existing progress bar */}
@@ -740,6 +667,37 @@ export function ProjectOperationalDashboard({
         </Card>
       )}
 
+      {/* Needs Attention Section */}
+      {needsAttention.length > 0 && project.status !== 'cancelled' && (
+        <Card className="border-l-4 border-l-destructive bg-destructive/5">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <h3 className="text-sm font-semibold">Needs Attention</h3>
+              <Badge variant="destructive" className="h-5 text-xs">{needsAttention.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 space-y-1">
+            {needsAttention.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.type}
+                  onClick={item.onClick}
+                  className="w-full flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors text-left h-8"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </div>
+                  <Badge variant="outline" className="h-5 text-xs">{item.count}</Badge>
+                </button>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Labor + Schedule */}
       {(() => {
         // Effective estimated hours: project.estimated_hours may never be populated,
@@ -753,295 +711,310 @@ export function ProjectOperationalDashboard({
           ? (project.actual_hours ?? 0)
           : (actualHoursFromEntries ?? 0);
         const showLabor = ['approved', 'in_progress'].includes(project.status) && effectiveEstimatedHours > 0;
+        const showSchedule = project.status !== 'estimating' || !!scheduleDates.start || !!scheduleDates.end;
+
+        if (!showLabor && !showSchedule) return null;
 
         return (
-      <div className={cn(
-        "grid gap-3",
-        showLabor
-          ? "grid-cols-1 md:grid-cols-2"
-          : "grid-cols-1"
-      )}>
-        {/* Labor — enhanced with cushion visibility */}
-        {showLabor && (
-          <Card className="p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Labor
-              </span>
-            </div>
-            <div className="space-y-2">
-              {/* Hours breakdown */}
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Estimated Hours</span>
-                  <span className="font-mono font-semibold">
-                    {effectiveEstimatedHours.toFixed(0)}h
+          <div className={cn(
+            "grid gap-3",
+            showLabor && showSchedule
+              ? "grid-cols-1 md:grid-cols-2"
+              : "grid-cols-1"
+          )}>
+            {/* Labor — enhanced with cushion visibility */}
+            {showLabor && (
+              <Card className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Labor
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Actual Hours</span>
-                  <span className={cn(
-                    "font-mono font-semibold",
-                    effectiveActualHours <= effectiveEstimatedHours
-                      ? "text-foreground"
-                      : laborCushion?.totalLaborCapacity && effectiveActualHours <= laborCushion.totalLaborCapacity
-                        ? "text-yellow-600"
-                        : laborCushion?.totalLaborCapacity && effectiveActualHours > laborCushion.totalLaborCapacity
-                          ? "text-red-600"
-                          : "text-foreground"
-                  )}>
-                    {effectiveActualHours.toFixed(0)}h
-                  </span>
-                </div>
+                <div className="space-y-2">
+                  {/* Hours breakdown — 3-tier display */}
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Estimated Hours</span>
+                      <span className="font-mono font-semibold">
+                        {effectiveEstimatedHours.toFixed(0)}h
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Actual Hours</span>
+                      <span className={cn(
+                        "font-mono font-semibold",
+                        effectiveActualHours <= effectiveEstimatedHours
+                          ? "text-foreground"
+                          : laborCushion?.totalLaborCapacity && effectiveActualHours <= laborCushion.totalLaborCapacity
+                            ? "text-yellow-600"
+                            : laborCushion?.totalLaborCapacity && effectiveActualHours > laborCushion.totalLaborCapacity
+                              ? "text-red-600"
+                              : "text-foreground"
+                      )}>
+                        {effectiveActualHours.toFixed(0)}h
+                      </span>
+                    </div>
 
-                <Separator className="my-1" />
-
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Scheduled Remaining</span>
-                  <span className="font-mono font-semibold">
-                    {Math.max(0, effectiveEstimatedHours - effectiveActualHours).toFixed(0)}h
-                  </span>
-                </div>
-
-                {/* Cushion buffer — only if data available */}
-                {laborCushion?.cushionHoursCapacity != null && laborCushion.cushionHoursCapacity > 0 && (
-                  <div className="flex justify-between text-yellow-600">
-                    <span>+ Cushion Buffer</span>
-                    <span className="font-mono font-semibold">
-                      +{laborCushion.cushionHoursCapacity.toFixed(0)}h
-                    </span>
-                  </div>
-                )}
-
-                {/* Total remaining capacity */}
-                {laborCushion?.totalLaborCapacity != null && laborCushion.totalLaborCapacity > 0 && (
-                  <>
                     <Separator className="my-1" />
-                    <div className="flex justify-between font-semibold">
-                      <span>Total Capacity Remaining</span>
-                      <span className="font-mono">
-                        {Math.max(0, laborCushion.totalLaborCapacity - effectiveActualHours).toFixed(0)}h
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Scheduled Remaining</span>
+                      <span className="font-mono font-semibold">
+                        {Math.max(0, effectiveEstimatedHours - effectiveActualHours).toFixed(0)}h
                       </span>
                     </div>
-                  </>
-                )}
-              </div>
 
-              {/* Progress bar — use total capacity as denominator when available */}
-              {(() => {
-                const denominator = laborCushion?.totalLaborCapacity ?? effectiveEstimatedHours;
-                const actual = effectiveActualHours;
-                const pct = denominator > 0 ? (actual / denominator) * 100 : 0;
-                const estimatedPct = denominator > 0 ? (effectiveEstimatedHours / denominator) * 100 : 0;
+                    {/* Cushion buffer — only if data available */}
+                    {laborCushion?.cushionHoursCapacity != null && laborCushion.cushionHoursCapacity > 0 && (
+                      <div className="flex justify-between text-yellow-600">
+                        <span>+ Cushion Buffer</span>
+                        <span className="font-mono font-semibold">
+                          +{laborCushion.cushionHoursCapacity.toFixed(0)}h
+                        </span>
+                      </div>
+                    )}
 
-                const inCushionZone = actual > effectiveEstimatedHours && laborCushion?.totalLaborCapacity;
-                const overCapacity = laborCushion?.totalLaborCapacity && actual > laborCushion.totalLaborCapacity;
-
-                return (
-                  <div className="space-y-1">
-                    <div className="relative">
-                      <Progress
-                        value={Math.min(pct, 100)}
-                        className={cn(
-                          "h-2",
-                          overCapacity
-                            ? "[&>div]:bg-destructive"
-                            : inCushionZone
-                              ? "[&>div]:bg-yellow-500"
-                              : "[&>div]:bg-primary"
-                        )}
-                      />
-                      {/* Estimated hours marker when cushion exists */}
-                      {laborCushion?.totalLaborCapacity && laborCushion.totalLaborCapacity > effectiveEstimatedHours && (
-                        <div
-                          className="absolute top-0 h-2 w-px bg-foreground/40"
-                          style={{ left: `${estimatedPct}%` }}
-                          title={`Estimated: ${effectiveEstimatedHours.toFixed(0)}h`}
-                        />
-                      )}
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>
-                        {pct.toFixed(0)}% of {laborCushion?.totalLaborCapacity ? 'capacity' : 'estimate'} used
-                      </span>
-                      {laborCushion?.scheduleBufferPercent != null && (
-                        <span>{laborCushion.scheduleBufferPercent.toFixed(0)}% buffer</span>
-                      )}
-                    </div>
+                    {/* Total remaining capacity */}
+                    {laborCushion?.totalLaborCapacity != null && laborCushion.totalLaborCapacity > 0 && (
+                      <>
+                        <Separator className="my-1" />
+                        <div className="flex justify-between font-semibold">
+                          <span>Total Capacity Remaining</span>
+                          <span className="font-mono">
+                            {Math.max(0, laborCushion.totalLaborCapacity - effectiveActualHours).toFixed(0)}h
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                );
-              })()}
 
-              {/* Data freshness */}
-              {dataFreshness.lastTimeDays !== null && (
-                <div className="text-xs text-muted-foreground">
-                  Last time entry:{' '}
-                  {dataFreshness.lastTimeDays === 0
-                    ? 'Today'
-                    : `${dataFreshness.lastTimeDays}d ago`}
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
+                  {/* Progress bar — use total capacity as denominator when available */}
+                  {(() => {
+                    const denominator = laborCushion?.totalLaborCapacity ?? effectiveEstimatedHours;
+                    const actual = effectiveActualHours;
+                    const pct = denominator > 0 ? (actual / denominator) * 100 : 0;
+                    const estimatedPct = denominator > 0 ? (effectiveEstimatedHours / denominator) * 100 : 0;
 
-        {/* Schedule */}
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Schedule</h3>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {scheduleStatus ? (
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Start:</span>
-                  <span className="font-medium">
-                    {project.start_date ? format(new Date(project.start_date), 'MMM d, yyyy') : 'Not set'}
-                  </span>
+                    const inCushionZone = actual > effectiveEstimatedHours && laborCushion?.totalLaborCapacity;
+                    const overCapacity = laborCushion?.totalLaborCapacity && actual > laborCushion.totalLaborCapacity;
+
+                    return (
+                      <div className="space-y-1">
+                        <div className="relative">
+                          <Progress
+                            value={Math.min(pct, 100)}
+                            className={cn(
+                              "h-2",
+                              overCapacity
+                                ? "[&>div]:bg-destructive"
+                                : inCushionZone
+                                  ? "[&>div]:bg-yellow-500"
+                                  : "[&>div]:bg-primary"
+                            )}
+                          />
+                          {/* Estimated hours marker when cushion exists */}
+                          {laborCushion?.totalLaborCapacity && laborCushion.totalLaborCapacity > effectiveEstimatedHours && (
+                            <div
+                              className="absolute top-0 h-2 w-px bg-foreground/40"
+                              style={{ left: `${estimatedPct}%` }}
+                              title={`Estimated: ${effectiveEstimatedHours.toFixed(0)}h`}
+                            />
+                          )}
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>
+                            {pct.toFixed(0)}% of {laborCushion?.totalLaborCapacity ? 'capacity' : 'estimate'} used
+                          </span>
+                          {laborCushion?.scheduleBufferPercent != null && (
+                            <span>{laborCushion.scheduleBufferPercent.toFixed(0)}% buffer</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Data freshness */}
+                  {dataFreshness.lastTimeDays !== null && (
+                    <div className="text-xs text-muted-foreground">
+                      Last time entry:{' '}
+                      {dataFreshness.lastTimeDays === 0
+                        ? 'Today'
+                        : `${dataFreshness.lastTimeDays}d ago`}
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">End:</span>
-                  <span className="font-medium">
-                    {project.end_date ? format(new Date(project.end_date), 'MMM d, yyyy') : 'Not set'}
-                  </span>
-                </div>
-                <Progress 
-                  value={scheduleStatus.percentComplete} 
-                  className={`h-2 ${
-                    scheduleStatus.isComplete ? '[&>div]:bg-success' :
-                    scheduleStatus.isOverdue ? '[&>div]:bg-destructive' : 
-                    '[&>div]:bg-primary'
-                  }`}
-                />
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {scheduleStatus.elapsedDays} of {scheduleStatus.totalDays} days
-                  </span>
-                  <span className={`font-medium ${
-                    scheduleStatus.isComplete ? 'text-success' :
-                    scheduleStatus.isOverdue ? 'text-destructive' : ''
-                  }`}>
-                    {scheduleStatus.isComplete 
-                      ? 'Completed'
-                      : scheduleStatus.isOverdue 
-                        ? `Overdue by ${Math.abs(scheduleStatus.remainingDays)} days`
-                        : `${scheduleStatus.remainingDays} days remaining`
-                    }
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground">No schedule dates set</div>
+              </Card>
             )}
-          </CardContent>
-        </Card>
-      </div>
+
+            {/* Schedule */}
+            {showSchedule && (
+              <Card>
+                <CardHeader className="p-3 pb-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Schedule</h3>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 pt-0">
+                  {scheduleStatus ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Start</span>
+                        <span>{scheduleDates.start ? new Date(scheduleDates.start).toLocaleDateString() : 'Not set'}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">End</span>
+                        <span>{scheduleDates.end ? new Date(scheduleDates.end).toLocaleDateString() : 'Not set'}</span>
+                      </div>
+                      {scheduleStatus.totalDays > 0 && (
+                        <Progress value={scheduleStatus.percentComplete} className="h-1.5" />
+                      )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">
+                          {scheduleStatus.percentComplete.toFixed(0)}% elapsed
+                        </span>
+                        <span className={`text-xs font-medium ${
+                          scheduleStatus.isComplete ? 'text-success' :
+                          scheduleStatus.isOverdue ? 'text-destructive' : ''
+                        }`}>
+                          {scheduleStatus.isComplete
+                            ? 'Completed'
+                            : scheduleStatus.isOverdue
+                              ? `Overdue by ${Math.abs(scheduleStatus.remainingDays)} days`
+                              : `${scheduleStatus.remainingDays} days remaining`
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">No schedule dates set</div>
+                  )}
+                  {/* Navigate to Schedule page */}
+                  <button
+                    onClick={() => navigate(`/projects/${project.id}/schedule`)}
+                    className="mt-2 text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                  >
+                    View Schedule
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         );
       })()}
 
       {/* Change Orders */}
-      <Card>
-        <CardHeader className="p-3 pb-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Change Orders</h3>
-            <Badge variant="outline" className="h-5 text-xs">{changeOrders.length} total</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-3 pt-0 space-y-2">
-          <div className="flex gap-2">
-            {changeOrderSummary.pending > 0 && (
-              <Badge variant="outline" className="text-xs text-orange-600">
-                {changeOrderSummary.pending} Pending
-              </Badge>
-            )}
-            {changeOrderSummary.approvedCount > 0 && (
-              <Badge variant="outline" className="text-xs text-green-600">
-                {changeOrderSummary.approvedCount} Approved
-              </Badge>
-            )}
-            {changeOrderSummary.rejected > 0 && (
-              <Badge variant="outline" className="text-xs text-destructive">
-                {changeOrderSummary.rejected} Rejected
-              </Badge>
-            )}
-          </div>
-          {changeOrderSummary.approvedCount > 0 && (
-            <div className="space-y-1 pt-1 border-t">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Approved Revenue:</span>
-                <span className="font-medium">{formatCurrency(changeOrderSummary.totalRevenue)}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Approved Costs:</span>
-                <span className="font-medium">{formatCurrency(changeOrderSummary.totalCosts)}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Net Impact:</span>
-                <span className={`font-semibold ${
-                  changeOrderSummary.netImpact >= 0 ? 'text-green-600' : 'text-destructive'
-                }`}>
-                  {formatCurrency(changeOrderSummary.netImpact)}
-                </span>
-              </div>
+      {changeOrders.length > 0 && (
+        <Card>
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Change Orders</h3>
+              <Badge variant="outline" className="h-5 text-xs">{changeOrders.length} total</Badge>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 space-y-2">
+            <div className="flex gap-2">
+              {changeOrderSummary.pending > 0 && (
+                <Badge variant="outline" className="text-xs text-orange-600">
+                  {changeOrderSummary.pending} Pending
+                </Badge>
+              )}
+              {changeOrderSummary.approvedCount > 0 && (
+                <Badge variant="outline" className="text-xs text-green-600">
+                  {changeOrderSummary.approvedCount} Approved
+                </Badge>
+              )}
+              {changeOrderSummary.rejected > 0 && (
+                <Badge variant="outline" className="text-xs text-destructive">
+                  {changeOrderSummary.rejected} Rejected
+                </Badge>
+              )}
+            </div>
+            {changeOrderSummary.approvedCount > 0 && (
+              <div className="space-y-1 pt-1 border-t">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Approved Revenue:</span>
+                  <span className="font-medium">{formatCurrency(changeOrderSummary.totalRevenue)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Approved Costs:</span>
+                  <span className="font-medium">{formatCurrency(changeOrderSummary.totalCosts)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Net Impact:</span>
+                  <span className={`font-semibold ${
+                    changeOrderSummary.netImpact >= 0 ? 'text-green-600' : 'text-destructive'
+                  }`}>
+                    {formatCurrency(changeOrderSummary.netImpact)}
+                  </span>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => navigate(`/projects/${project.id}/changes`)}
+              className="mt-2 pt-2 border-t text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
+            >
+              View Change Orders
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Documentation */}
-      <Card>
-        <CardHeader className="p-3 pb-2">
-          <h3 className="text-sm font-semibold">Documentation</h3>
-        </CardHeader>
-        <CardContent className="p-3 pt-0">
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={() => navigate(`/projects/${project.id}/documents?tab=photos`)}
-              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-            >
-              <Camera className="h-4 w-4 text-blue-600" />
-              <div>
-                <div className="text-sm font-medium">{mediaCounts.photos}</div>
-                <div className="text-xs text-muted-foreground">Photos</div>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate(`/projects/${project.id}/documents?tab=videos`)}
-              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-            >
-              <Video className="h-4 w-4 text-purple-600" />
-              <div>
-                <div className="text-sm font-medium">{mediaCounts.videos}</div>
-                <div className="text-xs text-muted-foreground">Videos</div>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate(`/time-entries?tab=receipts&project=${project.id}`)}
-              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-            >
-              <Receipt className="h-4 w-4 text-green-600" />
-              <div>
-                <div className="text-sm font-medium">{pendingReceipts}</div>
-                <div className="text-xs text-muted-foreground">Pending Receipts</div>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate(`/projects/${project.id}/documents`)}
-              className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-            >
-              <FileIcon className="h-4 w-4 text-orange-600" />
-              <div>
-                <div className="text-sm font-medium">{documentCount}</div>
-                <div className="text-xs text-muted-foreground">Documents</div>
-              </div>
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      {(project.status !== 'estimating' || mediaCounts.photos > 0 || mediaCounts.videos > 0 || pendingReceipts > 0 || documentCount > 0) && (
+        <Card>
+          <CardHeader className="p-3 pb-2">
+            <h3 className="text-sm font-semibold">Documentation</h3>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => navigate(`/projects/${project.id}/documents?tab=photos`)}
+                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+              >
+                <Camera className="h-4 w-4 text-blue-600" />
+                <div>
+                  <div className="text-sm font-medium">{mediaCounts.photos}</div>
+                  <div className="text-xs text-muted-foreground">Photos</div>
+                </div>
+              </button>
+              <button
+                onClick={() => navigate(`/projects/${project.id}/documents?tab=videos`)}
+                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+              >
+                <Video className="h-4 w-4 text-purple-600" />
+                <div>
+                  <div className="text-sm font-medium">{mediaCounts.videos}</div>
+                  <div className="text-xs text-muted-foreground">Videos</div>
+                </div>
+              </button>
+              <button
+                onClick={() => navigate(`/time-entries?tab=receipts&project=${project.id}`)}
+                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+              >
+                <Receipt className="h-4 w-4 text-green-600" />
+                <div>
+                  <div className="text-sm font-medium">{pendingReceipts}</div>
+                  <div className="text-xs text-muted-foreground">Pending Receipts</div>
+                </div>
+              </button>
+              <button
+                onClick={() => navigate(`/projects/${project.id}/documents`)}
+                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
+              >
+                <FileIcon className="h-4 w-4 text-orange-600" />
+                <div>
+                  <div className="text-sm font-medium">{documentCount}</div>
+                  <div className="text-xs text-muted-foreground">Documents</div>
+                </div>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Project Notes Timeline */}
       <Card>

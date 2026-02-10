@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  AlertTriangle, 
+import {
+  DollarSign,
+  TrendingUp,
+  AlertTriangle,
   CheckCircle,
   Download,
-  Target,
   Eye,
   MoreHorizontal
 } from 'lucide-react';
@@ -23,6 +22,7 @@ import { format } from 'date-fns';
 import { Project } from '@/types/project';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LineItemControlCardView } from '@/components/LineItemControlCardView';
+import { getFinancialHealth, getFinancialHealthColor, getCostVarianceColor } from '@/utils/financialColors';
 
 interface LineItemControlDashboardProps {
   projectId: string;
@@ -102,7 +102,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('href', url);
-    a.setAttribute('download', `project-line-item-control-${projectId}.csv`);
+    a.setAttribute('download', `project-cost-tracking-${projectId}.csv`);
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -630,133 +630,88 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   return (
     <TooltipProvider>
       <div className="space-y-3 w-full max-w-full overflow-x-hidden box-border min-w-0" data-line-item-dashboard style={{ maxWidth: '100%', width: '100%' }}>
-      {/* Summary Cards - Individual Cards for Mobile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 w-full max-w-full min-w-0">
-        {/* Contract Value */}
-        <Card className="w-full max-w-full box-border min-w-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-              <Target className="h-3.5 w-3.5 shrink-0" />
-              <span>Contract</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg md:text-xl font-bold tabular-nums truncate min-w-0">
-              {formatCurrency(summary.totalContractValue)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 hidden md:block">
-              Client contract
-            </p>
-          </CardContent>
-        </Card>
+      {/* Cost Tracking Status Bar */}
+      {(() => {
+        // Use shared financial health system for progress bar color
+        const spendHealth = getFinancialHealth(summary.completionPercentage, 80, 95, true);
+        const progressBarClass = spendHealth === 'critical' ? '[&>div]:bg-destructive'
+          : spendHealth === 'warning' ? '[&>div]:bg-warning'
+          : '[&>div]:bg-success';
 
-        {/* Quoted + Internal */}
-        <Card className="w-full max-w-full box-border min-w-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-              <span>Quoted</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg md:text-xl font-bold tabular-nums truncate min-w-0">
-              {formatCurrency(summary.totalQuotedWithInternal)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary.lineItemsWithQuotes} quoted
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Estimated Cost */}
-        <Card className="w-full max-w-full box-border min-w-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-              <Target className="h-3.5 w-3.5 shrink-0" />
-              <span>Est. Cost</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg md:text-xl font-bold tabular-nums truncate min-w-0">
-              {formatCurrency(summary.totalEstimatedCost)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 hidden md:block">
-              Baseline estimate
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Est vs Quote Variance */}
-        <Card className="w-full max-w-full box-border min-w-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-              <span>Variance</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={cn(
-              "text-lg md:text-xl font-bold tabular-nums truncate min-w-0",
-              summary.totalVariance > 0 ? "text-destructive" : "text-green-600"
-            )}>
-              {formatCurrency(summary.totalVariance)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 hidden md:block">
-              {summary.lineItemsUnderBudget > 0 || summary.lineItemsOverBudget > 0 ? (
-                <>
-                  {summary.lineItemsUnderBudget > 0 && (
-                    <span className="text-green-600">{summary.lineItemsUnderBudget} lower</span>
+        return (
+          <Card className="w-full">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col gap-2">
+                {/* Summary line */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  <span className="font-medium">{lineItems.length} line items</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">{summary.lineItemsWithQuotes} quoted</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {formatCurrency(summary.totalActual)} of {formatCurrency(summary.totalEstimatedCost)} spent
+                  </span>
+                  {summary.totalUnallocated > 0 && (
+                    <>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-destructive font-medium">
+                        {formatCurrency(summary.totalUnallocated)} unallocated
+                      </span>
+                    </>
                   )}
-                  {summary.lineItemsUnderBudget > 0 && summary.lineItemsOverBudget > 0 && ', '}
-                  {summary.lineItemsOverBudget > 0 && (
-                    <span className="text-destructive">{summary.lineItemsOverBudget} higher</span>
-                  )}
-                </>
-              ) : (
-                'All match'
-              )}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Actual Cost to Date */}
-        <Card className="sm:col-span-2 md:col-span-1 w-full max-w-full box-border min-w-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-              <DollarSign className="h-3.5 w-3.5 shrink-0" />
-              <span>Actual Cost</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg md:text-xl font-bold tabular-nums mb-2 truncate min-w-0">
-              {formatCurrency(summary.totalActual)}
-            </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Allocated:</span>
-                <span className="font-medium text-foreground tabular-nums">
-                  {formatCurrency(summary.totalAllocated)}
-                </span>
-              </div>
-              {summary.totalUnallocated > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-warning">Unallocated:</span>
-                  <span className="font-medium text-warning tabular-nums">
-                    {formatCurrency(summary.totalUnallocated)}
+                </div>
+                {/* Progress bar — using shared financial health colors */}
+                <div className="flex items-center gap-2">
+                  <Progress
+                    value={summary.completionPercentage}
+                    className={cn("h-2 flex-1", progressBarClass)}
+                  />
+                  <span className={cn(
+                    "text-xs tabular-nums w-10 text-right font-medium",
+                    getFinancialHealthColor(spendHealth)
+                  )}>
+                    {summary.completionPercentage.toFixed(0)}%
                   </span>
                 </div>
-              )}
-              <div className="text-muted-foreground pt-1">
-                {summary.completionPercentage.toFixed(1)}%
+                {/* Variance callout — using shared getCostVarianceColor */}
+                {summary.totalVariance !== 0 && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <TrendingUp className={cn(
+                      "h-3.5 w-3.5",
+                      getCostVarianceColor(
+                        summary.totalEstimatedCost > 0
+                          ? (Math.abs(summary.totalVariance) / summary.totalEstimatedCost) * 100
+                          : 0
+                      )
+                    )} />
+                    <span className={cn(
+                      "font-medium",
+                      getCostVarianceColor(
+                        summary.totalEstimatedCost > 0
+                          ? (Math.abs(summary.totalVariance) / summary.totalEstimatedCost) * 100
+                          : 0
+                      )
+                    )}>
+                      {formatCurrency(Math.abs(summary.totalVariance))} {summary.totalVariance > 0 ? 'over' : 'under'} estimate
+                    </span>
+                    {(summary.lineItemsOverBudget > 0 || summary.lineItemsUnderBudget > 0) && (
+                      <span className="text-muted-foreground">
+                        ({summary.lineItemsOverBudget > 0 && `${summary.lineItemsOverBudget} over`}
+                        {summary.lineItemsOverBudget > 0 && summary.lineItemsUnderBudget > 0 && ', '}
+                        {summary.lineItemsUnderBudget > 0 && `${summary.lineItemsUnderBudget} under`})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
         {/* Main Table/Cards */}
         <div className="flex items-center justify-between mb-3 md:mb-4">
-          <h2 className="text-base md:text-lg font-semibold">Line Item Control ({lineItems.length})</h2>
+          <h2 className="text-base md:text-lg font-semibold">Cost Tracking ({lineItems.length})</h2>
           <Button 
             variant="outline" 
             size="sm" 
