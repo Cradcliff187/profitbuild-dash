@@ -26,10 +26,12 @@ export function calculateProjectProfit(
   // NOTE: This function uses pre-calculated values from stored project data
   // For accurate split-aware calculations, use calculateProjectProfitAsync
   const actualExpenses = expenses.filter(e => e.project_id === estimate.project_id).reduce((sum, e) => sum + e.amount, 0);
-  
+
   // Use stored data if available, otherwise calculate
-  const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;
-  const estimatedProfit = quoteTotal - estimate.total_amount;
+  // contracted_amount = client revenue; bestQuote.total = vendor cost (NOT revenue)
+  const quoteTotal = storedProjectData?.contracted_amount ?? estimate.total_amount;
+  const estimateCost = estimate.total_cost ?? estimate.lineItems?.reduce((s, li) => s + (li.totalCost || 0), 0) ?? 0;
+  const estimatedProfit = quoteTotal - estimateCost;
   const actualProfit = storedProjectData?.actual_margin ?? (quoteTotal - actualExpenses);
   const profitMargin = storedProjectData?.margin_percentage ?? (quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0);
   const profitVariance = actualProfit - estimatedProfit;
@@ -87,8 +89,10 @@ export async function calculateProjectProfitAsync(
   const actualExpenses = await calculateProjectExpenses(estimate.project_id, expenses);
   
   // Use stored data if available, otherwise calculate
-  const quoteTotal = storedProjectData?.contracted_amount ?? bestQuote?.total ?? 0;
-  const estimatedProfit = quoteTotal - estimate.total_amount;
+  // contracted_amount = client revenue; bestQuote.total = vendor cost (NOT revenue)
+  const quoteTotal = storedProjectData?.contracted_amount ?? estimate.total_amount;
+  const estimateCost = estimate.total_cost ?? estimate.lineItems?.reduce((s, li) => s + (li.totalCost || 0), 0) ?? 0;
+  const estimatedProfit = quoteTotal - estimateCost;
   const actualProfit = storedProjectData?.actual_margin ?? (quoteTotal - actualExpenses);
   const profitMargin = storedProjectData?.margin_percentage ?? (quoteTotal > 0 ? (actualProfit / quoteTotal) * 100 : 0);
   const profitVariance = actualProfit - estimatedProfit;

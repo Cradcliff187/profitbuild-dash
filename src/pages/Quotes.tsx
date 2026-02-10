@@ -13,6 +13,7 @@ import { QuoteComparison } from "@/components/QuoteComparison";
 import { QuoteFilters, QuoteSearchFilters } from "@/components/QuoteFilters";
 import { QuoteExportModal } from "@/components/QuoteExportModal";
 import { Quote, QuoteStatus } from "@/types/quote";
+import { getQuotedCost } from "@/utils/quoteFinancials";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contract } from "@/types/contract";
@@ -903,7 +904,7 @@ const Quotes = () => {
                     quoteNumber={selectedQuote.quoteNumber}
                     payeeName={selectedQuote.quotedBy}
                     projectId={selectedQuote.project_id}
-                    totalAmount={selectedQuote.total}
+                    totalAmount={getQuotedCost(selectedQuote)}
                     onStatusChange={(newStatus) => {
                       setViewedQuoteStatus(newStatus);
                       setSelectedQuote((prev) => (prev ? { ...prev, status: newStatus } : undefined));

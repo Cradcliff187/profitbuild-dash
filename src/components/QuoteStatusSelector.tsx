@@ -90,7 +90,7 @@ export const QuoteStatusSelector = ({
     if (targetStatus === QuoteStatus.ACCEPTED) {
       return {
         title: "Accept Quote",
-        message: `Accepting this quote from ${payeeName} (${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)}) will:`,
+        message: `Accepting this quote from ${payeeName} (vendor cost: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)}) will:`,
         details: [
           "• Mark this quote as accepted",
           "• Record the acceptance date",

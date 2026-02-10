@@ -75,8 +75,8 @@ export const businessRules: BusinessRule[] = [
   {
     id: 'cost_vs_price',
     category: 'calculation',
-    rule: 'Cost = what RCG pays to vendors/workers. Price = what clients are charged.',
-    reason: 'Important distinction for margin calculations and reporting.',
+    rule: 'Cost = what RCG pays to vendors/workers. Price = what clients are charged. When comparing quotes to estimates, always use cost fields (total_cost, cost_per_unit), never price fields (total, price_per_unit).',
+    reason: 'Important distinction for margin calculations and reporting. Quotes represent vendor cost — compare against estimate cost, not estimate price.',
     severity: 'important'
   },
   {

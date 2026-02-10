@@ -1,5 +1,5 @@
-import { QuoteLineItem } from "@/types/quote";
-import { LineItem } from "@/types/estimate";
+import { Quote, QuoteLineItem } from "@/types/quote";
+import { Estimate, LineItem } from "@/types/estimate";
 
 // Financial metrics interface for quotes
 export interface QuoteFinancialMetrics {
@@ -176,4 +176,151 @@ export function getMarginPerformanceStatus(marginPercent: number): 'excellent' |
   if (marginPercent >= 15) return 'good';
   if (marginPercent >= 5) return 'poor';
   return 'critical';
+}
+
+// ─── Quote-to-Estimate lookup helpers ──────────────────────────────────
+
+/**
+ * Find the matching estimate for a given quote.
+ * Prioritizes exact estimate_id match, falls back to project_id match.
+ */
+export function getEstimateForQuote(
+  quote: Quote,
+  estimates: Estimate[]
+): Estimate | undefined {
+  if (quote.estimate_id) {
+    const byId = estimates.find(est => est.id === quote.estimate_id);
+    if (byId) return byId;
+  }
+  return estimates.find(est => est.project_id === quote.project_id);
+}
+
+/**
+ * Get the vendor's quoted cost from quote line items.
+ * This is the COST (what we pay the vendor), derived from line items.
+ * Always use this instead of quote.total for display to ensure
+ * correctness even for quotes saved before the totalCost fix.
+ */
+export function getQuotedCost(quote: Quote): number {
+  return quote.lineItems.reduce(
+    (sum, item) => sum + (item.totalCost || item.quantity * item.costPerUnit),
+    0
+  );
+}
+
+/**
+ * Get the corresponding estimate line item COST for a quote.
+ * Returns the sum of estimate totalCost for each matched line item.
+ * This is COST (what we estimated we'd pay), NOT price (what we charge client).
+ */
+export function getEstimateLineItemCost(
+  quote: Quote,
+  estimates: Estimate[]
+): number | null {
+  const estimate = getEstimateForQuote(quote, estimates);
+  if (!estimate?.lineItems?.length) return null;
+
+  const estimateLineItems = estimate.lineItems;
+  const quoteLineItems = quote.lineItems || [];
+
+  let totalEstimatedCost = 0;
+  let hasMatch = false;
+
+  // Match via quote line items' estimateLineItemId links
+  if (quoteLineItems.length > 0) {
+    quoteLineItems.forEach(qli => {
+      const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+      if (linkId) {
+        const eli = estimateLineItems.find(item => item.id === linkId);
+        if (eli) {
+          totalEstimatedCost += Number(eli.totalCost || 0);
+          hasMatch = true;
+        } else {
+          console.warn(
+            `Quote line item references estimate line item ${linkId} but it was not found in estimate ${estimate.id}`
+          );
+        }
+      }
+    });
+    if (hasMatch) return totalEstimatedCost;
+  }
+
+  // Fallback: quote-level estimate_line_item_id
+  if (quote.estimate_line_item_id) {
+    const eli = estimateLineItems.find(item => item.id === quote.estimate_line_item_id);
+    if (eli) return Number(eli.totalCost || 0);
+  }
+
+  return null;
+}
+
+/**
+ * Get the corresponding estimate line item PRICE for a quote.
+ * Returns client-facing price. Use only for margin/profit analysis,
+ * NOT for cost variance comparisons.
+ */
+export function getEstimateLineItemPrice(
+  quote: Quote,
+  estimates: Estimate[]
+): number | null {
+  const estimate = getEstimateForQuote(quote, estimates);
+  if (!estimate?.lineItems?.length) return null;
+
+  const estimateLineItems = estimate.lineItems;
+  const quoteLineItems = quote.lineItems || [];
+
+  let totalEstimatedPrice = 0;
+  let hasMatch = false;
+
+  if (quoteLineItems.length > 0) {
+    quoteLineItems.forEach(qli => {
+      const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+      if (linkId) {
+        const eli = estimateLineItems.find(item => item.id === linkId);
+        if (eli) {
+          totalEstimatedPrice += Number(eli.total || 0);
+          hasMatch = true;
+        }
+      }
+    });
+    if (hasMatch) return totalEstimatedPrice;
+  }
+
+  if (quote.estimate_line_item_id) {
+    const eli = estimateLineItems.find(item => item.id === quote.estimate_line_item_id);
+    if (eli) return Number(eli.total || 0);
+  }
+
+  return null;
+}
+
+export interface CostVarianceResult {
+  amount: number;
+  percentage: number;
+  status: 'under' | 'over' | 'none';
+}
+
+/**
+ * Calculate cost variance between quoted cost and estimated cost.
+ * Positive = over estimate (bad), Negative = under estimate (good).
+ */
+export function getCostVariance(
+  quote: Quote,
+  estimates: Estimate[]
+): CostVarianceResult {
+  const estimateCost = getEstimateLineItemCost(quote, estimates);
+  const quotedCost = getQuotedCost(quote);
+
+  if (estimateCost === null || quotedCost === 0) {
+    return { amount: 0, percentage: 0, status: 'none' };
+  }
+
+  const variance = quotedCost - estimateCost;
+  const variancePercent = (variance / estimateCost) * 100;
+
+  return {
+    amount: Math.abs(variance),
+    percentage: Math.abs(variancePercent),
+    status: variance > 0 ? 'over' : variance < 0 ? 'under' : 'none',
+  };
 }

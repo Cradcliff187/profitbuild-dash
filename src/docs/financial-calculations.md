@@ -94,6 +94,12 @@
 - When no quote: Use original estimate cost
 - Internal labor always uses estimate costs (never quoted)
 
+### Quote vs Estimate Comparison
+- **Always compare vendor quoted cost against estimate cost (not price)**
+- Relevant fields: `quote_line_items.total_cost` vs `estimate_line_items.total_cost`
+- Never compare against `estimate.total_amount` (client price) or `estimate_line_items.total` (client price per line)
+- `quotes.total_amount` = vendor cost (what we pay), NOT client revenue
+
 ### Change Order Impact
 - Affects both revenue (`client_amount`) and costs (`cost_impact`)
 - Can impact contingency usage (`includes_contingency`)

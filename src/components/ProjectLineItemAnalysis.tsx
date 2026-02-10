@@ -130,7 +130,8 @@ export const ProjectLineItemAnalysis = ({
         }
 
         const categoryData = categoryMap.get(categoryKey)!;
-        categoryData.estimateTotal += item.total || 0;
+        const itemCost = item.total_cost || (item.quantity * item.cost_per_unit) || 0;
+        categoryData.estimateTotal += itemCost;
 
         // Find corresponding quote line items
         let quoteQuantity = 0;
@@ -139,11 +140,11 @@ export const ProjectLineItemAnalysis = ({
 
         acceptedQuotes.forEach(quote => {
           quote.quote_line_items?.forEach((quoteItem: any) => {
-            if (quoteItem.category === item.category && 
+            if (quoteItem.category === item.category &&
                 quoteItem.description.toLowerCase().includes(item.description.toLowerCase().substring(0, 10))) {
               quoteQuantity += quoteItem.quantity || 0;
-              quoteRate = quoteItem.rate || 0;
-              quoteTotal += quoteItem.total || 0;
+              quoteRate = quoteItem.cost_per_unit || quoteItem.rate || 0;
+              quoteTotal += quoteItem.total_cost || (quoteItem.quantity * quoteItem.cost_per_unit) || 0;
             }
           });
         });
@@ -151,25 +152,25 @@ export const ProjectLineItemAnalysis = ({
         categoryData.quoteTotal += quoteTotal;
 
         // Find corresponding expenses
-        const relatedExpenses = expenses.filter(exp => 
-          exp.category === categoryKey && 
-          (exp.description?.toLowerCase().includes(item.description.toLowerCase().substring(0, 10)) || 
+        const relatedExpenses = expenses.filter(exp =>
+          exp.category === categoryKey &&
+          (exp.description?.toLowerCase().includes(item.description.toLowerCase().substring(0, 10)) ||
            item.description.toLowerCase().includes(exp.description?.toLowerCase().substring(0, 10) || ''))
         );
 
         const actualExpenses = relatedExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
         categoryData.actualExpenses += actualExpenses;
 
-        // Calculate variance (actual vs estimate)
-        const variance = actualExpenses - (item.total || 0);
-        const variancePercent = (item.total || 0) > 0 ? (variance / (item.total || 0)) * 100 : 0;
+        // Calculate variance (actual vs estimate cost)
+        const variance = actualExpenses - itemCost;
+        const variancePercent = itemCost > 0 ? (variance / itemCost) * 100 : 0;
 
         const lineItemData: LineItemAnalysisData = {
           category: categoryLabel,
           description: item.description,
           estimateQuantity: item.quantity || 0,
-          estimateRate: item.rate || 0,
-          estimateTotal: item.total || 0,
+          estimateRate: item.cost_per_unit || item.rate || 0,
+          estimateTotal: itemCost,
           quoteQuantity: quoteQuantity || undefined,
           quoteRate: quoteRate || undefined,
           quoteTotal: quoteTotal || undefined,
@@ -285,7 +286,7 @@ export const ProjectLineItemAnalysis = ({
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-600" />
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Quoted Amount</p>
+                <p className="text-xs text-muted-foreground">Vendor Quoted Cost</p>
                 <p className="text-lg font-semibold">{formatCurrency(totalSummary.quoteTotal)}</p>
               </div>
             </div>

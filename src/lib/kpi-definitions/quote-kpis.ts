@@ -6,7 +6,7 @@
  *
  * AUDIT NOTES (2026-01-23):
  * - Quotes are separate from estimates - they represent vendor bids for materials/services
- * - Best quote selection logic uses lowest quote_amount by category
+ * - Best quote selection logic uses lowest total_amount (vendor cost) by category
  * - Quotes feed into project cost calculations when accepted
  */
 
@@ -20,12 +20,12 @@ export const quoteKPIs: KPIMeasure[] = [
     id: 'quote_quote_amount',
     name: 'Quote Amount',
     source: 'database',
-    field: 'quotes.quote_amount',
-    formula: 'Direct field - total quoted to client/vendor',
+    field: 'quotes.total_amount',
+    formula: 'Direct field - vendor cost (what we pay)',
     dataType: 'currency',
     domain: 'quote',
     whereUsed: 'QuotesList, project financials, cost comparisons',
-    notes: 'The base cost quoted by the vendor before any markup.',
+    notes: 'The vendor cost (what we pay). DB field is total_amount. Compare against estimate cost, never estimate price.',
     aliases: ['quote amount', 'quoted price', 'bid amount', 'vendor quote'],
     relatedTo: ['quote_client_amount', 'quote_markup_amount'],
   },

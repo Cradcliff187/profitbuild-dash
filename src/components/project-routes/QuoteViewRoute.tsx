@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { QuoteStatus } from "@/types/quote";
+import { getQuotedCost } from "@/utils/quoteFinancials";
 import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -115,7 +116,7 @@ export function QuoteViewRoute() {
                 quoteNumber={quote.quoteNumber}
                 payeeName={quote.quotedBy}
                 projectId={quote.project_id}
-                totalAmount={quote.total}
+                totalAmount={getQuotedCost(quote)}
                 onStatusChange={(newStatus) => {
                   setCurrentStatus(newStatus);
                   loadProjectData?.();

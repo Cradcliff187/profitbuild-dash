@@ -87,7 +87,7 @@ export const DuplicateQuoteModal = ({
                 <div>{quote.quotedBy}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Total Amount</div>
+                <div className="text-muted-foreground">Vendor Cost</div>
                 <div className="font-mono">{formatCurrency(quote.total)}</div>
               </div>
               <div>

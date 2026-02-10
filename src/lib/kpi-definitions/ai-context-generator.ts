@@ -205,12 +205,13 @@ Understanding RCG's different margin metrics:
 
 | Metric | Formula | When to Use |
 |--------|---------|-------------|
-| **actual_margin** | total_invoiced - total_expenses | User asks about REAL/ACTUAL/TRUE profit |
-| **current_margin** | contracted_amount - total_expenses | User asks about EXPECTED profit (default) |
-| **projected_margin** | contracted_amount - adjusted_est_costs | User asks about FORECAST profit |
-| **original_margin** | contracted_amount - original_est_costs | User asks about BASELINE comparison |
+| **actual_margin** | total_invoiced - total_expenses | User asks about REAL/ACTUAL/TRUE profit (default for "profit") |
+| **adjusted_est_margin** | contracted_amount - adjusted_est_costs | User asks about EXPECTED/PROJECTED/FORECAST profit (default for "margin") |
+| **original_margin** | contracted_amount - original_est_costs | User asks about ORIGINAL/BASELINE comparison |
 
-**Key insight:** "profit" usually means actual_margin (real money made), while "margin" usually means current_margin (expected based on contract).`;
+**Key insight:** "profit" usually means actual_margin (real money made), while "margin" usually means adjusted_est_margin (expected based on contract minus estimated costs).
+
+**Quote cost rule:** When comparing quotes to estimates, always use COST fields (total_cost, cost_per_unit). Never compare against PRICE fields (total_amount, price_per_unit). Quotes represent vendor cost.`;
 }
 
 /**

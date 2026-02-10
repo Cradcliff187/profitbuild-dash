@@ -26,6 +26,7 @@ import type { Project } from '@/types/project';
 import type { Expense } from '@/types/expense';
 import { calculateProjectMargin, getMarginStatusLevel, formatMarginCurrency } from '@/types/margin';
 import { getThresholdStatusColor, getThresholdStatusLabel } from '@/utils/thresholdUtils';
+import { getQuotedCost, getEstimateLineItemCost } from '@/utils/quoteFinancials';
 
 interface QuoteAcceptanceModalProps {
   quote: Quote;
@@ -49,10 +50,15 @@ export function QuoteAcceptanceModal({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Calculate variance
-  const variance = quote.total - estimate.total_amount;
-  const percentageDiff = estimate.total_amount !== 0 
-    ? (variance / estimate.total_amount) * 100 
+  // Calculate variance: cost vs cost (what we pay, not what we charge)
+  const quotedCost = getQuotedCost(quote);
+  const estimateCost = (() => {
+    const lineItemCost = getEstimateLineItemCost(quote, [estimate]);
+    return lineItemCost ?? estimate.total_cost ?? 0;
+  })();
+  const variance = quotedCost - estimateCost;
+  const percentageDiff = estimateCost !== 0
+    ? (variance / estimateCost) * 100
     : 0;
 
   // Format dates
@@ -62,13 +68,15 @@ export function QuoteAcceptanceModal({
     ? new Date(quote.valid_until).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000 
     : false;
 
-  // Calculate margin impact
+  // Calculate margin impact: accepting this quote changes costs by the delta between quoted and estimated
   const currentMargin = calculateProjectMargin(project, expenses, [estimate]);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const projectedContractedAmount = (project.contracted_amount || 0) + quote.total;
-  const projectedMarginAmount = projectedContractedAmount - totalExpenses;
-  const projectedMarginPercentage = projectedContractedAmount > 0 
-    ? (projectedMarginAmount / projectedContractedAmount) * 100 
+  const contractedAmount = project.contracted_amount || 0;
+  const currentAdjustedCosts = project.adjusted_est_costs || 0;
+  const costDelta = quotedCost - estimateCost; // positive = costs go up, negative = savings
+  const projectedAdjustedCosts = currentAdjustedCosts + costDelta;
+  const projectedMarginAmount = contractedAmount - projectedAdjustedCosts;
+  const projectedMarginPercentage = contractedAmount > 0
+    ? (projectedMarginAmount / contractedAmount) * 100
     : 0;
   
   const currentMarginStatus = getMarginStatusLevel({
@@ -222,27 +230,27 @@ export function QuoteAcceptanceModal({
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">Original Estimate</div>
+                    <div className="text-sm text-muted-foreground mb-1">Estimated Cost</div>
                     <div className="text-2xl font-bold">
-                      {estimate.total_amount.toLocaleString('en-US', {
+                      {estimateCost.toLocaleString('en-US', {
                         style: 'currency',
                         currency: 'USD',
                       })}
                     </div>
                   </div>
-                  
+
                   <div className="text-center p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="text-sm text-muted-foreground mb-1">Quote Amount</div>
+                    <div className="text-sm text-muted-foreground mb-1">Vendor Quoted Cost</div>
                     <div className="text-2xl font-bold text-primary">
-                      {quote.total.toLocaleString('en-US', {
+                      {quotedCost.toLocaleString('en-US', {
                         style: 'currency',
                         currency: 'USD',
                       })}
                     </div>
                   </div>
-                  
+
                   <div className="text-center p-4 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">Difference</div>
+                    <div className="text-sm text-muted-foreground mb-1">Cost Variance</div>
                     <div className="flex items-center justify-center gap-2">
                       {variance > 0 ? (
                         <TrendingUp className="h-5 w-5 text-destructive" />

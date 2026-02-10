@@ -23,6 +23,13 @@ import { DuplicateQuoteModal } from "./DuplicateQuoteModal";
 // Removed BudgetComparisonBadge import
 import { cn } from "@/lib/utils";
 import {
+  getEstimateForQuote,
+  getEstimateLineItemCost,
+  getEstimateLineItemPrice,
+  getQuotedCost,
+  getCostVariance,
+} from "@/utils/quoteFinancials";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -155,139 +162,10 @@ export const QuotesTableView = ({
     }
   }, [localQuotes.length]);
 
-  const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
-    // Prioritize exact estimate_id match first
-    if (quote.estimate_id) {
-      const byId = estimates.find(est => est.id === quote.estimate_id);
-      if (byId) return byId;
-    }
-    // Fallback to project match
-    return estimates.find(est => est.project_id === quote.project_id);
-  };
-
-  const getEstimateLineItemCost = (quote: Quote): number | null => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems) {
-      return null;
-    }
-    
-    const estimateLineItems = estimate.lineItems || [];
-    const quoteLineItems = quote.lineItems || [];
-    
-    if (estimateLineItems.length === 0) return null;
-    
-    let totalEstimatedCost = 0;
-    let hasMatch = false;
-    
-    // First, try to match via quote line items' estimate_line_item_id links
-    if (quoteLineItems.length > 0) {
-      quoteLineItems.forEach(qli => {
-        // Handle both camelCase and snake_case
-        const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
-        if (linkId) {
-          const estimateLineItem = estimateLineItems.find(eli => eli.id === linkId);
-          if (estimateLineItem) {
-            totalEstimatedCost += Number(estimateLineItem.totalCost || 0);
-            hasMatch = true;
-          } else {
-            console.warn(`Quote line item references estimate line item ${linkId} but it was not found in estimate ${estimate.id}`);
-          }
-        }
-      });
-      
-      if (hasMatch) {
-        return totalEstimatedCost;
-      }
-    }
-    
-    // Fallback: If quote has quote-level estimate_line_item_id link
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimateLineItems.find(
-        item => item.id === quote.estimate_line_item_id
-      );
-      if (targetLineItem) {
-        return Number(targetLineItem.totalCost || 0);
-      }
-    }
-    
-    return null;
-  };
-
-  const getEstimateLineItemPrice = (quote: Quote): number | null => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems) {
-      return null;
-    }
-    
-    const estimateLineItems = estimate.lineItems || [];
-    const quoteLineItems = quote.lineItems || [];
-    
-    if (estimateLineItems.length === 0) return null;
-    
-    let totalEstimatedPrice = 0;
-    let hasMatch = false;
-    
-    // First, try to match via quote line items' estimate_line_item_id links
-    if (quoteLineItems.length > 0) {
-      quoteLineItems.forEach(qli => {
-        // Handle both camelCase and snake_case
-        const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
-        if (linkId) {
-          const estimateLineItem = estimateLineItems.find(eli => eli.id === linkId);
-          if (estimateLineItem) {
-            totalEstimatedPrice += Number(estimateLineItem.total || 0);
-            hasMatch = true;
-          }
-        }
-      });
-      
-      if (hasMatch) {
-        return totalEstimatedPrice;
-      }
-    }
-    
-    // Fallback: If quote has quote-level estimate_line_item_id link
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimateLineItems.find(
-        item => item.id === quote.estimate_line_item_id
-      );
-      if (targetLineItem) {
-        return Number(targetLineItem.total || 0);
-      }
-    }
-    
-    return null;
-  };
-
-  const getQuotedCost = (quote: Quote): number => {
-    return quote.lineItems.reduce((sum, item) => 
-      sum + (item.totalCost || item.quantity * item.costPerUnit), 0
-    );
-  };
-
-  // Line-item-aware variance calculation for individual quotes
-  const getCostVariance = (quote: Quote): { amount: number; percentage: number; status: 'under' | 'over' | 'none' } => {
-    const estimateCost = getEstimateLineItemCost(quote);
-    const quotedCost = getQuotedCost(quote);
-    
-    if (estimateCost === null || quotedCost === 0) {
-      return { amount: 0, percentage: 0, status: 'none' };
-    }
-    
-    const variance = quotedCost - estimateCost;
-    const variancePercent = (variance / estimateCost) * 100;
-    
-    return {
-      amount: Math.abs(variance),
-      percentage: Math.abs(variancePercent),
-      status: variance > 0 ? 'over' : variance < 0 ? 'under' : 'none'
-    };
-  };
-
   // Add estimate data to quotes
   const quotesWithEstimates: QuoteWithEstimate[] = localQuotes.map(quote => ({
     ...quote,
-    estimate: getEstimateForQuote(quote)
+    estimate: getEstimateForQuote(quote, estimates)
   }));
 
   // Group quotes by project
@@ -433,7 +311,7 @@ export const QuotesTableView = ({
           quoteNumber={quote.quoteNumber}
           payeeName={quote.quotedBy}
           projectId={quote.project_id}
-          totalAmount={quote.total}
+          totalAmount={getQuotedCost(quote)}
           onStatusChange={(newStatus) => handleStatusUpdate(quote.id, newStatus)}
         />
       ),
@@ -503,10 +381,10 @@ export const QuotesTableView = ({
       align: 'right',
       width: '120px',
       sortable: true,
-      getSortValue: (quote) => getEstimateLineItemCost(quote) || 0,
+      getSortValue: (quote) => getEstimateLineItemCost(quote, estimates) || 0,
       render: (quote) => {
-        const estimateCost = getEstimateLineItemCost(quote);
-        const estimate = getEstimateForQuote(quote);
+        const estimateCost = getEstimateLineItemCost(quote, estimates);
+        const estimate = getEstimateForQuote(quote, estimates);
         
         if (estimateCost === null) {
           return <span className="text-xs text-muted-foreground">N/A</span>;
@@ -535,9 +413,9 @@ export const QuotesTableView = ({
       align: 'right',
       width: '120px',
       sortable: true,
-      getSortValue: (quote) => getEstimateLineItemPrice(quote) || 0,
+      getSortValue: (quote) => getEstimateLineItemPrice(quote, estimates) || 0,
       render: (quote) => {
-        const estimatePrice = getEstimateLineItemPrice(quote);
+        const estimatePrice = getEstimateLineItemPrice(quote, estimates);
         
         if (estimatePrice === null) {
           return <span className="text-xs text-muted-foreground">N/A</span>;
@@ -565,9 +443,9 @@ export const QuotesTableView = ({
       align: 'right',
       width: '110px',
       sortable: true,
-      getSortValue: (quote) => getCostVariance(quote).amount,
+      getSortValue: (quote) => getCostVariance(quote, estimates).amount,
       render: (quote) => {
-        const variance = getCostVariance(quote);
+        const variance = getCostVariance(quote, estimates);
         if (!quote.estimate) return <span className="text-xs text-muted-foreground">-</span>;
         
         return (
@@ -587,9 +465,9 @@ export const QuotesTableView = ({
       align: 'right',
       width: '90px',
       sortable: true,
-      getSortValue: (quote) => getCostVariance(quote).percentage,
+      getSortValue: (quote) => getCostVariance(quote, estimates).percentage,
       render: (quote) => {
-        const variance = getCostVariance(quote);
+        const variance = getCostVariance(quote, estimates);
         if (!quote.estimate) return <span className="text-xs text-muted-foreground">-</span>;
         
         return (

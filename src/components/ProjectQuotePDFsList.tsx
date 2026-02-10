@@ -196,7 +196,7 @@ export function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps) {
                   className: '',
                 }}
                 metrics={[
-                  { label: 'Amount', value: formatCurrency(quote.total_amount) },
+                  { label: 'Vendor Cost', value: formatCurrency(quote.total_amount) },
                   {
                     label: 'Received',
                     value: format(parseISO(quote.date_received), 'MMM d, yyyy'),

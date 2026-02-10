@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatCurrency } from "@/lib/utils";
+import { getEstimateLineItemCost, getQuotedCost } from "@/utils/quoteFinancials";
 
 interface QuotesListProps {
   quotes: Quote[];
@@ -44,112 +45,6 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
-
-  const getEstimateForQuote = (quote: Quote): Estimate | undefined => {
-    // Prioritize exact estimate_id match first
-    if (quote.estimate_id) {
-      const byId = estimates.find(est => est.id === quote.estimate_id);
-      if (byId) return byId;
-    }
-    // Fallback to project match
-    return estimates.find(est => est.project_id === quote.project_id);
-  };
-
-  const getEstimateLineItemCost = (quote: Quote): number | null => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems) {
-      return null;
-    }
-    
-    const estimateLineItems = estimate.lineItems || [];
-    const quoteLineItems = quote.lineItems || [];
-    
-    if (estimateLineItems.length === 0) return null;
-    
-    let totalEstimatedCost = 0;
-    let hasMatch = false;
-    
-    // Match via quote line items' estimate_line_item_id links
-    if (quoteLineItems.length > 0) {
-      quoteLineItems.forEach(qli => {
-        const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
-        if (linkId) {
-          const estimateLineItem = estimateLineItems.find(eli => eli.id === linkId);
-          if (estimateLineItem) {
-            totalEstimatedCost += Number(estimateLineItem.totalCost || 0);
-            hasMatch = true;
-          }
-        }
-      });
-      
-      if (hasMatch) {
-        return totalEstimatedCost;
-      }
-    }
-    
-    // Fallback: quote-level estimate_line_item_id link
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimateLineItems.find(
-        item => item.id === quote.estimate_line_item_id
-      );
-      if (targetLineItem) {
-        return Number(targetLineItem.totalCost || 0);
-      }
-    }
-    
-    return null;
-  };
-
-  const getEstimateLineItemPrice = (quote: Quote): number | null => {
-    const estimate = getEstimateForQuote(quote);
-    if (!estimate || !estimate.lineItems) {
-      return null;
-    }
-    
-    const estimateLineItems = estimate.lineItems || [];
-    const quoteLineItems = quote.lineItems || [];
-    
-    if (estimateLineItems.length === 0) return null;
-    
-    let totalEstimatedPrice = 0;
-    let hasMatch = false;
-    
-    // Match via quote line items' estimate_line_item_id links
-    if (quoteLineItems.length > 0) {
-      quoteLineItems.forEach(qli => {
-        const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
-        if (linkId) {
-          const estimateLineItem = estimateLineItems.find(eli => eli.id === linkId);
-          if (estimateLineItem) {
-            totalEstimatedPrice += Number(estimateLineItem.total || 0);
-            hasMatch = true;
-          }
-        }
-      });
-      
-      if (hasMatch) {
-        return totalEstimatedPrice;
-      }
-    }
-    
-    // Fallback: quote-level estimate_line_item_id link
-    if (quote.estimate_line_item_id) {
-      const targetLineItem = estimateLineItems.find(
-        item => item.id === quote.estimate_line_item_id
-      );
-      if (targetLineItem) {
-        return Number(targetLineItem.total || 0);
-      }
-    }
-    
-    return null;
-  };
-
-  const getQuotedCost = (quote: Quote): number => {
-    return quote.lineItems.reduce((sum, item) => 
-      sum + (item.totalCost || item.quantity * item.costPerUnit), 0
-    );
-  };
 
   const sortedQuotes = [...quotes].sort((a, b) => {
     let comparison = 0;
@@ -321,14 +216,14 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
               {
                 label: "Est. Cost",
                 value: (() => {
-                  const estCost = getEstimateLineItemCost(quote);
+                  const estCost = getEstimateLineItemCost(quote, estimates);
                   return estCost != null && estCost > 0 ? formatCurrency(estCost) : "—";
                 })(),
               },
             ]}
             attention={(() => {
               const quotedCost = getQuotedCost(quote);
-              const estCost = getEstimateLineItemCost(quote);
+              const estCost = getEstimateLineItemCost(quote, estimates);
               if (estCost == null || estCost <= 0 || quotedCost <= 0) return undefined;
               const variance = ((quotedCost - estCost) / estCost) * 100;
               if (variance > 10) {

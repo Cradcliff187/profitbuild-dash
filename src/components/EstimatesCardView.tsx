@@ -54,21 +54,28 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
     setEstimateToDelete(null);
   };
 
+  const getEstimateCost = (estimate: Estimate): number => {
+    return estimate.total_cost ?? estimate.lineItems?.reduce(
+      (s, li) => s + (li.totalCost || 0), 0
+    ) ?? 0;
+  };
+
   const getQuoteStatus = (estimate: Estimate & { quotes?: Array<{ id: string; total_amount: number }> }): BudgetComparisonStatus => {
     if (!estimate.quotes || estimate.quotes.length === 0) {
       return 'awaiting-quotes';
     }
-    
-    const hasUnderBudgetQuote = estimate.quotes.some(q => q.total_amount < estimate.total_amount);
+
+    const estimateCost = getEstimateCost(estimate);
+    const hasUnderBudgetQuote = estimate.quotes.some(q => q.total_amount < estimateCost);
     if (hasUnderBudgetQuote) {
       return 'under-budget';
     }
-    
-    const allQuotesOverBudget = estimate.quotes.every(q => q.total_amount > estimate.total_amount);
+
+    const allQuotesOverBudget = estimate.quotes.every(q => q.total_amount > estimateCost);
     if (allQuotesOverBudget) {
       return 'over-budget';
     }
-    
+
     return 'awaiting-quotes';
   };
 
@@ -76,14 +83,15 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
     if (!estimate.quotes || estimate.quotes.length === 0) {
       return null;
     }
-    
-    const bestQuote = estimate.quotes.reduce((best, current) => 
+
+    const bestQuote = estimate.quotes.reduce((best, current) =>
       current.total_amount < best.total_amount ? current : best
     );
-    
-    const variance = bestQuote.total_amount - estimate.total_amount;
-    const percentage = (variance / estimate.total_amount) * 100;
-    
+
+    const estimateCost = getEstimateCost(estimate);
+    const variance = bestQuote.total_amount - estimateCost;
+    const percentage = estimateCost > 0 ? (variance / estimateCost) * 100 : 0;
+
     return { variance, percentage };
   };
 
@@ -283,7 +291,7 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
                     {(quoteStatus !== 'awaiting-quotes') && (
                       <div className="pt-2 border-t border-primary/20">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-foreground">Budget vs Actual:</span>
+                          <span className="text-xs font-medium text-foreground">Quote vs Est. Cost:</span>
                           <div className="flex items-center gap-1">
                             <BudgetComparisonBadge status={quoteStatus} />
                             {bestQuoteVariance && (
