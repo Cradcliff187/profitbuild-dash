@@ -149,6 +149,7 @@ const Projects = () => {
           // From reporting.project_financials (via get_profit_analysis_data) for complete/cancelled display
           total_invoiced: financials.total_invoiced,
           total_expenses: financials.total_expenses,
+          actualExpenses: financials.total_expenses,
           // Map database fields to ProjectWithFinancials interface
           originalContractAmount,
           changeOrderRevenue,

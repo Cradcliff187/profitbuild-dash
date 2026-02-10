@@ -411,11 +411,11 @@ export function ProjectOperationalDashboard({
       
       if (contractValue > 0 || adjustedEstCosts > 0) {
         return {
-          label1: 'Contract Value',
+          label1: 'Estimate Value',
           value1: contractValue || estimateValue,
-          label2: 'Adj. Est. Costs',
+          label2: 'Estimated Costs',
           value2: adjustedEstCosts || estimatedCosts,
-          marginLabel: 'Adj. Est. Margin',
+          marginLabel: 'Est. Margin',
           marginValue: adjustedMargin || estimatedMargin,
           marginPct: adjustedMarginPct || estimatedMarginPct,
           showBudgetStatus: false,
@@ -568,7 +568,7 @@ export function ProjectOperationalDashboard({
       )}
 
       {/* Contract Narrative */}
-      {contractNarrative.showNarrative && (
+      {contractNarrative.showNarrative && project.status !== 'estimating' && (
         <Card className="p-3">
           <div className="flex items-center gap-2 mb-2">
             <FileSignature className="h-4 w-4 text-muted-foreground" />
@@ -623,12 +623,14 @@ export function ProjectOperationalDashboard({
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">
-                {project.status !== 'estimating' ? 'Original Margin' : 'Target Margin'}
+                {project.status !== 'estimating' ? 'Original Margin' : 'Est. Margin %'}
               </div>
               <div className="text-base sm:text-xl font-bold text-foreground">
                 {project.status !== 'estimating'
                   ? formatCurrency(project.original_margin ?? 0)
-                  : '20%'}
+                  : financialDisplay.marginPct
+                    ? `${financialDisplay.marginPct.toFixed(1)}%`
+                    : '—'}
               </div>
               {project.status !== 'estimating' && originalMarginPercent != null && (
                 <div className="text-xs text-muted-foreground">
