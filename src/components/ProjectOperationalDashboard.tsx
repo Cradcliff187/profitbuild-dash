@@ -321,7 +321,7 @@ export function ProjectOperationalDashboard({
       if (dataFreshness.lastExpenseDays !== null && dataFreshness.lastExpenseDays > 14) {
         items.push({
           type: 'stale_expenses',
-          label: `No expenses logged in ${dataFreshness.lastExpenseDays} days`,
+          label: `No material/sub expenses in ${dataFreshness.lastExpenseDays} days`,
           count: 1,
           color: 'orange',
           icon: Clock,
@@ -331,7 +331,7 @@ export function ProjectOperationalDashboard({
       if (dataFreshness.lastTimeDays !== null && dataFreshness.lastTimeDays > 7) {
         items.push({
           type: 'stale_time',
-          label: `No time logged in ${dataFreshness.lastTimeDays} days`,
+          label: `No time entries in ${dataFreshness.lastTimeDays} days`,
           count: 1,
           color: 'orange',
           icon: Clock,
