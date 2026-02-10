@@ -1,0 +1,2 @@
+-- Applied via Supabase MCP. Adds gross_hours column to expenses.
+-- This migration was applied directly to the database; placeholder kept for CI/CD alignment.
