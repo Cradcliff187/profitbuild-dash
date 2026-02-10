@@ -101,16 +101,17 @@ const Projects = () => {
       
       // Load all related data (exclude unassigned project and work orders)
       // Include reporting financials (total_invoiced, total_expenses) for complete/cancelled display
-      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes, financialsRes] = await Promise.all([
+      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes, financialsRes, coLineItemsRes] = await Promise.all([
         supabase.from('projects').select('*').eq('category', 'construction').or('project_type.eq.construction_project,project_type.is.null').order('created_at', { ascending: false }),
-        supabase.from('estimates').select('*'),
+        supabase.from('estimates').select('*, estimate_line_items(id, category)'),
         supabase.from('quotes').select('*'),
         supabase.from('expenses').select(`
           *,
           projects (project_number)
         `),
         supabase.from('change_orders').select('project_id, client_amount, cost_impact, status').eq('status', 'approved'),
-        supabase.rpc('get_profit_analysis_data', { status_filter: ['estimating', 'approved', 'in_progress', 'complete', 'on_hold', 'cancelled'] })
+        supabase.rpc('get_profit_analysis_data', { status_filter: ['estimating', 'approved', 'in_progress', 'complete', 'on_hold', 'cancelled'] }),
+        supabase.from('change_order_line_items').select('id, category, change_orders!inner(project_id, status)').eq('change_orders.status', 'approved')
       ]);
 
       if (projectsRes.error) throw projectsRes.error;
@@ -185,7 +186,10 @@ const Projects = () => {
         updated_at: new Date(estimate.updated_at),
         project_name: formattedProjects.find(p => p.id === estimate.project_id)?.project_name,
         client_name: formattedProjects.find(p => p.id === estimate.project_id)?.client_name,
-        lineItems: [], // Add empty array for required property
+        lineItems: (estimate.estimate_line_items || []).map((item: any) => ({
+          id: item.id,
+          category: item.category,
+        })),
         defaultMarkupPercent: 25,
         targetMarginPercent: 20
       })) || [];
@@ -251,15 +255,32 @@ const Projects = () => {
 
       // Projects already have financial fields from database triggers.
       // Add display-only enrichment (e.g. line item counts).
+      const changeOrderLineItems = coLineItemsRes.data || [];
+
       const enrichedProjects = formattedProjects.map((project: any) => {
         const projectEstimates = formattedEstimates.filter((e: any) => e.project_id === project.id);
         const approvedEstimate = projectEstimates.find((e: any) =>
           e.status === 'approved' && e.is_current_version
         ) ?? projectEstimates.find((e: any) => e.status === 'approved');
-        return {
-          ...project,
-          totalLineItemCount: (approvedEstimate?.lineItems?.length ?? 0),
-        };
+
+        const totalLineItemCount = (() => {
+          // Non-labor estimate line items
+          const estimateSource = approvedEstimate
+            || projectEstimates.find((e: any) => e.is_current_version);
+          const estCount = (estimateSource?.lineItems || [])
+            .filter((li: any) => li.category !== 'labor_internal').length;
+
+          // Approved change order line items for this project
+          const coCount = changeOrderLineItems
+            .filter((cli: any) => {
+              const co = Array.isArray(cli.change_orders) ? cli.change_orders[0] : cli.change_orders;
+              return co?.project_id === project.id;
+            }).length;
+
+          return estCount + coCount;
+        })();
+
+        return { ...project, totalLineItemCount };
       });
 
       setProjects(enrichedProjects as ProjectWithFinancials[]);

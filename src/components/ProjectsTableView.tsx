@@ -1180,7 +1180,7 @@ export const ProjectsTableView = ({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Total line items (estimate + approved change orders)</p>
+                <p>Non-labor line items from estimate + approved change order line items</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
