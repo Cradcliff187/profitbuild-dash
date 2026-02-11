@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign, RefreshCw, History } from "lucide-react";
+import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign, RefreshCw, History, Zap } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ import { RevenuesList } from "@/components/RevenuesList";
 import { QuickBooksSyncModal } from "@/components/QuickBooksSyncModal";
 import { QuickBooksSyncHistory } from "@/components/QuickBooksSyncHistory";
 import { ImportHistory } from "@/components/ImportHistory";
+import { BulkExpenseAllocationSheet } from "@/components/BulkExpenseAllocationSheet";
 import { Expense, ExpenseCategory } from "@/types/expense";
 import { ProjectRevenue } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +63,7 @@ const Expenses = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showQuickBooksSync, setShowQuickBooksSync] = useState(false);
   const [showSyncHistory, setShowSyncHistory] = useState(false);
+  const [showBulkAllocate, setShowBulkAllocate] = useState(false);
   const expensesListRef = useRef<ExpensesListRef>(null);
   const { isEnabled: isQuickBooksSyncEnabled, config: qbSyncConfig } = useQuickBooksSync();
 
@@ -472,6 +474,12 @@ const Expenses = () => {
                 <Clock className="h-4 w-4 mr-2" />
                 Timesheet
               </Button>
+              {viewMode === "list" && (
+                <Button variant="outline" onClick={() => setShowBulkAllocate(true)} size="sm">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Bulk Allocate
+                </Button>
+              )}
             </div>
             {!isMobile && (
               <Button 
@@ -605,6 +613,12 @@ const Expenses = () => {
       <QuickBooksSyncHistory
         open={showSyncHistory}
         onClose={() => setShowSyncHistory(false)}
+      />
+
+      <BulkExpenseAllocationSheet
+        open={showBulkAllocate}
+        onOpenChange={setShowBulkAllocate}
+        onSuccess={fetchData}
       />
 
       {/* Mobile FAB */}
