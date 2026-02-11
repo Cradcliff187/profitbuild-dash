@@ -291,7 +291,7 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
         changeOrderCosts,
         total_invoiced: projectFinancials?.total_invoiced ?? 0,
         total_expenses: projectFinancials?.total_expenses ?? 0,
-      } as ProjectWithFinancials;
+      } as unknown as ProjectWithFinancials;
 
       // Guard: if projectId changed while we were fetching, discard stale results
       if (projectId !== currentProjectIdRef.current) return;
