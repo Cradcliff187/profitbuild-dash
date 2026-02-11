@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,12 @@ import {
   CheckCircle,
   Download,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  FileText,
+  ClipboardList,
+  AlertCircle,
+  Layers,
+  type LucideIcon
 } from 'lucide-react';
 import { useLineItemControl, LineItemControlData, QuoteData } from '@/hooks/useLineItemControl';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
@@ -23,16 +28,79 @@ import { Project } from '@/types/project';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LineItemControlCardView } from '@/components/LineItemControlCardView';
 import { getFinancialHealth, getFinancialHealthColor, getCostVarianceColor } from '@/utils/financialColors';
+import { ColumnSelector } from '@/components/ui/column-selector';
 
 interface LineItemControlDashboardProps {
   projectId: string;
   project: Project;
 }
 
+const columnDefinitions = [
+  { key: 'category', label: 'Category', required: true },
+  { key: 'estimatedPrice', label: 'Est. Price', required: false },
+  { key: 'estimatedCost', label: 'Est. Cost', required: false },
+  { key: 'quotedCost', label: 'Quoted Cost', required: false },
+  { key: 'actualAmount', label: 'Actual', required: true },
+  { key: 'expenseCount', label: '# Expenses', required: false },
+  { key: 'costVariance', label: 'Est vs Quote', required: false },
+  { key: 'quoteStatus', label: 'Quote Status', required: false },
+  { key: 'payeeName', label: 'Payee Name', required: false },
+  { key: 'allocationStatus', label: 'Expense Allocation', required: true },
+  { key: 'completion', label: 'Progress', required: false },
+  { key: 'costFlow', label: 'Cost Flow', required: false },
+];
+
+const DEFAULT_VISIBLE_COLUMNS = [
+  'category', 'costFlow', 'actualAmount',
+  'quoteStatus', 'allocationStatus', 'completion',
+];
+
 export function LineItemControlDashboard({ projectId, project }: LineItemControlDashboardProps) {
   const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId, project);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
   const isMobile = useIsMobile();
+
+  // Column visibility state with localStorage persistence
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('cost-tracking-visible-columns');
+    if (saved) {
+      const savedVisible = JSON.parse(saved) as string[];
+      let validVisible = savedVisible.filter((key: string) =>
+        columnDefinitions.some(col => col.key === key)
+      );
+      // Ensure required columns are included
+      const requiredKeys = columnDefinitions.filter(c => c.required).map(c => c.key);
+      for (const key of requiredKeys) {
+        if (!validVisible.includes(key)) validVisible.push(key);
+      }
+      return validVisible;
+    }
+    return DEFAULT_VISIBLE_COLUMNS;
+  });
+
+  // Column order state with localStorage persistence
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('cost-tracking-column-order');
+    if (saved) {
+      const savedOrder = JSON.parse(saved) as string[];
+      let validOrder = savedOrder.filter((key: string) =>
+        columnDefinitions.some(col => col.key === key)
+      );
+      const newColumns = columnDefinitions
+        .map(col => col.key)
+        .filter(key => !validOrder.includes(key));
+      return [...validOrder, ...newColumns];
+    }
+    return columnDefinitions.map(col => col.key);
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cost-tracking-visible-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('cost-tracking-column-order', JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
 
   const getQuoteStatusBadge = (status: LineItemControlData['quoteStatus']) => {
@@ -53,48 +121,86 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   };
 
   const exportToCsv = () => {
+    // Build CSV columns based on visible columns + always include Description
+    const csvColumnMap: Record<string, { header: string; getValue: (item: LineItemControlData) => string }> = {
+      category: {
+        header: 'Category',
+        getValue: (item) => CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category,
+      },
+      estimatedPrice: {
+        header: 'Est. Price',
+        getValue: (item) => String(item.estimatedPrice),
+      },
+      estimatedCost: {
+        header: 'Est. Cost',
+        getValue: (item) => String(item.estimatedCost),
+      },
+      quotedCost: {
+        header: 'Quoted Cost',
+        getValue: (item) => String(item.quotedCost),
+      },
+      actualAmount: {
+        header: 'Actual',
+        getValue: (item) => String(item.actualAmount),
+      },
+      expenseCount: {
+        header: '# Expenses',
+        getValue: (item) => String(item.correlatedExpenses.length),
+      },
+      costVariance: {
+        header: 'Est vs Quote',
+        getValue: (item) => String(item.costVariance),
+      },
+      quoteStatus: {
+        header: 'Quote Status',
+        getValue: (item) => item.quoteStatus,
+      },
+      payeeName: {
+        header: 'Payee Name',
+        getValue: (item) => {
+          const acceptedQuotes = item.quotes.filter(q => q.status === 'accepted');
+          const payeeNames = acceptedQuotes.map(q => q.quotedBy).join('; ');
+          return item.quoteStatus === 'internal' ? 'Internal' : payeeNames || '—';
+        },
+      },
+      allocationStatus: {
+        header: 'Allocation Status',
+        getValue: (item) => item.allocationStatus,
+      },
+      completion: {
+        header: 'Progress %',
+        getValue: (item) => {
+          const baseline = item.quotedCost > 0 ? item.quotedCost : item.estimatedCost;
+          return item.actualAmount > 0 && baseline > 0
+            ? `${Math.min(Math.round((item.actualAmount / baseline) * 100), 100)}%`
+            : '0%';
+        },
+      },
+      costFlow: {
+        header: 'Cost Flow (Est/Committed/Spent)',
+        getValue: (item) => `${item.estimatedCost}/${item.quotedCost}/${item.actualAmount}`,
+      },
+    };
+
+    // Always include Description as the second column
+    const activeCols = columnOrder.filter(key => visibleColumns.includes(key));
     const headers = [
-      'Category',
-      'Description', 
-      'Est. Price',
-      'Est. Cost',
-      'Quoted Cost',
-      'Payee Name',
-      'Allocated Expenses',
-      'Remaining to Allocate',
-      'Allocation Status',
-      'Actual',
-      'Expense Count',
-      'Est vs Quote',
-      'Est vs Quote %',
-      'Quote Status'
+      csvColumnMap[activeCols[0]]?.header || 'Category',
+      'Description',
+      ...activeCols.slice(1).map(key => csvColumnMap[key]?.header || key),
     ];
 
     const csvContent = [
       headers.join(','),
       ...lineItems.map(item => {
-        const acceptedQuotes = item.quotes.filter(q => q.status === 'accepted');
-        const payeeNames = acceptedQuotes.map(q => q.quotedBy).join('; ');
-        const payeeNameValue = item.quoteStatus === 'internal' 
-          ? 'Internal' 
-          : payeeNames || '—';
-        
-        return [
-          CATEGORY_DISPLAY_MAP[item.category as keyof typeof CATEGORY_DISPLAY_MAP] || item.category,
-          `"${item.description}"`,
-          item.estimatedPrice,
-          item.estimatedCost,
-          item.quotedCost,
-          `"${payeeNameValue}"`,
-          item.allocatedAmount,
-          item.remainingToAllocate,
-          item.allocationStatus,
-          item.actualAmount,
-          item.correlatedExpenses.length,
-          item.costVariance,
-          item.costVariancePercent.toFixed(1) + '%',
-          item.quoteStatus
-        ].join(',');
+        const firstCol = csvColumnMap[activeCols[0]]?.getValue(item) || '';
+        const restCols = activeCols.slice(1).map(key => {
+          const col = csvColumnMap[key];
+          if (!col) return '';
+          const val = col.getValue(item);
+          return val.includes(',') ? `"${val}"` : val;
+        });
+        return [firstCol, `"${item.description}"`, ...restCols].join(',');
       })
     ].join('\n');
 
@@ -428,45 +534,50 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
       label: 'Expense Allocation',
       align: 'center',
       render: (item) => {
-        const getAllocationBadge = (status: LineItemControlData['allocationStatus'], remaining: number) => {
-          const configs = {
-            full: {
-              variant: 'default' as const,
+        const getAllocationBadge = (status: LineItemControlData['allocationStatus'], remaining: number, quotedCost: number) => {
+          if (status === 'full') {
+            return {
+              className: 'bg-success/15 text-success border-success/30',
               label: 'Fully Allocated',
               icon: <CheckCircle className="h-3 w-3" />,
-            },
-            partial: {
-              variant: 'secondary' as const,
+            };
+          }
+          if (status === 'partial') {
+            return {
+              className: 'bg-warning/15 text-warning-foreground border-warning/30',
               label: `${formatCurrency(remaining)} Remaining`,
               icon: <AlertTriangle className="h-3 w-3" />,
-            },
-            none: {
-              variant: 'destructive' as const,
+            };
+          }
+          if (status === 'none' && quotedCost > 0) {
+            return {
+              className: 'bg-destructive/15 text-destructive border-destructive/30',
               label: 'No Expenses',
               icon: <AlertTriangle className="h-3 w-3" />,
-            },
-            internal: {
-              variant: 'outline' as const,
-              label: 'Internal',
-              icon: null,
-            },
-            not_quoted: {
-              variant: 'outline' as const,
+            };
+          }
+          if (status === 'none') {
+            return {
+              className: 'text-muted-foreground border-border',
               label: 'Not Quoted',
               icon: null,
-            }
+            };
+          }
+          // internal, not_quoted
+          return {
+            className: 'text-muted-foreground border-border',
+            label: status === 'internal' ? 'Internal' : 'Not Quoted',
+            icon: null,
           };
-          
-          return configs[status];
         };
-        
-        const config = getAllocationBadge(item.allocationStatus, item.remainingToAllocate);
-        
+
+        const config = getAllocationBadge(item.allocationStatus, item.remainingToAllocate, item.quotedCost);
+
         return (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="cursor-help">
-                <Badge variant={config.variant} className="flex items-center gap-1 justify-center text-[10px] px-1.5 py-0 h-4 leading-none font-medium">
+                <Badge variant="outline" className={cn("compact-badge flex items-center gap-1 justify-center text-[10px] px-1.5 py-0 h-4 leading-none font-medium", config.className)}>
                   {config.icon}
                   {config.label}
                 </Badge>
@@ -495,7 +606,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                         <span>Remaining:</span>
                         <span className={cn(
                           "font-semibold",
-                          item.remainingToAllocate > 0 ? "text-yellow-600" : "text-green-600"
+                          item.remainingToAllocate > 0 ? "text-warning-foreground" : "text-success"
                         )}>
                           {formatCurrency(item.remainingToAllocate)}
                         </span>
@@ -509,13 +620,13 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                     )}
                     
                     {item.allocationStatus === 'partial' && (
-                      <p className="text-xs text-yellow-700 mt-2">
+                      <p className="text-xs text-warning-foreground mt-2">
                         ⚠️ Still missing {formatCurrency(item.remainingToAllocate)} in expense receipts
                       </p>
                     )}
                     
                     {item.allocationStatus === 'full' && (
-                      <p className="text-xs text-green-700 mt-2">
+                      <p className="text-xs text-success mt-2">
                         ✅ All quoted costs have matching expense allocations
                       </p>
                     )}
@@ -592,7 +703,303 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         );
       },
     },
+    {
+      key: 'costFlow',
+      label: 'Cost Flow',
+      align: 'left' as const,
+      sortable: false,
+      render: (item) => {
+        if (['labor_internal', 'management'].includes(item.category)) {
+          return <span className="text-xs text-muted-foreground italic">Internal</span>;
+        }
+
+        const estimated = item.estimatedCost;
+        const committed = item.quotedCost;
+        const spent = item.actualAmount;
+
+        const getDirection = (from: number, to: number, hasTo: boolean) => {
+          if (!hasTo || to === 0) return 'none';
+          if (to > from) return 'up';
+          if (to < from) return 'down';
+          return 'flat';
+        };
+
+        const estToCommitted = getDirection(estimated, committed, committed > 0);
+        const committedToSpent = getDirection(committed, spent, committed > 0 && spent > 0);
+
+        const getStepColor = (direction: string) => {
+          if (direction === 'up') return 'text-destructive';
+          if (direction === 'down') return 'text-success';
+          return 'text-muted-foreground';
+        };
+
+        const getArrow = (direction: string) => {
+          if (direction === 'up') return '\u2191';
+          if (direction === 'down') return '\u2193';
+          if (direction === 'flat') return '\u2192';
+          return '\u00b7';
+        };
+
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 text-xs tabular-nums cursor-help">
+                <span className="text-muted-foreground">{formatCurrency(estimated)}</span>
+                <span className={cn("text-[10px] font-bold", getStepColor(estToCommitted))}>
+                  {getArrow(estToCommitted)}
+                </span>
+                <span className={cn(
+                  "font-medium",
+                  committed > 0 ? getStepColor(estToCommitted) : "text-muted-foreground/50"
+                )}>
+                  {committed > 0 ? formatCurrency(committed) : '\u2014'}
+                </span>
+                <span className={cn("text-[10px] font-bold", getStepColor(committedToSpent))}>
+                  {getArrow(committedToSpent)}
+                </span>
+                <span className={cn(
+                  "font-medium",
+                  spent > 0 ? getStepColor(committedToSpent) : "text-muted-foreground/50"
+                )}>
+                  {spent > 0 ? formatCurrency(spent) : '\u2014'}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="space-y-1.5 max-w-xs">
+                <p className="font-semibold">Cost Pipeline</p>
+                <div className="text-xs space-y-1">
+                  <div className="flex justify-between gap-4">
+                    <span>Estimated Cost:</span>
+                    <span className="font-medium tabular-nums">{formatCurrency(estimated)}</span>
+                  </div>
+                  {committed > 0 && (
+                    <>
+                      <div className="flex justify-between gap-4">
+                        <span>Committed (Quote):</span>
+                        <span className="font-medium tabular-nums">{formatCurrency(committed)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-muted-foreground">
+                        <span>Quote Variance:</span>
+                        <span className={cn(
+                          "font-medium tabular-nums",
+                          committed > estimated ? "text-destructive" : "text-success"
+                        )}>
+                          {committed > estimated ? '+' : ''}{formatCurrency(committed - estimated)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {spent > 0 && (
+                    <>
+                      <div className="flex justify-between gap-4 border-t pt-1">
+                        <span>Actual Spent:</span>
+                        <span className="font-medium tabular-nums">{formatCurrency(spent)}</span>
+                      </div>
+                      {committed > 0 && (
+                        <div className="flex justify-between gap-4 text-muted-foreground">
+                          <span>Invoice vs Quote:</span>
+                          <span className={cn(
+                            "font-medium tabular-nums",
+                            spent > committed ? "text-destructive" : "text-success"
+                          )}>
+                            {spent > committed ? '+' : ''}{formatCurrency(spent - committed)}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {committed === 0 && spent === 0 && (
+                    <p className="text-muted-foreground italic">No quotes or expenses yet</p>
+                  )}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
   ];
+
+  // Filter and order columns based on user preferences
+  const filteredColumns = useMemo(() => {
+    return columnOrder
+      .filter(key => visibleColumns.includes(key))
+      .map(key => columns.find(col => col.key === key))
+      .filter(Boolean) as FinancialTableColumn<LineItemControlData>[];
+  }, [columns, visibleColumns, columnOrder]);
+
+  // Helper: check if a category is internal (labor/management)
+  const isInternalItem = (item: LineItemControlData) =>
+    ['labor_internal', 'management'].includes(item.category);
+
+  // Attention items for the summary banner
+  const attentionItems = useMemo(() => {
+    const items: Array<{
+      type: string;
+      label: string;
+      detail: string;
+      severity: 'critical' | 'warning' | 'info';
+      icon: LucideIcon;
+    }> = [];
+
+    // 1. Items significantly over budget (actual > baseline by >10%)
+    const overBudgetItems = lineItems.filter(item => {
+      if (isInternalItem(item)) return false;
+      const baseline = item.quotedCost > 0 ? item.quotedCost : item.estimatedCost;
+      return baseline > 0 && item.actualAmount > baseline * 1.10;
+    });
+    if (overBudgetItems.length > 0) {
+      const worstItem = overBudgetItems.reduce((worst, item) => {
+        const baseline = item.quotedCost > 0 ? item.quotedCost : item.estimatedCost;
+        const pct = ((item.actualAmount - baseline) / baseline) * 100;
+        const worstBaseline = worst.quotedCost > 0 ? worst.quotedCost : worst.estimatedCost;
+        const worstPct = ((worst.actualAmount - worstBaseline) / worstBaseline) * 100;
+        return pct > worstPct ? item : worst;
+      });
+      const worstBaseline = worstItem.quotedCost > 0 ? worstItem.quotedCost : worstItem.estimatedCost;
+      const worstPct = Math.round(((worstItem.actualAmount - worstBaseline) / worstBaseline) * 100);
+      items.push({
+        type: 'over_budget',
+        label: `${overBudgetItems.length} item${overBudgetItems.length > 1 ? 's' : ''} over budget`,
+        detail: `Worst: ${worstItem.description.substring(0, 30)} at ${worstPct}% over`,
+        severity: 'critical',
+        icon: AlertTriangle,
+      });
+    }
+
+    // 2. Quoted items with zero expenses
+    const quotedNoExpenses = lineItems.filter(item =>
+      !isInternalItem(item) &&
+      item.quotedCost > 0 &&
+      item.allocatedAmount === 0 &&
+      item.actualAmount === 0
+    );
+    if (quotedNoExpenses.length > 0) {
+      items.push({
+        type: 'no_invoices',
+        label: `${quotedNoExpenses.length} quoted item${quotedNoExpenses.length > 1 ? 's' : ''} awaiting invoices`,
+        detail: `${formatCurrency(quotedNoExpenses.reduce((s, i) => s + i.quotedCost, 0))} committed but no expenses recorded`,
+        severity: 'warning',
+        icon: FileText,
+      });
+    }
+
+    // 3. Unquoted external items
+    const unquotedExternal = lineItems.filter(item =>
+      !isInternalItem(item) &&
+      item.quotedCost === 0 &&
+      item.quoteStatus === 'none'
+    );
+    if (unquotedExternal.length > 0) {
+      items.push({
+        type: 'needs_quotes',
+        label: `${unquotedExternal.length} item${unquotedExternal.length > 1 ? 's' : ''} need quotes`,
+        detail: `${formatCurrency(unquotedExternal.reduce((s, i) => s + i.estimatedCost, 0))} in estimated costs without vendor pricing`,
+        severity: 'warning',
+        icon: ClipboardList,
+      });
+    }
+
+    // 4. Unallocated expenses
+    if (summary.totalUnallocated > 0) {
+      items.push({
+        type: 'unallocated',
+        label: `${formatCurrency(summary.totalUnallocated)} in unallocated expenses`,
+        detail: 'Expenses recorded but not matched to line items',
+        severity: 'info',
+        icon: AlertCircle,
+      });
+    }
+
+    return items;
+  }, [lineItems, summary]);
+
+  // Risk score for sorting — display-layer only
+  const getRiskScore = (item: LineItemControlData): number => {
+    let score = 0;
+    const baseline = item.quotedCost > 0 ? item.quotedCost : item.estimatedCost;
+
+    // Over budget (highest risk)
+    if (!isInternalItem(item) && baseline > 0 && item.actualAmount > baseline) {
+      const overPct = ((item.actualAmount - baseline) / baseline) * 100;
+      score += 100 + overPct;
+    }
+
+    // Quoted but no expenses (vendor committed, no invoices)
+    if (!isInternalItem(item) && item.quotedCost > 0 && item.actualAmount === 0) {
+      score += 50;
+    }
+
+    // Unquoted external items
+    if (!isInternalItem(item) && item.quotedCost === 0 && item.quoteStatus === 'none') {
+      score += 30;
+    }
+
+    // Partial allocation
+    if (item.allocationStatus === 'partial') {
+      score += 20;
+    }
+
+    // Internal items are lowest priority in risk view
+    if (isInternalItem(item)) {
+      score -= 10;
+    }
+
+    return score;
+  };
+
+  const [sortMode, setSortMode] = useState<'risk' | 'category' | 'custom'>('risk');
+
+  const sortedLineItems = useMemo(() => {
+    if (sortMode === 'risk') {
+      return [...lineItems].sort((a, b) => getRiskScore(b) - getRiskScore(a));
+    }
+    if (sortMode === 'category') {
+      return [...lineItems].sort((a, b) => a.category.localeCompare(b.category));
+    }
+    return lineItems; // 'custom' = FinancialTableTemplate handles it
+  }, [lineItems, sortMode]);
+
+  // Group line items into External and Internal sections
+  const useGrouping = sortMode === 'risk' || sortMode === 'category';
+
+  const groupedLineItems = useMemo(() => {
+    if (!useGrouping) return [];
+
+    const external = sortedLineItems.filter(item => !isInternalItem(item));
+    const internal = sortedLineItems.filter(item => isInternalItem(item));
+
+    const groups: Array<{
+      groupKey: string;
+      groupLabel: string;
+      items: LineItemControlData[];
+      isCollapsible: boolean;
+      defaultExpanded: boolean;
+    }> = [];
+
+    if (external.length > 0) {
+      groups.push({
+        groupKey: 'external',
+        groupLabel: `Vendor & Subcontractor (${external.length})`,
+        items: external,
+        isCollapsible: true,
+        defaultExpanded: true,
+      });
+    }
+
+    if (internal.length > 0) {
+      groups.push({
+        groupKey: 'internal',
+        groupLabel: `Internal Labor & Management (${internal.length})`,
+        items: internal,
+        isCollapsible: true,
+        defaultExpanded: true,
+      });
+    }
+
+    return groups;
+  }, [sortedLineItems, useGrouping]);
 
   if (isLoading) {
     return (
@@ -703,6 +1110,31 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
                     )}
                   </div>
                 )}
+                {/* Needs Attention section */}
+                {attentionItems.length > 0 && (
+                  <div className="pt-2 mt-2 border-t space-y-1">
+                    {attentionItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div
+                          key={item.type}
+                          className={cn(
+                            "flex items-start gap-2 p-1.5 rounded text-xs",
+                            item.severity === 'critical' && "bg-destructive/10 text-destructive",
+                            item.severity === 'warning' && "bg-warning/10 text-warning-foreground",
+                            item.severity === 'info' && "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          <Icon className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-medium">{item.label}</span>
+                            <span className="text-muted-foreground ml-1">{'\u2014'} {item.detail}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -711,32 +1143,134 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
 
         {/* Main Table/Cards */}
         <div className="flex items-center justify-between mb-3 md:mb-4">
-          <h2 className="text-base md:text-lg font-semibold">Cost Tracking ({lineItems.length})</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={exportToCsv} 
-            className="h-9 md:h-8 mobile-touch-target hidden md:flex"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold">Cost Tracking ({lineItems.length})</h2>
+            <div className="hidden md:flex items-center gap-1">
+              <Button
+                variant={sortMode === 'risk' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setSortMode('risk')}
+                className="h-7 text-xs"
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                By Risk
+              </Button>
+              <Button
+                variant={sortMode === 'category' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setSortMode('category')}
+                className="h-7 text-xs"
+              >
+                <Layers className="h-3 w-3 mr-1" />
+                By Category
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ColumnSelector
+              columns={columnDefinitions}
+              visibleColumns={visibleColumns}
+              onVisibleColumnsChange={setVisibleColumns}
+              columnOrder={columnOrder}
+              onColumnOrderChange={setColumnOrder}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToCsv}
+              className="h-9 md:h-8 mobile-touch-target hidden md:flex"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {isMobile ? (
-          <LineItemControlCardView 
-            lineItems={lineItems} 
-            onViewDetails={handleViewDetails} 
+          <LineItemControlCardView
+            lineItems={sortedLineItems}
+            onViewDetails={handleViewDetails}
           />
         ) : (
           <FinancialTableTemplate
-            data={lineItems}
-            columns={columns}
+            data={useGrouping ? groupedLineItems : sortedLineItems}
+            columns={filteredColumns}
+            isGrouped={useGrouping}
             emptyMessage="No line items found for this project"
             emptyIcon={<AlertTriangle className="h-8 w-8" />}
             showActions={true}
             onView={handleViewDetails}
             getItemId={(item) => item.id}
+            expandable={true}
+            renderExpandedContent={(item) => (
+              <>
+                {/* Accepted Quote */}
+                {item.quotes.filter(q => q.status === 'accepted').length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      Accepted Quote
+                    </h4>
+                    {item.quotes.filter(q => q.status === 'accepted').map(q => (
+                      <div key={q.id} className="flex items-center justify-between text-xs bg-card p-2 rounded border">
+                        <span>{q.quotedBy} <span className="text-muted-foreground">#{q.quoteNumber}</span></span>
+                        <span className="font-medium tabular-nums">{formatCurrency(q.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Allocated Expenses */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    Allocated Expenses ({item.correlatedExpenses.length})
+                  </h4>
+                  {item.correlatedExpenses.length > 0 ? (
+                    <div className="space-y-1">
+                      {item.correlatedExpenses.map((exp: any, idx: number) => (
+                        <div key={exp.id || idx} className="flex items-center justify-between text-xs bg-card p-2 rounded border">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">
+                              {exp.expense_date ? format(new Date(exp.expense_date), 'MMM d, yyyy') : '\u2014'}
+                            </span>
+                            <span>{exp.payees?.payee_name || exp.payee_name || 'Unknown'}</span>
+                          </div>
+                          <span className="font-medium tabular-nums">
+                            {formatCurrency(exp.amount || exp.split_amount || 0)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No expenses allocated yet</p>
+                  )}
+                </div>
+
+                {/* Variance Summary */}
+                <div className="flex gap-4 text-xs pt-2 border-t">
+                  <div>
+                    <span className="text-muted-foreground">Est. Cost: </span>
+                    <span className="font-medium tabular-nums">{formatCurrency(item.estimatedCost)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Quoted: </span>
+                    <span className="font-medium tabular-nums">{formatCurrency(item.quotedCost)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Allocated: </span>
+                    <span className="font-medium tabular-nums">{formatCurrency(item.allocatedAmount)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Remaining: </span>
+                    <span className={cn(
+                      "font-medium tabular-nums",
+                      item.remainingToAllocate > 0 ? "text-warning-foreground" : "text-success"
+                    )}>
+                      {formatCurrency(item.remainingToAllocate)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           />
         )}
 

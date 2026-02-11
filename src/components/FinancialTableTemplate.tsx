@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown, Eye, Edit, Trash2, ChevronsUpDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronRight, Eye, Edit, Trash2, ChevronsUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,8 @@ interface FinancialTableTemplateProps<T> {
   collapseAllButton?: React.ReactNode;
   collapsedGroups?: Set<string>;
   onCollapsedGroupsChange?: (groups: Set<string>) => void;
+  expandable?: boolean;
+  renderExpandedContent?: (item: T) => React.ReactNode;
 }
 
 export function FinancialTableTemplate<T>({
@@ -62,12 +64,24 @@ export function FinancialTableTemplate<T>({
   collapseAllButton,
   collapsedGroups: externalCollapsedGroups,
   onCollapsedGroupsChange,
+  expandable = false,
+  renderExpandedContent,
 }: FinancialTableTemplateProps<T>) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [internalCollapsedGroups, setInternalCollapsedGroups] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRowExpand = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Use external state if provided, otherwise use internal state
   const collapsedGroups = externalCollapsedGroups ?? internalCollapsedGroups;
@@ -229,66 +243,101 @@ export function FinancialTableTemplate<T>({
     </TableHeader>
   );
 
-  const renderTableRow = (item: T, index: number, isGroupHeader = false) => (
-    <TableRow
-      key={getItemId(item)}
-      className={cn(
-        "border-b border-border/30 hover:bg-muted/30 transition-colors",
-        isGroupHeader && "bg-muted/20 font-medium",
-        index % 2 === 0 && "bg-background/50"
-      )}
-    >
-      {columns.map((column) => (
-        <TableCell
-          key={column.key}
+  const renderTableRow = (item: T, index: number, isGroupHeader = false) => {
+    const itemId = getItemId(item);
+    const isExpanded = expandable && expandedRows.has(itemId);
+    const totalColSpan = columns.length + (showActions ? 1 : 0);
+
+    const handleRowClick = () => {
+      if (expandable) {
+        toggleRowExpand(itemId);
+      } else {
+        onView?.(item);
+      }
+    };
+
+    return (
+      <React.Fragment key={itemId}>
+        <TableRow
           className={cn(
-            "text-xs px-2 py-1",
-            column.align === 'right' && "text-right tabular-nums",
-            column.align === 'center' && "text-center",
-            column.className
+            "border-b border-border/30 hover:bg-muted/30 transition-colors",
+            isGroupHeader && "bg-muted/20 font-medium",
+            index % 2 === 0 && "bg-background/50",
+            (onView || expandable) && "cursor-pointer",
+            isExpanded && "bg-muted/20"
           )}
+          onClick={handleRowClick}
         >
-          {column.render ? column.render(item) : (item as any)[column.key]}
-        </TableCell>
-      ))}
-      {showActions && (
-        <TableCell className="px-2 py-1 w-[100px]">
-          <div className="flex items-center justify-center gap-1">
-            {onView && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 hover:bg-primary/10"
-                onClick={() => onView(item)}
-              >
-                <Eye className="h-3 w-3" />
-              </Button>
-            )}
-            {onEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 hover:bg-primary/10"
-                onClick={() => onEdit(item)}
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => handleDeleteClick(getItemId(item))}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        </TableCell>
-      )}
-    </TableRow>
-  );
+          {columns.map((column, colIdx) => (
+            <TableCell
+              key={column.key}
+              className={cn(
+                "text-xs px-2 py-1",
+                column.align === 'right' && "text-right tabular-nums",
+                column.align === 'center' && "text-center",
+                column.className
+              )}
+            >
+              <div className={cn(colIdx === 0 && expandable && "flex items-center gap-1")}>
+                {colIdx === 0 && expandable && (
+                  <ChevronRight className={cn(
+                    "h-3.5 w-3.5 transition-transform flex-shrink-0 text-muted-foreground",
+                    isExpanded && "rotate-90"
+                  )} />
+                )}
+                {column.render ? column.render(item) : (item as any)[column.key]}
+              </div>
+            </TableCell>
+          ))}
+          {showActions && (
+            <TableCell className="px-2 py-1 w-[100px]">
+              <div className="flex items-center justify-center gap-1">
+                {onView && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 hover:bg-primary/10"
+                    onClick={(e) => { e.stopPropagation(); onView(item); }}
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                )}
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 hover:bg-primary/10"
+                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(getItemId(item)); }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </TableCell>
+          )}
+        </TableRow>
+        {isExpanded && renderExpandedContent && (
+          <TableRow className="bg-muted/10 hover:bg-muted/10">
+            <TableCell colSpan={totalColSpan} className="p-0">
+              <div className="p-4 space-y-3 border-l-4 border-l-primary/30">
+                {renderExpandedContent(item)}
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </React.Fragment>
+    );
+  };
 
   const renderGroupedData = () => {
     const groups = sortedData as FinancialTableGroup<T>[];
