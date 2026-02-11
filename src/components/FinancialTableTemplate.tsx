@@ -40,6 +40,7 @@ interface FinancialTableTemplateProps<T> {
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
   showActions?: boolean;
+  actionsLabel?: string;
   sortable?: boolean;
   collapseAllButton?: React.ReactNode;
   collapsedGroups?: Set<string>;
@@ -60,6 +61,7 @@ export function FinancialTableTemplate<T>({
   emptyMessage = "No data available",
   emptyIcon,
   showActions = true,
+  actionsLabel = 'Actions',
   sortable = true,
   collapseAllButton,
   collapsedGroups: externalCollapsedGroups,
@@ -236,7 +238,7 @@ export function FinancialTableTemplate<T>({
         ))}
         {showActions && (
           <TableHead className="text-xs font-semibold text-foreground/80 px-2 py-2 h-9 w-[100px] text-center">
-            Actions
+            {actionsLabel}
           </TableHead>
         )}
       </TableRow>

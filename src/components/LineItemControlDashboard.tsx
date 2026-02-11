@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DollarSign,
@@ -17,6 +19,7 @@ import {
   ClipboardList,
   AlertCircle,
   Layers,
+  ChevronDown,
   type LucideIcon
 } from 'lucide-react';
 import { useLineItemControl, LineItemControlData, QuoteData } from '@/hooks/useLineItemControl';
@@ -1199,6 +1202,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
             emptyMessage="No line items found for this project"
             emptyIcon={<AlertTriangle className="h-8 w-8" />}
             showActions={true}
+            actionsLabel="Details"
             onView={handleViewDetails}
             getItemId={(item) => item.id}
             expandable={true}
@@ -1274,191 +1278,281 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
           />
         )}
 
-        {/* Line Item Details Modal */}
-        <Dialog open={!!selectedLineItem} onOpenChange={() => setSelectedLineItem(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Line Item Details</DialogTitle>
-            </DialogHeader>
-            
-            {selectedLineItem && (
-              <div className="space-y-6">
-                {/* Header Info */}
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Category</div>
-                    <div className="font-medium">
-                      {CATEGORY_DISPLAY_MAP[selectedLineItem.category as keyof typeof CATEGORY_DISPLAY_MAP] || selectedLineItem.category}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Description</div>
-                    <div className="font-medium">{selectedLineItem.description}</div>
-                  </div>
-                </div>
+        {/* Line Item Details Sheet */}
+        <Sheet open={!!selectedLineItem} onOpenChange={() => setSelectedLineItem(null)}>
+          <SheetContent className="w-full sm:max-w-[540px] flex flex-col p-0 overflow-hidden">
+            {selectedLineItem && (() => {
+              const isInternal = ['labor_internal', 'management'].includes(selectedLineItem.category);
+              const baseline = selectedLineItem.quotedCost > 0 ? selectedLineItem.quotedCost : selectedLineItem.estimatedCost;
+              const progressPercent = selectedLineItem.actualAmount > 0 && baseline > 0
+                ? Math.min(Math.round((selectedLineItem.actualAmount / baseline) * 100), 100)
+                : 0;
+              const remainingBudget = baseline - selectedLineItem.actualAmount;
+              const isOverBudget = selectedLineItem.actualAmount > baseline && baseline > 0;
+              const acceptedQuote = selectedLineItem.quotes.find(q => q.status === 'accepted');
 
-                {/* Financial Summary */}
-                <div className="grid grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Est. Cost</div>
-                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.estimatedCost)}</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Quoted Cost</div>
-                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.quotedCost)}</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Actual</div>
-                      <div className="text-lg font-bold">{formatCurrency(selectedLineItem.actualAmount)}</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Variance</div>
-                      <div className={cn(
-                        "text-lg font-bold",
-                        selectedLineItem.actualAmount - selectedLineItem.quotedCost > 0 ? "text-destructive" : "text-muted-foreground"
-                      )}>
-                        {formatCurrency(selectedLineItem.actualAmount - selectedLineItem.quotedCost)}
+              return (
+                <>
+                  {/* Fixed Header */}
+                  <SheetHeader className="px-6 py-4 border-b space-y-2">
+                    <SheetTitle className="text-base font-semibold leading-tight pr-8">
+                      {selectedLineItem.description}
+                    </SheetTitle>
+                    <SheetDescription asChild>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {CATEGORY_DISPLAY_MAP[selectedLineItem.category as keyof typeof CATEGORY_DISPLAY_MAP] || selectedLineItem.category}
+                        </Badge>
+                        {(() => {
+                          const qsConfigs: Record<string, { label: string; className: string }> = {
+                            none: { label: 'Not Quoted', className: 'bg-destructive/15 text-destructive border-destructive/30' },
+                            partial: { label: 'Awaiting Quotes', className: 'bg-secondary text-secondary-foreground border-secondary' },
+                            full: { label: 'Quoted', className: 'bg-primary/15 text-primary border-primary/30' },
+                            over: { label: 'Multiple Quotes', className: 'border-border text-muted-foreground' },
+                            internal: { label: 'Internal', className: 'bg-secondary text-secondary-foreground border-secondary' },
+                          };
+                          const qsBadge = qsConfigs[selectedLineItem.quoteStatus];
+                          return (
+                            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", qsBadge.className)}>
+                              {qsBadge.label}
+                            </Badge>
+                          );
+                        })()}
+                        {selectedLineItem.source === 'change_order' && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-secondary text-secondary-foreground border-secondary">
+                            CO{selectedLineItem.change_order_number ? ` #${selectedLineItem.change_order_number}` : ''}
+                          </Badge>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </SheetDescription>
+                  </SheetHeader>
 
-                {/* Progress */}
-                <div>
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Completion Progress</span>
-                    <span className="font-medium">
-                      {selectedLineItem.actualAmount > 0 && selectedLineItem.quotedCost > 0
-                        ? `${Math.min(Math.round((selectedLineItem.actualAmount / selectedLineItem.quotedCost) * 100), 100)}% of quoted cost`
-                        : 'Not started'
-                      }
-                    </span>
-                  </div>
-                  <Progress 
-                    value={selectedLineItem.actualAmount > 0 && selectedLineItem.quotedCost > 0 
-                      ? Math.min((selectedLineItem.actualAmount / selectedLineItem.quotedCost) * 100, 100) 
-                      : 0
-                    } 
-                    className="h-3" 
-                  />
-                </div>
+                  {/* Scrollable Body */}
+                  <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
 
-                {/* Expense Allocation Breakdown */}
-                {selectedLineItem.allocationStatus !== 'internal' && 
-                 selectedLineItem.allocationStatus !== 'not_quoted' && (
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Expense Allocation
-                    </h4>
-                    
-                    <div className="bg-muted p-3 rounded-lg mb-3 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Quoted Cost:</span>
-                        <span className="font-medium">{formatCurrency(selectedLineItem.quotedCost)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Allocated Expenses:</span>
-                        <span className="font-medium">{formatCurrency(selectedLineItem.allocatedAmount)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-semibold border-t pt-2">
-                        <span>Remaining to Allocate:</span>
-                        <span className={cn(
-                          selectedLineItem.remainingToAllocate > 0 ? "text-yellow-600" : "text-green-600"
-                        )}>
-                          {formatCurrency(selectedLineItem.remainingToAllocate)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {selectedLineItem.correlatedExpenses.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Explicitly allocated expenses ({selectedLineItem.correlatedExpenses.length}):
-                        </p>
-                        {selectedLineItem.correlatedExpenses.map((expense: any) => (
-                          <div key={expense.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
-                            <div className="flex-1">
-                              <div className="font-medium">{expense.payees?.payee_name || 'Unknown'}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {expense.expense_date ? format(new Date(expense.expense_date), 'MMM d, yyyy') : 'No date'} • {expense.description}
-                              </div>
-                            </div>
-                            <div className="font-medium">{formatCurrency(expense.amount)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span>No expenses have been explicitly allocated to this line item yet.
-                          Go to the Expense Matching interface to allocate expenses.</span>
+                    {/* Cost Pipeline */}
+                    <div className="space-y-0">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Cost Pipeline</h4>
+
+                      {/* Planning Phase */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2">
+                        <div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Estimated Cost</div>
+                          <div className="text-sm font-semibold tabular-nums">{formatCurrency(selectedLineItem.estimatedCost)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Est. Price (Client)</div>
+                          <div className="text-sm font-semibold tabular-nums">{formatCurrency(selectedLineItem.estimatedPrice)}</div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
-                  {/* Quotes Section */}
-                  <div>
-                    <div className="font-medium mb-4 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      Quotes ({selectedLineItem.quotes.length})
-                    </div>
-                    {selectedLineItem.quotes.length > 0 ? (
-                      <div className="space-y-3">
-                        {selectedLineItem.quotes.map((quote) => (
-                          <Card key={quote.id}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <div className="font-medium">{quote.quotedBy}</div>
-                                  <div className="text-muted-foreground text-sm">#{quote.quoteNumber}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-medium">{formatCurrency(quote.total)}</div>
-                                  <Badge variant="secondary" className={cn(
-                                    quote.status === 'accepted' && 'bg-green-50 text-green-700 border-green-200',
-                                    quote.status === 'pending' && 'bg-blue-50 text-blue-700 border-blue-200',
-                                    quote.status === 'rejected' && 'bg-red-50 text-red-700 border-red-200'
-                                  )}>
-                                    {quote.status}
-                                  </Badge>
-                                </div>
+                      <Separator />
+
+                      {/* Committed Phase */}
+                      {!isInternal ? (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2">
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Quoted Cost</div>
+                            <div className="text-sm font-semibold tabular-nums">
+                              {selectedLineItem.quotedCost > 0 ? formatCurrency(selectedLineItem.quotedCost) : '\u2014'}
+                            </div>
+                            {acceptedQuote && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">{acceptedQuote.quotedBy}</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Quote Variance</div>
+                            {selectedLineItem.quotedCost > 0 ? (
+                              <div className={cn("text-sm font-semibold tabular-nums", getCostVarianceColor(Math.abs(selectedLineItem.costVariancePercent)))}>
+                                {formatCurrency(selectedLineItem.costVariance)}
+                                <span className="ml-1 text-[10px] font-normal">
+                                  ({selectedLineItem.costVariancePercent > 0 ? '+' : ''}{selectedLineItem.costVariancePercent.toFixed(1)}%)
+                                </span>
                               </div>
-                              {(quote.includes_labor || quote.includes_materials) && (
-                                <div className="text-xs text-muted-foreground">
-                                  Includes: {[
-                                    quote.includes_labor && 'Labor',
-                                    quote.includes_materials && 'Materials'
-                                  ].filter(Boolean).join(', ')}
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
+                            ) : (
+                              <div className="text-sm text-muted-foreground">{'\u2014'}</div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-2">
+                          <div className="text-xs text-muted-foreground italic">Internal — no vendor quote</div>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      {/* Actual Phase */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2">
+                        <div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Actual Spent</div>
+                          <div className={cn(
+                            "text-sm font-semibold tabular-nums",
+                            isOverBudget ? "text-destructive" : ""
+                          )}>
+                            {formatCurrency(selectedLineItem.actualAmount)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Remaining Budget</div>
+                          <div className={cn(
+                            "text-sm font-semibold tabular-nums",
+                            baseline > 0
+                              ? remainingBudget < 0
+                                ? "text-destructive"
+                                : remainingBudget === 0
+                                  ? "text-success"
+                                  : "text-muted-foreground"
+                              : "text-muted-foreground"
+                          )}>
+                            {baseline > 0 ? formatCurrency(remainingBudget) : '\u2014'}
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-muted-foreground italic text-center p-8 border-2 border-dashed border-muted rounded-lg">
-                        No quotes received for this line item
+
+                      <Separator />
+
+                      {/* Margin Phase */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-2">
+                        <div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Margin Impact</div>
+                          {selectedLineItem.marginImpact !== 0 ? (
+                            <div className={cn(
+                              "text-sm font-semibold tabular-nums",
+                              selectedLineItem.marginImpact > 0 ? "text-success" : "text-destructive"
+                            )}>
+                              {formatCurrency(Math.abs(selectedLineItem.marginImpact))}
+                              <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                                {selectedLineItem.marginImpact > 0 ? 'Improves margin' : 'Reduces margin'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">{'\u2014'}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compact Progress Bar */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Spend Progress</span>
+                        <span className={cn(
+                          "font-medium tabular-nums",
+                          isOverBudget ? "text-destructive" : ""
+                        )}>
+                          {selectedLineItem.actualAmount === 0
+                            ? 'Not started'
+                            : isOverBudget
+                              ? 'Over budget'
+                              : `${progressPercent}% spent`
+                          }
+                        </span>
+                      </div>
+                      <Progress
+                        value={progressPercent}
+                        className="h-2"
+                      />
+                    </div>
+
+                    {/* Expense Allocation */}
+                    {selectedLineItem.allocationStatus !== 'internal' &&
+                     selectedLineItem.allocationStatus !== 'not_quoted' && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Expense Allocation</h4>
+
+                        {/* Summary always visible */}
+                        <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Quoted Cost</span>
+                            <span className="font-medium tabular-nums">{formatCurrency(selectedLineItem.quotedCost)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Allocated</span>
+                            <span className="font-medium tabular-nums">{formatCurrency(selectedLineItem.allocatedAmount)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs font-semibold border-t border-border/50 pt-1.5">
+                            <span>Remaining</span>
+                            <span className={cn(
+                              "tabular-nums",
+                              selectedLineItem.remainingToAllocate > 0 ? "text-warning-foreground" : "text-success"
+                            )}>
+                              {formatCurrency(selectedLineItem.remainingToAllocate)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Collapsible expense list */}
+                        {selectedLineItem.correlatedExpenses.length > 0 ? (
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full py-1">
+                              <ChevronDown className="h-3 w-3 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                              <span>{selectedLineItem.correlatedExpenses.length} allocated expense{selectedLineItem.correlatedExpenses.length !== 1 ? 's' : ''}</span>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="space-y-1 mt-1">
+                              {selectedLineItem.correlatedExpenses.map((expense: any) => (
+                                <div key={expense.id} className="flex justify-between items-center text-xs p-2 bg-muted/30 rounded">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium truncate">{expense.payees?.payee_name || 'Unknown'}</div>
+                                    <div className="text-[10px] text-muted-foreground truncate">
+                                      {expense.expense_date ? format(new Date(expense.expense_date), 'MMM d, yyyy') : 'No date'}
+                                      {expense.description && ` \u2022 ${expense.description}`}
+                                    </div>
+                                  </div>
+                                  <div className="font-medium tabular-nums ml-2">{formatCurrency(expense.amount)}</div>
+                                </div>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>No expenses allocated yet</span>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
 
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+                    {/* Quotes — Compact Rows */}
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Quotes ({selectedLineItem.quotes.length})
+                      </h4>
+                      {selectedLineItem.quotes.length > 0 ? (
+                        <div className="space-y-1">
+                          {selectedLineItem.quotes.map((quote) => (
+                            <div key={quote.id} className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded gap-2">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="font-medium truncate">{quote.quotedBy}</span>
+                                <span className="text-muted-foreground shrink-0">#{quote.quoteNumber}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="font-medium tabular-nums">{formatCurrency(quote.total)}</span>
+                                <Badge variant="outline" className={cn(
+                                  "text-[9px] px-1 py-0 capitalize",
+                                  quote.status === 'accepted' && 'bg-success/15 text-success border-success/30',
+                                  quote.status === 'pending' && 'bg-primary/15 text-primary border-primary/30',
+                                  quote.status === 'rejected' && 'bg-destructive/15 text-destructive border-destructive/30'
+                                )}>
+                                  {quote.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground italic py-2">
+                          No quotes received
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                </>
+              );
+            })()}
+          </SheetContent>
+        </Sheet>
       </div>
     </TooltipProvider>
   );
