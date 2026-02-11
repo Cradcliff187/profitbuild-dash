@@ -21,7 +21,9 @@
       "Bash(git pull:*)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "WebFetch(domain:claude.ai)"
+      "WebFetch(domain:claude.ai)",
+      "Bash(git log:*)",
+      "Bash(echo:*)"
     ]
   }
 }
