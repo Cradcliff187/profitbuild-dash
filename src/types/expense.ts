@@ -11,6 +11,8 @@ export enum ExpenseCategory {
   VEHICLE_MAINTENANCE = 'vehicle_maintenance',
   GAS = 'gas',
   MEALS = 'meals',
+  OFFICE_EXPENSES = 'office_expenses',
+  VEHICLE_EXPENSES = 'vehicle_expenses',
   OTHER = 'other'
 }
 
@@ -29,6 +31,8 @@ export const EXPENSE_CATEGORY_DISPLAY = {
   [ExpenseCategory.VEHICLE_MAINTENANCE]: 'Vehicle Maintenance',
   [ExpenseCategory.GAS]: 'Gas & Fuel',
   [ExpenseCategory.MEALS]: 'Meals & Entertainment',
+  [ExpenseCategory.OFFICE_EXPENSES]: 'Office Expenses',
+  [ExpenseCategory.VEHICLE_EXPENSES]: 'Vehicle Expenses',
   [ExpenseCategory.OTHER]: 'Other'
 };
 
@@ -75,6 +79,14 @@ export interface Expense {
   approved_by?: string;
   approved_at?: string; // Changed to string for database compatibility
   rejection_reason?: string;
+  // Time tracking fields (labor_internal category)
+  hours?: number | null;
+  gross_hours?: number | null;
+  lunch_taken?: boolean | null;
+  lunch_duration_minutes?: number | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  submitted_for_approval_at?: string | null;
   // Split expense fields
   is_split?: boolean;
   splits?: ExpenseSplit[]; // Populated when is_split = true

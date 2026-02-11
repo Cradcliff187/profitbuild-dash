@@ -304,7 +304,7 @@ const categorizeExpense = (description: string, accountPath?: string): ExpenseCa
     return ExpenseCategory.MANAGEMENT;
   }
   if (account.includes('vehicle') || account.includes('gas') || account.includes('fuel')) {
-    return 'vehicle_expenses' as ExpenseCategory;
+    return ExpenseCategory.VEHICLE_EXPENSES;
   }
   
   // Description-based fallback

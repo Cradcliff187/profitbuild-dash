@@ -23,7 +23,10 @@
       "Bash(ls:*)",
       "WebFetch(domain:claude.ai)",
       "Bash(git log:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(xargs:*)",
+      "Bash(npx supabase gen types:*)",
+      "Bash(npx supabase:*)"
     ]
   }
 }

@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/types/project';
-import { calculateProjectMargin, type ProjectMargin, getContingencyUtilization } from '@/types/margin';
+import { type ProjectMargin, getContingencyUtilization } from '@/types/margin';
 import { getMarginThresholdStatus, getThresholdStatusColor, getThresholdStatusLabel, formatContingencyRemaining } from '@/utils/thresholdUtils';
 import { getMarginColor, getFinancialHealth, getFinancialHealthHSL } from '@/utils/financialColors';
 import { formatCurrency } from '@/lib/utils';
@@ -56,18 +56,47 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
             contracted_amount: data.contracted_amount,
             total_accepted_quotes: data.total_accepted_quotes,
             current_margin: data.current_margin,
+            actual_margin: data.actual_margin,
+            adjusted_est_margin: data.adjusted_est_margin,
+            adjusted_est_costs: data.adjusted_est_costs,
+            original_est_costs: data.original_est_costs,
+            original_margin: data.original_margin,
             margin_percentage: data.margin_percentage,
             contingency_remaining: data.contingency_remaining,
+            contingency_amount: data.contingency_amount,
+            estimated_hours: data.estimated_hours,
+            actual_hours: data.actual_hours,
             minimum_margin_threshold: data.minimum_margin_threshold,
             target_margin: data.target_margin,
+            owner_id: data.owner_id,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at)
           };
 
           setProject(projectData);
-          
-          // Calculate margin data using existing utilities
-          const margin = calculateProjectMargin(projectData);
+
+          // Build margin data directly from database fields (no deprecated function)
+          const contractedAmount = data.contracted_amount ?? 0;
+          const contingencyTotal = data.contingency_amount ?? 0;
+          const contingencyRemaining = data.contingency_remaining ?? 0;
+          const contingencyUsed = contingencyTotal - contingencyRemaining;
+          const marginPercentage = data.margin_percentage ?? 0;
+          const minimumThreshold = data.minimum_margin_threshold ?? 10.0;
+          const targetMargin = data.target_margin ?? 20.0;
+
+          const margin: ProjectMargin = {
+            project_id: data.id,
+            contracted_amount: contractedAmount,
+            total_accepted_quotes: data.total_accepted_quotes ?? 0,
+            current_margin: data.actual_margin ?? 0,
+            margin_percentage: marginPercentage,
+            contingency_total: contingencyTotal,
+            contingency_used: contingencyUsed,
+            contingency_remaining: contingencyRemaining,
+            minimum_threshold: minimumThreshold,
+            target_margin: targetMargin,
+            at_risk: marginPercentage < minimumThreshold,
+          };
           setMarginData(margin);
         }
       } catch (error) {
@@ -163,10 +192,10 @@ export function MarginDashboard({ projectId }: MarginDashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Current Margin Card */}
+        {/* Actual Margin Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Margin</CardTitle>
+            <CardTitle className="text-sm font-medium">Actual Margin</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

@@ -2039,6 +2039,7 @@ export type Database = {
           notes: string | null
           original_est_costs: number | null
           original_margin: number | null
+          owner_id: string | null
           payment_terms: string | null
           project_name: string
           project_number: string
@@ -2081,6 +2082,7 @@ export type Database = {
           notes?: string | null
           original_est_costs?: number | null
           original_margin?: number | null
+          owner_id?: string | null
           payment_terms?: string | null
           project_name: string
           project_number: string
@@ -2123,6 +2125,7 @@ export type Database = {
           notes?: string | null
           original_est_costs?: number | null
           original_margin?: number | null
+          owner_id?: string | null
           payment_terms?: string | null
           project_name?: string
           project_number?: string

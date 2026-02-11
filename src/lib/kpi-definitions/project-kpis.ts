@@ -175,32 +175,32 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     aliases: ['margin %', 'margin percent', 'profit margin %'],
   },
   
-  // NEW: Added for clarity
+  // Explicit naming alias for margin_percentage
   {
     id: 'adjusted_est_margin_percent',
     name: 'Adjusted Est. Margin %',
-    source: 'view',
-    field: 'reporting.project_financials.adjusted_est_margin_percent',
+    source: 'database',
+    field: 'projects.margin_percentage',
     formula: '(adjusted_est_margin / contracted_amount) × 100',
     dataType: 'percent',
     domain: 'project',
     whereUsed: 'Financial reports, margin comparison',
-    notes: 'Adjusted estimated margin as percentage. Same as margin_percentage but explicit naming.',
+    notes: 'Adjusted estimated margin as percentage. Equivalent to margin_percentage — stored on projects table, calculated by triggers.',
     aliases: ['projected margin %', 'forecast margin %'],
     relatedTo: ['adjusted_est_margin', 'margin_percentage'],
   },
   
-  // NEW: Added for clarity
+  // Calculated client-side from actual_margin and total_invoiced
   {
     id: 'actual_margin_percent',
     name: 'Actual Margin %',
-    source: 'view',
-    field: 'reporting.project_financials.actual_margin_percent',
+    source: 'frontend',
+    field: 'calculated',
     formula: '(actual_margin / total_invoiced) × 100',
     dataType: 'percent',
     domain: 'project',
     whereUsed: 'Completed project analysis, profit reports',
-    notes: 'Actual realized margin as percentage of actual revenue. For completed/invoiced projects.',
+    notes: 'Actual realized margin as percentage of actual revenue. Calculated client-side from actual_margin and total_invoiced (both available from reporting.project_financials view).',
     aliases: ['real margin %', 'true margin %', 'profit %'],
     relatedTo: ['actual_margin', 'total_invoiced'],
     preferWhen: 'User asks about actual margin percentage for completed work',
@@ -279,13 +279,13 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     name: 'Budget Utilization %',
     source: 'view',
     field: 'reporting.project_financials.budget_utilization_percent',
-    formula: '(total_expenses / adjusted_est_costs) × 100',
+    formula: '(total_expenses / contracted_amount) × 100',
     dataType: 'percent',
     domain: 'project',
     whereUsed: 'Financial dashboards, project progress',
-    notes: 'Percentage of budget consumed. 100% = on budget, >100% = over budget.',
+    notes: 'Percentage of contract value consumed by expenses. 100% = all revenue spent. View uses contracted_amount as denominator.',
     aliases: ['budget used', 'burn rate', 'budget consumed'],
-    relatedTo: ['total_expenses', 'adjusted_est_costs'],
+    relatedTo: ['total_expenses', 'contracted_amount'],
   },
 
   // ==========================================================================
@@ -449,7 +449,7 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     name: 'Project Status',
     source: 'database',
     field: 'projects.status',
-    formula: 'Enum: draft | pending | approved | in_progress | on_hold | complete | cancelled',
+    formula: 'Enum: estimating | approved | in_progress | complete | on_hold | cancelled',
     dataType: 'enum',
     domain: 'project',
     whereUsed: 'All project views, filtering',
