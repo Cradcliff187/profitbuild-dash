@@ -284,8 +284,10 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       if (expensesError) throw expensesError;
 
       // Fetch expense correlations for ALL types (estimate, quote, change order)
-      // Get all expense IDs from this project
-      const expenseIds = (expenses || []).map((exp: any) => exp.id);
+      // Get only this project's expense IDs for correlation queries (scoped to avoid URL overflow)
+      const projectExpenseIds = (expenses || [])
+        .filter((exp: any) => exp.project_id === projectId)
+        .map((exp: any) => exp.id);
       
       // Also get expense split IDs for this project (for split expense allocations)
       const { data: projectSplits } = await supabase
@@ -296,62 +298,26 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       const splitIds = (projectSplits || []).map((split: any) => split.id);
 
       if (import.meta.env.DEV) {
-        console.log(`[CostTracking] Project ${projectId}: ${expenseIds.length} direct expenses, ${splitIds.length} expense splits`);
+        console.log(`[CostTracking] Project ${projectId}: ${projectExpenseIds.length} direct expenses, ${splitIds.length} expense splits`);
       }
 
       let correlationData: any[] = [];
 
       // Fetch correlations for both direct expenses AND expense splits
-      if (expenseIds.length > 0 || splitIds.length > 0) {
+      if (projectExpenseIds.length > 0 || splitIds.length > 0) {
         const queries = [];
-        
-        // Query 1: Direct expense correlations
-        if (expenseIds.length > 0) {
-          queries.push(
-            supabase
-              .from('expense_line_item_correlations')
-              .select(`
-                *,
-                expenses (
-                  id,
-                  amount,
-                  description,
-                  expense_date,
-                  category,
-                  is_split,
-                  payees (payee_name)
-                ),
-                expense_splits (
-                  id,
-                  split_amount,
-                  project_id,
-                  projects (
-                    project_name,
-                    project_number
-                  )
-                )
-              `)
-              .in('expense_id', expenseIds)
-          );
-        }
-        
-        // Query 2: Split expense correlations (join through expense_splits to get parent expense)
-        if (splitIds.length > 0) {
-          queries.push(
-            supabase
-              .from('expense_line_item_correlations')
-              .select(`
-                *,
-                expense_splits!inner (
-                  id,
-                  split_amount,
-                  project_id,
-                  expense_id,
-                  projects (
-                    project_name,
-                    project_number
-                  ),
-                  expenses!inner (
+        const BATCH_SIZE = 100;
+
+        // Query 1: Direct expense correlations (batched to avoid URL length limits)
+        if (projectExpenseIds.length > 0) {
+          for (let i = 0; i < projectExpenseIds.length; i += BATCH_SIZE) {
+            const batch = projectExpenseIds.slice(i, i + BATCH_SIZE);
+            queries.push(
+              supabase
+                .from('expense_line_item_correlations')
+                .select(`
+                  *,
+                  expenses (
                     id,
                     amount,
                     description,
@@ -359,15 +325,64 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                     category,
                     is_split,
                     payees (payee_name)
+                  ),
+                  expense_splits (
+                    id,
+                    split_amount,
+                    project_id,
+                    projects (
+                      project_name,
+                      project_number
+                    )
                   )
-                )
-              `)
-              .in('expense_split_id', splitIds)
-          );
+                `)
+                .in('expense_id', batch)
+            );
+          }
         }
-        
+
+        // Query 2: Split expense correlations (batched, join through expense_splits to get parent expense)
+        if (splitIds.length > 0) {
+          for (let i = 0; i < splitIds.length; i += BATCH_SIZE) {
+            const batch = splitIds.slice(i, i + BATCH_SIZE);
+            queries.push(
+              supabase
+                .from('expense_line_item_correlations')
+                .select(`
+                  *,
+                  expense_splits!inner (
+                    id,
+                    split_amount,
+                    project_id,
+                    expense_id,
+                    projects (
+                      project_name,
+                      project_number
+                    ),
+                    expenses!inner (
+                      id,
+                      amount,
+                      description,
+                      expense_date,
+                      category,
+                      is_split,
+                      payees (payee_name)
+                    )
+                  )
+                `)
+                .in('expense_split_id', batch)
+            );
+          }
+        }
+
         const results = await Promise.all(queries);
-        correlationData = results.flatMap(r => r.data || []);
+        correlationData = results.flatMap((r, index) => {
+          if (r.error) {
+            console.error(`[CostTracking] Correlation query batch ${index} failed:`, r.error);
+            return [];
+          }
+          return r.data || [];
+        });
 
         if (import.meta.env.DEV) {
           console.log(`[CostTracking] Total correlations loaded: ${correlationData.length}`);

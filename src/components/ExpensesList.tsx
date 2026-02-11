@@ -390,17 +390,25 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         const expenseIds = expenses.map((e) => e.id).filter(Boolean);
         if (expenseIds.length === 0) return;
 
-        try {
-          const { data, error } = await supabase
-            .from("expense_line_item_correlations")
-            .select("expense_id, correlation_type, estimate_line_item_id, quote_id, change_order_line_item_id")
-            .in("expense_id", expenseIds);
+        const BATCH_SIZE = 100;
 
-          if (error) throw error;
+        try {
+          // Batch into chunks to avoid URL length limits on .in() queries
+          const allCorrelations: any[] = [];
+          for (let i = 0; i < expenseIds.length; i += BATCH_SIZE) {
+            const batch = expenseIds.slice(i, i + BATCH_SIZE);
+            const { data, error } = await supabase
+              .from("expense_line_item_correlations")
+              .select("expense_id, correlation_type, estimate_line_item_id, quote_id, change_order_line_item_id")
+              .in("expense_id", batch);
+
+            if (error) throw error;
+            if (data) allCorrelations.push(...data);
+          }
 
           const matches: Record<string, { matched: boolean; type?: "estimate" | "quote" | "change_order" }> = {};
           expenses.forEach((expense) => {
-            const correlation = data?.find((c) => c.expense_id === expense.id);
+            const correlation = allCorrelations.find((c) => c.expense_id === expense.id);
             if (correlation) {
               // Determine type based on which ID field is populated
               let type: "estimate" | "quote" | "change_order" = "estimate";
@@ -517,7 +525,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 expense.project_number === "SYS-000" ||
                 isOverheadProject(expense.project_category as ProjectCategory);
               
-              return !isNonAllocatableProject && expenseMatches[expense.id]?.matched === false;
+              return !isNonAllocatableProject && expenseMatches[expense.id]?.matched !== true;
             } else if (status === "matched") {
               return expenseMatches[expense.id]?.matched === true;
             }
