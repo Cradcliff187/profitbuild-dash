@@ -193,6 +193,26 @@ export const ProjectExpenseTracker: React.FC<ProjectExpenseTrackerProps> = ({ ex
         ),
         variance: 0,
         cost_overrun: 0
+      },
+      office_expenses: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.office_expenses?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'office_expenses')
+        ),
+        variance: 0,
+        cost_overrun: 0
+      },
+      vehicle_expenses: {
+        estimated: 0,
+        estimated_cost: categoryTotalsFromLineItems.vehicle_expenses?.estimated_cost || 0,
+        actual: await calculateProjectExpenses(
+          estimate.project_id, 
+          expenses.filter(e => e.category === 'vehicle_expenses')
+        ),
+        variance: 0,
+        cost_overrun: 0
       }
     };
 

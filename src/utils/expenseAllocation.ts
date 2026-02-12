@@ -51,6 +51,8 @@ export function suggestLineItemAllocation(expense: EnhancedExpense, lineItems: L
     [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
     [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
     [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
     [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
   };
 
@@ -131,6 +133,8 @@ export function calculateMatchConfidence(expense: EnhancedExpense, lineItems: Li
     [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
     [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
     [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
+    [ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
     [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
   };
 
