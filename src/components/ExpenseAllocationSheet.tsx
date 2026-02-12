@@ -517,6 +517,8 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
       [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
       [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
+      [ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
       [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
     };
                       
