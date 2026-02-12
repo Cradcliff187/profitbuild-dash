@@ -1,44 +1,49 @@
 
 
-# Fix Build Errors Blocking Login
+# Add Password Visibility Toggle (Eye Icon)
 
-## What's Wrong
+## Overview
+Add a clickable eye/eye-off icon to all password fields so users can toggle between hidden and visible password text. This is a very simple, low-risk change.
 
-The app cannot load because of 4 TypeScript build errors. Two new expense categories -- `OFFICE_EXPENSES` and `VEHICLE_EXPENSES` -- were added to the `ExpenseCategory` enum but are missing from category mapping objects in 3 files. This breaks the entire build, which is why you cannot log in.
+## What Changes
 
-## The Fix
+### 1. Auth.tsx (Login Page)
+- Add `Eye` / `EyeOff` icons from lucide-react
+- Add state `showPassword` to toggle visibility
+- Wrap the password `<Input>` in a `relative` div and add an icon button inside it
+- Toggle `type` between `"password"` and `"text"`
 
-Add the two missing entries to all 4 category map objects across 3 files:
+### 2. ChangePassword.tsx (Change Password Page)
+- Same pattern for both "New Password" and "Confirm Password" fields
+- Two separate toggle states (`showNewPassword`, `showConfirmPassword`)
 
-### 1. `src/utils/expenseAllocation.ts` (2 locations)
+### 3. ResetPassword.tsx (Reset Password Page)
+- Same pattern for both password fields
+- Two separate toggle states
 
-**Line 54** -- add after the `MEALS` entry:
+## UI Pattern (applied to each password field)
+
 ```
-[ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
-[ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
+<div className="relative">
+  <Input type={showPassword ? "text" : "password"} ... className="pr-9" />
+  <button
+    type="button"
+    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+    onClick={() => setShowPassword(!showPassword)}
+    tabIndex={-1}
+  >
+    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+  </button>
+</div>
 ```
 
-**Line 134** -- same addition after `MEALS` entry.
-
-### 2. `src/components/ExpenseAllocationSheet.tsx` (1 location)
-
-**Line 520** -- add after the `MEALS` entry:
-```
-[ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
-[ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
-```
-
-### 3. `src/components/ProjectExpenseTracker.tsx` (1 location)
-
-**Line ~175** -- add `office_expenses` and `vehicle_expenses` keys to the `categoryBreakdown` object with the same structure as the other categories.
-
-## Summary
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/utils/expenseAllocation.ts` | Add 2 missing keys in 2 category maps |
-| `src/components/ExpenseAllocationSheet.tsx` | Add 2 missing keys in 1 category map |
-| `src/components/ProjectExpenseTracker.tsx` | Add 2 missing keys in category breakdown |
+| `src/pages/Auth.tsx` | 1 password field gets toggle |
+| `src/pages/ChangePassword.tsx` | 2 password fields get toggles |
+| `src/pages/ResetPassword.tsx` | 2 password fields get toggles |
 
-4 lines added across 3 files. Zero risk. Once applied, the build will pass and you can log in again.
-
+## Risk
+None. Purely visual/UX addition with no logic changes.
