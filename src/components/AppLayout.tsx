@@ -167,9 +167,9 @@ export default function AppLayout() {
       <div className="flex min-h-screen w-full overflow-x-hidden max-w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
-          {/* Mobile header with trigger */}
+          {/* Mobile fixed header - stays pinned at top of viewport */}
           {isMobile && (
-            <header className="flex flex-col lg:hidden shadow-md sticky top-0 z-40">
+            <header className="fixed top-0 left-0 right-0 flex flex-col lg:hidden shadow-md z-40">
               <div className="flex h-16 items-center gap-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4">
                 <img
                   src={logoIcon}
@@ -189,11 +189,12 @@ export default function AppLayout() {
               <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400" />
             </header>
           )}
-          
+
           {/* Main content area - pages render here */}
           <main className={cn(
             "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
-            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-5'
+            (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-5',
+            isMobile && "pt-[67px]"
           )} style={{ width: '100%', maxWidth: '100%' }}>
             <Outlet />
           </main>

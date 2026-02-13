@@ -264,9 +264,48 @@ const Settings = () => {
         if (registration) {
           await registration.update();
           setLastUpdateCheck(new Date());
-          toast.success('Update check complete', {
-            description: 'You are running the latest version.'
-          });
+
+          // Check if a new service worker is actually waiting or installing
+          const hasUpdate = !!(registration.waiting || registration.installing);
+
+          if (hasUpdate) {
+            toast('Update Available!', {
+              description: 'A new version is ready. Reload to apply it.',
+              action: {
+                label: 'Reload Now',
+                onClick: () => window.location.reload()
+              },
+              duration: Infinity,
+              dismissible: true,
+            });
+          } else {
+            // Also listen briefly for an update found after the check
+            let updateFound = false;
+            const onUpdateFound = () => {
+              updateFound = true;
+              registration.removeEventListener('updatefound', onUpdateFound);
+              toast('Update Available!', {
+                description: 'A new version is ready. Reload to apply it.',
+                action: {
+                  label: 'Reload Now',
+                  onClick: () => window.location.reload()
+                },
+                duration: Infinity,
+                dismissible: true,
+              });
+            };
+            registration.addEventListener('updatefound', onUpdateFound);
+
+            // Wait a moment for the update check to resolve, then report
+            setTimeout(() => {
+              registration.removeEventListener('updatefound', onUpdateFound);
+              if (!updateFound) {
+                toast.success('You\'re up to date', {
+                  description: 'No new updates available.'
+                });
+              }
+            }, 3000);
+          }
         } else {
           toast.info('Service worker not registered', {
             description: 'Updates will be applied on next app refresh.'
