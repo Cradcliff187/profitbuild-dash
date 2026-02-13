@@ -279,7 +279,7 @@ export function AppSidebar() {
               <img
                 src={logoHorizontalDefault}
                 alt={companyAbbr}
-                className="w-auto max-h-[44px] max-w-[85%] object-contain drop-shadow-md"
+                className="w-auto max-h-[72px] max-w-[90%] object-contain drop-shadow-md"
                 onError={(e) => {
                   e.currentTarget.src = logoIconDefault;
                 }}
