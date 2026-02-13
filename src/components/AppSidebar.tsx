@@ -275,7 +275,7 @@ export function AppSidebar() {
           collapsed && !isMobile && "flex-col gap-2 items-center"
         )}>
           {isMobile ? (
-            <div className="flex items-center justify-center flex-1 min-w-0 py-1">
+            <div className="flex items-center justify-center flex-1 min-w-0 h-10 overflow-hidden">
               <img
                 src={logoHorizontalDefault}
                 alt={companyAbbr}
