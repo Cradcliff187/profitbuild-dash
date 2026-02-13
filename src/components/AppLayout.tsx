@@ -169,7 +169,7 @@ export default function AppLayout() {
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
           {/* Mobile header with trigger */}
           {isMobile && (
-            <header className="flex flex-col lg:hidden shadow-md">
+            <header className="flex flex-col lg:hidden shadow-md sticky top-0 z-40">
               <div className="flex h-16 items-center gap-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4">
                 <img
                   src={logoIcon}
