@@ -1,24 +1,32 @@
 
 
-# Make Mobile Sidebar Logo Larger
+# Fix: Larger Logo Without Expanding Header
 
-## Change
+## Problem
+Increasing the logo's `max-h` also grows the header container, pushing the navigation list down.
 
-In `src/components/AppSidebar.tsx`, only one line changes -- the mobile horizontal logo sizing (around line 213):
+## Solution
+Constrain the mobile header area to a fixed height and let the larger logo fit within it using `overflow-hidden`. This way the logo renders bigger visually but the header stays the same size.
+
+In `src/components/AppSidebar.tsx`, change the mobile logo container (around line 277):
 
 **Current:**
 ```
-className="w-auto max-h-[44px] max-w-[85%] object-contain drop-shadow-md"
+<div className="flex items-center justify-center flex-1 min-w-0 py-1">
+  <img ... className="w-auto max-h-[72px] max-w-[90%] object-contain drop-shadow-md" />
+</div>
 ```
 
 **New:**
 ```
-className="w-auto max-h-[72px] max-w-[90%] object-contain drop-shadow-md"
+<div className="flex items-center justify-center flex-1 min-w-0 h-10 overflow-hidden">
+  <img ... className="w-auto max-h-[72px] max-w-[90%] object-contain drop-shadow-md" />
+</div>
 ```
 
-No other logos or views are touched.
+This fixes the header height at `h-10` (40px) so the divider stays in place, while the logo scales up to fill that space. If the logo still looks too small or too big at `h-10`, we can adjust to `h-12` (48px) or another value.
 
 | File | Change |
 |------|--------|
-| `src/components/AppSidebar.tsx` | Increase mobile logo from max-h-44px to max-h-72px |
+| `src/components/AppSidebar.tsx` | Add fixed height + overflow-hidden to mobile logo container |
 
