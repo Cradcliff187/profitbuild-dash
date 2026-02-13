@@ -26,7 +26,24 @@
       "Bash(echo:*)",
       "Bash(xargs:*)",
       "Bash(npx supabase gen types:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__list_tables",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__get_advisors",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__list_migrations",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__list_extensions",
+      "Bash(powershell -Command:*)",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__execute_sql",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__list_edge_functions",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__apply_migration",
+      "mcp__88d0d083-a87b-4f0e-b26d-232a0285e1ab__get_edge_function",
+      "Bash(supabase functions delete:*)",
+      "Bash(supabase login:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:clsjdxwbsjbhjibvlqbz.supabase.co)",
+      "Bash(git branch:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ]
   }
 }

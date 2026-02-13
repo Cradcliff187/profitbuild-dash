@@ -517,9 +517,9 @@ export function ProjectOperationalDashboard({
       )}
 
       {/* Financial Summary */}
-      <Card>
+      <Card className="border-t-[3px] border-t-primary">
         <CardHeader className="p-3 pb-2">
-          <h3 className="text-sm font-semibold">Financial Summary</h3>
+          <h3 className="text-sm font-semibold tracking-tight">Financial Summary</h3>
         </CardHeader>
         <CardContent className="p-3 pt-0">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -592,7 +592,7 @@ export function ProjectOperationalDashboard({
           {project.status !== 'estimating' && (
             <button
               onClick={() => navigate(`/projects/${project.id}/control`)}
-              className="mt-3 pt-2 border-t text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
+              className="mt-3 pt-2 border-t text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
             >
               View Cost Tracking
               <ChevronRight className="h-3 w-3" />
@@ -606,7 +606,7 @@ export function ProjectOperationalDashboard({
         <Card>
           <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Budget Status</h3>
+              <h3 className="text-sm font-semibold tracking-tight">Budget Status</h3>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardHeader>
@@ -673,7 +673,7 @@ export function ProjectOperationalDashboard({
           <CardHeader className="p-3 pb-2">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-destructive" />
-              <h3 className="text-sm font-semibold">Needs Attention</h3>
+              <h3 className="text-sm font-semibold tracking-tight">Needs Attention</h3>
               <Badge variant="destructive" className="h-5 text-xs">{needsAttention.length}</Badge>
             </div>
           </CardHeader>
@@ -852,7 +852,7 @@ export function ProjectOperationalDashboard({
               <Card>
                 <CardHeader className="p-3 pb-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Schedule</h3>
+                    <h3 className="text-sm font-semibold tracking-tight">Schedule</h3>
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </CardHeader>
@@ -893,7 +893,7 @@ export function ProjectOperationalDashboard({
                   {/* Navigate to Schedule page */}
                   <button
                     onClick={() => navigate(`/projects/${project.id}/schedule`)}
-                    className="mt-2 text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                    className="mt-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
                   >
                     View Schedule
                     <ChevronRight className="h-3 w-3" />
@@ -910,7 +910,7 @@ export function ProjectOperationalDashboard({
         <Card>
           <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Change Orders</h3>
+              <h3 className="text-sm font-semibold tracking-tight">Change Orders</h3>
               <Badge variant="outline" className="h-5 text-xs">{changeOrders.length} total</Badge>
             </div>
           </CardHeader>
@@ -954,7 +954,7 @@ export function ProjectOperationalDashboard({
             )}
             <button
               onClick={() => navigate(`/projects/${project.id}/changes`)}
-              className="mt-2 pt-2 border-t text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
+              className="mt-2 pt-2 border-t text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
             >
               View Change Orders
               <ChevronRight className="h-3 w-3" />
@@ -967,7 +967,7 @@ export function ProjectOperationalDashboard({
       {(project.status !== 'estimating' || mediaCounts.photos > 0 || mediaCounts.videos > 0 || pendingReceipts > 0 || documentCount > 0) && (
         <Card>
           <CardHeader className="p-3 pb-2">
-            <h3 className="text-sm font-semibold">Documentation</h3>
+            <h3 className="text-sm font-semibold tracking-tight">Documentation</h3>
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <div className="grid grid-cols-2 gap-2">

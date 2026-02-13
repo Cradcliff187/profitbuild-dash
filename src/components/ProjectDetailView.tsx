@@ -293,8 +293,8 @@ export const ProjectDetailView = () => {
                       "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                       // Active state - subtle
                       active && [
-                        "bg-primary/6 text-foreground font-medium",
-                        "border-l-2 border-primary -ml-[2px] pl-[calc(0.75rem+2px)]",
+                        "bg-primary/8 text-foreground font-medium",
+                        "border-l-[3px] border-primary -ml-[3px] pl-[calc(0.75rem+3px)]",
                       ],
                       // Collapsed mode
                       panelCollapsed && "justify-center px-0 w-10 mx-auto"
@@ -538,7 +538,7 @@ export const ProjectDetailView = () => {
       <aside
           className={cn(
             "sticky top-0 self-start h-screen border-r border-border/50",
-            "bg-white transition-all duration-200 flex flex-col shrink-0 relative",
+            "bg-slate-50/50 transition-all duration-200 flex flex-col shrink-0 relative",
             panelCollapsed ? "w-14" : "w-52"  // 56px collapsed, 208px expanded
           )}
       >
@@ -572,7 +572,7 @@ export const ProjectDetailView = () => {
         </Tooltip>
 
         {/* Compact Bottom Toggle (fallback) */}
-        <div className="p-2 border-t border-border/40 mt-auto">
+        <div className="p-2 border-t border-border/30 mt-auto">
           <Button
             variant="ghost"
             size="sm"
@@ -598,7 +598,8 @@ export const ProjectDetailView = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Compact Header */}
-        <header className="sticky top-0 z-10 border-b bg-background px-3 py-3 sm:px-4 sm:py-3">
+        <header className="sticky top-0 z-10 bg-background shadow-sm">
+          <div className="px-3 py-3 sm:px-4 sm:py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             {/* Left: Project Switcher */}
             <div className={cn("min-w-0", isMobile ? "w-full" : "flex-1 max-w-xl")}>
@@ -729,6 +730,8 @@ export const ProjectDetailView = () => {
               />
             </div>
           </div>
+          </div>
+          <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400" />
         </header>
 
         {/* Main Content Area */}

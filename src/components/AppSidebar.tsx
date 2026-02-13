@@ -55,7 +55,8 @@ import { getCompanyBranding } from "@/utils/companyBranding";
 import { supabase } from "@/integrations/supabase/client";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
 
-const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
+const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/large%20icon%20only%20(2).png';
+const logoHorizontalDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/glossy%20full%20horizontal.png';
 
 interface NavItem {
   title: string;
@@ -221,9 +222,9 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={collapsed && !isMobile ? `${item.title}${showBadge ? ` (${item.badgeCount})` : ''}` : undefined}
                       className={cn(
-                        "cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800",
+                        "cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800 transition-all duration-150",
                         collapsed ? "min-h-[36px] py-1.5" : "min-h-[44px] py-2.5",
-                        active && "font-semibold bg-slate-800 text-white border-l-2 border-orange-500"
+                        active && "font-semibold bg-orange-500/10 text-white border-l-[3px] border-orange-500"
                       )}
                     >
                       <div className="relative">
@@ -249,7 +250,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-slate-700" />}
+        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-slate-700 to-transparent" />}
       </div>
     );
   };
@@ -262,48 +263,63 @@ export function AppSidebar() {
       : "??";
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-700 bg-slate-900">
+    <Sidebar collapsible="icon" className="border-r border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950">
       <SidebarRail />
       {/* Header with Logo */}
       <SidebarHeader className={cn(
-        "border-b border-slate-700",
+        "border-b border-slate-700/50",
         collapsed ? "px-1 py-3" : "px-3 py-3"
       )}>
         <div className={cn(
           "flex items-center justify-between",
-          collapsed && "flex-col gap-2 items-center"
+          collapsed && !isMobile && "flex-col gap-2 items-center"
         )}>
-          <div className={cn(
-            "flex items-center gap-2",
-            collapsed && "flex-col gap-1.5 items-center"
-          )}>
-            <img
-              src={logoIcon}
-              alt={companyAbbr}
-              className={cn(
-                "shrink-0 rounded-lg object-cover",
-                collapsed ? "h-8 w-8" : "h-7 w-7"
-              )}
-              onError={(e) => {
-                e.currentTarget.src = logoIconDefault;
-              }}
-            />
-            {collapsed ? (
+          {isMobile ? (
+            <div className="flex items-center justify-center flex-1 min-w-0 py-1">
+              <img
+                src={logoHorizontalDefault}
+                alt={companyAbbr}
+                className="w-auto max-h-[44px] max-w-[85%] object-contain drop-shadow-md"
+                onError={(e) => {
+                  e.currentTarget.src = logoIconDefault;
+                }}
+              />
+            </div>
+          ) : collapsed ? (
+            <div className="flex flex-col gap-1.5 items-center">
+              <img
+                src={logoIcon}
+                alt={companyAbbr}
+                className="shrink-0 rounded-lg object-cover h-9 w-9"
+                onError={(e) => {
+                  e.currentTarget.src = logoIconDefault;
+                }}
+              />
               <span className="font-bold text-xs text-white text-center leading-tight">
                 {companyAbbr}
               </span>
-            ) : (
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <img
+                src={logoIcon}
+                alt={companyAbbr}
+                className="shrink-0 rounded-lg object-cover h-9 w-9"
+                onError={(e) => {
+                  e.currentTarget.src = logoIconDefault;
+                }}
+              />
               <span className="font-bold text-base text-white">RCG Work</span>
-            )}
-          </div>
+            </div>
+          )}
           {!collapsed && (
-            <SidebarTrigger className="h-7 w-7 text-slate-400 hover:text-white" />
+            <SidebarTrigger className="h-7 w-7 text-slate-400 hover:text-white shrink-0" />
           )}
         </div>
       </SidebarHeader>
 
       {/* Main Navigation */}
-      <SidebarContent className="px-2 py-2 bg-slate-900">
+      <SidebarContent className="px-2 py-2">
         {/* Main navigation groups */}
         {navGroups.map((group, idx) =>
           renderNavGroup(group, idx < navGroups.length - 1)
@@ -319,7 +335,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer with User */}
-      <SidebarFooter className="border-t border-slate-700 bg-slate-900">
+      <SidebarFooter className="border-t border-slate-700 bg-slate-800/30">
         {/* User Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

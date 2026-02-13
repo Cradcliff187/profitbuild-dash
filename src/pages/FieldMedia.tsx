@@ -125,14 +125,14 @@ export default function FieldMedia() {
 
                 {/* Desktop: Tabs + Controls in same row */}
                 <div className="hidden sm:flex items-center justify-between gap-4">
-                  <TabsList className="inline-flex gap-2 rounded-full bg-muted/40 p-1 h-auto">
+                  <TabsList className="inline-flex gap-2 rounded-full bg-muted/50 p-1 h-auto">
                     {tabOptions.map((tab) => {
                       const Icon = tab.icon;
                       return (
                         <TabsTrigger
                           key={tab.value}
                           value={tab.value}
-                          className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                          className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                         >
                           <Icon className="h-4 w-4" />
                           <span>{tab.label}</span>

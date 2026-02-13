@@ -191,9 +191,9 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-t-[3px] border-t-primary">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 tracking-tight">
             <Building2 className="h-5 w-5" />
             Edit Project
           </CardTitle>

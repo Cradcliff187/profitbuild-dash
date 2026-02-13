@@ -30,7 +30,7 @@ function MobileMenuTrigger() {
   );
 }
 
-const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Large%20Icon%20Only.png';
+const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/large%20icon%20only%20(2).png';
 
 // Map routes to page titles
 const getPageTitle = (pathname: string): string => {
@@ -169,24 +169,24 @@ export default function AppLayout() {
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
           {/* Mobile header with trigger */}
           {isMobile && (
-            <header className="flex flex-col lg:hidden shadow-sm">
-              <div className="flex h-16 items-center gap-3 border-b border-slate-700 bg-slate-900 px-4">
+            <header className="flex flex-col lg:hidden shadow-md">
+              <div className="flex h-16 items-center gap-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4">
                 <img
                   src={logoIcon}
                   alt={companyAbbr}
-                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover shadow-md"
                   onError={(e) => {
                     e.currentTarget.src = logoIconDefault;
                   }}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-base text-white truncate">
+                  <div className="font-bold text-base text-white truncate tracking-tight">
                     {pageTitle}
                   </div>
                 </div>
                 <MobileMenuTrigger />
               </div>
-              <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400" />
+              <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400" />
             </header>
           )}
           

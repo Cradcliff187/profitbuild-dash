@@ -30,7 +30,7 @@ export function PageHeader({
     return (
       <>
         {showAccent && (
-          <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400 mb-3" />
+          <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400 mb-3" />
         )}
       </>
     );
@@ -43,7 +43,7 @@ export function PageHeader({
           {children}
         </div>
         {showAccent && (
-          <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400" />
+          <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400" />
         )}
       </div>
     );
@@ -57,12 +57,12 @@ export function PageHeader({
           {/* Left side: Icon + Title + Description */}
           <div className="flex items-start gap-3 min-w-0">
             {Icon && (
-              <div className="flex-shrink-0 mt-0.5">
+              <div className="flex-shrink-0 mt-0.5 p-1.5 rounded-lg bg-primary/10">
                 <Icon className="h-6 w-6 text-primary" />
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-xl font-bold text-foreground truncate">
+              <h1 className="text-xl font-bold text-foreground truncate tracking-tight">
                 {title}
               </h1>
               {description && (
@@ -91,7 +91,7 @@ export function PageHeader({
 
       {/* Orange accent line */}
       {showAccent && (
-        <div className="h-0.5 bg-gradient-to-r from-primary to-orange-400" />
+        <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400" />
       )}
     </div>
   );

@@ -230,28 +230,28 @@ export default function Training() {
         {/* Desktop Tabs */}
         <div className="hidden sm:block mb-4">
           <div className="overflow-x-auto pb-2 -mx-4 px-4">
-            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/40 p-1 min-w-full">
+            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/50 p-1 min-w-full">
               <TabsTrigger
                 value="all"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 All
               </TabsTrigger>
               <TabsTrigger
                 value="pending"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 Pending
               </TabsTrigger>
               <TabsTrigger
                 value="completed"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 Completed
               </TabsTrigger>
               <TabsTrigger
                 value="overdue"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 Overdue
               </TabsTrigger>

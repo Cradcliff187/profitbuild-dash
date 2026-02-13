@@ -99,31 +99,31 @@ export default function SMSAdmin() {
         {/* Desktop Tabs - Styled like Time Management */}
         <div className="hidden sm:block mb-4">
           <div className="overflow-x-auto pb-2 -mx-4 px-4">
-            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/40 p-1 min-w-full">
+            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/50 p-1 min-w-full">
               <TabsTrigger
                 value="compose"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>Compose</span>
               </TabsTrigger>
               <TabsTrigger
                 value="scheduled"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 <Clock className="h-4 w-4" />
                 <span>Scheduled</span>
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 <History className="h-4 w-4" />
                 <span>History</span>
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
-                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
               >
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>

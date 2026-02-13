@@ -8,7 +8,7 @@ export interface BrandedLoaderProps {
   className?: string;
 }
 
-const DEFAULT_LOGO_URL = "https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Stacked%20Icon+Logo%20Transparent%202000x2000.png";
+const DEFAULT_LOGO_URL = "https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/horiztonal%20glossy.png";
 
 const sizeConfig = {
   sm: {

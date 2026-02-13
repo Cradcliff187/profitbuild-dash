@@ -215,12 +215,12 @@ export default function KPIGuide() {
         {/* Desktop Orange Pills */}
         <div className="hidden sm:block mb-4">
           <div className="overflow-x-auto pb-2 -mx-4 px-4">
-            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/40 p-1 min-w-full">
+            <TabsList className="inline-flex w-auto flex-nowrap justify-start gap-2 rounded-full bg-muted/50 p-1 min-w-full">
               {tabOptions.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shrink-0"
+                  className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm shrink-0"
                 >
                   <tab.icon className="h-4 w-4" />
                   <span>{tab.label}</span>
