@@ -158,9 +158,9 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     initialPage: 1,
   });
 
-  const paginatedReceipts = sorting.sortedReceipts.slice(
-    pagination.startIndex,
-    pagination.endIndex
+  const paginatedReceipts = useMemo(
+    () => sorting.sortedReceipts.slice(pagination.startIndex, pagination.endIndex),
+    [sorting.sortedReceipts, pagination.startIndex, pagination.endIndex]
   );
 
   // Bulk selection handlers
