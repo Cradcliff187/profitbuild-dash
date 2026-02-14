@@ -75,6 +75,208 @@ export function escapeHtml(text: string): string {
 }
 
 // ============================================================
+// Email-Safe Color Constants
+// ============================================================
+
+/**
+ * Pre-computed solid color alternatives for hex-alpha patterns.
+ * Email clients don't support 8-digit hex (#cf791d15) or rgba backgrounds.
+ * These are visually equivalent solid colors computed on white.
+ */
+export const EMAIL_COLORS = {
+  // Light tinted backgrounds (replaces ${primaryColor}15, 08, 05)
+  primaryLight15: '#fef3e7',
+  primaryLight08: '#fef9f2',
+  primaryLight05: '#fffbf7',
+  secondaryLight08: '#f0f2f5',
+
+  // Border colors (replaces ${primaryColor}20, 30, 40)
+  primaryBorder20: '#f5dfc0',
+  primaryBorder30: '#efd0a5',
+  primaryBorder40: '#e9c18b',
+
+  // Alert/urgency
+  overdueLight15: '#fef2f2',
+  overdueBorder: '#dc2626',
+  overdueText: '#991b1b',
+
+  // Warning box
+  warningBg: '#fffbf0',
+  warningBorder: '#ffd666',
+  warningText: '#8b6914',
+
+  // Action required box
+  actionBg: '#fef3e7',
+  actionBorder: '#cf791d',
+  actionText: '#744210',
+
+  // Standardised gray palette
+  textPrimary: '#1a202c',
+  textSecondary: '#4a5568',
+  textTertiary: '#718096',
+  textMuted: '#a0aec0',
+  textLight: '#94a3b8',
+  borderLight: '#e2e8f0',
+} as const;
+
+// ============================================================
+// Hosted Email Icon URLs
+// ============================================================
+
+const EMAIL_ICON_BASE =
+  'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/email-icons';
+
+export const EMAIL_ICONS = {
+  lock: `${EMAIL_ICON_BASE}/email-icon-lock.png`,
+  shield: `${EMAIL_ICON_BASE}/email-icon-shield.png`,
+  receipt: `${EMAIL_ICON_BASE}/email-icon-receipt.png`,
+  training: `${EMAIL_ICON_BASE}/email-icon-training.png`,
+  trainingOverdue: `${EMAIL_ICON_BASE}/email-icon-training-overdue.png`,
+} as const;
+
+export type EmailIconKey = keyof typeof EMAIL_ICONS;
+
+// ============================================================
+// Email Component Helpers
+// ============================================================
+
+/**
+ * Hero section with a hosted PNG icon, title, and subtitle.
+ * The subtitle parameter accepts raw HTML – callers must escape user values.
+ */
+export function buildHeroSection(options: {
+  iconUrl: string;
+  iconAlt: string;
+  title: string;
+  /** Raw HTML – caller must escape user-supplied values */
+  subtitle: string;
+  branding: BrandingConfig;
+}): string {
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="80" style="margin: 0 auto 24px;">
+      <tr>
+        <td style="width: 80px; height: 80px; text-align: center; vertical-align: middle;">
+          <img src="${options.iconUrl}" alt="${escapeHtml(options.iconAlt)}" width="80" height="80" style="display: block; border: 0; outline: none;" />
+        </td>
+      </tr>
+    </table>
+    <h1 style="margin: 0 0 16px; color: ${options.branding.secondaryColor}; font-size: 32px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px;">
+      ${escapeHtml(options.title)}
+    </h1>
+    <p style="margin: 0 auto; color: ${EMAIL_COLORS.textSecondary}; font-size: 17px; line-height: 1.6; max-width: 440px;">
+      ${options.subtitle}
+    </p>
+  `;
+}
+
+/**
+ * CTA button with MSO VML fallback for Outlook.
+ */
+export function buildCtaButton(options: {
+  href: string;
+  label: string;
+  branding: BrandingConfig;
+  width?: number;
+}): string {
+  const w = options.width || 240;
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+      <tr>
+        <td align="center">
+          <!--[if mso]>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${options.href}" style="height:56px;v-text-anchor:middle;width:${w}px;" arcsize="14%" strokecolor="${options.branding.primaryColor}" fillcolor="${options.branding.primaryColor}">
+            <w:anchorlock/>
+            <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:600;">${escapeHtml(options.label)}</center>
+          </v:roundrect>
+          <![endif]-->
+          <!--[if !mso]><!-->
+          <a href="${options.href}" target="_blank" style="display: inline-block; min-width: ${w}px; padding: 18px 48px; background-color: ${options.branding.primaryColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center;">
+            ${escapeHtml(options.label)}
+          </a>
+          <!--<![endif]-->
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+/**
+ * Styled notice box (security warning, action required, info).
+ */
+export function buildNoticeBox(options: {
+  type: 'warning' | 'action' | 'info';
+  /** Raw HTML content for the notice */
+  html: string;
+}): string {
+  const styles: Record<string, { bg: string; border: string; text: string }> = {
+    warning: { bg: EMAIL_COLORS.warningBg, border: EMAIL_COLORS.warningBorder, text: EMAIL_COLORS.warningText },
+    action: { bg: EMAIL_COLORS.actionBg, border: EMAIL_COLORS.actionBorder, text: EMAIL_COLORS.actionText },
+    info: { bg: '#f0f4f8', border: '#4299e1', text: '#2c5282' },
+  };
+  const s = styles[options.type];
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse: collapse;">
+      <tr>
+        <td style="background-color: ${s.bg}; border-radius: 8px; padding: 20px; border: 1px solid ${s.border};">
+          <p style="margin: 0; color: ${s.text}; font-size: 14px; line-height: 1.6; text-align: center;">
+            ${options.html}
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+/**
+ * Branded detail card with left accent border.
+ * Use for credentials, receipt details, training info, etc.
+ */
+export function buildDetailCard(options: {
+  branding: BrandingConfig;
+  title?: string;
+  /** Raw HTML for the card content */
+  contentHtml: string;
+}): string {
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse: collapse;">
+      <tr>
+        <td style="background-color: ${EMAIL_COLORS.primaryLight08}; border-radius: 12px; padding: 28px; border-left: 4px solid ${options.branding.primaryColor};">
+          ${options.title ? `
+            <h3 style="margin: 0 0 16px; color: ${options.branding.secondaryColor}; font-size: 18px; font-weight: 600;">
+              ${escapeHtml(options.title)}
+            </h3>
+          ` : ''}
+          ${options.contentHtml}
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+/**
+ * "Or copy and paste this link" fallback section.
+ */
+export function buildAlternativeLink(options: {
+  href: string;
+  branding: BrandingConfig;
+}): string {
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse: collapse;">
+      <tr>
+        <td style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid ${options.branding.primaryColor};">
+          <p style="margin: 0 0 12px; color: ${EMAIL_COLORS.textTertiary}; font-size: 14px; line-height: 1.5; font-weight: 500;">
+            Or copy and paste this link:
+          </p>
+          <p style="margin: 0; word-break: break-all;">
+            <a href="${options.href}" style="color: ${options.branding.primaryColor}; font-size: 13px; text-decoration: underline; font-family: 'Courier New', monospace;">${options.href}</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+// ============================================================
 // Email Template Builder
 // ============================================================
 
@@ -82,23 +284,17 @@ export function escapeHtml(text: string): string {
  * Build a complete branded email HTML document.
  *
  * Uses table-based layout for maximum email client compatibility.
- * Tested pattern across send-auth-email, send-receipt-notification,
- * and send-training-notification.
- *
- * @param branding  - Company branding config from fetchBranding()
- * @param options   - Email-specific content
+ * Includes MSO conditional fallbacks for Outlook.
  */
 export function buildBrandedEmail(
   branding: BrandingConfig,
   options: {
-    /** Hidden preheader text (shows in email preview, not body) */
     preheaderText: string;
-    /** Raw HTML for the hero/icon area (centered, above main content) */
     heroHtml?: string;
-    /** Raw HTML for the main body content */
     bodyHtml: string;
-    /** Optional footer override. Defaults to standard company footer. */
     footerHtml?: string;
+    /** Optional HTML <title> tag content */
+    title?: string;
   }
 ): string {
   const footer =
@@ -107,10 +303,10 @@ export function buildBrandedEmail(
     <p style="margin: 0 0 8px; color: ${branding.secondaryColor}; font-size: 15px; font-weight: 600; line-height: 1.5;">
       ${escapeHtml(branding.companyLegalName)}
     </p>
-    <p style="margin: 0 0 16px; color: #718096; font-size: 14px; line-height: 1.5;">
+    <p style="margin: 0 0 16px; color: ${EMAIL_COLORS.textTertiary}; font-size: 14px; line-height: 1.5;">
       ${escapeHtml(branding.companyAbbreviation)} Construction Management Platform
     </p>
-    <p style="margin: 0; color: #a0aec0; font-size: 12px; line-height: 1.6;">
+    <p style="margin: 0; color: ${EMAIL_COLORS.textMuted}; font-size: 12px; line-height: 1.6;">
       &copy; ${new Date().getFullYear()} ${escapeHtml(branding.companyLegalName)}. All Rights Reserved.<br>
       This is an automated message, please do not reply to this email.
     </p>
@@ -122,6 +318,7 @@ export function buildBrandedEmail(
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        ${options.title ? `<title>${escapeHtml(options.title)}</title>` : ''}
         <!--[if mso]>
         <style type="text/css">
           body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
@@ -141,11 +338,16 @@ export function buildBrandedEmail(
             <td align="center" style="padding: 48px 20px;">
 
               <!-- Container -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(27, 43, 67, 0.12); overflow: hidden;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden;">
 
                 <!-- Branded Header -->
                 <tr>
+                  <!--[if mso]>
+                  <td style="background-color: ${branding.secondaryColor}; padding: 40px 48px; text-align: center; border-bottom: 4px solid ${branding.primaryColor};">
+                  <![endif]-->
+                  <!--[if !mso]><!-->
                   <td style="background: linear-gradient(135deg, ${branding.secondaryColor} 0%, #243550 100%); padding: 40px 48px; text-align: center; border-bottom: 4px solid ${branding.primaryColor};">
+                  <!--<![endif]-->
                     <img src="${branding.logoFullUrl}" alt="${escapeHtml(branding.companyName)}" style="max-width: 260px; height: auto; display: block; margin: 0 auto;" />
                   </td>
                 </tr>
@@ -168,7 +370,12 @@ export function buildBrandedEmail(
 
                 <!-- Footer -->
                 <tr>
-                  <td style="padding: 32px 48px; text-align: center; background: linear-gradient(180deg, #ffffff 0%, ${branding.lightBgColor} 100%); border-top: 1px solid #e2e8f0;">
+                  <!--[if mso]>
+                  <td style="padding: 32px 48px; text-align: center; background-color: ${branding.lightBgColor}; border-top: 1px solid ${EMAIL_COLORS.borderLight};">
+                  <![endif]-->
+                  <!--[if !mso]><!-->
+                  <td style="padding: 32px 48px; text-align: center; background: linear-gradient(180deg, #ffffff 0%, ${branding.lightBgColor} 100%); border-top: 1px solid ${EMAIL_COLORS.borderLight};">
+                  <!--<![endif]-->
                     ${footer}
                   </td>
                 </tr>
