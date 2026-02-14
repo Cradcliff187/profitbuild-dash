@@ -444,41 +444,37 @@ export function buildBrandedReport(
 
           .header {
             background: linear-gradient(135deg, ${branding.secondaryColor} 0%, #243550 100%);
-            padding: 60px 40px;
+            padding: 20px 40px;
             text-align: center;
             border-bottom: 4px solid ${branding.primaryColor};
           }
 
-          .logo { max-width: 280px; height: auto; margin-bottom: 20px; }
+          .logo { max-width: 220px; height: auto; }
 
-          .header-title {
-            font-size: 36px; font-weight: bold; color: white;
-            margin: 20px 0 0 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-          }
-
-          .cover-content { padding: 40px; }
+          .cover-content { padding: 24px 40px; }
 
           .report-title {
-            font-size: 28px; font-weight: bold;
+            font-size: 24px; font-weight: bold;
             color: ${branding.secondaryColor};
-            margin: 0 0 30px 0; text-align: center;
+            margin: 0 0 16px 0; text-align: center;
           }
 
           .project-details {
             background: ${branding.lightBgColor};
-            padding: 30px; border-radius: 12px;
+            padding: 20px 24px; border-radius: 8px;
             border-left: 4px solid ${branding.primaryColor};
-            margin-bottom: 40px;
+            margin-bottom: 20px;
           }
 
           .project-details-title {
             color: ${branding.secondaryColor};
-            font-size: 18px; font-weight: 600;
-            margin-bottom: 20px; display: block;
+            font-size: 14px; font-weight: 600;
+            margin-bottom: 12px; display: block;
+            letter-spacing: 0.5px;
           }
 
           .detail-row {
-            margin: 12px 0; font-size: 14px; color: #4a5568;
+            margin: 6px 0; font-size: 13px; color: #4a5568;
           }
 
           .detail-row strong {
@@ -487,15 +483,16 @@ export function buildBrandedReport(
           }
 
           .report-summary {
-            margin-top: 30px; padding: 20px;
+            margin-top: 16px; padding: 16px 20px;
             background: linear-gradient(to right, ${branding.lightBgColor}, #ffffff);
             border-left: 4px solid ${branding.primaryColor};
             border-radius: 8px; page-break-inside: avoid;
           }
 
           .report-summary-title {
-            font-size: 16px; font-weight: bold;
-            color: ${branding.secondaryColor}; margin-bottom: 12px;
+            font-size: 14px; font-weight: bold;
+            color: ${branding.secondaryColor}; margin-bottom: 8px;
+            letter-spacing: 0.5px;
           }
 
           .report-summary-text {
@@ -524,7 +521,6 @@ export function buildBrandedReport(
           <!-- Header -->
           <div class="header">
             <img src="${branding.logoFullUrl}" alt="${escapeHtml(branding.companyName)}" class="logo">
-            <div class="header-title">${escapeHtml(branding.companyName)}</div>
           </div>
 
           <!-- Cover -->

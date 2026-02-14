@@ -141,7 +141,7 @@ if (dbCount !== localCount) {
 
 5. **Only then deploy using MCP**
    - Use `mcp_supabase_deploy_edge_function` after all checks pass
-   - For **send-auth-email**, **send-receipt-notification**, or **send-training-notification**: see "Edge Functions Using _shared (brandedTemplate) - PINNED" below — you must pass both the function index and `supabase/functions/_shared/brandedTemplate.ts` in the `files` array with the exact path structure
+   - For **send-auth-email**, **send-receipt-notification**, **send-training-notification**, or **generate-media-report**: see "Edge Functions Using _shared (brandedTemplate) - PINNED" below — you must pass both the function index and `supabase/functions/_shared/brandedTemplate.ts` in the `files` array with the exact path structure
    - Never skip the checklist - it catches issues before deployment
 
 **Note:** Even for small changes (like CORS headers), always run the full checklist. It takes seconds and prevents deployment failures.
@@ -155,16 +155,18 @@ if (dbCount !== localCount) {
 | send-auth-email | false | 109 |
 | send-receipt-notification | false | 93 |
 | send-training-notification | false | 42 |
+| generate-media-report | true | 106 |
 
 **Source of truth (local):**
 - `supabase/functions/send-auth-email/index.ts`
 - `supabase/functions/send-receipt-notification/index.ts`
 - `supabase/functions/send-training-notification/index.ts`
-- `supabase/functions/_shared/brandedTemplate.ts` (shared by all three)
+- `supabase/functions/generate-media-report/index.ts`
+- `supabase/functions/_shared/brandedTemplate.ts` (shared by all four)
 
 **Deploying or updating these functions (use Supabase MCP in Cursor):**
 
-1. **Always** include both files when deploying any of the three functions:
+1. **Always** include both files when deploying any of the four functions:
    - `supabase/functions/<function-name>/index.ts` (entrypoint)
    - `supabase/functions/_shared/brandedTemplate.ts` (full content from repo)
 
@@ -172,12 +174,12 @@ if (dbCount !== localCount) {
    - `project_id`: `clsjdxwbsjbhjibvlqbz` (Estimates/Projects/WO)
    - `name`: function slug (e.g. `send-auth-email`)
    - `entrypoint_path`: `supabase/functions/<function-name>/index.ts`
-   - `verify_jwt`: false for all three
+   - `verify_jwt`: true for generate-media-report; false for send-auth-email, send-receipt-notification, send-training-notification
    - `files`: array with both the index content and the shared module content, with `name` keys exactly:
      - `supabase/functions/<function-name>/index.ts`
      - `supabase/functions/_shared/brandedTemplate.ts`
 
-3. **When updating `_shared/brandedTemplate.ts`:** Redeploy all three functions so each bundle gets the updated shared code.
+3. **When updating `_shared/brandedTemplate.ts`:** Redeploy all four functions so each bundle gets the updated shared code.
 
 4. **Validation after deploy:** Use `mcp_supabase_list_edge_functions` and `mcp_supabase_get_edge_function` to confirm status ACTIVE and that the deployed files include the `_shared/brandedTemplate.ts` import and bundled content.
 
