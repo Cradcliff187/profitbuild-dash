@@ -366,16 +366,14 @@ const ReceiptsCardViewComponent: React.FC<ReceiptsCardViewProps> = ({
 };
 
 export const ReceiptsCardView = React.memo(ReceiptsCardViewComponent, (prevProps, nextProps) => {
-  const expandedCardsEqual = JSON.stringify(Array.from(prevProps.expandedCards).sort()) === JSON.stringify(Array.from(nextProps.expandedCards).sort());
   return (
-    prevProps.receipts.length === nextProps.receipts.length &&
-    prevProps.selectedIds.length === nextProps.selectedIds.length &&
+    prevProps.receipts === nextProps.receipts &&
+    prevProps.selectedIds === nextProps.selectedIds &&
+    prevProps.expandedCards === nextProps.expandedCards &&
     prevProps.loading === nextProps.loading &&
     prevProps.pageSize === nextProps.pageSize &&
     prevProps.totalCount === nextProps.totalCount &&
     prevProps.pagination.currentPage === nextProps.pagination.currentPage &&
-    prevProps.pagination.totalPages === nextProps.pagination.totalPages &&
-    JSON.stringify(prevProps.selectedIds) === JSON.stringify(nextProps.selectedIds) &&
-    expandedCardsEqual
+    prevProps.pagination.totalPages === nextProps.pagination.totalPages
   );
 });

@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -54,6 +54,7 @@ export const useReceiptsData = () => {
     isLoading: receiptsLoading,
   } = useQuery({
     queryKey: receiptQueryKeys.list(),
+    staleTime: 1000 * 60 * 2, // 2 minutes — realtime subscription still invalidates on actual changes
     queryFn: async (): Promise<UnifiedReceipt[]> => {
       const { data: receiptsData, error: receiptsError } = await supabase
         .from('receipts')
@@ -119,10 +120,7 @@ export const useReceiptsData = () => {
           submitted_by_name: receipt.user_id
             ? profilesMap.get(receipt.user_id)
             : undefined,
-        }))
-        .sort((a: UnifiedReceipt, b: UnifiedReceipt) =>
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
+        }));
     },
   });
 
@@ -156,6 +154,8 @@ export const useReceiptsData = () => {
     staleTime: 1000 * 60 * 30,
   });
 
+  const realtimeDebounceRef = useRef<NodeJS.Timeout>();
+
   useEffect(() => {
     const channel = supabase
       .channel('receipts-realtime-updates')
@@ -164,11 +164,16 @@ export const useReceiptsData = () => {
         schema: 'public',
         table: 'receipts',
       }, () => {
-        queryClient.invalidateQueries({ queryKey: receiptQueryKeys.all });
+        // Debounce to batch rapid changes (e.g. bulk approve of N receipts → 1 refetch)
+        clearTimeout(realtimeDebounceRef.current);
+        realtimeDebounceRef.current = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: receiptQueryKeys.all });
+        }, 500);
       })
       .subscribe();
 
     return () => {
+      clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

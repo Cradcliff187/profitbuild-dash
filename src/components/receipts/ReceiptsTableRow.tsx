@@ -258,12 +258,10 @@ const ReceiptsTableRowComponent: React.FC<ReceiptsTableRowProps> = ({
 
 export const ReceiptsTableRow = React.memo(ReceiptsTableRowComponent, (prevProps, nextProps) => {
   return (
-    prevProps.receipt.id === nextProps.receipt.id &&
+    prevProps.receipt === nextProps.receipt &&
     prevProps.selected === nextProps.selected &&
-    prevProps.visibleColumns.length === nextProps.visibleColumns.length &&
-    prevProps.displayColumns.length === nextProps.displayColumns.length &&
-    JSON.stringify(prevProps.visibleColumns) === JSON.stringify(nextProps.visibleColumns) &&
-    JSON.stringify(prevProps.displayColumns) === JSON.stringify(nextProps.displayColumns)
+    prevProps.visibleColumns === nextProps.visibleColumns &&
+    prevProps.displayColumns === nextProps.displayColumns
   );
 });
 
