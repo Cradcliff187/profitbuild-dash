@@ -47,7 +47,7 @@ export async function fetchBranding(supabase: SupabaseClient): Promise<BrandingC
     lightBgColor: branding?.light_bg_color || '#f4f7f9',
     logoFullUrl:
       branding?.logo_full_url ||
-      'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/Full%20Horizontal%20Logo%20-%201500x500.png',
+      'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/horiztonal%20glossy.png',
     companyName: branding?.company_name || 'Radcliff Construction Group',
     companyLegalName: branding?.company_legal_name || 'Radcliff Construction Group, LLC',
     companyAbbreviation: branding?.company_abbreviation || 'RCG',
