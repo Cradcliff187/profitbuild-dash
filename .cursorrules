@@ -152,10 +152,10 @@ if (dbCount !== localCount) {
 
 | Function | verify_jwt | Current live version (pinned) |
 |----------|------------|--------------------------------|
-| send-auth-email | false | 109 |
-| send-receipt-notification | false | 93 |
-| send-training-notification | false | 42 |
-| generate-media-report | true | 109 |
+| send-auth-email | false | 111 |
+| send-receipt-notification | false | 95 |
+| send-training-notification | false | 44 |
+| generate-media-report | true | 113 |
 
 **Source of truth (local):**
 - `supabase/functions/send-auth-email/index.ts`
