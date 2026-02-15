@@ -155,7 +155,7 @@ if (dbCount !== localCount) {
 | send-auth-email | false | 109 |
 | send-receipt-notification | false | 93 |
 | send-training-notification | false | 42 |
-| generate-media-report | true | 106 |
+| generate-media-report | true | 109 |
 
 **Source of truth (local):**
 - `supabase/functions/send-auth-email/index.ts`
@@ -166,11 +166,13 @@ if (dbCount !== localCount) {
 
 **Deploying or updating these functions (use Supabase MCP in Cursor):**
 
-1. **Always** include both files when deploying any of the four functions:
+1. **Full content – CRITICAL:** The content passed to MCP must be the **entire** file from the repo. Always read each file with the Read tool (no line limit, no truncation) and use that exact string as the `content` for each entry in `files`. Never paste summarized, truncated, or placeholder code; incomplete content causes broken or partially deployed functions.
+
+2. **Always** include both files when deploying any of the four functions:
    - `supabase/functions/<function-name>/index.ts` (entrypoint)
    - `supabase/functions/_shared/brandedTemplate.ts` (full content from repo)
 
-2. **MCP deploy parameters:**
+3. **MCP deploy parameters:**
    - `project_id`: `clsjdxwbsjbhjibvlqbz` (Estimates/Projects/WO)
    - `name`: function slug (e.g. `send-auth-email`)
    - `entrypoint_path`: `supabase/functions/<function-name>/index.ts`
@@ -179,9 +181,11 @@ if (dbCount !== localCount) {
      - `supabase/functions/<function-name>/index.ts`
      - `supabase/functions/_shared/brandedTemplate.ts`
 
-3. **When updating `_shared/brandedTemplate.ts`:** Redeploy all four functions so each bundle gets the updated shared code.
+4. **When updating `_shared/brandedTemplate.ts`:** Redeploy all four functions so each bundle gets the updated shared code.
 
-4. **Validation after deploy:** Use `mcp_supabase_list_edge_functions` and `mcp_supabase_get_edge_function` to confirm status ACTIVE and that the deployed files include the `_shared/brandedTemplate.ts` import and bundled content.
+5. **Other _shared usage:** Any edge function that imports from `_shared/` (e.g. `quickbooks-callback` uses `_shared/quickbooks.ts`) must be deployed with that shared file included in `files` the same way—full file content, correct path in `name`.
+
+6. **Validation after deploy:** Use `mcp_supabase_list_edge_functions` and `mcp_supabase_get_edge_function` to confirm status ACTIVE and that the deployed files include the `_shared/brandedTemplate.ts` import and bundled content.
 
 ## Edge Function Dependencies - CRITICAL
 

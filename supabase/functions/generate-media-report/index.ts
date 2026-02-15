@@ -229,24 +229,52 @@ Deno.serve(async (req) => {
 
     // ── Build report HTML using shared template ─────────────
     const detailsHtml = `
-      <div class="detail-row">
-        <strong>Project:</strong> ${escapeHtml(project.project_name)}
+      <div class="detail-cell">
+        <div class="detail-label">Project Number</div>
+        <div class="detail-value mono">${escapeHtml(project.project_number)}</div>
       </div>
-      <div class="detail-row">
-        <strong>Project #:</strong> ${escapeHtml(project.project_number)}
+      <div class="detail-cell">
+        <div class="detail-label">Client</div>
+        <div class="detail-value">${escapeHtml(project.client_name || 'N/A')}</div>
       </div>
-      ${project.client_name ? `
-        <div class="detail-row">
-          <strong>Client:</strong> ${escapeHtml(project.client_name)}
+      <div class="detail-cell">
+        <div class="detail-label">Location</div>
+        <div class="detail-value">${escapeHtml(project.address || 'N/A')}</div>
+      </div>
+      <div class="detail-cell">
+        <div class="detail-label">Report Generated</div>
+        <div class="detail-value">${new Date().toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        })}</div>
+      </div>
+    `;
+
+    // Count media types for stats bar
+    const photoCount = mediaWithBase64.filter((m: any) => m.file_type === 'image').length;
+    const videoCount = mediaWithBase64.filter((m: any) => m.file_type === 'video').length;
+    const uniqueDates = new Set(mediaWithBase64.map((m: any) =>
+      new Date(m.taken_at || m.created_at).toLocaleDateString()
+    )).size;
+
+    const statsBarHtml = `
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-number orange">${mediaWithBase64.length}</div>
+          <div class="stat-label">Media Items</div>
         </div>
-      ` : ''}
-      ${project.address ? `
-        <div class="detail-row">
-          <strong>Location:</strong> ${escapeHtml(project.address)}
+        <div class="stat-item">
+          <div class="stat-number">${photoCount}</div>
+          <div class="stat-label">Photos</div>
         </div>
-      ` : ''}
-      <div class="detail-row">
-        <strong>Total Media Items:</strong> ${mediaWithBase64.length}
+        <div class="stat-item">
+          <div class="stat-number">${videoCount}</div>
+          <div class="stat-label">Videos</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">${uniqueDates}</div>
+          <div class="stat-label">${uniqueDates === 1 ? 'Day' : 'Days'}</div>
+        </div>
       </div>
     `;
 
@@ -258,12 +286,13 @@ Deno.serve(async (req) => {
     );
 
     const html = buildBrandedReport(branding, {
-      title: reportTitle || `${project.project_name} - Media Report`,
+      title: reportTitle || project.project_name,
       detailsHtml,
       summary,
-      bodyHtml: storyBodyHtml,
+      bodyHtml: statsBarHtml + storyBodyHtml,
       recipientName: project.client_name || undefined,
       additionalCss: getStoryTimelineCss(branding, opts),
+      projectNumber: project.project_number,
     });
 
     const htmlSize = new TextEncoder().encode(html).length;
@@ -486,83 +515,74 @@ function generateStoryTimeline(
   });
 
   return `
-    <div class="story-section">
+    <div class="timeline-section">
       ${Array.from(photosByDate.entries())
-        .map(
-          ([date, photos]) => `
-        <div class="story-date-group">
-          <div class="story-date-header">${date}</div>
-          ${photos
-            .map((media: any) => {
+        .map(([date, photos]) => `
+          <div class="date-group">
+            <div class="date-header">
+              <div class="date-badge">${date}</div>
+              <div class="date-line"></div>
+              <div class="date-count">${photos.length} item${photos.length !== 1 ? 's' : ''}</div>
+            </div>
+            ${photos.map((media: any) => {
               const mediaComments = comments.get(media.id) || [];
               const timestamp = new Date(media.taken_at || media.created_at);
-              const globalIndex = mediaItems.findIndex(
-                (m: any) => m.id === media.id
-              );
+              const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
+              const isVideo = media.file_type === 'video';
 
               return `
-              <div class="story-item">
-                <div class="story-thumbnail">
-                  <img src="${media.file_url}" alt="${escapeHtml(media.caption || 'Photo')}">
-                </div>
-                <div class="story-content">
-                  ${opts.showNumbering
-                    ? `<div class="story-number">#${globalIndex + 1}</div>`
-                    : ''}
-                  ${
-                    media.caption
-                      ? `<div class="story-caption">${escapeHtml(media.caption)}</div>`
-                      : ''
-                  }
-                  <div class="story-meta">
+                <div class="media-card">
+                  <div class="media-image">
+                    <img src="${isVideo && media.thumbnail_url ? media.thumbnail_url : media.file_url}"
+                         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">
+                    ${opts.showNumbering
+                      ? `<span class="media-number">#${globalIndex + 1}</span>`
+                      : ''}
+                    <span class="media-type-badge">${isVideo ? 'Video' : 'Photo'}</span>
+                  </div>
+                  <div class="media-info">
                     ${opts.showTimestamps ? `
-                      <div class="story-meta-item">
-                        <strong>Time:</strong> ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      <div class="media-time">
+                        ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     ` : ''}
-                    ${
-                      media.location_name
-                        ? `<div class="story-meta-item"><strong>Location:</strong> ${escapeHtml(media.location_name)}</div>`
-                        : ''
+                    ${media.caption
+                      ? `<div class="media-caption">${escapeHtml(media.caption)}</div>`
+                      : '<div class="media-caption empty">No caption</div>'
                     }
-                    ${
-                      opts.showGps && media.latitude && media.longitude && !media.location_name
-                        ? `<div class="story-meta-item"><strong>GPS:</strong> ${media.latitude.toFixed(4)}&deg;, ${media.longitude.toFixed(4)}&deg;</div>`
-                        : ''
-                    }
-                  </div>
-                  ${
-                    media.description
-                      ? `<div style="font-size: 12px; color: #64748b; margin-top: 6px;">${escapeHtml(media.description)}</div>`
+                    ${media.description
+                      ? `<div class="media-description">${escapeHtml(media.description)}</div>`
                       : ''
-                  }
-                  ${
-                    opts.showComments && mediaComments.length > 0
-                      ? `
-                    <div class="story-comments">
-                      ${mediaComments
-                        .map(
-                          (comment: any) => `
-                        <div class="story-comment">
-                          <span class="story-comment-author">${comment.profiles?.full_name || 'User'}:</span>
-                          ${escapeHtml(comment.comment_text)}
-                        </div>
-                      `
-                        )
-                        .join('')}
+                    }
+                    <div class="media-meta">
+                      ${media.location_name
+                        ? `<span class="meta-tag">${escapeHtml(media.location_name)}</span>`
+                        : ''
+                      }
+                      ${opts.showGps && media.latitude && media.longitude
+                        ? `<span class="meta-tag">GPS: ${media.latitude.toFixed(4)}&deg;, ${media.longitude.toFixed(4)}&deg;</span>`
+                        : ''
+                      }
                     </div>
-                  `
-                      : ''
-                  }
+                    ${opts.showComments && mediaComments.length > 0 ? `
+                      <div class="media-comments">
+                        ${mediaComments.map((comment: any) => `
+                          <div class="comment-item">
+                            <div class="comment-avatar">${(comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase()}</div>
+                            <div>
+                              <span class="comment-author">${escapeHtml(comment.profiles?.full_name || 'User')}</span> —
+                              ${escapeHtml(comment.comment_text)}
+                            </div>
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : ''}
+                  </div>
                 </div>
-              </div>
-            `;
-            })
-            .join('')}
-        </div>
-      `
-        )
-        .join('')}
+              `;
+            }).join('')}
+          </div>
+        `).join('')}
     </div>
   `;
 }
@@ -572,90 +592,202 @@ function generateStoryTimeline(
 // ================================================================
 
 function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): string {
-  const sizeMap = {
-    small:  { width: '180px', height: '135px', printMax: '120px' },
-    medium: { width: '280px', height: '210px', printMax: '200px' },
-    large:  { width: '400px', height: '300px', printMax: '280px' },
+  // Map imageSize option to media card image column width
+  const imgColMap = {
+    small: '200px',
+    medium: '260px',
+    large: '320px',
   };
-  const imgSize = sizeMap[opts.imageSize];
+  const imgColWidth = imgColMap[opts.imageSize];
 
   return `
-    .story-section { padding: 24px 30px; }
+    /* ── Timeline Section ────────────────────── */
+    .timeline-section {
+      padding: 36px 56px 56px;
+    }
 
-    .story-date-group {
-      margin-bottom: 24px;
+    .date-group {
+      margin-bottom: 48px;
       page-break-inside: avoid;
     }
 
-    .story-date-header {
-      font-size: 16px; font-weight: 700;
-      color: ${branding.secondaryColor};
-      margin-bottom: 14px; padding: 8px 14px;
-      background: ${branding.lightBgColor};
-      border-left: 4px solid ${branding.primaryColor};
-      border-radius: 0 6px 6px 0;
-      letter-spacing: 0.3px;
+    .date-group:last-child { margin-bottom: 0; }
+
+    .date-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
     }
 
-    .story-item {
-      display: flex; gap: 16px;
-      margin-bottom: 16px; padding: 12px;
+    .date-badge {
+      background: ${branding.secondaryColor};
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .date-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, #E2E8F0, transparent);
+    }
+
+    .date-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748B;
+      white-space: nowrap;
+    }
+
+    /* ── Media Card ──────────────────────────── */
+    .media-card {
+      display: grid;
+      grid-template-columns: ${imgColWidth} 1fr;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
       background: white;
-      border: 1px solid #e2e8f0; border-radius: 8px;
       page-break-inside: avoid;
     }
 
-    .story-thumbnail {
-      flex-shrink: 0;
-      width: ${imgSize.width}; height: ${imgSize.height};
-      border-radius: 6px; overflow: hidden;
-      background: #f1f5f9;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    .media-card:last-child { margin-bottom: 0; }
+
+    .media-image {
+      position: relative;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #F8F6F3;
     }
 
-    .story-thumbnail img {
-      width: 100%; height: 100%; object-fit: cover;
+    .media-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    .story-content { flex: 1; min-width: 0; }
+    .media-number {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: ${branding.primaryColor};
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 5px;
+      letter-spacing: 0.05em;
+    }
 
-    .story-number {
-      display: inline-block;
-      color: ${branding.primaryColor};
-      font-size: 11px; font-weight: 700;
-      margin-bottom: 6px;
-      letter-spacing: 0.5px;
+    .media-type-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
       text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
-    .story-caption {
-      font-size: 14px; font-weight: 600;
-      color: ${branding.secondaryColor}; margin-bottom: 6px;
+    .media-info {
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .story-meta {
-      display: flex; gap: 15px; flex-wrap: wrap;
-      font-size: 11px; color: #64748b; margin-bottom: 8px;
+    .media-time {
+      font-size: 12px;
+      font-weight: 600;
+      color: ${branding.primaryColor};
+      margin-bottom: 8px;
+      font-variant-numeric: tabular-nums;
     }
 
-    .story-meta-item { display: flex; align-items: center; gap: 4px; }
-
-    .story-comments {
-      margin-top: 10px; padding-top: 10px;
-      border-top: 1px solid #e2e8f0;
+    .media-caption {
+      font-size: 15px;
+      font-weight: 500;
+      color: ${branding.secondaryColor};
+      line-height: 1.5;
+      margin-bottom: 12px;
     }
 
-    .story-comment {
-      font-size: 12px; color: #475569;
-      margin: 5px 0; padding-left: 12px;
-      border-left: 2px solid ${branding.accentColor};
+    .media-caption.empty {
+      color: #94A3B8;
+      font-style: italic;
+      font-weight: 400;
     }
 
-    .story-comment-author {
-      font-weight: 600; color: ${branding.secondaryColor};
+    .media-description {
+      font-size: 12px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 12px;
     }
 
-    /* Print-optimized styles */
+    .media-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      color: #64748B;
+      background: #F8F6F3;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+
+    .media-comments {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #E2E8F0;
+    }
+
+    .comment-item {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    .comment-item:last-child { margin-bottom: 0; }
+
+    .comment-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: ${branding.primaryColor};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .comment-author {
+      font-weight: 600;
+      color: ${branding.secondaryColor};
+    }
+
+    /* ── Print Styles ────────────────────────── */
     @media print {
       body {
         background: white !important;
@@ -663,36 +795,20 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
         print-color-adjust: exact !important;
       }
 
-      .report-container {
-        box-shadow: none !important;
-        max-width: 100% !important;
-      }
+      .report-container { box-shadow: none !important; }
 
-      .header {
+      .cover-hero, .report-footer, .date-badge, .media-number, .media-type-badge {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
 
-      .story-date-group {
-        page-break-inside: avoid;
-      }
-
-      .story-item {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-
-      .story-thumbnail img {
-        max-height: ${imgSize.printMax};
-      }
-
-      .footer {
-        page-break-inside: avoid;
-      }
+      .date-group { page-break-inside: avoid; }
+      .media-card { page-break-inside: avoid; break-inside: avoid; }
+      .report-footer { page-break-inside: avoid; }
     }
 
     @page {
-      margin: 0.75in;
+      margin: 0.5in;
       size: letter portrait;
     }
   `;

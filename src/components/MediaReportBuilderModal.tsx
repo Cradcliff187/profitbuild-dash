@@ -50,7 +50,7 @@ export function MediaReportBuilderModal({
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   // Config state
-  const [reportTitle, setReportTitle] = useState('Project Media Report');
+  const [reportTitle, setReportTitle] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [reportSummary, setReportSummary] = useState('');
@@ -78,9 +78,12 @@ export function MediaReportBuilderModal({
     documentId: string;
   } | null>(null);
 
-  // Reset transient state on modal close (keep option preferences)
+  // Set dynamic default title on open, reset transient state on close
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setReportTitle(`${projectNumber} ${projectName}`);
+    } else {
+      setReportTitle('');
       setReportSummary('');
       setShowVoiceSummaryModal(false);
       setIsSummaryExpanded(false);
@@ -90,7 +93,7 @@ export function MediaReportBuilderModal({
       setIsDelivering(false);
       setSavedReport(null);
     }
-  }, [open]);
+  }, [open, projectNumber, projectName]);
 
   // Clear cached report when preview changes (user regenerated with new options)
   useEffect(() => {
@@ -394,6 +397,7 @@ export function MediaReportBuilderModal({
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        showCloseButton={step !== 'preview'}
         className={cn(
           "flex flex-col overflow-hidden",
           isMobile
@@ -591,7 +595,7 @@ export function MediaReportBuilderModal({
                     id="report-title"
                     value={reportTitle}
                     onChange={(e) => setReportTitle(e.target.value)}
-                    placeholder="Project Media Report"
+                    placeholder={`${projectNumber} ${projectName}`}
                     disabled={isGenerating}
                     className={cn(isMobile ? "h-8 text-sm" : "h-9")}
                   />

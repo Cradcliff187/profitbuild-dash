@@ -10,6 +10,7 @@ export interface BrandingConfig {
   accentColor: string;
   lightBgColor: string;
   logoFullUrl: string;
+  logoIconUrl: string;
   companyName: string;
   companyLegalName: string;
   companyAbbreviation: string;
@@ -48,6 +49,9 @@ export async function fetchBranding(supabase: SupabaseClient): Promise<BrandingC
     logoFullUrl:
       branding?.logo_full_url ||
       'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/horiztonal%20glossy.png',
+    logoIconUrl:
+      branding?.logo_icon_url ||
+      'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/supabase-icon-only-512x512.png',
     companyName: branding?.company_name || 'Radcliff Construction Group',
     companyLegalName: branding?.company_legal_name || 'Radcliff Construction Group, LLC',
     companyAbbreviation: branding?.company_abbreviation || 'RCG',
@@ -394,6 +398,16 @@ export function buildBrandedEmail(
 // ============================================================
 
 /**
+ * Convert a hex color string to an "r, g, b" string for use in rgba().
+ */
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+    : '207, 121, 29'; // fallback orange
+}
+
+/**
  * Build a complete branded HTML document for PDF report generation.
  *
  * Uses CSS-based layout (not table-based like email) since this
@@ -407,109 +421,353 @@ export function buildBrandedReport(
   options: {
     /** Report title displayed on cover */
     title: string;
-    /** Project details section HTML */
+    /** Project details section HTML (detail-cell blocks) */
     detailsHtml: string;
     /** Optional summary text */
     summary?: string;
-    /** Main body content (media items, etc.) */
+    /** Main body content (stats bar + media timeline) */
     bodyHtml: string;
     /** Optional: recipient name for confidentiality footer */
     recipientName?: string;
     /** Optional: additional CSS to inject */
     additionalCss?: string;
+    /** Optional: project number for header display */
+    projectNumber?: string;
   }
 ): string {
+  const year = new Date().getFullYear();
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const companyName = escapeHtml(branding.companyName);
+  const companyLegalName = escapeHtml(branding.companyLegalName);
+  const companyAbbreviation = escapeHtml(branding.companyAbbreviation);
+  const primaryRgb = hexToRgb(branding.primaryColor);
+
   return `
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8">
         <title>${escapeHtml(options.title)}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
 
           body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: ${branding.lightBgColor};
-            color: #1a202c;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #ffffff;
+            color: #1E293B;
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
           }
 
           .report-container {
             max-width: 800px;
             margin: 0 auto;
             background: white;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
           }
 
-          .header {
-            background: linear-gradient(135deg, ${branding.secondaryColor} 0%, #243550 100%);
-            padding: 20px 40px;
-            text-align: center;
-            border-bottom: 4px solid ${branding.primaryColor};
+          /* ── Header Bar ──────────────────────────── */
+          .report-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 56px;
+            border-bottom: 1px solid #E2E8F0;
           }
 
-          .logo { max-width: 220px; height: auto; }
+          .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
 
-          .cover-content { padding: 24px 40px; }
+          .header-logo-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: ${branding.secondaryColor};
+            position: relative;
+            padding: 5px;
+            box-sizing: border-box;
+          }
 
-          .report-title {
-            font-size: 24px; font-weight: bold;
+          .header-logo-box::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 3px;
+            background: ${branding.primaryColor};
+          }
+
+          .header-logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: relative;
+            z-index: 1;
+          }
+
+          .header-company {
+            font-weight: 700;
+            font-size: 15px;
             color: ${branding.secondaryColor};
-            margin: 0 0 16px 0; text-align: center;
+            line-height: 1.2;
           }
 
-          .project-details {
-            background: ${branding.lightBgColor};
-            padding: 20px 24px; border-radius: 8px;
-            border-left: 4px solid ${branding.primaryColor};
+          .header-company small {
+            display: block;
+            font-weight: 400;
+            font-size: 11px;
+            color: #64748B;
+            letter-spacing: 0.02em;
+            margin-top: 2px;
+          }
+
+          .header-right { text-align: right; }
+
+          .header-project-num {
+            font-weight: 700;
+            font-size: 14px;
+            color: ${branding.primaryColor};
+            letter-spacing: 0.03em;
+          }
+
+          .header-date {
+            font-size: 11px;
+            color: #64748B;
+            margin-top: 2px;
+          }
+
+          /* ── Cover Hero ──────────────────────────── */
+          .cover-hero {
+            position: relative;
+            background: linear-gradient(160deg, #0F1B33 0%, ${branding.secondaryColor} 45%, #243550 100%);
+            padding: 72px 56px 64px;
+            overflow: hidden;
+          }
+
+          .cover-hero::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -80px;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(${primaryRgb}, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+          }
+
+          .cover-hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, ${branding.primaryColor}, ${branding.accentColor}, ${branding.primaryColor});
+          }
+
+          .cover-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: ${branding.primaryColor};
             margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
           }
 
-          .project-details-title {
+          .cover-label::before {
+            content: '';
+            width: 24px; height: 2px;
+            background: ${branding.primaryColor};
+          }
+
+          .cover-title {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 38px;
+            font-weight: 400;
+            color: #ffffff;
+            line-height: 1.15;
+            margin-bottom: 8px;
+            max-width: 560px;
+            position: relative;
+            z-index: 1;
+          }
+
+          .cover-subtitle {
+            font-size: 15px;
+            color: rgba(255,255,255,0.5);
+            position: relative;
+            z-index: 1;
+          }
+
+          /* ── Details Grid ────────────────────────── */
+          .details-section { padding: 40px 56px; }
+
+          .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+
+          .detail-cell {
+            padding: 20px 24px;
+            border-bottom: 1px solid #E2E8F0;
+          }
+
+          .detail-cell:nth-child(odd) { border-right: 1px solid #E2E8F0; }
+          .detail-cell:nth-last-child(-n+2) { border-bottom: none; }
+
+          .detail-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #64748B;
+            margin-bottom: 6px;
+          }
+
+          .detail-value {
+            font-size: 15px;
+            font-weight: 600;
             color: ${branding.secondaryColor};
-            font-size: 14px; font-weight: 600;
-            margin-bottom: 12px; display: block;
-            letter-spacing: 0.5px;
+            line-height: 1.3;
           }
 
-          .detail-row {
-            margin: 6px 0; font-size: 13px; color: #4a5568;
+          .detail-value.mono {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.03em;
+            color: ${branding.primaryColor};
+            font-weight: 700;
           }
 
-          .detail-row strong {
-            color: ${branding.secondaryColor};
-            min-width: 100px; display: inline-block;
-          }
+          /* ── Summary Card ────────────────────────── */
+          .summary-section { padding: 0 56px 40px; }
 
-          .report-summary {
-            margin-top: 16px; padding: 16px 20px;
-            background: linear-gradient(to right, ${branding.lightBgColor}, #ffffff);
+          .summary-card {
+            background: #F8F6F3;
+            border-radius: 10px;
+            padding: 24px 28px;
             border-left: 4px solid ${branding.primaryColor};
-            border-radius: 8px; page-break-inside: avoid;
           }
 
-          .report-summary-title {
-            font-size: 14px; font-weight: bold;
-            color: ${branding.secondaryColor}; margin-bottom: 8px;
-            letter-spacing: 0.5px;
+          .summary-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: ${branding.secondaryColor};
+            margin-bottom: 10px;
           }
 
-          .report-summary-text {
-            font-size: 14px; line-height: 1.6;
-            color: ${branding.secondaryColor}; white-space: pre-wrap;
+          .summary-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #475569;
+            white-space: pre-wrap;
           }
 
-          .footer {
-            padding: 32px 40px; text-align: center;
-            background: linear-gradient(180deg, #ffffff 0%, ${branding.lightBgColor} 100%);
-            border-top: 1px solid #e2e8f0;
-            font-size: 12px; color: #a0aec0;
+          /* ── Stats Bar ───────────────────────────── */
+          .stats-bar {
+            display: flex;
+            margin: 0 56px;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            overflow: hidden;
           }
 
-          .footer-company {
-            font-size: 15px; font-weight: 600;
-            color: ${branding.secondaryColor}; margin-bottom: 8px;
+          .stat-item {
+            flex: 1;
+            padding: 18px 20px;
+            text-align: center;
+            border-right: 1px solid #E2E8F0;
+          }
+
+          .stat-item:last-child { border-right: none; }
+
+          .stat-number {
+            font-size: 26px;
+            font-weight: 700;
+            color: ${branding.secondaryColor};
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+          }
+
+          .stat-number.orange { color: ${branding.primaryColor}; }
+
+          .stat-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748B;
+            margin-top: 6px;
+          }
+
+          /* ── Footer ──────────────────────────────── */
+          .report-footer {
+            background: #0F1B33;
+            padding: 32px 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+          }
+
+          .report-footer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, ${branding.primaryColor}, ${branding.accentColor}, ${branding.primaryColor});
+          }
+
+          .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+
+          .footer-logo-mark {
+            width: 32px; height: 32px;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+          }
+
+          .footer-logo-mark img {
+            width: 100%; height: 100%;
+            object-fit: contain;
+          }
+
+          .footer-company-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.8);
+          }
+
+          .footer-legal {
+            font-size: 10px;
+            color: rgba(255,255,255,0.35);
+            margin-top: 2px;
+          }
+
+          .footer-right { text-align: right; }
+
+          .footer-confidential {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            font-style: italic;
+            line-height: 1.5;
           }
 
           ${options.additionalCss || ''}
@@ -518,46 +776,64 @@ export function buildBrandedReport(
       <body>
         <div class="report-container">
 
-          <!-- Header -->
-          <div class="header">
-            <img src="${branding.logoFullUrl}" alt="${escapeHtml(branding.companyName)}" class="logo">
-          </div>
-
-          <!-- Cover -->
-          <div class="cover-content">
-            <div class="report-title">${escapeHtml(options.title)}</div>
-
-            <div class="project-details">
-              <span class="project-details-title">PROJECT DETAILS</span>
-              ${options.detailsHtml}
-              <div class="detail-row">
-                <strong>Report Generated:</strong> ${new Date().toLocaleDateString('en-US', {
-                  year: 'numeric', month: 'long', day: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+          <!-- Header Bar -->
+          <div class="report-header-bar">
+            <div class="header-left">
+              <div class="header-logo-box">
+                <img src="${branding.logoIconUrl}" alt="${companyName}">
+              </div>
+              <div class="header-company">
+                ${companyName}
+                <small>${branding.companyAddress ? escapeHtml(branding.companyAddress) : 'Licensed &amp; Insured'}</small>
               </div>
             </div>
-
-            ${options.summary ? `
-              <div class="report-summary">
-                <div class="report-summary-title">REPORT SUMMARY</div>
-                <div class="report-summary-text">${escapeHtml(options.summary)}</div>
-              </div>
-            ` : ''}
+            <div class="header-right">
+              ${options.projectNumber ? `<div class="header-project-num">${escapeHtml(options.projectNumber)}</div>` : ''}
+              <div class="header-date">${formattedDate}</div>
+            </div>
           </div>
 
-          <!-- Body -->
+          <!-- Cover Hero -->
+          <div class="cover-hero">
+            <div class="cover-label">Project Documentation Report</div>
+            <div class="cover-title">${escapeHtml(options.title)}</div>
+            ${options.recipientName ? `<div class="cover-subtitle">Prepared for ${escapeHtml(options.recipientName)}</div>` : ''}
+          </div>
+
+          <!-- Details Grid -->
+          <div class="details-section">
+            <div class="details-grid">
+              ${options.detailsHtml}
+            </div>
+          </div>
+
+          <!-- Summary -->
+          ${options.summary ? `
+          <div class="summary-section">
+            <div class="summary-card">
+              <div class="summary-label">Report Summary</div>
+              <div class="summary-text">${escapeHtml(options.summary)}</div>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Body (stats bar + media timeline) -->
           ${options.bodyHtml}
 
           <!-- Footer -->
-          <div class="footer">
-            <div class="footer-company">${escapeHtml(branding.companyLegalName)}</div>
-            <div>&copy; ${new Date().getFullYear()} ${escapeHtml(branding.companyLegalName)}. All Rights Reserved.</div>
-            ${options.recipientName ? `
-              <div style="margin-top: 12px; font-size: 11px;">
-                This report is confidential and intended solely for the use of ${escapeHtml(options.recipientName)}
+          <div class="report-footer">
+            <div class="footer-left">
+              <div class="footer-logo-mark">
+                <img src="${branding.logoIconUrl}" alt="${companyAbbreviation}">
               </div>
-            ` : ''}
+              <div>
+                <div class="footer-company-name">${companyLegalName}</div>
+                <div class="footer-legal">&copy; ${year} ${companyLegalName}. All Rights Reserved.</div>
+              </div>
+            </div>
+            <div class="footer-right">
+              ${options.recipientName ? `<div class="footer-confidential">This report is confidential and intended<br>solely for the use of ${escapeHtml(options.recipientName)}.</div>` : ''}
+            </div>
           </div>
 
         </div>
