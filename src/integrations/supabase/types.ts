@@ -765,6 +765,85 @@ export type Database = {
           },
         ]
       }
+      email_messages: {
+        Row: {
+          created_at: string | null
+          delivery_status: string | null
+          email_type: string
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          id: string
+          project_id: string | null
+          recipient_email: string
+          recipient_name: string | null
+          recipient_user_id: string | null
+          resend_email_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_status?: string | null
+          email_type: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          project_id?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_status?: string | null
+          email_type?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          project_id?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_line_items: {
         Row: {
           actual_cost_rate_per_hour: number | null

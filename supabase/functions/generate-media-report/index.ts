@@ -341,6 +341,26 @@ Deno.serve(async (req) => {
 
       console.log('✅ Report email sent:', emailResult?.id);
 
+      // Log email to database
+      try {
+        await supabase.from('email_messages').insert({
+          recipient_email: recipientEmail,
+          recipient_name: recipientName || null,
+          recipient_user_id: null,
+          email_type: 'media-report',
+          subject: `${project.project_number} - Media Report: ${project.project_name}`,
+          entity_type: 'media-report',
+          entity_id: projectId,
+          project_id: projectId,
+          sent_by: null,
+          resend_email_id: emailResult?.id || null,
+          delivery_status: emailResult?.id ? 'sent' : 'failed',
+          error_message: null,
+        });
+      } catch (logError) {
+        console.error('Failed to log email to database:', logError);
+      }
+
       return new Response(
         JSON.stringify({
           success: true,

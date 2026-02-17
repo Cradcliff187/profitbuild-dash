@@ -307,12 +307,54 @@ Deno.serve(async (req) => {
       companyName: branding.companyName,
     });
 
+    // Log email to database
+    try {
+      await supabase.from('email_messages').insert({
+        recipient_email: email,
+        recipient_name: userName || null,
+        email_type: type,
+        subject,
+        entity_type: 'auth',
+        entity_id: null,
+        project_id: null,
+        sent_by: null,
+        resend_email_id: emailResponse.data?.id || null,
+        delivery_status: emailResponse.data?.id ? 'sent' : 'failed',
+        error_message: null,
+      });
+    } catch (logError) {
+      console.error('Failed to log email to database:', logError);
+    }
+
     return new Response(
       JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error: any) {
     console.error('❌ Error sending branded email:', error);
+    // Log failed email to database (vars like email/type may be out of scope if error occurred early)
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supabaseUrl && supabaseKey) {
+        const supabaseLog = createClient(supabaseUrl, supabaseKey);
+        await supabaseLog.from('email_messages').insert({
+          recipient_email: 'unknown',
+          recipient_name: null,
+          email_type: 'unknown',
+          subject: 'email send failed',
+          entity_type: 'auth',
+          entity_id: null,
+          project_id: null,
+          sent_by: null,
+          resend_email_id: null,
+          delivery_status: 'failed',
+          error_message: error?.message ?? null,
+        });
+      }
+    } catch (logError) {
+      console.error('Failed to log email failure to database:', logError);
+    }
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

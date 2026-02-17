@@ -255,6 +255,26 @@ Deno.serve(async (req) => {
 
     console.log('✅ Receipt notification email sent successfully:', emailResult?.id);
 
+    // Log email to database
+    try {
+      await supabase.from('email_messages').insert({
+        recipient_email: 'receipts@radcliffcg.com',
+        recipient_name: null,
+        recipient_user_id: null,
+        email_type: 'receipt-notification',
+        subject: emailSubject,
+        entity_type: 'receipt',
+        entity_id: receiptData.id,
+        project_id: receiptRow.project_id || null,
+        sent_by: receiptRow.user_id || null,
+        resend_email_id: emailResult?.id || null,
+        delivery_status: emailResult?.id ? 'sent' : 'failed',
+        error_message: null,
+      });
+    } catch (logError) {
+      console.error('Failed to log email to database:', logError);
+    }
+
     return new Response(
       JSON.stringify({ success: true, message: 'Receipt notification sent', emailId: emailResult?.id }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },

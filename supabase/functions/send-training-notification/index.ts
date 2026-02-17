@@ -174,6 +174,27 @@ Deno.serve(async (req) => {
         if (emailError) {
           console.error(`❌ Failed to send to ${user.email}:`, emailError);
           results.push({ userId: user.id, success: false, error: emailError.message });
+
+          // Log failed email to email_messages table
+          try {
+            await supabase.from('email_messages').insert({
+              recipient_email: user.email,
+              recipient_name: user.full_name || null,
+              recipient_user_id: user.id,
+              email_type: 'training-notification',
+              subject,
+              entity_type: 'training',
+              entity_id: training_content_id,
+              project_id: null,
+              sent_by: null,
+              resend_email_id: null,
+              delivery_status: 'failed',
+              error_message: emailError.message,
+            });
+          } catch (logError) {
+            console.error('Failed to log email failure to database:', logError);
+          }
+
           await logNotification(supabase, {
             training_content_id,
             user_id: user.id,
@@ -187,6 +208,26 @@ Deno.serve(async (req) => {
 
         console.log(`✅ Email sent to ${user.email}:`, emailResult?.id);
         results.push({ userId: user.id, success: true, emailId: emailResult?.id });
+
+        // Log to email_messages table
+        try {
+          await supabase.from('email_messages').insert({
+            recipient_email: user.email,
+            recipient_name: user.full_name || null,
+            recipient_user_id: user.id,
+            email_type: 'training-notification',
+            subject,
+            entity_type: 'training',
+            entity_id: training_content_id,
+            project_id: null,
+            sent_by: null,
+            resend_email_id: emailResult?.id || null,
+            delivery_status: 'sent',
+            error_message: null,
+          });
+        } catch (logError) {
+          console.error('Failed to log email to database:', logError);
+        }
 
         await logNotification(supabase, {
           training_content_id,
