@@ -262,7 +262,7 @@ export const ProjectsList = ({
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'status' | 'number' | 'margin'>('status');
+  const [sortBy, setSortBy] = useState<'status' | 'number' | 'value'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const handleSort = (newSortBy: typeof sortBy) => {
@@ -400,6 +400,30 @@ export const ProjectsList = ({
     initialPage: 1,
   });
 
+  // Mirrors getStatusKPIs value1 — the primary financial figure shown on each card
+  const getPrimaryValue = (project: ProjectWithVariance): number => {
+    const contractValue = project.contracted_amount ?? 0;
+    const totalInvoiced = (project as { total_invoiced?: number }).total_invoiced ?? 0;
+    const totalExpenses = (project as { total_expenses?: number }).total_expenses ?? 0;
+    const actualExpenses = totalExpenses > 0 ? totalExpenses : (project.actualExpenses ?? 0);
+    switch (project.status) {
+      case 'estimating': {
+        if (contractValue > 0 || (project.adjusted_est_costs ?? 0) > 0) {
+          return contractValue;
+        }
+        const projectEsts = estimates.filter(e => e.project_id === project.id);
+        const currentEst = projectEsts.find(e => e.is_current_version);
+        return currentEst?.total_amount ?? 0;
+      }
+      case 'complete':
+        return contractValue || totalInvoiced;
+      case 'cancelled':
+        return contractValue || actualExpenses;
+      default:
+        return contractValue;
+    }
+  };
+
   const mobileSortedProjects = isMobile
     ? [...projects].sort((a, b) => {
         let comparison = 0;
@@ -407,10 +431,8 @@ export const ProjectsList = ({
           comparison = a.status.localeCompare(b.status);
         } else if (sortBy === 'number') {
           comparison = (a.project_number ?? '').localeCompare(b.project_number ?? '');
-        } else if (sortBy === 'margin') {
-          const aMargin = a.margin_percentage ?? -999;
-          const bMargin = b.margin_percentage ?? -999;
-          comparison = aMargin - bMargin;
+        } else if (sortBy === 'value') {
+          comparison = getPrimaryValue(a) - getPrimaryValue(b);
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       })
@@ -466,12 +488,12 @@ export const ProjectsList = ({
                   Number {sortBy === 'number' && <ArrowUpDown className="ml-1 h-3 w-3" />}
                 </Button>
                 <Button
-                  variant={sortBy === 'margin' ? 'default' : 'outline'}
+                  variant={sortBy === 'value' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => handleSort('margin')}
+                  onClick={() => handleSort('value')}
                   className="h-btn-compact text-label"
                 >
-                  Margin {sortBy === 'margin' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                  Contract {sortBy === 'value' && <ArrowUpDown className="ml-1 h-3 w-3" />}
                 </Button>
               </div>
             </div>
