@@ -262,7 +262,7 @@ export const ProjectsList = ({
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'status' | 'name' | 'margin'>('status');
+  const [sortBy, setSortBy] = useState<'status' | 'number' | 'margin'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const handleSort = (newSortBy: typeof sortBy) => {
@@ -405,8 +405,8 @@ export const ProjectsList = ({
         let comparison = 0;
         if (sortBy === 'status') {
           comparison = a.status.localeCompare(b.status);
-        } else if (sortBy === 'name') {
-          comparison = a.project_name.localeCompare(b.project_name);
+        } else if (sortBy === 'number') {
+          comparison = (a.project_number ?? '').localeCompare(b.project_number ?? '');
         } else if (sortBy === 'margin') {
           const aMargin = a.margin_percentage ?? -999;
           const bMargin = b.margin_percentage ?? -999;
@@ -458,12 +458,12 @@ export const ProjectsList = ({
                   Status {sortBy === 'status' && <ArrowUpDown className="ml-1 h-3 w-3" />}
                 </Button>
                 <Button
-                  variant={sortBy === 'name' ? 'default' : 'outline'}
+                  variant={sortBy === 'number' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => handleSort('name')}
+                  onClick={() => handleSort('number')}
                   className="h-btn-compact text-label"
                 >
-                  Name {sortBy === 'name' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                  Number {sortBy === 'number' && <ArrowUpDown className="ml-1 h-3 w-3" />}
                 </Button>
                 <Button
                   variant={sortBy === 'margin' ? 'default' : 'outline'}
