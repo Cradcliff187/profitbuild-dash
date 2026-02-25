@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye, ArrowUpDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -262,6 +262,17 @@ export const ProjectsList = ({
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'status' | 'name' | 'margin'>('status');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (newSortBy: typeof sortBy) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+  };
 
   // Removed - now using ProjectStatusBadge component
 
@@ -389,9 +400,25 @@ export const ProjectsList = ({
     initialPage: 1,
   });
 
-  const paginatedProjects = enablePagination 
-    ? projects.slice(startIndex, endIndex)
+  const mobileSortedProjects = isMobile
+    ? [...projects].sort((a, b) => {
+        let comparison = 0;
+        if (sortBy === 'status') {
+          comparison = a.status.localeCompare(b.status);
+        } else if (sortBy === 'name') {
+          comparison = a.project_name.localeCompare(b.project_name);
+        } else if (sortBy === 'margin') {
+          const aMargin = a.margin_percentage ?? -999;
+          const bMargin = b.margin_percentage ?? -999;
+          comparison = aMargin - bMargin;
+        }
+        return sortOrder === 'asc' ? comparison : -comparison;
+      })
     : projects;
+
+  const paginatedProjects = enablePagination
+    ? mobileSortedProjects.slice(startIndex, endIndex)
+    : mobileSortedProjects;
 
   if (projects.length === 0) {
     return (
@@ -415,6 +442,43 @@ export const ProjectsList = ({
 
   return (
     <div className="dense-spacing">
+      {/* Sort Controls - Mobile Only */}
+      {isMobile && (
+        <Card className="compact-card">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Projects ({projects.length})</CardTitle>
+              <div className="flex gap-1">
+                <Button
+                  variant={sortBy === 'status' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSort('status')}
+                  className="h-btn-compact text-label"
+                >
+                  Status {sortBy === 'status' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                </Button>
+                <Button
+                  variant={sortBy === 'name' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSort('name')}
+                  className="h-btn-compact text-label"
+                >
+                  Name {sortBy === 'name' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                </Button>
+                <Button
+                  variant={sortBy === 'margin' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSort('margin')}
+                  className="h-btn-compact text-label"
+                >
+                  Margin {sortBy === 'margin' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
+
       {/* Projects Grid - Compact Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {paginatedProjects.map((project) => {
