@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye, ArrowUpDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -262,6 +262,17 @@ export const ProjectsList = ({
   const isMobile = useIsMobile();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'status' | 'number' | 'value'>('status');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (newSortBy: typeof sortBy) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+  };
 
   // Removed - now using ProjectStatusBadge component
 
@@ -389,9 +400,47 @@ export const ProjectsList = ({
     initialPage: 1,
   });
 
-  const paginatedProjects = enablePagination 
-    ? projects.slice(startIndex, endIndex)
+  // Mirrors getStatusKPIs value1 — the primary financial figure shown on each card
+  const getPrimaryValue = (project: ProjectWithVariance): number => {
+    const contractValue = project.contracted_amount ?? 0;
+    const totalInvoiced = (project as { total_invoiced?: number }).total_invoiced ?? 0;
+    const totalExpenses = (project as { total_expenses?: number }).total_expenses ?? 0;
+    const actualExpenses = totalExpenses > 0 ? totalExpenses : (project.actualExpenses ?? 0);
+    switch (project.status) {
+      case 'estimating': {
+        if (contractValue > 0 || (project.adjusted_est_costs ?? 0) > 0) {
+          return contractValue;
+        }
+        const projectEsts = estimates.filter(e => e.project_id === project.id);
+        const currentEst = projectEsts.find(e => e.is_current_version);
+        return currentEst?.total_amount ?? 0;
+      }
+      case 'complete':
+        return contractValue || totalInvoiced;
+      case 'cancelled':
+        return contractValue || actualExpenses;
+      default:
+        return contractValue;
+    }
+  };
+
+  const mobileSortedProjects = isMobile
+    ? [...projects].sort((a, b) => {
+        let comparison = 0;
+        if (sortBy === 'status') {
+          comparison = a.status.localeCompare(b.status);
+        } else if (sortBy === 'number') {
+          comparison = (a.project_number ?? '').localeCompare(b.project_number ?? '');
+        } else if (sortBy === 'value') {
+          comparison = getPrimaryValue(a) - getPrimaryValue(b);
+        }
+        return sortOrder === 'asc' ? comparison : -comparison;
+      })
     : projects;
+
+  const paginatedProjects = enablePagination
+    ? mobileSortedProjects.slice(startIndex, endIndex)
+    : mobileSortedProjects;
 
   if (projects.length === 0) {
     return (
@@ -415,6 +464,43 @@ export const ProjectsList = ({
 
   return (
     <div className="dense-spacing">
+      {/* Sort Controls - Mobile Only */}
+      {isMobile && (
+        <Card className="compact-card">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Projects ({projects.length})</CardTitle>
+              <div className="flex gap-1">
+                <Button
+                  variant={sortBy === 'status' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSort('status')}
+                  className="h-btn-compact text-label"
+                >
+                  Status {sortBy === 'status' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                </Button>
+                <Button
+                  variant={sortBy === 'number' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSort('number')}
+                  className="h-btn-compact text-label"
+                >
+                  Number {sortBy === 'number' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                </Button>
+                <Button
+                  variant={sortBy === 'value' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSort('value')}
+                  className="h-btn-compact text-label"
+                >
+                  Contract {sortBy === 'value' && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
+
       {/* Projects Grid - Compact Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {paginatedProjects.map((project) => {
