@@ -147,7 +147,7 @@ supabase db push
 npm run dev
 ```
 
-Application will be available at `http://localhost:5173`
+Application will be available at `http://localhost:8080`
 
 ### 6. Create Initial User
 
@@ -178,20 +178,15 @@ src/
 - **Database**: PostgreSQL with Row Level Security (RLS)
 - **Authentication**: Supabase Auth (email/password)
 - **Storage**: File uploads for receipts, photos, videos
-- **Edge Functions**: Server-side logic for:
-  - `enhance-caption` - AI photo caption enhancement
-  - `transcribe-audio` - Voice-to-text transcription
-  - `send-auth-email` - Branded authentication emails (password reset, user invitation)
-  - `send-receipt-notification` - Receipt capture notifications
-  - `send-training-notification` - Training assignment emails
-  - `send-sms` - SMS messaging via Textbelt
-  - `check-sms-status` - SMS delivery status checking
-  - `check-sms-quota` - Textbelt quota monitoring
-  - `process-scheduled-sms` - Scheduled SMS execution (cron)
-  - `generate-media-report` - PDF media report generation
-  - `admin-create-user` - Admin user creation
-  - `admin-reset-password` - Admin password reset
-  - `admin-delete-user` - Admin user deletion
+- **Edge Functions** (28 total in `supabase/functions/`): Server-side Deno functions for:
+  - **Auth:** `send-auth-email`, `forgot-password`, `admin-create-user`, `admin-reset-password`, `admin-delete-user`, `admin-disable-user`
+  - **Notifications:** `send-receipt-notification`, `send-training-notification`
+  - **SMS:** `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key`
+  - **Media/AI:** `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail`
+  - **Contracts/Estimates:** `generate-contract`, `enrich-estimate-items`
+  - **AI Reports:** `ai-report-assistant`
+  - **QuickBooks:** `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids`
+  - **Shared:** `_shared/brandedTemplate.ts` (used by 4 email functions), `_shared/quickbooks.ts`
 
 ### Key Technologies
 | Category | Technology | Purpose |
@@ -261,24 +256,31 @@ All tables enforce RLS policies based on:
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server (http://localhost:5173) |
+| `npm run dev` | Start development server (http://localhost:8080) |
 | `npm run build` | Production build to `dist/` |
 | `npm run build:dev` | Development build (with source maps) |
 | `npm run preview` | Preview production build locally |
 | `npm run lint` | Run ESLint on all TypeScript files |
 | `npm run type-check` | Type-check without emitting files |
+| `npm run test` | Run Vitest unit tests |
+| `npm run test:ui` | Run tests with interactive UI |
 | `npm run create-test-project` | Generate test data for development |
 | `npm run cleanup-test-data` | Remove test data from database |
 | `npm run pre-deploy` | Run pre-deployment checks (lint + type-check) |
+| `npm run verify-migration` | Verify bid-media migration alignment |
+| `npm run validate:kpis` | Validate KPI definitions against schema |
+| `npm run sync:edge-kpis` | Sync edge function KPI context JSON |
+| `npm run upload:template` | Upload contract Word template to Supabase Storage |
 
 ---
 
 ## Code Quality & Standards
 
 ### TypeScript
-- Strict mode enabled
-- All components must be typed (no `any` types)
+- `noImplicitAny: false` — the project prioritizes productivity over strict typing; `any` types are tolerated but minimized
+- `skipLibCheck: true` — type errors in node_modules are ignored
 - Prefer interfaces over types for object shapes
+- Path alias `@/*` maps to `src/*` — use it everywhere
 
 ### ESLint Configuration
 - React Hooks rules enforced
@@ -352,6 +354,21 @@ npm run build
 
 ---
 
+## Feature Flags
+
+Some features are gated by flags stored in the `feature_flags` database table or environment variables:
+
+| Flag | Type | Current Status | Notes |
+|------|------|----------------|-------|
+| `quickbooks_auto_sync` | DB table | ❌ Disabled | Hidden until production-ready; see `supabase/FEATURE_FLAGS_STATUS.md` |
+| `VITE_FEATURE_SCHEDULE` | `.env` | ✅ Enabled | Gantt schedule view |
+| `VITE_FEATURE_SCHEDULE_WARNINGS` | `.env` | ✅ Enabled | Schedule sequence warnings |
+| `VITE_FEATURE_SCHEDULE_DEPS` | `.env` | ✅ Enabled | Task dependencies |
+
+**Note:** PWA service worker is disabled in development mode (`devOptions: { enabled: false }` in `vite.config.ts`). This prevents stale cache issues during development.
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -386,12 +403,12 @@ npm run type-check  # See detailed errors
 ## Contributing
 
 ### Development Workflow
-1. Create feature branch from `main`
+1. Create feature branch from `master`
 2. Make changes with descriptive commits
 3. Run `npm run pre-deploy` before pushing
 4. Push to GitHub (auto-syncs to Lovable)
 5. Test in Lovable preview environment
-6. Merge to `main` when ready
+6. Merge to `master` when ready
 
 ### Git Workflow
 ```bash

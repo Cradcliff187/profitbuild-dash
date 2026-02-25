@@ -205,6 +205,8 @@ The field worker experience is optimized for mobile devices (PWA with Capacitor)
 
 ### QuickBooks Integration
 
+> **Note:** The `quickbooks_auto_sync` feature flag is currently **disabled** in the database. The QuickBooks Settings card, "Sync from QB" button, Sync History, and Backfill modal are all hidden from the UI until this flag is re-enabled. See `supabase/FEATURE_FLAGS_STATUS.md` for details.
+
 #### CSV Import
 - **Transaction Import**: Import expenses and revenues from QuickBooks exports
 - **Intelligent Parsing**: Handles various QuickBooks CSV formats
@@ -704,6 +706,8 @@ Centralized branding used across emails, reports, and exports:
 
 - **GitHub Repository**: https://github.com/Cradcliff187/profitbuild-dash.git
 - **Production PWA**: rcgwork.com (Capacitor PWA)
+- **Supabase Project ID**: `clsjdxwbsjbhjibvlqbz`
+- **Lovable Project**: https://lovable.dev/projects/8ad59cd4-cdfa-472d-b4a1-52ac194e00f2
 
 ---
 
@@ -723,4 +727,4 @@ Centralized branding used across emails, reports, and exports:
 
 ---
 
-*Document generated from codebase analysis - December 2024*
+*Last updated: February 2026*
