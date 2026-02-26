@@ -1,1 +1,1 @@
-ALTER TABLE import_batches ADD COLUMN match_log JSONB DEFAULT '[]';
+-- Applied via Supabase dashboard since the actual SQL is already in your database.
