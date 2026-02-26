@@ -15,7 +15,7 @@ This file is the canonical reference for Claude Code when working in this reposi
 | **GitHub repo** | https://github.com/Cradcliff187/profitbuild-dash.git |
 | **Lovable project** | https://lovable.dev/projects/8ad59cd4-cdfa-472d-b4a1-52ac194e00f2 |
 | **Production PWA** | rcgwork.com |
-| **Default git branch** | `master` |
+| **Default git branch** | `main` |
 
 ---
 
@@ -63,7 +63,7 @@ npm run upload:template       # Upload contract Word template to Storage
 
 ```
 src/
-├── components/          # UI components (22 subdirectories)
+├── components/          # UI components (21 subdirectories)
 │   ├── ui/              # 66 shadcn/ui base components — do NOT edit these directly
 │   ├── dashboard/       # Dashboard widgets
 │   ├── schedule/        # Gantt chart & scheduling
@@ -72,7 +72,7 @@ src/
 │   ├── time-entry-form/ # Shared time entry form (rebuilt unified version)
 │   ├── reports/         # Report builder & templates
 │   ├── contracts/       # Contract generation & management
-│   └── ...              # (19 more feature directories)
+│   └── ...              # (13 more feature directories)
 ├── pages/               # 38 route pages (one per major view)
 ├── hooks/               # 30+ custom React hooks
 ├── utils/               # 50+ utility/calculation modules
@@ -88,7 +88,7 @@ src/
 
 ## Backend: Supabase
 
-**28 Edge Functions** in `supabase/functions/`:
+**27 Edge Functions** in `supabase/functions/`:
 
 | Group | Functions |
 |-------|-----------|
@@ -137,7 +137,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 ## Database Migrations
 
-**327 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
+**329 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -220,7 +220,7 @@ Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quic
 All financial calculations (margins, totals, projections) live in PostgreSQL triggers and functions — **not** in frontend code. `projectFinancials.ts` is **deprecated**. Read financial data directly from the `projects` table and `reporting.project_financials` view.
 
 ### 2. Reporting Views
-- `reporting.project_financials` — Primary source for all project financial reports
+- `reporting.project_financials` — Primary source for all project financial reports (53 columns: core financials, margins, estimates, cost composition flags)
 - `reporting.training_status` — Training completion data for reports
 
 ### 3. Reports Use the Builder
@@ -272,10 +272,10 @@ Path alias `@/*` → `src/*` — use it for all internal imports.
 
 ## Git & Deployment
 
-- **Default branch**: `master`
+- **Default branch**: `main`
 - **Deployment**: Lovable auto-deploys on push to GitHub
 - **Pre-deploy check**: `npm run pre-deploy` (lint + type-check)
-- **Never force-push** to `master`
+- **Never force-push** to `main`
 - **Commit format**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
 
 ### Edge Function Change Workflow
@@ -283,7 +283,7 @@ Path alias `@/*` → `src/*` — use it for all internal imports.
 ```
 Normal:  local edit → commit → push → Lovable deploys → verify
 Emergency: edit locally → MCP direct deploy → verify → push to sync
-Major:  feature branch → test in Lovable preview → merge to master
+Major:  feature branch → test in Lovable preview → merge to main
 ```
 
 ---
@@ -315,7 +315,7 @@ Set in Supabase Dashboard → Settings → Edge Functions → Secrets:
 | `.cursorrules` | AI agent rules for Cursor IDE — migration workflow, edge function deployment, code style |
 | `supabase/FEATURE_FLAGS_STATUS.md` | Current feature flag states |
 | `DEV_CLEAN_RELOAD.md` | Clearing stale dev cache (service worker) |
-| `docs/` | 230+ documentation files organized by feature area |
+| `docs/` | 200+ documentation files organized by feature area |
 | `docs/_archived/` | Historical plans and outdated docs |
 | `docs/audits/` | Completed audit reports |
 | `docs/CONTRACT_MIGRATIONS_APPLIED.md` | Contract feature migration log |
