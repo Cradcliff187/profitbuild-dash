@@ -210,10 +210,15 @@ export function AIReportChat() {
     });
   };
 
+  // Find the last assistant message ID for showing follow-up chips
+  const lastAssistantMessageId = [...messages].reverse().find(m => m.role === 'assistant')?.id;
+
   const renderMessage = (message: AIMessage) => {
     const isUser = message.role === 'user';
     const hasData = message.reportData && message.reportData.length > 0;
     const isExpanded = expandedMessages.has(message.id);
+    const isLastAssistant = message.id === lastAssistantMessageId;
+    const hasFollowUps = isLastAssistant && message.suggestedFollowUps && message.suggestedFollowUps.length > 0;
 
     return (
       <div
@@ -229,7 +234,7 @@ export function AIReportChat() {
         )}>
           {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
         </div>
-        
+
         <div className={cn(
           "flex-1 max-w-[85%]",
           isUser ? "items-end" : "items-start"
@@ -237,8 +242,8 @@ export function AIReportChat() {
           {/* Message bubble */}
           <div className={cn(
             "rounded-lg px-3 py-2",
-            isUser 
-              ? "bg-primary text-primary-foreground ml-auto" 
+            isUser
+              ? "bg-primary text-primary-foreground ml-auto"
               : "bg-muted"
           )}>
             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -285,6 +290,22 @@ export function AIReportChat() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Suggested follow-up questions (only on last assistant message) */}
+          {hasFollowUps && !isLoading && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {message.suggestedFollowUps!.map((followUp, index) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-2 py-1 text-xs"
+                  onClick={() => handleExampleClick(followUp)}
+                >
+                  {followUp}
+                </Badge>
+              ))}
             </div>
           )}
 

@@ -1,4 +1,4 @@
-﻿-- Migration: scheduled_sms_functions
+-- Migration: scheduled_sms_functions
 -- Version: 20251209112051
 -- This migration was applied directly to the database via Supabase MCP
 -- Creating placeholder file to satisfy CI/CD validation

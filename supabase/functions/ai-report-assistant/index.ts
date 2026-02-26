@@ -8,8 +8,13 @@
  * - Business rules enforcement
  * - Retry logic for empty results
  * - Adaptive response mode (simple vs analytical)
+ * - Full conversation context in answer generation (v4)
+ * - Consolidated answer + insights + follow-ups in single AI call (v4)
+ * - Input validation and token budgeting for conversation history (v4)
+ * - Conversation-aware error recovery (v4)
+ * - Suggested follow-up questions (v4)
  *
- * @version 3.0.0
+ * @version 4.0.0
  *
  * VERSION PINNING (.cursorrules): Keep these exact versions so deployment sticks.
  * - supabase-js: https://esm.sh/@supabase/supabase-js@2.57.4 (do not use @2 or @latest)
@@ -290,6 +295,130 @@ Today's date: ${new Date().toISOString().split('T')[0]}`;
 }
 
 // ============================================================================
+// ANSWER SYSTEM PROMPT (for answer generation with full business context)
+// ============================================================================
+
+function generateAnswerSystemPrompt(): string {
+  return `You are a financial analyst for RCG Work, a construction project management system.
+You answer questions about projects, budgets, employees, time entries, and expenses.
+
+## LANGUAGE RULES (ALWAYS)
+- Say "over budget" not "positive cost variance"
+- Say "under budget" not "negative cost variance"
+- Say "profit" or "margin" not "actual margin"
+- Round to whole dollars unless asked for cents
+- Lead with the answer, then add context
+- Keep it conversational - no jargon
+
+## MARGIN TERMINOLOGY
+- actual_margin = total_invoiced - total_expenses (REAL profit)
+- current_margin = contracted_amount - total_expenses (EXPECTED profit)
+- projected_margin = contracted_amount - adjusted_est_costs (FORECAST)
+
+## BENCHMARKS
+${Object.entries(KPI_CONTEXT.benchmarks)
+  .map(([id, b]) => {
+    const crit = 'critical' in b && b.critical ? `, ${b.critical} (critical)` : '';
+    return `- ${id}: ${b.healthy} (healthy)${b.warning ? `, ${b.warning} (warning)` : ''}${crit}`;
+  })
+  .join('\n')}
+
+## CONVERSATION CONTEXT
+You are in a multi-turn conversation. Reference prior answers when relevant.
+If the user asks a follow-up like "which one?" or "is that good?", use conversation history to resolve the reference.
+
+Today's date: ${new Date().toISOString().split('T')[0]}`;
+}
+
+// ============================================================================
+// CONVERSATION HISTORY HELPERS
+// ============================================================================
+
+function sanitizeConversationHistory(history: any[]): Array<{ role: string; content: string }> {
+  if (!Array.isArray(history)) return [];
+
+  const validRoles = new Set(['user', 'assistant']);
+
+  return history
+    .filter((msg: any) =>
+      msg &&
+      typeof msg.role === 'string' &&
+      validRoles.has(msg.role) &&
+      typeof msg.content === 'string' &&
+      msg.content.trim().length > 0
+    )
+    .map((msg: any) => ({
+      role: msg.role,
+      content: msg.content.substring(0, 2000) // Hard cap per message
+    }));
+}
+
+function trimHistoryToTokenBudget(
+  history: Array<{ role: string; content: string }>,
+  maxTokens: number = 4000
+): Array<{ role: string; content: string }> {
+  // Rough estimate: ~4 chars per token
+  let totalChars = 0;
+  const result: Array<{ role: string; content: string }> = [];
+
+  // Work backwards from most recent to preserve recent context
+  for (let i = history.length - 1; i >= 0; i--) {
+    const msgChars = history[i].content.length;
+    if (totalChars + msgChars > maxTokens * 4) break;
+    totalChars += msgChars;
+    result.unshift(history[i]);
+  }
+
+  return result;
+}
+
+// ============================================================================
+// CONSOLIDATED RESPONSE PARSER
+// ============================================================================
+
+function parseConsolidatedResponse(rawContent: string): {
+  answer: string;
+  insights: string | null;
+  suggestedFollowUps: string[];
+} {
+  let answer = rawContent;
+  let insights: string | null = null;
+  let suggestedFollowUps: string[] = [];
+
+  // Extract FOLLOW_UPS section
+  const followUpMatch = answer.match(/FOLLOW_UPS:\s*(\[[\s\S]*?\])/);
+  if (followUpMatch) {
+    try {
+      const parsed = JSON.parse(followUpMatch[1]);
+      if (Array.isArray(parsed)) {
+        suggestedFollowUps = parsed.filter((q: any) => typeof q === 'string').slice(0, 3);
+      }
+    } catch {
+      // Try line-by-line extraction
+      const lineMatch = answer.match(/FOLLOW_UPS:\s*\n([\s\S]*?)(?:\n\n|$)/);
+      if (lineMatch) {
+        suggestedFollowUps = lineMatch[1]
+          .split('\n')
+          .map((l: string) => l.replace(/^[-•*\d.)\s]+/, '').trim())
+          .filter((l: string) => l.length > 5)
+          .slice(0, 3);
+      }
+    }
+    // Remove the FOLLOW_UPS section from the answer
+    answer = answer.replace(/\n*FOLLOW_UPS:[\s\S]*$/, '').trim();
+  }
+
+  // Extract INSIGHTS section
+  const insightsMatch = answer.match(/\n*INSIGHTS:\s*\n([\s\S]*?)(?:\nFOLLOW_UPS:|$)/);
+  if (insightsMatch) {
+    insights = insightsMatch[1].trim();
+    answer = answer.replace(/\n*INSIGHTS:[\s\S]*/, '').trim();
+  }
+
+  return { answer, insights, suggestedFollowUps };
+}
+
+// ============================================================================
 // QUERY ERROR RECOVERY
 // ============================================================================
 
@@ -355,7 +484,8 @@ async function retryWithSimplerQuery(
   originalQuery: string,
   userQuery: string,
   supabase: any,
-  apiKey: string
+  apiKey: string,
+  conversationHistory: Array<{ role: string; content: string }> = []
 ): Promise<{ success: boolean; data?: any; error?: any; cannotRetry?: boolean }> {
   const retryPrompt = `The query failed with error: ${error.message}
 
@@ -386,6 +516,10 @@ Otherwise respond with:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You are a SQL expert. Generate simpler, working queries when the original fails." },
+          ...conversationHistory.slice(-4).map((msg: any) => ({
+            role: msg.role,
+            content: msg.content
+          })),
           { role: "user", content: retryPrompt }
         ],
       }),
@@ -634,11 +768,15 @@ serve(async (req) => {
     queryStartTime = Date.now();
     const requestBody = await req.json();
     query = requestBody.query;
-    const conversationHistory = requestBody.conversationHistory || [];
-    
+    const rawHistory = requestBody.conversationHistory || [];
+    const conversationHistory = trimHistoryToTokenBudget(
+      sanitizeConversationHistory(rawHistory)
+    );
+
     console.log('[AI Debug] Request received:', {
       query,
-      historyLength: conversationHistory.length,
+      rawHistoryLength: rawHistory.length,
+      sanitizedHistoryLength: conversationHistory.length,
       historyRoles: conversationHistory.map((m: any) => m.role),
       firstHistoryContent: conversationHistory[0]?.content?.substring(0, 100)
     });
@@ -840,7 +978,8 @@ serve(async (req) => {
           sqlQuery,
           query,
           supabase,
-          LOVABLE_API_KEY
+          LOVABLE_API_KEY,
+          conversationHistory
         );
 
         if (retryResult?.success) {
@@ -888,7 +1027,8 @@ Give a helpful response explaining that the original query had issues but we fou
               body: JSON.stringify({
                 model: "google/gemini-3-flash-preview",
                 messages: [
-                  { role: "system", content: "You are a helpful assistant that gives brief, natural answers about construction project data. Explain when queries were simplified due to errors." },
+                  { role: "system", content: generateAnswerSystemPrompt() },
+                  ...conversationHistory.slice(-6),
                   { role: "user", content: retryAnswerPrompt }
                 ],
               }),
@@ -993,9 +1133,9 @@ Give a helpful response explaining that the original query had issues but we fou
       executionTimeMs: Date.now() - queryStartTime
     });
 
-    // Interpret results
+    // Interpret results — consolidated answer + insights + follow-ups in ONE AI call
     let answerPrompt = 'User asked: "' + query + '"\n\n' +
-      'SQL: ' + sqlQuery + '\n' +
+      'SQL executed: ' + sqlQuery + '\n' +
       'Results: ' + rowCount + ' rows\n\n' +
       (reportData.length > 0
         ? 'Data (first 20):\n' + JSON.stringify(reportData.slice(0, 20), null, 2)
@@ -1028,11 +1168,29 @@ No results found. Consider:
 
 Try rephrasing your question.`;
       }
-    } else {
-      answerPrompt += ` If no results, explain why and suggest alternatives.`;
     }
 
+    // Add insights + follow-up instructions to the single call
+    const wantsInsights = showDetailsByDefault && reportData.length > 2;
+
+    answerPrompt += '\n\n---\n\nAfter your answer, add these sections on new lines:';
+
+    if (wantsInsights) {
+      answerPrompt += `
+
+INSIGHTS:
+(Give 2-3 brief, actionable insights as bullet points. Reference benchmarks when relevant.)`;
+    }
+
+    answerPrompt += `
+
+FOLLOW_UPS: ["question 1", "question 2", "question 3"]
+(Suggest 3 natural follow-up questions the user might want to ask next, based on the data and conversation so far. Make them specific and useful.)`;
+
     let answer = "";
+    let insights: string | null = null;
+    let suggestedFollowUps: string[] = [];
+
     try {
       const answerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -1043,7 +1201,8 @@ Try rephrasing your question.`;
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "You are a helpful assistant that gives brief, natural answers about construction project data. Use specific numbers. Be conversational." },
+            { role: "system", content: generateAnswerSystemPrompt() },
+            ...conversationHistory.slice(-6),
             { role: "user", content: answerPrompt }
           ],
         }),
@@ -1051,7 +1210,11 @@ Try rephrasing your question.`;
 
       if (answerResponse.ok) {
         const answerData = await answerResponse.json();
-        answer = answerData.choices?.[0]?.message?.content || "";
+        const rawContent = answerData.choices?.[0]?.message?.content || "";
+        const parsed = parseConsolidatedResponse(rawContent);
+        answer = parsed.answer;
+        insights = wantsInsights ? parsed.insights : null;
+        suggestedFollowUps = parsed.suggestedFollowUps;
       }
     } catch (e) {
       console.error("Answer generation failed:", e);
@@ -1066,34 +1229,6 @@ Try rephrasing your question.`;
         answer = values.length === 1 ? `The answer is ${values[0]}.` : `Found 1 result.`;
       } else {
         answer = `Found ${rowCount} results.`;
-      }
-    }
-
-    // Generate insights for detailed data
-    let insights = null;
-    if (showDetailsByDefault && reportData.length > 2) {
-      try {
-        const insightsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: [
-              { role: "system", content: "Give 2-3 brief, actionable insights about this construction data. Use bullet points." },
-              { role: "user", content: `Question: "${query}"\nData: ${JSON.stringify(reportData.slice(0, 10))}` }
-            ],
-          }),
-        });
-
-        if (insightsResponse.ok) {
-          const insightsData = await insightsResponse.json();
-          insights = insightsData.choices?.[0]?.message?.content || null;
-        }
-      } catch (e) {
-        console.error("Insights generation failed:", e);
       }
     }
 
@@ -1127,6 +1262,7 @@ Try rephrasing your question.`;
       rowCount,
       truncated,
       insights,
+      suggestedFollowUps,
       kpiVersion: KPI_CONTEXT.version,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

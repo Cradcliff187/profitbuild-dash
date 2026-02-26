@@ -1,4 +1,4 @@
-﻿-- Migration: migration
+-- Migration: migration
 -- Version: 20251201043729
 -- This migration was applied directly to the database via Supabase MCP
 -- Creating placeholder file to satisfy CI/CD validation
