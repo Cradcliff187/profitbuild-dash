@@ -139,7 +139,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 **327 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
 
-### Critical Migration Rule
+### Critical Migration Rules
+
+#### 1. ALL local migration files MUST be placeholders
+
+Every `.sql` file in `supabase/migrations/` must contain **only** the placeholder comment — never real SQL. The actual SQL lives in the Supabase database; local files exist solely to keep the file count in sync.
+
+```sql
+-- Applied via Supabase dashboard since the actual SQL is already in your database.
+```
+
+**Why:** Supabase validates migrations sequentially. Since early migrations are placeholders (comments that don't create tables), any later file with real SQL will fail with errors like `relation "projects" does not exist` because the tables it references were never created in that validation context.
+
+**Health check — no real SQL in migration files:**
+```bash
+for f in supabase/migrations/*.sql; do
+  content=$(grep -v '^--' "$f" | grep -v '^$' | head -1)
+  [ -n "$content" ] && echo "HAS REAL SQL: $(basename $f)"
+done
+```
+
+#### 2. No BOM characters in migration files
+
+Migration files must not contain UTF-8 BOM (`\xEF\xBB\xBF`). BOMs cause Supabase syntax errors during deployment.
+
+```bash
+# Check for BOMs:
+grep -rl $'\xEF\xBB\xBF' supabase/migrations/ | wc -l  # should be 0
+```
+
+#### 3. File count must match database
 
 After applying any migration via `mcp_supabase_apply_migration`, immediately create a matching placeholder file locally:
 
@@ -157,7 +186,7 @@ ORDER BY version DESC LIMIT 1;
 
 Local file count MUST match database migration count — mismatches cause CI/CD deployment failures (manifests as a misleading "Failed to bundle function" error).
 
-**Health check:**
+**Health check — file count:**
 ```sql
 SELECT COUNT(*) FROM supabase_migrations.schema_migrations;
 ```
@@ -307,6 +336,8 @@ Use this list when doing periodic documentation reviews:
 
 ### After Each Database Migration
 - [ ] Verify local migration file count matches DB: `SELECT COUNT(*) FROM supabase_migrations.schema_migrations`
+- [ ] Verify the local file is a **placeholder only** (no real SQL) — see "Critical Migration Rules" above
+- [ ] Verify no BOM characters: `grep -rl $'\xEF\xBB\xBF' supabase/migrations/ | wc -l` should be 0
 - [ ] Update `docs/DATABASE_TABLES_REFERENCE.md` if new tables/columns added
 
 ### After Edge Function Deploys
@@ -325,16 +356,20 @@ Use this list when doing periodic documentation reviews:
 
 1. **"Failed to bundle function" error** — Usually a migration count mismatch, not a syntax error. Check migration alignment first.
 
-2. **Lovable vs. Supabase MCP deployment** — Floating version imports (`@2`) may resolve differently. Always pin exact versions.
+2. **"relation does not exist" in migrations** — A migration file contains real SQL instead of a placeholder comment. Since earlier migrations are placeholders that don't create tables, any later file with real SQL will fail. Fix: convert the file to a placeholder (`-- Applied via Supabase dashboard...`). Run the health check in "Critical Migration Rules" to find offenders.
 
-3. **PWA cache in dev** — Service worker is disabled in dev. If you see stale UI, see `DEV_CLEAN_RELOAD.md`.
+3. **BOM characters in migration files** — UTF-8 BOM bytes (`\xEF\xBB\xBF`) at the start of `.sql` files cause Supabase syntax errors. Some editors (notably Windows editors) add BOMs silently. Always check after bulk edits.
 
-4. **Two drag-and-drop libraries** — Both `react-beautiful-dnd` and `@hello-pangea/dnd` are present. `@hello-pangea/dnd` is the maintained fork; prefer it for new code.
+4. **Lovable vs. Supabase MCP deployment** — Floating version imports (`@2`) may resolve differently. Always pin exact versions.
 
-5. **QuickBooks is UI-hidden** — The `quickbooks_auto_sync` feature flag is disabled. The edge functions and DB schema exist but the UI is hidden.
+5. **PWA cache in dev** — Service worker is disabled in dev. If you see stale UI, see `DEV_CLEAN_RELOAD.md`.
 
-6. **`projectFinancials.ts` is deprecated** — Do not add new logic here. Read financial data from the DB directly.
+6. **Two drag-and-drop libraries** — Both `react-beautiful-dnd` and `@hello-pangea/dnd` are present. `@hello-pangea/dnd` is the maintained fork; prefer it for new code.
 
-7. **Time entries store as `timestamptz`** — Always in UTC. Display in local browser timezone. The existing pattern is correct; do not add explicit timezone conversion unless improving the time entry form.
+7. **QuickBooks is UI-hidden** — The `quickbooks_auto_sync` feature flag is disabled. The edge functions and DB schema exist but the UI is hidden.
 
-8. **`frappe-gantt` in optimizeDeps** — `vite.config.ts` includes `frappe-gantt` in `optimizeDeps.include` but the actual Gantt library used is `gantt-task-react`. This is a benign legacy entry.
+8. **`projectFinancials.ts` is deprecated** — Do not add new logic here. Read financial data from the DB directly.
+
+9. **Time entries store as `timestamptz`** — Always in UTC. Display in local browser timezone. The existing pattern is correct; do not add explicit timezone conversion unless improving the time entry form.
+
+10. **`frappe-gantt` in optimizeDeps** — `vite.config.ts` includes `frappe-gantt` in `optimizeDeps.include` but the actual Gantt library used is `gantt-task-react`. This is a benign legacy entry.
