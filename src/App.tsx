@@ -56,6 +56,7 @@ const ProjectControlRoute = lazy(() => import("./components/project-routes/Proje
 const ProjectChangesRoute = lazy(() => import("./components/project-routes/ProjectChangesRoute").then(m => ({ default: m.ProjectChangesRoute })));
 const ProjectDocumentsRoute = lazy(() => import("./components/project-routes/ProjectDocumentsRoute").then(m => ({ default: m.ProjectDocumentsRoute })));
 const ProjectScheduleRoute = lazy(() => import("./components/project-routes/ProjectScheduleRoute").then(m => ({ default: m.ProjectScheduleRoute })));
+const ProjectBillingRoute = lazy(() => import("./components/project-routes/ProjectBillingRoute").then(m => ({ default: m.ProjectBillingRoute })));
 const ProjectEditRoute = lazy(() => import("./components/project-routes/ProjectEditRoute").then(m => ({ default: m.ProjectEditRoute })));
 const EstimateEditRoute = lazy(() => import("./components/project-routes/EstimateEditRoute").then(m => ({ default: m.EstimateEditRoute })));
 const EstimateNewRoute = lazy(() => import("./components/project-routes/EstimateNewRoute").then(m => ({ default: m.EstimateNewRoute })));
@@ -106,6 +107,7 @@ const App = () => (
                     <Route path="changes" element={<LazyRoute component={ProjectChangesRoute} />} />
                     <Route path="documents" element={<LazyRoute component={ProjectDocumentsRoute} />} />
                     <Route path="schedule" element={<LazyRoute component={ProjectScheduleRoute} />} />
+                    <Route path="billing" element={<LazyRoute component={ProjectBillingRoute} />} />
                     <Route path="edit" element={<LazyRoute component={ProjectEditRoute} />} />
                   </Route>
                   <Route path="projects/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />

@@ -1590,6 +1590,177 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_application_lines: {
+        Row: {
+          balance_to_finish: number
+          created_at: string
+          current_work: number
+          id: string
+          payment_application_id: string
+          percent_complete: number
+          previous_work: number
+          retainage: number
+          scheduled_value: number
+          sov_line_item_id: string
+          stored_materials: number
+          total_completed: number
+          updated_at: string
+        }
+        Insert: {
+          balance_to_finish?: number
+          created_at?: string
+          current_work?: number
+          id?: string
+          payment_application_id: string
+          percent_complete?: number
+          previous_work?: number
+          retainage?: number
+          scheduled_value?: number
+          sov_line_item_id: string
+          stored_materials?: number
+          total_completed?: number
+          updated_at?: string
+        }
+        Update: {
+          balance_to_finish?: number
+          created_at?: string
+          current_work?: number
+          id?: string
+          payment_application_id?: string
+          percent_complete?: number
+          previous_work?: number
+          retainage?: number
+          scheduled_value?: number
+          sov_line_item_id?: string
+          stored_materials?: number
+          total_completed?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_application_lines_payment_application_id_fkey"
+            columns: ["payment_application_id"]
+            isOneToOne: false
+            referencedRelation: "payment_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_application_lines_sov_line_item_id_fkey"
+            columns: ["sov_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "sov_line_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_applications: {
+        Row: {
+          application_number: number
+          balance_to_finish: number
+          certified_amount: number | null
+          certified_by: string | null
+          certified_date: string | null
+          contract_sum_to_date: number
+          created_at: string
+          created_by: string | null
+          current_payment_due: number
+          g702_pdf_storage_path: string | null
+          g702_pdf_url: string | null
+          g703_pdf_storage_path: string | null
+          g703_pdf_url: string | null
+          id: string
+          net_change_orders: number
+          notes: string | null
+          original_contract_sum: number
+          period_from: string
+          period_to: string
+          project_id: string
+          sov_id: string
+          status: Database["public"]["Enums"]["payment_application_status"]
+          total_completed_to_date: number
+          total_earned_less_retainage: number
+          total_previous_payments: number
+          total_retainage: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          application_number: number
+          balance_to_finish?: number
+          certified_amount?: number | null
+          certified_by?: string | null
+          certified_date?: string | null
+          contract_sum_to_date?: number
+          created_at?: string
+          created_by?: string | null
+          current_payment_due?: number
+          g702_pdf_storage_path?: string | null
+          g702_pdf_url?: string | null
+          g703_pdf_storage_path?: string | null
+          g703_pdf_url?: string | null
+          id?: string
+          net_change_orders?: number
+          notes?: string | null
+          original_contract_sum?: number
+          period_from: string
+          period_to: string
+          project_id: string
+          sov_id: string
+          status?: Database["public"]["Enums"]["payment_application_status"]
+          total_completed_to_date?: number
+          total_earned_less_retainage?: number
+          total_previous_payments?: number
+          total_retainage?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          application_number?: number
+          balance_to_finish?: number
+          certified_amount?: number | null
+          certified_by?: string | null
+          certified_date?: string | null
+          contract_sum_to_date?: number
+          created_at?: string
+          created_by?: string | null
+          current_payment_due?: number
+          g702_pdf_storage_path?: string | null
+          g702_pdf_url?: string | null
+          g703_pdf_storage_path?: string | null
+          g703_pdf_url?: string | null
+          id?: string
+          net_change_orders?: number
+          notes?: string | null
+          original_contract_sum?: number
+          period_from?: string
+          period_to?: string
+          project_id?: string
+          sov_id?: string
+          status?: Database["public"]["Enums"]["payment_application_status"]
+          total_completed_to_date?: number
+          total_earned_less_retainage?: number
+          total_previous_payments?: number
+          total_retainage?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_applications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_applications_sov_id_fkey"
+            columns: ["sov_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_of_values"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_payee_reviews: {
         Row: {
           account_full_name: string | null
@@ -2828,6 +2999,61 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_of_values: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estimate_id: string
+          id: string
+          original_contract_sum: number
+          project_id: string
+          retainage_percent: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estimate_id: string
+          id?: string
+          original_contract_sum?: number
+          project_id: string
+          retainage_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string
+          id?: string
+          original_contract_sum?: number
+          project_id?: string
+          retainage_percent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_of_values_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_financial_summary"
+            referencedColumns: ["estimate_id"]
+          },
+          {
+            foreignKeyName: "schedule_of_values_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_of_values_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_sms_logs: {
         Row: {
           created_at: string | null
@@ -3025,6 +3251,70 @@ export type Database = {
             columns: ["sent_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sov_line_items: {
+        Row: {
+          category: Database["public"]["Enums"]["expense_category"] | null
+          created_at: string
+          description: string
+          id: string
+          item_number: string
+          retainage_percent_override: number | null
+          scheduled_value: number
+          sort_order: number
+          source_change_order_id: string | null
+          source_estimate_line_item_id: string | null
+          sov_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          created_at?: string
+          description: string
+          id?: string
+          item_number: string
+          retainage_percent_override?: number | null
+          scheduled_value?: number
+          sort_order?: number
+          source_change_order_id?: string | null
+          source_estimate_line_item_id?: string | null
+          sov_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["expense_category"] | null
+          created_at?: string
+          description?: string
+          id?: string
+          item_number?: string
+          retainage_percent_override?: number | null
+          scheduled_value?: number
+          sort_order?: number
+          source_change_order_id?: string | null
+          source_estimate_line_item_id?: string | null
+          sov_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sov_line_items_source_change_order_id_fkey"
+            columns: ["source_change_order_id"]
+            isOneToOne: false
+            referencedRelation: "change_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sov_line_items_source_estimate_line_item_id_fkey"
+            columns: ["source_estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sov_line_items_sov_id_fkey"
+            columns: ["sov_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_of_values"
             referencedColumns: ["id"]
           },
         ]
@@ -3411,6 +3701,14 @@ export type Database = {
         Args: { new_version_number?: number; source_estimate_id: string }
         Returns: string
       }
+      create_payment_application: {
+        Args: {
+          p_period_from: string
+          p_period_to: string
+          p_project_id: string
+        }
+        Returns: string
+      }
       delete_project_cascade: {
         Args: { p_project_id: string }
         Returns: undefined
@@ -3439,6 +3737,14 @@ export type Database = {
           estimate_id_param?: string
           project_id_param: string
           project_number_param: string
+        }
+        Returns: string
+      }
+      generate_sov_from_estimate: {
+        Args: {
+          p_estimate_id: string
+          p_project_id: string
+          p_retainage_percent?: number
         }
         Returns: string
       }
@@ -3595,6 +3901,12 @@ export type Database = {
         | "vehicle_maintenance"
         | "gas"
         | "meals"
+      payment_application_status:
+        | "draft"
+        | "submitted"
+        | "certified"
+        | "paid"
+        | "rejected"
       project_category: "construction" | "system" | "overhead"
       project_status:
         | "estimating"
@@ -3760,6 +4072,13 @@ export const Constants = {
         "vehicle_maintenance",
         "gas",
         "meals",
+      ],
+      payment_application_status: [
+        "draft",
+        "submitted",
+        "certified",
+        "paid",
+        "rejected",
       ],
       project_category: ["construction", "system", "overhead"],
       project_status: [

@@ -72,6 +72,7 @@ src/
 │   ├── time-entry-form/ # Shared time entry form (rebuilt unified version)
 │   ├── reports/         # Report builder & templates
 │   ├── contracts/       # Contract generation & management
+│   ├── payment-applications/ # AIA G702/G703 billing (SOV, payment apps, PDF export)
 │   └── ...              # (13 more feature directories)
 ├── pages/               # 38 route pages (one per major view)
 ├── hooks/               # 30+ custom React hooks
@@ -137,7 +138,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 ## Database Migrations
 
-**329 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
+**334 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -211,6 +212,7 @@ Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quic
 | `VITE_FEATURE_SCHEDULE` | ✅ Enabled | Gantt schedule view |
 | `VITE_FEATURE_SCHEDULE_WARNINGS` | ✅ Enabled | Schedule sequence warnings |
 | `VITE_FEATURE_SCHEDULE_DEPS` | ✅ Enabled | Task dependencies |
+| `VITE_FEATURE_AIA_BILLING` | ✅ Enabled | AIA G702/G703 payment applications (Billing tab in Project Detail) |
 
 ---
 
@@ -240,6 +242,14 @@ Field workers only see construction projects in the mobile time tracker.
 
 ### 7. Receipts vs. Expenses
 Receipts are **documentation only** — they do NOT feed financial calculations. Financial data comes from direct expense entry or QuickBooks CSV import.
+
+### 8. AIA G702/G703 Payment Applications
+AIA billing uses a three-layer data model: **Schedule of Values (SOV)** → **Payment Applications** → **Payment Application Lines**. The SOV is generated once from an approved estimate via the `generate_sov_from_estimate()` RPC. Each payment application creates G703 lines with cumulative progress via the `create_payment_application()` RPC. All financial calculations (line totals, retainage, G702 summary roll-ups) are handled by PostgreSQL triggers — **never** in frontend code. Approved change orders auto-append to the SOV via a trigger on `change_orders`. The feature is gated behind `VITE_FEATURE_AIA_BILLING`.
+
+**Key tables**: `schedule_of_values`, `sov_line_items`, `payment_applications`, `payment_application_lines`
+**Key RPC functions**: `generate_sov_from_estimate()`, `create_payment_application()`
+**Key triggers**: `calculate_payment_line_totals` (line-level), `calculate_payment_application_totals` (roll-up to G702), `add_change_order_to_sov` (auto-append CO lines)
+**PDF storage**: Generated G702/G703 PDFs are saved to Supabase Storage (`project-documents` bucket, path `{projectId}/aia-billing/`) and cross-referenced in both `payment_applications` (via `g702_pdf_url`/`g703_pdf_url`) and `project_documents` (for the Documents tab). Follows the same pattern as `reportStorageUtils.ts`.
 
 ---
 
@@ -296,6 +306,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 VITE_FEATURE_SCHEDULE=true
 VITE_FEATURE_SCHEDULE_WARNINGS=true
 VITE_FEATURE_SCHEDULE_DEPS=true
+VITE_FEATURE_AIA_BILLING=true
 ```
 
 ### Supabase Edge Function Secrets
@@ -373,3 +384,7 @@ Use this list when doing periodic documentation reviews:
 9. **Time entries store as `timestamptz`** — Always in UTC. Display in local browser timezone. The existing pattern is correct; do not add explicit timezone conversion unless improving the time entry form.
 
 10. **`frappe-gantt` in optimizeDeps** — `vite.config.ts` includes `frappe-gantt` in `optimizeDeps.include` but the actual Gantt library used is `gantt-task-react`. This is a benign legacy entry.
+
+11. **ESLint `no-unused-imports` rule does not exist in `typescript-eslint`** — The rule `@typescript-eslint/no-unused-imports` was removed from `eslint.config.js` because it doesn't exist in the `typescript-eslint` plugin (even v8+). The existing `@typescript-eslint/no-unused-vars` rule already catches unused imports. If you need a dedicated unused-imports rule, install `eslint-plugin-unused-imports` separately.
+
+12. **AIA billing cumulative chain** — Payment applications are cumulative. Each new application's `previous_work` (G703 Col D) is auto-populated from the prior certified application's `total_completed`. Deleting or modifying a certified application will break the chain for subsequent apps. Only draft applications should be editable.

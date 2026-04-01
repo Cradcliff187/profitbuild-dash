@@ -7,6 +7,7 @@ export interface FeatureFlags {
   scheduleView: boolean;
   scheduleWarnings: boolean;
   scheduleDependencies: boolean;
+  aiaBilling: boolean;
 }
 
 // Default flags - all OFF initially
@@ -14,6 +15,7 @@ const defaultFlags: FeatureFlags = {
   scheduleView: false,
   scheduleWarnings: false,
   scheduleDependencies: false,
+  aiaBilling: false,
 };
 
 // Check environment variables
@@ -22,6 +24,7 @@ const getEnvFlags = (): Partial<FeatureFlags> => {
     scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE === "true",
     scheduleWarnings: import.meta.env.VITE_FEATURE_SCHEDULE_WARNINGS === "true",
     scheduleDependencies: import.meta.env.VITE_FEATURE_SCHEDULE_DEPS === "true",
+    aiaBilling: import.meta.env.VITE_FEATURE_AIA_BILLING === "true",
   };
 };
 

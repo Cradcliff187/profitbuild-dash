@@ -1,4 +1,4 @@
-import { Building2, FileText, FileEdit, DollarSign, Target, Calendar, Edit } from 'lucide-react';
+import { Building2, FileText, FileEdit, DollarSign, Target, Calendar, Edit, Receipt } from 'lucide-react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 
 export interface NavItem {
@@ -47,6 +47,11 @@ export const getNavigationGroups = (): NavGroup[] => {
     groups[0].items.push({ title: "Schedule", url: "schedule", icon: Calendar });
   }
 
+  // Add AIA Billing if feature flag is enabled
+  if (isFeatureEnabled("aiaBilling")) {
+    groups[1].items.push({ title: "Billing (AIA)", url: "billing", icon: Receipt });
+  }
+
   return groups;
 };
 
@@ -61,6 +66,7 @@ export const getSectionLabel = (section: string): string => {
     'control': 'Cost Tracking',
     'documents': 'Documents',
     'schedule': 'Schedule',
+    'billing': 'Billing (AIA)',
     'edit': 'Edit Project',
   };
   return labels[section] || 'Overview';
@@ -77,6 +83,7 @@ export const getSectionIcon = (section: string) => {
     'control': Target,
     'documents': FileText,
     'schedule': Calendar,
+    'billing': Receipt,
     'edit': Edit,
   };
   return icons[section] || Building2;
