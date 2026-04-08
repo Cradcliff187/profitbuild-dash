@@ -1,8 +1,15 @@
+import { Navigate } from "react-router-dom";
 import { useProjectContext } from "@/components/ProjectDetailView";
 import { PaymentApplicationsTab } from "@/components/payment-applications/PaymentApplicationsTab";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 export function ProjectBillingRoute() {
-  const { project, estimates } = useProjectContext();
+  const { project, estimates, projectId } = useProjectContext();
+
+  if (!isFeatureEnabled("aiaBilling")) {
+    return <Navigate to={`/projects/${projectId}`} replace />;
+  }
+
   return (
     <PaymentApplicationsTab
       projectId={project.id}

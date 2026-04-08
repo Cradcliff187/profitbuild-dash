@@ -24,7 +24,8 @@ const getEnvFlags = (): Partial<FeatureFlags> => {
     scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE === "true",
     scheduleWarnings: import.meta.env.VITE_FEATURE_SCHEDULE_WARNINGS === "true",
     scheduleDependencies: import.meta.env.VITE_FEATURE_SCHEDULE_DEPS === "true",
-    aiaBilling: import.meta.env.VITE_FEATURE_AIA_BILLING === "true",
+    // Shipped on main: on unless host sets VITE_FEATURE_AIA_BILLING=false
+    aiaBilling: import.meta.env.VITE_FEATURE_AIA_BILLING !== "false",
   };
 };
 
