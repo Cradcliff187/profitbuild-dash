@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -176,15 +178,219 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
     return true;
   };
 
+  /**
+   * Clean up downstream records that reference this CO's line items.
+   * Must be called BEFORE deleting old line items on an approved CO,
+   * so FK constraints don't block the delete.
+   */
+  const cleanupApprovedCOReferences = async (coId: string) => {
+    // 1. Delete auto-generated quotes that reference this CO's line items
+    const { data: coLineItems } = await supabase
+      .from('change_order_line_items')
+      .select('id')
+      .eq('change_order_id', coId);
+
+    if (coLineItems?.length) {
+      const lineItemIds = coLineItems.map(i => i.id);
+      const { data: quoteLineItems } = await supabase
+        .from('quote_line_items')
+        .select('quote_id')
+        .in('change_order_line_item_id', lineItemIds);
+
+      if (quoteLineItems?.length) {
+        const quoteIds = [...new Set(quoteLineItems.map(q => q.quote_id))];
+        const { error: quoteDelError } = await supabase
+          .from('quotes')
+          .delete()
+          .in('id', quoteIds);
+        if (quoteDelError) throw quoteDelError;
+      }
+    }
+
+    // 2. Remove SOV line items sourced from this CO and adjust contract sum
+    const { data: sovLineItems } = await supabase
+      .from('sov_line_items')
+      .select('id, scheduled_value, sov_id')
+      .eq('source_change_order_id', coId);
+
+    if (sovLineItems?.length) {
+      const totalScheduledValue = sovLineItems.reduce(
+        (sum, item) => sum + Number(item.scheduled_value || 0), 0
+      );
+      const sovId = sovLineItems[0].sov_id;
+
+      const { error: sovLineDelError } = await supabase
+        .from('sov_line_items')
+        .delete()
+        .eq('source_change_order_id', coId);
+      if (sovLineDelError) throw sovLineDelError;
+
+      // Reduce SOV contract sum by the removed amount
+      const { data: sov } = await supabase
+        .from('schedule_of_values')
+        .select('original_contract_sum')
+        .eq('id', sovId)
+        .single();
+
+      if (sov) {
+        await supabase
+          .from('schedule_of_values')
+          .update({
+            original_contract_sum: Number(sov.original_contract_sum || 0) - totalScheduledValue,
+          })
+          .eq('id', sovId);
+      }
+    }
+  };
+
+  /**
+   * Regenerate the auto-quote and SOV entries for an approved CO after editing.
+   */
+  const regenerateApprovedCOReferences = async (coId: string, newTotalPrice: number) => {
+    // 1. Fetch the newly inserted line items
+    const { data: newLineItems, error: fetchError } = await supabase
+      .from('change_order_line_items')
+      .select('*')
+      .eq('change_order_id', coId)
+      .order('sort_order');
+
+    if (fetchError) throw fetchError;
+    if (!newLineItems?.length) return;
+
+    // 2. Regenerate auto-quote
+    const { data: project } = await supabase
+      .from('projects')
+      .select('project_number')
+      .eq('id', projectId)
+      .single();
+
+    if (project) {
+      const { data: existingQuotes } = await supabase
+        .from('quotes')
+        .select('quote_number')
+        .eq('project_id', projectId)
+        .like('quote_number', `${project.project_number}-QTE-00-%`);
+
+      const nextSequence = (existingQuotes?.length || 0) + 1;
+      const quoteNumber = `${project.project_number}-QTE-00-${String(nextSequence).padStart(2, '0')}`;
+
+      const { data: newQuote, error: quoteError } = await supabase
+        .from('quotes')
+        .insert({
+          project_id: projectId,
+          estimate_id: null,
+          payee_id: newLineItems[0]?.payee_id || null,
+          quote_number: quoteNumber,
+          status: 'accepted',
+          date_received: new Date().toISOString().split('T')[0],
+          accepted_date: new Date().toISOString(),
+          total_amount: newTotalPrice,
+          notes: `Auto-generated quote for ${changeOrderNumber}`,
+          includes_labor: true,
+          includes_materials: true,
+        })
+        .select()
+        .single();
+
+      if (quoteError) throw quoteError;
+
+      if (newQuote) {
+        const quoteLineItems = newLineItems.map((item, index) => ({
+          quote_id: newQuote.id,
+          change_order_line_item_id: item.id,
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity || 1,
+          unit: item.unit,
+          rate: item.price_per_unit || 0,
+          cost_per_unit: item.cost_per_unit || 0,
+          sort_order: item.sort_order || index,
+        }));
+
+        const { error: qliError } = await supabase
+          .from('quote_line_items')
+          .insert(quoteLineItems);
+        if (qliError) throw qliError;
+      }
+    }
+
+    // 3. Re-add SOV entries if an SOV exists for this project
+    const { data: sov } = await supabase
+      .from('schedule_of_values')
+      .select('id')
+      .eq('project_id', projectId)
+      .maybeSingle();
+
+    if (sov) {
+      const { data: maxSortData } = await supabase
+        .from('sov_line_items')
+        .select('sort_order')
+        .eq('sov_id', sov.id)
+        .order('sort_order', { ascending: false })
+        .limit(1);
+
+      let currentSort = maxSortData?.[0]?.sort_order ?? 0;
+
+      const { data: itemCountData } = await supabase
+        .from('sov_line_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('sov_id', sov.id);
+
+      let itemNum = itemCountData ? (itemCountData as any).length || 0 : 0;
+
+      const sovEntries = newLineItems.map((item) => {
+        currentSort++;
+        itemNum++;
+        return {
+          sov_id: sov.id,
+          item_number: `CO-${itemNum}`,
+          description: item.description,
+          scheduled_value: Number(item.total_price || 0),
+          sort_order: currentSort,
+          category: item.category,
+          source_change_order_id: coId,
+        };
+      });
+
+      const { error: sovInsertError } = await supabase
+        .from('sov_line_items')
+        .insert(sovEntries);
+      if (sovInsertError) throw sovInsertError;
+
+      // Increase SOV contract sum by the new CO total
+      const { data: currentSov } = await supabase
+        .from('schedule_of_values')
+        .select('original_contract_sum')
+        .eq('id', sov.id)
+        .single();
+
+      if (currentSov) {
+        await supabase
+          .from('schedule_of_values')
+          .update({
+            original_contract_sum: Number(currentSov.original_contract_sum || 0) + newTotalPrice,
+          })
+          .eq('id', sov.id);
+      }
+    }
+  };
+
   const onSubmit = async (data: ChangeOrderFormData) => {
     if (!validateLineItems()) return;
-    
+
     const { totalCost, totalPrice, margin } = calculateTotals();
-    
+
     try {
       setIsSubmitting(true);
 
       if (changeOrder) {
+        const isApproved = changeOrder.status === 'approved';
+
+        // For approved COs: clean up quotes and SOV entries before modifying line items
+        if (isApproved) {
+          await cleanupApprovedCOReferences(changeOrder.id);
+        }
+
         // Update existing change order
         const { error: coError } = await supabase
           .from('change_orders')
@@ -200,11 +406,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
         if (coError) throw coError;
 
-        // Delete old line items
-        await supabase
+        // Delete old line items (with error handling)
+        const { error: deleteError } = await supabase
           .from('change_order_line_items')
           .delete()
           .eq('change_order_id', changeOrder.id);
+
+        if (deleteError) throw deleteError;
 
         // Insert new line items
         const lineItemsToInsert = lineItems.map((item, index) => ({
@@ -225,7 +433,15 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
         if (liError) throw liError;
 
-        toast.success("Change order updated successfully");
+        // For approved COs: regenerate the auto-quote and SOV entries
+        if (isApproved) {
+          await regenerateApprovedCOReferences(changeOrder.id, totalPrice);
+          toast.success("Approved change order updated", {
+            description: "Line items, associated quote, and SOV entries have been refreshed.",
+          });
+        } else {
+          toast.success("Change order updated successfully");
+        }
       } else {
         // Create new change order
         const { data: changeOrderData, error: coError } = await supabase
@@ -295,6 +511,18 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
       <div className="flex-1 space-y-3">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3" id="change-order-form">
+            {changeOrder?.status === 'approved' && (
+              <Alert className="border-orange-300 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <AlertTitle className="text-xs font-semibold text-orange-800 dark:text-orange-300">
+                  Editing Approved Change Order
+                </AlertTitle>
+                <AlertDescription className="text-xs text-orange-700 dark:text-orange-400">
+                  Saving will update the associated auto-generated quote and Schedule of Values entries to reflect your changes.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex items-center gap-2">
               <FormLabel className="text-sm">Change Order Number:</FormLabel>
               <span className="font-mono font-medium text-sm">{changeOrderNumber}</span>
