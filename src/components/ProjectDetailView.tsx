@@ -512,6 +512,26 @@ export const ProjectDetailView = () => {
           }} />
         </div>
         
+        {/* Floating Action Buttons — mobile field worker capture */}
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+            onClick={() => navigate(`/projects/${project.id}/capture-video`)}
+            title="Capture Video"
+          >
+            <Video className="h-5 w-5" />
+          </Button>
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+            onClick={() => navigate(`/projects/${project.id}/capture`)}
+            title="Capture Photo"
+          >
+            <Camera className="h-5 w-5" />
+          </Button>
+        </div>
+
         {/* Change Order Modal */}
         <ChangeOrderModal
           open={showChangeOrderModal && !!project}
@@ -761,25 +781,6 @@ export const ProjectDetailView = () => {
           }} />
         </main>
 
-          {/* Floating Action Buttons */}
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
-          onClick={() => navigate(`/projects/${project.id}/capture-video`)}
-          title="Capture Video"
-        >
-          <Video className="h-5 w-5" />
-        </Button>
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
-          onClick={() => navigate(`/projects/${project.id}/capture`)}
-          title="Capture Photo"
-        >
-          <Camera className="h-5 w-5" />
-        </Button>
-      </div>
 
       {/* Change Order Modal */}
       <ChangeOrderModal

@@ -113,15 +113,15 @@ export function G703ContinuationSheet({
             <TableHead className="w-28 text-right">I</TableHead>
           </TableRow>
           <TableRow className="text-xs bg-muted/30">
-            <TableHead className="text-center">Item #</TableHead>
+            <TableHead className="text-center">Item No.</TableHead>
             <TableHead>Description of Work</TableHead>
             <TableHead className="text-right">Scheduled Value</TableHead>
-            <TableHead className="text-right">Previous Apps</TableHead>
+            <TableHead className="text-right">From Previous Application</TableHead>
             <TableHead className="text-center">This Period</TableHead>
-            <TableHead className="text-center">Stored Materials</TableHead>
-            <TableHead className="text-right">Total Completed</TableHead>
-            <TableHead className="text-right">%</TableHead>
-            <TableHead className="text-right">Balance to Finish</TableHead>
+            <TableHead className="text-center">Materials Presently Stored</TableHead>
+            <TableHead className="text-right">Total Completed & Stored to Date</TableHead>
+            <TableHead className="text-right">G/C %</TableHead>
+            <TableHead className="text-right">Balance to Finish (C−G)</TableHead>
             <TableHead className="text-right">Retainage</TableHead>
           </TableRow>
         </TableHeader>

@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, FileText, ChevronLeft, Download } from "lucide-react";
+import { Plus, FileText, ChevronLeft, Download, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useScheduleOfValues } from "@/hooks/useScheduleOfValues";
 import {
   usePaymentApplications,
@@ -99,10 +105,16 @@ export function PaymentApplicationsTab({
   const handleExportPdf = async (type: "g702" | "g703") => {
     if (!selectedApp) return;
     setIsExporting(true);
-    const projectInfo = { projectId, projectName, projectNumber, clientName };
+    const projectInfo = {
+      projectId,
+      projectName,
+      projectNumber,
+      clientName,
+      retainagePercent: sov?.retainage_percent ?? 10,
+    };
     try {
       if (type === "g702") {
-        await generateAndSaveG702(selectedApp, projectInfo);
+        await generateAndSaveG702(selectedApp, projectInfo, appLines);
         toast.success("G702 PDF saved and downloaded");
       } else {
         await generateAndSaveG703(selectedApp, appLines, projectInfo);
@@ -173,19 +185,35 @@ export function PaymentApplicationsTab({
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back to Applications
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExportPdf("g702")} disabled={isExporting}>
-              <Download className="h-4 w-4 mr-1" />
-              {isExporting ? "Saving..." : "G702 PDF"}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleExportPdf("g703")} disabled={isExporting}>
-              <Download className="h-4 w-4 mr-1" />
-              {isExporting ? "Saving..." : "G703 PDF"}
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={isExporting}>
+                <Download className="h-4 w-4 mr-1" />
+                {isExporting ? "Saving..." : "Export PDF"}
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExportPdf("g702")}>
+                <FileText className="h-4 w-4 mr-2" />
+                G702 — Application for Payment
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("g703")}>
+                <FileText className="h-4 w-4 mr-2" />
+                G703 — Continuation Sheet
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <G702Summary application={selectedApp} />
+        <G702Summary
+          application={selectedApp}
+          projectName={projectName}
+          projectNumber={projectNumber}
+          clientName={clientName}
+          retainagePercent={sov?.retainage_percent ?? 10}
+          appLines={appLines}
+        />
 
         <Card>
           <CardHeader className="pb-3">
