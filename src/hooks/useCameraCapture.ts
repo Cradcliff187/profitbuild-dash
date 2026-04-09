@@ -28,7 +28,7 @@ export function useCameraCapture(): UseCameraCaptureResult {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'environment'; // Request rear camera
+        // No capture attribute — lets mobile users choose between camera and photo library
         input.style.display = 'none';
         
         const handleFileSelect = (event: Event) => {

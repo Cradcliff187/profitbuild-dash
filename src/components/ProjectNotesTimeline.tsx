@@ -192,7 +192,30 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       return;
     }
 
-    const acceptedTypes = [
+    // Determine attachment type from MIME type
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachmentPreview(reader.result as string);
+        setAttachmentType('image');
+        setAttachmentFileName(file.name);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    if (file.type.startsWith('video/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachmentPreview(reader.result as string);
+        setAttachmentType('video');
+        setAttachmentFileName(file.name);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const acceptedDocTypes = [
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -201,8 +224,8 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       'text/plain',
     ];
 
-    if (!acceptedTypes.includes(file.type)) {
-      toast.error('File type not supported. Please use PDF, DOC, XLS, or TXT files');
+    if (!acceptedDocTypes.includes(file.type)) {
+      toast.error('File type not supported. Please use images, videos, PDF, DOC, XLS, or TXT files');
       return;
     }
 
@@ -451,7 +474,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
                 type="file"
                 className="hidden"
                 onChange={handleFileSelect}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
               />
               <Button
                 onClick={handleAddNote}
@@ -673,7 +696,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
               type="file"
               className="hidden"
               onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
             />
             <Button
               onClick={handleAddNote}
@@ -1062,7 +1085,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
               type="file"
               className="hidden"
               onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
             />
           </div>
           
