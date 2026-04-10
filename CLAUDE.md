@@ -56,6 +56,7 @@ npm run upload:template       # Upload contract Word template to Storage
 | SMS | Textbelt (via edge functions) |
 | AI features | Supabase edge functions calling AI APIs |
 | File handling | PapaParse (CSV), XLSX, JSZip, react-dropzone |
+| Sanitization | DOMPurify (HTML sanitization for user-provided embeds) |
 
 ---
 
@@ -138,7 +139,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 ## Database Migrations
 
-**334 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
+**336 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -219,6 +220,9 @@ Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quic
 ### 1. Database-First Financials
 All financial calculations (margins, totals, projections) live in PostgreSQL triggers and functions — **not** in frontend code. `projectFinancials.ts` is **deprecated**. Read financial data directly from the `projects` table and `reporting.project_financials` view.
 
+### 1a. Canonical `ProjectStatus` Type
+`src/types/project.ts` is the **single source of truth** for `ProjectStatus`. All other type files (`profit.ts`, `profitAnalysis.ts`) import from it. **Never** define project status literals in other files — always import `ProjectStatus` from `@/types/project`.
+
 ### 2. Reporting Views
 - `reporting.project_financials` — Primary source for all project financial reports (53 columns: core financials, margins, estimates, cost composition flags)
 - `reporting.training_status` — Training completion data for reports
@@ -298,6 +302,8 @@ Major:  feature branch → test in Lovable preview → merge to main
 
 ## Environment Variables (`.env`)
 
+`.env` is **git-ignored** (untracked as of Apr 2026). Each developer must create their own locally. Required variables:
+
 ```env
 VITE_SUPABASE_URL=https://clsjdxwbsjbhjibvlqbz.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon key>
@@ -375,7 +381,7 @@ Use this list when doing periodic documentation reviews:
 
 7. **QuickBooks is UI-hidden** — The `quickbooks_auto_sync` feature flag is disabled. The edge functions and DB schema exist but the UI is hidden.
 
-8. **`projectFinancials.ts` is deprecated** — Do not add new logic here. Read financial data from the DB directly.
+8. **`projectFinancials.ts` is deprecated** — Do not add new logic here. Read financial data from the DB directly. **4 files still import `ProjectWithFinancials` from it** (`ProjectDetailView.tsx`, `ProjectsTableView.tsx`, `useProjectData.tsx`, `Projects.tsx`) — these need migrating to a proper type definition.
 
 9. **Time entries store as `timestamptz`** — Always in UTC. Display in local browser timezone. The existing pattern is correct; do not add explicit timezone conversion unless improving the time entry form.
 
@@ -384,3 +390,36 @@ Use this list when doing periodic documentation reviews:
 11. **ESLint `no-unused-imports` rule does not exist in `typescript-eslint`** — The rule `@typescript-eslint/no-unused-imports` was removed from `eslint.config.js` because it doesn't exist in the `typescript-eslint` plugin (even v8+). The existing `@typescript-eslint/no-unused-vars` rule already catches unused imports. If you need a dedicated unused-imports rule, install `eslint-plugin-unused-imports` separately.
 
 12. **AIA billing cumulative chain** — Payment applications are cumulative. Each new application's `previous_work` (G703 Col D) is auto-populated from the prior certified application's `total_completed`. Deleting or modifying a certified application will break the chain for subsequent apps. Only draft applications should be editable.
+
+13. **`_shared/transactionProcessor.ts` is unused** — 36KB file in `supabase/functions/_shared/` with zero imports. Safe to delete.
+
+14. **`get-textbelt-key` is intentional admin functionality** — Despite the "delete me" comment in the function, `SMSSettings.tsx` actively uses it for admin key retrieval. Do not delete without removing the SMSSettings consumer first.
+
+15. **HTML sanitization uses DOMPurify** — `TrainingViewer.tsx` sanitizes `embed_code` via DOMPurify with `ADD_TAGS: ['iframe']` to allow video embeds while blocking XSS. Any new `dangerouslySetInnerHTML` usage must also sanitize.
+
+16. **Supabase queries must destructure `error`** — Always use `const { data, error } = await supabase...`. In TanStack Query `queryFn`, throw the error. In `useEffect` fetches, `console.error` + return. Never silently discard the error.
+
+---
+
+## Outstanding Audit Items (Apr 2026)
+
+Issues identified during codebase audit, validated, and prioritized for future work.
+
+### Medium Priority
+
+| Issue | File(s) | Notes |
+|-------|---------|-------|
+| 4 files import deprecated `projectFinancials.ts` | `ProjectDetailView.tsx:29`, `ProjectsTableView.tsx:31`, `useProjectData.tsx:9`, `Projects.tsx:22` | Need to move `ProjectWithFinancials` type to `src/types/` and remove deprecated file |
+| Unused `_shared/transactionProcessor.ts` | `supabase/functions/_shared/transactionProcessor.ts` | 36KB, zero imports — safe to delete |
+| Non-serializable queryKey in `useBidMedia.ts:28` | `src/hooks/useBidMedia.ts` | `options` object in queryKey causes reference-inequality cache misses; flatten or serialize |
+| Hash navigation bug | `ProjectOperationalDashboard.tsx:270` | Uses `#change-orders` hash instead of `/changes` route — inconsistent with lines 315 and 956 |
+| `as unknown as T` double-cast | `ImportBatchDetail.tsx:87` | Type safety bypass; replace with proper type guard or assertion |
+| `as any` casts | `BulkExpenseAllocationSheet.tsx` (4), `ExpenseForm.tsx` (2) | Disables type checking for Supabase join results; fix with proper typed queries |
+| Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
+| Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not reflected in Supabase generated types |
+
+### Deferred (Requires Broader Planning)
+
+| Issue | Scope | Notes |
+|-------|-------|-------|
+| 26 edge functions with wildcard CORS (`*`) | All functions except `quickbooks-callback` | Replace with `rcgwork.com` origin allowlist. Especially important for no-JWT functions: `send-auth-email`, `forgot-password`, `send-receipt-notification`, `send-training-notification` |
