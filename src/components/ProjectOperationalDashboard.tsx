@@ -312,7 +312,7 @@ export function ProjectOperationalDashboard({
           count: 1,
           color: remainingPct <= 10 ? 'red' : 'orange',
           icon: AlertTriangle,
-          onClick: () => navigate(`/projects/${project.id}/change-orders`),
+          onClick: () => navigate(`/projects/${project.id}/changes`),
         });
       }
     }

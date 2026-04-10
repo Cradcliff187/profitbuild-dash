@@ -9,7 +9,6 @@ import { RoleProvider } from "@/contexts/RoleContext";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import { isFeatureEnabled } from "@/lib/featureFlags";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
