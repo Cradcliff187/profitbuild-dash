@@ -5,16 +5,12 @@
 
 export interface FeatureFlags {
   scheduleView: boolean;
-  scheduleWarnings: boolean;
-  scheduleDependencies: boolean;
   aiaBilling: boolean;
 }
 
 // Default flags - all OFF initially
 const defaultFlags: FeatureFlags = {
   scheduleView: false,
-  scheduleWarnings: false,
-  scheduleDependencies: false,
   aiaBilling: false,
 };
 
@@ -22,8 +18,6 @@ const defaultFlags: FeatureFlags = {
 const getEnvFlags = (): Partial<FeatureFlags> => {
   return {
     scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE === "true",
-    scheduleWarnings: import.meta.env.VITE_FEATURE_SCHEDULE_WARNINGS === "true",
-    scheduleDependencies: import.meta.env.VITE_FEATURE_SCHEDULE_DEPS === "true",
     // Shipped on main: on unless host sets VITE_FEATURE_AIA_BILLING=false
     aiaBilling: import.meta.env.VITE_FEATURE_AIA_BILLING !== "false",
   };
@@ -40,24 +34,4 @@ export const featureFlags: FeatureFlags = {
  */
 export const isFeatureEnabled = (feature: keyof FeatureFlags): boolean => {
   return featureFlags[feature] ?? false;
-};
-
-/**
- * For development: Enable all schedule features
- */
-export const enableScheduleFeatures = () => {
-  if (import.meta.env.DEV) {
-    featureFlags.scheduleView = true;
-    featureFlags.scheduleWarnings = true;
-    featureFlags.scheduleDependencies = true;
-  }
-};
-
-/**
- * For emergencies: Disable all schedule features
- */
-export const disableScheduleFeatures = () => {
-  featureFlags.scheduleView = false;
-  featureFlags.scheduleWarnings = false;
-  featureFlags.scheduleDependencies = false;
 };

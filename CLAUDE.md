@@ -210,8 +210,6 @@ Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quic
 | Variable | Status | Controls |
 |----------|--------|---------|
 | `VITE_FEATURE_SCHEDULE` | ✅ Enabled | Gantt schedule view |
-| `VITE_FEATURE_SCHEDULE_WARNINGS` | ✅ Enabled | Schedule sequence warnings |
-| `VITE_FEATURE_SCHEDULE_DEPS` | ✅ Enabled | Task dependencies |
 | `VITE_FEATURE_AIA_BILLING` | ✅ Enabled | AIA G702/G703 payment applications (Billing tab in Project Detail) |
 
 ---
@@ -304,8 +302,6 @@ Major:  feature branch → test in Lovable preview → merge to main
 VITE_SUPABASE_URL=https://clsjdxwbsjbhjibvlqbz.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon key>
 VITE_FEATURE_SCHEDULE=true
-VITE_FEATURE_SCHEDULE_WARNINGS=true
-VITE_FEATURE_SCHEDULE_DEPS=true
 VITE_FEATURE_AIA_BILLING=true
 ```
 
