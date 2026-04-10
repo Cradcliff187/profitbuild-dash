@@ -391,7 +391,7 @@ Use this list when doing periodic documentation reviews:
 
 12. **AIA billing cumulative chain** — Payment applications are cumulative. Each new application's `previous_work` (G703 Col D) is auto-populated from the prior certified application's `total_completed`. Deleting or modifying a certified application will break the chain for subsequent apps. Only draft applications should be editable.
 
-13. **`_shared/transactionProcessor.ts` is unused** — 36KB file in `supabase/functions/_shared/` with zero imports. Safe to delete.
+13. **`_shared/transactionProcessor.ts` was deleted** — Was a 36KB unused file with zero imports. Removed in Apr 2026 audit cleanup.
 
 14. **`get-textbelt-key` is intentional admin functionality** — Despite the "delete me" comment in the function, `SMSSettings.tsx` actively uses it for admin key retrieval. Do not delete without removing the SMSSettings consumer first.
 
@@ -410,9 +410,6 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Issue | File(s) | Notes |
 |-------|---------|-------|
 | 4 files import deprecated `projectFinancials.ts` | `ProjectDetailView.tsx:29`, `ProjectsTableView.tsx:31`, `useProjectData.tsx:9`, `Projects.tsx:22` | Need to move `ProjectWithFinancials` type to `src/types/` and remove deprecated file |
-| Unused `_shared/transactionProcessor.ts` | `supabase/functions/_shared/transactionProcessor.ts` | 36KB, zero imports — safe to delete |
-| Non-serializable queryKey in `useBidMedia.ts:28` | `src/hooks/useBidMedia.ts` | `options` object in queryKey causes reference-inequality cache misses; flatten or serialize |
-| Hash navigation bug | `ProjectOperationalDashboard.tsx:270` | Uses `#change-orders` hash instead of `/changes` route — inconsistent with lines 315 and 956 |
 | `as unknown as T` double-cast | `ImportBatchDetail.tsx:87` | Type safety bypass; replace with proper type guard or assertion |
 | `as any` casts | `BulkExpenseAllocationSheet.tsx` (4), `ExpenseForm.tsx` (2) | Disables type checking for Supabase join results; fix with proper typed queries |
 | Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
