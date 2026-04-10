@@ -25,7 +25,7 @@ export function useBidMedia(
 ): UseBidMediaResult {
   const queryClient = useQueryClient();
 
-  const queryKey = ['bid-media', bidId, options];
+  const queryKey = ['bid-media', bidId, options?.fileType, options?.limit, options?.offset];
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,

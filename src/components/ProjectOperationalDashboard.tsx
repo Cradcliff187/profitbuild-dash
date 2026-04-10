@@ -270,7 +270,7 @@ export function ProjectOperationalDashboard({
         count: pendingCOs.length,
         color: 'purple',
         icon: FileEdit,
-        onClick: () => navigate(`/projects/${project.id}#change-orders`)
+        onClick: () => navigate(`/projects/${project.id}/changes`)
       });
     }
     
