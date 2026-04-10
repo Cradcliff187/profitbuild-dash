@@ -375,7 +375,7 @@ Use this list when doing periodic documentation reviews:
 
 5. **PWA cache in dev** — Service worker is disabled in dev. If you see stale UI, see `DEV_CLEAN_RELOAD.md`.
 
-6. **Two drag-and-drop libraries** — Both `react-beautiful-dnd` and `@hello-pangea/dnd` are present. `@hello-pangea/dnd` is the maintained fork; prefer it for new code.
+6. **Drag-and-drop uses `@hello-pangea/dnd`** — The maintained fork of `react-beautiful-dnd`. Legacy `react-beautiful-dnd` was removed (Apr 2026).
 
 7. **QuickBooks is UI-hidden** — The `quickbooks_auto_sync` feature flag is disabled. The edge functions and DB schema exist but the UI is hidden.
 
@@ -383,7 +383,7 @@ Use this list when doing periodic documentation reviews:
 
 9. **Time entries store as `timestamptz`** — Always in UTC. Display in local browser timezone. The existing pattern is correct; do not add explicit timezone conversion unless improving the time entry form.
 
-10. **`frappe-gantt` in optimizeDeps** — `vite.config.ts` includes `frappe-gantt` in `optimizeDeps.include` but the actual Gantt library used is `gantt-task-react`. This is a benign legacy entry.
+10. **Schedule uses `gantt-task-react`** — The Gantt chart is rendered by `gantt-task-react` in `ProjectScheduleView.tsx`. A legacy `frappe-gantt` implementation was cleaned up (Apr 2026).
 
 11. **ESLint `no-unused-imports` rule does not exist in `typescript-eslint`** — The rule `@typescript-eslint/no-unused-imports` was removed from `eslint.config.js` because it doesn't exist in the `typescript-eslint` plugin (even v8+). The existing `@typescript-eslint/no-unused-vars` rule already catches unused imports. If you need a dedicated unused-imports rule, install `eslint-plugin-unused-imports` separately.
 
