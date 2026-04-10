@@ -46,11 +46,12 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
 
   useEffect(() => {
     const fetchEmployees = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('payees')
         .select('id, payee_name')
         .eq('is_internal', true)
         .order('payee_name');
+      if (error) { console.error('Failed to load employees:', error); return; }
       if (data) setInternalEmployees(data);
     };
     fetchEmployees();

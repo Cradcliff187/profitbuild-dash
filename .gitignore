@@ -26,5 +26,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables
+.env
+.env.*
+
 # Generated for migration validation (DB list from Supabase)
 supabase/db-migrations.json

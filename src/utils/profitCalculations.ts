@@ -37,11 +37,11 @@ export function calculateProjectProfit(
   const profitVariance = actualProfit - estimatedProfit;
   
   // Determine project status
-  let status: 'Estimating' | 'In Progress' | 'Complete' = 'Estimating';
+  let status: ProjectProfitData['status'] = 'estimating';
   if (projectQuotes.length > 0 && actualExpenses > 0) {
-    status = actualExpenses >= quoteTotal * 0.8 ? 'Complete' : 'In Progress';
+    status = actualExpenses >= quoteTotal * 0.8 ? 'complete' : 'in_progress';
   } else if (projectQuotes.length > 0) {
-    status = 'In Progress';
+    status = 'in_progress';
   }
   
   return {
@@ -98,11 +98,11 @@ export async function calculateProjectProfitAsync(
   const profitVariance = actualProfit - estimatedProfit;
   
   // Determine project status
-  let status: 'Estimating' | 'In Progress' | 'Complete' = 'Estimating';
+  let status: ProjectProfitData['status'] = 'estimating';
   if (projectQuotes.length > 0 && actualExpenses > 0) {
-    status = actualExpenses >= quoteTotal * 0.8 ? 'Complete' : 'In Progress';
+    status = actualExpenses >= quoteTotal * 0.8 ? 'complete' : 'in_progress';
   } else if (projectQuotes.length > 0) {
-    status = 'In Progress';
+    status = 'in_progress';
   }
   
   return {

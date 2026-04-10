@@ -1,3 +1,5 @@
+import type { ProjectStatus } from './project';
+
 export interface ProjectProfitData {
   projectId: string;
   projectName: string;
@@ -5,17 +7,17 @@ export interface ProjectProfitData {
   estimateTotal: number;
   quoteTotal: number; // Best/selected quote for each category
   actualExpenses: number;
-  
+
   // Profit calculations
   estimatedProfit: number; // Quote - Estimate (what we expected to make)
   actualProfit: number; // Quote - Actual Expenses (what we actually made)
   profitMargin: number; // (actualProfit / quoteTotal) * 100
   profitVariance: number; // actualProfit - estimatedProfit
-  
+
   // Time-based data
   projectStartDate: Date;
   projectEndDate?: Date;
-  status: 'Estimating' | 'In Progress' | 'Complete';
+  status: ProjectStatus;
 }
 
 export interface ProfitTrend {

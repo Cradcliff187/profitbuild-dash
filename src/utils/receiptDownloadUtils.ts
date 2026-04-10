@@ -26,10 +26,11 @@ export const downloadSingleReceipt = async (url: string, filename: string) => {
         const [bucket, ...pathParts] = urlParts[1].split('/');
         const path = pathParts.join('/');
         
-        const { data } = await supabase.storage
+        const { data, error: signedUrlError } = await supabase.storage
           .from(bucket)
           .createSignedUrl(path, 60); // 60 second expiry
-        
+
+        if (signedUrlError) console.error('Failed to create signed URL:', signedUrlError);
         if (data?.signedUrl) {
           downloadUrl = data.signedUrl;
         }
@@ -77,10 +78,11 @@ export const downloadReceiptsAsZip = async (
             const [bucket, ...pathParts] = urlParts[1].split('/');
             const path = pathParts.join('/');
             
-            const { data } = await supabase.storage
+            const { data, error: signedUrlError } = await supabase.storage
               .from(bucket)
               .createSignedUrl(path, 60);
-            
+
+            if (signedUrlError) console.error('Failed to create signed URL for ZIP:', signedUrlError);
             if (data?.signedUrl) {
               downloadUrl = data.signedUrl;
             }

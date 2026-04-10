@@ -122,12 +122,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
       }
 
       // Fetch contingency remaining
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("projects")
         .select("contingency_remaining")
         .eq("id", projectId)
         .single();
-      
+
+      if (error) { console.error('Failed to load contingency:', error); return; }
       if (data) {
         setContingencyRemaining(data.contingency_remaining || 0);
       }

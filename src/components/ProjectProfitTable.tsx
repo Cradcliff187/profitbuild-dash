@@ -151,13 +151,16 @@ export default function ProjectProfitTable({
     : sortedData;
 
   const getStatusBadge = (status: ProjectProfitData['status']) => {
-    const variants = {
-      'Estimating': 'secondary',
-      'In Progress': 'default',
-      'Complete': 'outline'
-    } as const;
-    
-    return <Badge variant={variants[status]}>{status}</Badge>;
+    const config: Record<string, { variant: 'secondary' | 'default' | 'outline' | 'destructive'; label: string }> = {
+      estimating: { variant: 'secondary', label: 'Estimating' },
+      approved: { variant: 'default', label: 'Approved' },
+      in_progress: { variant: 'default', label: 'In Progress' },
+      complete: { variant: 'outline', label: 'Complete' },
+      on_hold: { variant: 'secondary', label: 'On Hold' },
+      cancelled: { variant: 'destructive', label: 'Cancelled' },
+    };
+    const { variant, label } = config[status] ?? { variant: 'secondary' as const, label: status };
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
   const getProfitColor = (profit: number) => {

@@ -102,11 +102,12 @@ export function AppSidebar() {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user?.id) return;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('full_name')
         .eq('id', user.id)
         .single();
+      if (error) { console.error('Failed to load user profile:', error); return; }
       if (data?.full_name) {
         setUserFullName(data.full_name);
       }

@@ -34,12 +34,13 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
       setFullName(user.full_name || '');
       
       async function loadPhoneData() {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('phone, sms_notifications_enabled')
           .eq('id', user.id)
           .single();
-        
+
+        if (error) { console.error('Failed to load profile phone data:', error); return; }
         if (data) {
           setPhone(data.phone || '');
           setSmsEnabled(data.sms_notifications_enabled ?? true);

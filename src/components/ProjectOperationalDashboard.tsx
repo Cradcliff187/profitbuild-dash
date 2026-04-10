@@ -171,12 +171,13 @@ export function ProjectOperationalDashboard({
       if (!estimateId) return;
 
       // Step 2: Fetch financial summary for the resolved estimate
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('estimate_financial_summary')
         .select('cushion_hours_capacity, total_labor_capacity, total_labor_hours, schedule_buffer_percent')
         .eq('estimate_id', estimateId)
         .maybeSingle();
 
+      if (error) { console.error('Failed to load labor cushion data:', error); return; }
       if (data) {
         setLaborCushion({
           cushionHoursCapacity: data.cushion_hours_capacity,
@@ -200,12 +201,13 @@ export function ProjectOperationalDashboard({
     async function fetchActualHours() {
       if (!project.id) return;
 
-      const { data } = await supabase
+      const { data, error: hoursError } = await supabase
         .from('expenses')
         .select('hours')
         .eq('project_id', project.id)
         .eq('category', 'labor_internal');
 
+      if (hoursError) { console.error('Failed to load actual hours:', hoursError); return; }
       if (data) {
         const total = data.reduce((sum, entry) => sum + (entry.hours ?? 0), 0);
         setActualHoursFromEntries(total);
@@ -223,11 +225,12 @@ export function ProjectOperationalDashboard({
   useEffect(() => {
     async function fetchOwner() {
       if (!project.owner_id) return;
-      const { data } = await supabase
+      const { data, error: ownerError } = await supabase
         .from('payees')
         .select('payee_name')
         .eq('id', project.owner_id)
         .single();
+      if (ownerError) { console.error('Failed to load project owner:', ownerError); return; }
       if (data) setOwnerName(data.payee_name);
     }
     fetchOwner();

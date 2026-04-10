@@ -13,6 +13,7 @@ import { getVideoEmbedUrl, getTrainingFileUrl, downloadTrainingFileBlob } from '
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isIOSDevice, isIOSPWA } from '@/utils/platform';
 import { toast } from 'sonner';
+import DOMPurify from 'dompurify';
 
 export default function TrainingViewer() {
   const { id } = useParams<{ id: string }>();
@@ -181,10 +182,14 @@ export default function TrainingViewer() {
       }
 
       case 'video_embed': {
+        const sanitizedEmbed = DOMPurify.sanitize(content.embed_code || '', {
+          ADD_TAGS: ['iframe'],
+          ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'src', 'width', 'height', 'title'],
+        });
         return (
-          <div 
+          <div
             className="aspect-video w-full"
-            dangerouslySetInnerHTML={{ __html: content.embed_code || '' }}
+            dangerouslySetInnerHTML={{ __html: sanitizedEmbed }}
           />
         );
       }

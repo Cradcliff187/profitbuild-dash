@@ -1462,11 +1462,12 @@ export const MobileTimeTracker: React.FC = () => {
                       key={entry.id} 
                       className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary cursor-pointer hover:shadow-md transition-shadow"
                       onClick={async () => {
-                        const { data } = await supabase
+                        const { data, error } = await supabase
                           .from('expenses')
                           .select('*')
                           .eq('id', entry.id)
                           .single();
+                        if (error) { console.error('Failed to load time entry:', error); return; }
                         if (data) setEditingEntry(data);
                       }}
                     >

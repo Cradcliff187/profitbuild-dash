@@ -1,9 +1,11 @@
+import type { ProjectStatus } from './project';
+
 export interface ProfitAnalysisProject {
   id: string;
   project_number: string;
   project_name: string;
   client_name: string | null;
-  status: 'approved' | 'in_progress' | 'complete';
+  status: ProjectStatus;
   job_type: string | null;
   start_date: string | null;
   end_date: string | null;

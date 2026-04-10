@@ -127,11 +127,12 @@ export const useReceiptsData = () => {
   const { data: payeesRaw = [] } = useQuery({
     queryKey: receiptQueryKeys.payees(),
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('payees')
         .select('id, payee_name')
         .eq('is_active', true)
         .order('payee_name');
+      if (error) throw error;
       return (data || []).map((p: any) => ({ id: p.id, name: p.payee_name }));
     },
     staleTime: 1000 * 60 * 30,
@@ -140,11 +141,12 @@ export const useReceiptsData = () => {
   const { data: projectsRaw = [] } = useQuery({
     queryKey: receiptQueryKeys.projects(),
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .select('id, project_number, project_name, category')
         .eq('category', 'construction')
         .order('project_number');
+      if (error) throw error;
       return (data || []).map((p: any) => ({
         id: p.id,
         number: p.project_number,

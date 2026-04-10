@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MobileResponsiveTabs, type TabDefinition } from '@/components/ui/mobile-responsive-tabs';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Filter } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { useProfitAnalysisData } from '@/components/profit-analysis/hooks/useProfitAnalysisData';
@@ -16,6 +16,16 @@ import { BudgetHealthTable } from '@/components/profit-analysis/BudgetHealthTabl
 import { MarginAnalysisTable } from '@/components/profit-analysis/MarginAnalysisTable';
 import { CostAnalysisTable } from '@/components/profit-analysis/CostAnalysisTable';
 import { ProjectCostBreakdown } from '@/components/profit-analysis/ProjectCostBreakdown';
+import type { ProjectStatus } from '@/types/project';
+
+const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
+  { value: 'estimating', label: 'Estimating' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'complete', label: 'Complete' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 export default function ProfitAnalysis() {
   const [statusFilter, setStatusFilter] = useState<string[]>(['approved', 'in_progress', 'complete']);
@@ -80,20 +90,30 @@ export default function ProfitAnalysis() {
       />
       
       {/* Status Filter */}
-      <Select 
-        value={statusFilter.join(',')} 
-        onValueChange={(val) => setStatusFilter(val.split(','))}
-      >
-        <SelectTrigger className="w-full md:w-[200px]">
-          <SelectValue placeholder="Filter by status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="approved,in_progress,complete">All Active</SelectItem>
-          <SelectItem value="in_progress">In Progress Only</SelectItem>
-          <SelectItem value="complete">Completed Only</SelectItem>
-          <SelectItem value="approved">Approved Only</SelectItem>
-        </SelectContent>
-      </Select>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full md:w-auto">
+            <Filter className="h-4 w-4 mr-2" />
+            Status ({statusFilter.length} selected)
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {STATUS_OPTIONS.map(({ value, label }) => (
+            <DropdownMenuCheckboxItem
+              key={value}
+              checked={statusFilter.includes(value)}
+              onCheckedChange={(checked) =>
+                setStatusFilter((prev) =>
+                  checked ? [...prev, value] : prev.filter((s) => s !== value)
+                )
+              }
+              onSelect={(e) => e.preventDefault()}
+            >
+              {label}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       
       {/* Summary Cards */}
       <div className="mt-4">
