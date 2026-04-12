@@ -37,7 +37,7 @@ export function TimesheetSummary({ entries, validationErrors }: TimesheetSummary
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-3 p-3 bg-muted/30 rounded-md">
         <div>
-          <div className="text-xs text-muted-foreground">Total Hours</div>
+          <div className="text-xs text-muted-foreground">Paid Hours</div>
           <div className="text-lg font-mono font-semibold">{totalHours.toFixed(1)}</div>
         </div>
         <div>

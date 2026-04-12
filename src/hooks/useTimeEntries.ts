@@ -104,7 +104,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           project_name: entry.projects?.project_name || '',
           client_name: entry.projects?.client_name || '',
           project_address: entry.projects?.address || null,
-          hours,  // This is now net hours
+          hours,  // Paid hours (after lunch deduction)
           hourly_rate: hourlyRate,
           note: entry.description,
           attachment_url: entry.attachment_url,

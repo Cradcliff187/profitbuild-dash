@@ -776,7 +776,7 @@ export const MobileTimeTracker: React.FC = () => {
         lunchDurationMinutes
       );
 
-      // Validate net hours are reasonable
+      // Validate paid hours are reasonable
       if (netHours <= 0) {
         toast.error('Lunch duration cannot exceed shift duration');
         setLoading(false);
@@ -1603,7 +1603,7 @@ export const MobileTimeTracker: React.FC = () => {
                       <span>-{lunchDuration} min</span>
                     </div>
                     <div className="flex justify-between font-bold text-primary border-t mt-2 pt-2">
-                      <span>Worked hours:</span>
+                      <span>Paid hours:</span>
                       <span>{calculateNetHours().toFixed(2)} hrs</span>
                     </div>
                   </div>

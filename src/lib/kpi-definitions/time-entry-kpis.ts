@@ -10,8 +10,8 @@
  *
  * CRITICAL DISTINCTIONS:
  * - gross_hours: Total shift duration (end_time - start_time)
- * - hours (net_hours): Billable hours after lunch deduction
- * - amount: Total cost = hours × hourly_rate
+ * - hours (paid_hours): Paid hours after lunch deduction
+ * - amount: Total cost = paid_hours × hourly_rate
  */
 
 import { KPIMeasure } from './types';
@@ -148,24 +148,24 @@ export const timeEntryKPIs: KPIMeasure[] = [
     domain: 'time_entry',
     whereUsed: 'TimeEntries table, weekly_labor_hours view, compliance, overtime tracking',
     notes: 'STORED FIELD - auto-calculated by database trigger when start_time/end_time change. Total shift duration before lunch deduction. For compliance tracking (e.g., >8 hours may indicate OT eligibility). Employee-facing term: "Shift Hours".',
-    aliases: ['gross hours', 'total hours', 'shift hours', 'raw hours', 'total time', 'time logged', 'clock time'],
+    aliases: ['gross hours', 'shift hours', 'raw hours', 'total time', 'time logged', 'clock time'],
     relatedTo: ['time_entry_hours', 'time_entry_start_time', 'time_entry_end_time'],
     preferWhen: 'User asks about total time worked, shift length, or overtime eligibility',
-    avoidWhen: 'User asks about billable hours or payroll hours (use hours/net_hours)',
+    avoidWhen: 'User asks about paid hours or payroll hours (use time_entry_hours/paid_hours)',
   },
   {
     id: 'time_entry_hours',
-    name: 'Hours (Net/Billable)',
+    name: 'Paid Hours',
     source: 'database',
     field: 'expenses.hours',
     formula: 'Gross Hours - (lunch_duration_minutes / 60) when lunch_taken = true',
     dataType: 'number',
     domain: 'time_entry',
     whereUsed: 'TimeEntries table, payroll, billing, amount calculation',
-    notes: 'Stored billable hours after lunch deduction. Used for: amount = hours × hourly_rate. Employee-facing term: "Paid Hours".',
-    aliases: ['hours', 'billable hours', 'net hours', 'productive hours', 'worked hours', 'payable hours', 'paid hours'],
+    notes: 'Paid hours after lunch deduction. Used for: amount = paid_hours × hourly_rate. This is what the employee gets paid for.',
+    aliases: ['hours', 'billable hours', 'paid hours', 'productive hours', 'payable hours'],
     relatedTo: ['time_entry_gross_hours', 'time_entry_amount', 'time_entry_lunch_taken'],
-    preferWhen: 'User asks about billable hours, payroll hours, or productive hours',
+    preferWhen: 'User asks about paid hours, billable hours, payroll hours, or productive hours',
   },
 
   // ==========================================================================
@@ -223,7 +223,7 @@ export const timeEntryKPIs: KPIMeasure[] = [
     dataType: 'currency',
     domain: 'time_entry',
     whereUsed: 'TimeEntries table, project costs, payroll',
-    notes: 'Total labor cost for this time entry. Calculated as net hours × hourly rate.',
+    notes: 'Total labor cost for this time entry. Calculated as paid hours × hourly rate.',
     aliases: ['amount', 'cost', 'total cost', 'labor cost'],
     relatedTo: ['time_entry_hours', 'time_entry_hourly_rate'],
   },

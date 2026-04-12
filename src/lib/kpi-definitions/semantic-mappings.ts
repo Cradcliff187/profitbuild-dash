@@ -151,8 +151,8 @@ export const semanticMappings: SemanticMapping[] = [
     kpiIds: ['time_entry_hours', 'time_entry_gross_hours'],
     defaultKpiId: 'time_entry_hours',
     disambiguation: {
-      time_entry_hours: 'NET billable hours (after lunch deduction) - use for payroll',
-      time_entry_gross_hours: 'GROSS total hours (shift duration before lunch) - use for compliance'
+      time_entry_hours: 'PAID hours (after lunch deduction) - use for payroll and billing',
+      time_entry_gross_hours: 'GROSS hours (shift duration before lunch) - use for compliance and scheduling'
     }
   },
   {
@@ -257,7 +257,7 @@ export const semanticMappings: SemanticMapping[] = [
     kpiIds: ['time_entry_hours', 'time_entry_amount', 'time_entry_approval_status'],
     defaultKpiId: 'time_entry_hours',
     disambiguation: {
-      time_entry_hours: 'Billable hours worked',
+      time_entry_hours: 'Paid hours (after lunch deduction)',
       time_entry_amount: 'Labor cost for entry',
       time_entry_approval_status: 'Approval status (pending/approved/rejected)'
     }

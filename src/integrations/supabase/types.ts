@@ -3635,7 +3635,7 @@ export type Database = {
           pending_entries: number | null
           rejected_entries: number | null
           total_cost: number | null
-          total_hours: number | null
+          paid_hours: number | null
           week_end_saturday: string | null
           week_start_sunday: string | null
         }

@@ -148,7 +148,7 @@ Use these to provide context like "that's healthy" or "below target" - but only 
 | View | Best For | Key Columns |
 |------|----------|-------------|
 | \`reporting.project_financials\` | All project financial queries | margins, costs, revenues, change orders, composition flags |
-| \`reporting.weekly_labor_hours\` | Employee weekly hour summaries | employee_name, week_start_sunday, total_hours, gross_hours, approved/pending counts |
+| \`reporting.weekly_labor_hours\` | Employee weekly hour summaries | employee_name, week_start_sunday, paid_hours, gross_hours, approved/pending counts |
 | \`reporting.internal_labor_hours_by_project\` | Labor budget vs actual by project | estimated_hours, actual_hours, hours_variance, estimated_cost, actual_cost |
 | \`reporting.estimate_line_items_quote_status\` | Line-item quote coverage | line_item details + quote_count, accepted/pending/rejected counts, quote_details JSON |
 | \`reporting.estimate_quote_status_summary\` | Estimate-level quote coverage | total_line_items, line_items_with/without_quotes, quote_coverage_percent |
@@ -174,10 +174,16 @@ ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
 Time entries have PRE-COMPUTED columns — use these instead of recalculating:
 
 **Pre-computed fields (PREFERRED — use these!):**
-- \`expenses.hours\` = net/billable hours after lunch deduction (for payroll, billing)
-- \`expenses.gross_hours\` = total shift duration before lunch (for compliance, OT tracking)
+- \`expenses.hours\` = **paid hours** after lunch deduction (for payroll, billing). This is what employees get paid for.
+- \`expenses.gross_hours\` = **gross hours** — total shift duration before lunch (for compliance, OT tracking)
 - \`expenses.lunch_taken\` = boolean
 - \`expenses.lunch_duration_minutes\` = integer (15-120)
+
+**Terminology:**
+- "Paid hours" = hours after lunch deduction (expenses.hours) — use for payroll, billing, cost calculations
+- "Gross hours" = total shift duration (expenses.gross_hours) — use for compliance, overtime eligibility
+- NEVER use "net hours" — always say "paid hours"
+- weekly_labor_hours view column is named "paid_hours" (SUM of expenses.hours)
 
 **Fallback calculation (only if pre-computed fields are NULL):**
 \`\`\`sql
@@ -187,16 +193,16 @@ COALESCE(e.hours,
   ELSE
     (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
   END
-) as net_hours
+) as paid_hours
 \`\`\`
 
 **Weekly aggregations:** Use \`reporting.weekly_labor_hours\` view — it pre-calculates totals per employee per week.
 
 **When to use which:**
-- "How many hours did X work?" → \`expenses.hours\` (net/billable)
-- "What was X's shift length?" → \`expenses.gross_hours\` (total duration)
+- "How many hours did X work?" → \`expenses.hours\` (paid hours)
+- "What was X's shift length?" → \`expenses.gross_hours\` (gross hours)
 - "Show me overtime" → \`expenses.gross_hours > 8\` (OT eligibility)
-- "Weekly summary" → \`reporting.weekly_labor_hours\` view
+- "Weekly summary" → \`reporting.weekly_labor_hours\` view (paid_hours, gross_hours)
 
 ${examplesSection}
 

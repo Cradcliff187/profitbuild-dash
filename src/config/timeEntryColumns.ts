@@ -7,7 +7,7 @@ export const timeEntryColumnDefinitions = [
   { key: "start", label: "Start Time", required: false, sortable: true },
   { key: "end", label: "End Time", required: false, sortable: true },
   { key: "gross_hours", label: "Gross Hours", required: false, sortable: true },
-  { key: "hours", label: "Net Hours", required: false, sortable: true },
+  { key: "hours", label: "Paid Hours", required: false, sortable: true },
   { key: "lunch", label: "Lunch", required: false, sortable: false },
   { key: "amount", label: "Amount", required: false, sortable: true },
   { key: "receipt", label: "Receipt", required: false, sortable: true },

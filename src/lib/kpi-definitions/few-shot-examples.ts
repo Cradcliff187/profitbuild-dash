@@ -108,17 +108,11 @@ ORDER BY contingency_remaining DESC`,
   // ==========================================================================
   {
     question: "How many hours did John work last week?",
-    reasoning: "Time entries are in expenses table with category='labor_internal'. Calculate hours from start_time/end_time minus lunch. Use ILIKE for fuzzy name matching. Join to payees for employee info.",
+    reasoning: "Time entries are in expenses table with category='labor_internal'. Use pre-computed expenses.hours for paid hours. Use ILIKE for fuzzy name matching. Join to payees for employee info.",
     sql: `SELECT
   p.payee_name,
-  SUM(
-    CASE
-      WHEN e.lunch_taken = true THEN
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-      ELSE
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-    END
-  ) as total_hours,
+  SUM(e.hours) as paid_hours,
+  SUM(e.gross_hours) as gross_hours,
   SUM(e.amount) as total_billed
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
@@ -132,17 +126,11 @@ GROUP BY p.payee_name`,
   },
   {
     question: "Show me all employee hours this month by person",
-    reasoning: "Aggregate time entries by employee. Calculate net billable hours from start_time/end_time minus lunch. Filter to internal payees only.",
+    reasoning: "Aggregate time entries by employee. Use pre-computed expenses.hours for paid hours. Filter to internal payees only.",
     sql: `SELECT
   p.payee_name as employee,
-  SUM(
-    CASE
-      WHEN e.lunch_taken = true THEN
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-      ELSE
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-    END
-  ) as total_hours,
+  SUM(e.hours) as paid_hours,
+  SUM(e.gross_hours) as gross_hours,
   COUNT(DISTINCT e.project_id) as projects_worked,
   SUM(e.amount) as total_billed
 FROM expenses e
@@ -151,29 +139,24 @@ WHERE p.is_internal = true
   AND e.category = 'labor_internal'
   AND e.expense_date >= DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY p.payee_name
-ORDER BY total_hours DESC`,
+ORDER BY paid_hours DESC`,
     kpisUsed: ['expense_net_hours'],
     category: 'time_based'
   },
   {
     question: "Show me employees who worked over 8 hour shifts this week",
-    reasoning: "Use gross_hours (total shift duration) not hours (net billable). This is about shift length for compliance, not billable hours.",
+    reasoning: "Use gross_hours (total shift duration) not hours (paid hours). This is about shift length for compliance, not paid hours.",
     sql: `SELECT
   p.payee_name as employee,
   e.expense_date as work_date,
-  EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 as gross_hours,
-  CASE
-    WHEN e.lunch_taken = true THEN
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-    ELSE
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-  END as net_hours
+  e.gross_hours,
+  e.hours as paid_hours
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 WHERE e.category = 'labor_internal'
   AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
-  AND EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600 > 8
-ORDER BY gross_hours DESC`,
+  AND e.gross_hours > 8
+ORDER BY e.gross_hours DESC`,
     kpisUsed: ['expense_gross_hours', 'expense_net_hours'],
     category: 'filtering'
   },
@@ -328,12 +311,12 @@ WHERE status IN ('in_progress', 'approved')`,
   },
   {
     question: "Show me weekly hours for all employees",
-    reasoning: "Use the reporting.weekly_labor_hours view which pre-calculates weekly totals, gross hours, and approval status by employee.",
+    reasoning: "Use the reporting.weekly_labor_hours view which pre-calculates paid_hours, gross_hours, and approval status by employee.",
     sql: `SELECT
   employee_name,
   employee_number,
   week_start_sunday,
-  total_hours,
+  paid_hours,
   gross_hours,
   total_cost,
   entry_count,
@@ -369,9 +352,9 @@ ORDER BY quote_coverage_percent ASC`,
   // ==========================================================================
   {
     question: "How many hours did I work this week?",
-    reasoning: "Personal time lookup. Simple mode - just give them their hours. Use pre-computed expenses.hours column.",
+    reasoning: "Personal time lookup. Simple mode - just give them their paid hours. Use pre-computed expenses.hours column (paid hours after lunch deduction).",
     sql: `SELECT
-  ROUND(SUM(e.hours)::numeric, 1) as total_hours,
+  ROUND(SUM(e.hours)::numeric, 1) as paid_hours,
   COUNT(DISTINCT e.project_id) as projects_worked
 FROM expenses e
 WHERE e.category = 'labor_internal'
@@ -382,10 +365,10 @@ WHERE e.category = 'labor_internal'
   },
   {
     question: "How many hours did Mike work this month?",
-    reasoning: "Single employee lookup by first name. Use ILIKE for fuzzy match. If only 1 Mike exists, that's the right person — answer confidently. Use pre-computed hours column.",
+    reasoning: "Single employee lookup by first name. Use ILIKE for fuzzy match. If only 1 Mike exists, that's the right person — answer confidently. Use pre-computed expenses.hours column (paid hours).",
     sql: `SELECT
   p.payee_name as employee,
-  ROUND(SUM(e.hours)::numeric, 1) as total_hours,
+  ROUND(SUM(e.hours)::numeric, 1) as paid_hours,
   COUNT(*) as entries,
   COUNT(DISTINCT e.project_id) as projects_worked
 FROM expenses e
@@ -538,18 +521,11 @@ ORDER BY month DESC`,
   },
   {
     question: "Who are our top performers this quarter?",
-    reasoning: "Performance ranking. Analytical mode with context on what makes them top.",
-    sql: `SELECT 
+    reasoning: "Performance ranking. Analytical mode with context on what makes them top. Use pre-computed expenses.hours (paid hours).",
+    sql: `SELECT
   p.payee_name as employee,
   COUNT(DISTINCT e.project_id) as projects_worked,
-  ROUND(SUM(
-    CASE 
-      WHEN e.lunch_taken = true THEN
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-      ELSE
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-    END
-  )::numeric, 1) as total_hours,
+  ROUND(SUM(e.hours)::numeric, 1) as paid_hours,
   ROUND(SUM(e.amount)::numeric, 2) as total_billed
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
@@ -557,7 +533,7 @@ WHERE p.is_internal = true
   AND e.category = 'labor_internal'
   AND e.expense_date >= DATE_TRUNC('quarter', CURRENT_DATE)
 GROUP BY p.id, p.payee_name
-ORDER BY total_hours DESC
+ORDER BY paid_hours DESC
 LIMIT 10`,
     kpisUsed: [],
     category: 'aggregation',
@@ -569,18 +545,13 @@ LIMIT 10`,
   // ==========================================================================
   {
     question: "Show me time entries submitted for approval yesterday",
-    reasoning: "User wants entries by SUBMISSION date, not work date. Use submitted_for_approval_at field.",
+    reasoning: "User wants entries by SUBMISSION date, not work date. Use submitted_for_approval_at field. Use pre-computed hours column (paid hours).",
     sql: `SELECT
   p.payee_name,
   e.expense_date as work_date,
   e.submitted_for_approval_at,
   e.approval_status,
-  CASE
-    WHEN e.lunch_taken = true THEN
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-    ELSE
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-  END as hours
+  e.hours as paid_hours
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 WHERE e.category = 'labor_internal'

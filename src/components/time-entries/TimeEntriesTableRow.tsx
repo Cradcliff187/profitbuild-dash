@@ -124,7 +124,7 @@ const TimeEntriesTableRowComponent: React.FC<TimeEntriesTableRowProps> = ({
           case "gross_hours":
             return (
               <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right text-muted-foreground">
-                {entry.gross_hours?.toFixed(2) || entry.hours.toFixed(2)}
+                {entry.gross_hours?.toFixed(2) || "—"}
               </TableCell>
             );
           case "hours":

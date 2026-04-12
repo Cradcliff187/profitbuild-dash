@@ -206,7 +206,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
     if (exportOptions.includeStartTime) headers.push("Start Time");
     if (exportOptions.includeEndTime) headers.push("End Time");
     if (exportOptions.includeGrossHours) headers.push("Gross Hours");
-    if (exportOptions.includeNetHours) headers.push("Net Hours");
+    if (exportOptions.includeNetHours) headers.push("Paid Hours");
     if (exportOptions.includeLunchTaken) headers.push("Lunch Taken");
     if (exportOptions.includeLunchDuration) headers.push("Lunch Duration (min)");
     if (exportOptions.includeHourlyRate) headers.push("Hourly Rate");
@@ -468,7 +468,7 @@ export const TimeEntryExportModal: React.FC<TimeEntryExportModalProps> = ({
                       checked={exportOptions.includeNetHours}
                       onCheckedChange={(checked) => updateOptions({ includeNetHours: !!checked })}
                     />
-                    <label htmlFor="netHours" className="text-sm cursor-pointer">Net Hours</label>
+                    <label htmlFor="netHours" className="text-sm cursor-pointer">Paid Hours</label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox

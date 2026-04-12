@@ -16,7 +16,7 @@ export const exportTimeEntriesToCSV = (entries: TimeEntryListItem[]) => {
     "Gross Hours",
     "Lunch Taken",
     "Lunch Duration (min)",
-    "Net Hours",
+    "Paid Hours",
     "Rate",
     "Amount",
     "Status",

@@ -564,7 +564,7 @@ const Settings = () => {
               <div className="space-y-1">
                 <p className="text-sm font-medium">Current Version</p>
                 <p className="text-xs text-muted-foreground">
-                  v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
+                  v{__APP_VERSION__}
                 </p>
               </div>
               <Button
@@ -622,7 +622,7 @@ const Settings = () => {
         {/* App Version - Subtle footer */}
         <div className="flex items-center justify-center pt-6 pb-2 border-t mt-6">
           <p className="text-xs text-muted-foreground/60">
-            App Version: v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
+            App Version: v{__APP_VERSION__}
           </p>
         </div>
       </div>

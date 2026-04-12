@@ -63,7 +63,7 @@ export const TimeEntriesTableHeader: React.FC<TimeEntriesTableHeaderProps> = ({
     start: "Start",
     end: "End",
     gross_hours: "Gross Hours",
-    hours: "Net Hours",
+    hours: "Paid Hours",
     lunch: "Lunch",
     amount: "Amount",
     receipt: "Receipt",

@@ -45,14 +45,15 @@ const KPI_GUIDE_METADATA = {
   lastUpdated: LAST_UPDATED,
   version: KPI_DEFINITIONS_VERSION,
   changelog: [
+    { date: '2026-04-12', version: '4.1', changes: 'Hours terminology standardized: "Net Hours" → "Paid Hours" everywhere. weekly_labor_hours view column renamed total_hours → paid_hours. Few-shot SQL examples updated to use pre-computed expenses.hours/gross_hours columns. Removed ambiguous "worked hours" alias from time-entry KPIs.' },
     { date: '2026-04-12', version: '4.0', changes: 'Added Time Entry KPIs (21 measures) and Payee KPIs (24 measures) tabs. Wired into AI context for report assistant. Added 5 reporting views to AI system prompt. Fixed broken labor cushion few-shot example. Fixed semantic mapping for quotes.' },
-    { date: '2026-02-09', version: '3.3', changes: 'expenses.hours (net/billable) is now a database-stored column, auto-calculated by trigger. Reports, exports, and dashboards now read hours from DB. weekly_labor_hours view updated to use SUM(expenses.hours) for total_hours.' },
+    { date: '2026-02-09', version: '3.3', changes: 'expenses.hours (paid hours) is now a database-stored column, auto-calculated by trigger. Reports, exports, and dashboards now read hours from DB. weekly_labor_hours view updated to use SUM(expenses.hours) for paid_hours.' },
     { date: '2026-02-09', version: '3.2', changes: 'gross_hours is now a database-stored column (expenses.gross_hours), auto-calculated by trigger from start_time/end_time. weekly_labor_hours view updated to use SUM(expenses.gross_hours). Frontend and KPI definitions already use this field.' },
     { date: '2026-02-03', version: '3.1', changes: 'Added Labor Tracking section to Project KPIs: estimated_hours, actual_hours, hours_variance (3 new measures). Fixed contingency_amount field mapping from estimates to projects table. Applied database migration to add missing project fields (contingency_amount, estimated_hours, actual_hours).' },
     { date: '2026-01-29', version: '3.0', changes: 'Added View KPIs section (21 measures) for weekly_labor_hours and training_status views. Added 8 new expense KPIs for joined fields (worker_name, employee_number, hourly_rate, approval_status, description, project fields). Updated gross_hours to frontend-calculated.' },
     { date: '2026-01-23', version: '2.0', changes: 'Migrated to centralized KPI definitions library. Added semantic mappings, business rules, and validation. Fixed SQL examples for time tracking calculations.' },
     { date: '2026-01-21', version: '1.4', changes: 'Added Labor Cushion metrics (9 new measures) - labor_cushion_amount, max_gross_profit_potential, max_potential_margin_percent, and labor financial tracking' },
-    { date: '2024-12-01', version: '1.3', changes: 'Added Lunch Tracking section (4 metrics) - lunch_taken, lunch_duration_minutes, gross_hours, net_hours for time entries' },
+    { date: '2024-12-01', version: '1.3', changes: 'Added Lunch Tracking section (4 metrics) - lunch_taken, lunch_duration_minutes, gross_hours, paid_hours for time entries' },
     { date: '2024-11-27', version: '1.2', changes: 'Added Revenue section (6 metrics) - project_revenues and project_financial_summary fields' },
     { date: '2024-11-27', version: '1.1', changes: 'Added Work Orders section (9 metrics), project type/category fields, is_auto_generated estimate field' },
     { date: '2024-11-26', version: '1.0', changes: 'Initial release with 57 measures across 6 categories' },
@@ -438,7 +439,7 @@ export default function KPIGuide() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-3 italic">
-                    App Build: {import.meta.env.VITE_APP_VERSION || 'Unknown'}
+                    App Build: {__APP_VERSION__}
                   </p>
                 </div>
               </CardContent>

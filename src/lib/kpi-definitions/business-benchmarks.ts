@@ -94,7 +94,7 @@ export const businessBenchmarks: Benchmark[] = [
     healthyRange: { min: 35, max: 45 },
     warningThreshold: 50,
     unit: 'hours',
-    context: 'Standard work week with reasonable overtime. NOTE: This benchmark expects aggregate weekly hours per person (SUM of expense_net_hours grouped by person/week), not individual time entry hours.',
+    context: 'Standard work week with reasonable overtime. NOTE: This benchmark expects aggregate weekly paid hours per person (SUM of expense_net_hours grouped by person/week), not individual time entry hours.',
     plainLanguage: {
       healthy: 'Normal work hours',
       warning: 'High overtime',

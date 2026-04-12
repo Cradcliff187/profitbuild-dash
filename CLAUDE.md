@@ -147,7 +147,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 ## Database Migrations
 
-**336 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
+**338 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -407,6 +407,10 @@ Use this list when doing periodic documentation reviews:
 
 16. **Supabase queries must destructure `error`** — Always use `const { data, error } = await supabase...`. In TanStack Query `queryFn`, throw the error. In `useEffect` fetches, `console.error` + return. Never silently discard the error.
 
+17. **Hours terminology is standardized** — Two canonical terms: **"Paid Hours"** (`expenses.hours`, after lunch deduction) and **"Gross Hours"** (`expenses.gross_hours`, total shift duration). Never use "net hours", "total hours", or "worked hours" for paid hours. The `weekly_labor_hours` view column is `paid_hours` (renamed from `total_hours` in Apr 2026). The KPI ID `expense_net_hours` is kept for backwards compatibility but the display name is "Paid Hours".
+
+18. **App version uses `__APP_VERSION__` not `VITE_APP_VERSION`** — Lovable's build environment overrides `VITE_*` env vars. The version is defined as `__APP_VERSION__` in `vite.config.ts` (via `define`) to prevent Lovable from injecting `0.0.0`. Declared in `src/vite-env.d.ts`. Auto-generated from git as `YYYY.MM.DD (build {sha})`.
+
 ---
 
 ## Outstanding Audit Items (Apr 2026)
@@ -431,6 +435,8 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Non-null assertion in `useScheduleOfValues.ts` | Replaced `sovQuery.data!.id` with `sovQuery.data?.id ?? ""` |
 | `.cursorrules` consolidation | Replaced 274-line duplicate with slim pointer to `CLAUDE.md` + Cursor-specific MCP tool names |
 | 23 `as any` type casts removed | Extended `EnrichedLineItem`/`QuoteLineItem` interfaces, added return types, narrowed props. Count: 109 → 86. |
+| App version showing `v0.0.0` | Fixed — Changed from `VITE_APP_VERSION` to `__APP_VERSION__` define in `vite.config.ts`. Lovable's build env was overriding `VITE_*` vars. |
+| Hours terminology inconsistent ("Net Hours", "Total Hours", "Worked Hours") | Standardized to "Paid Hours" and "Gross Hours" everywhere — 24 files across UI, KPI definitions, AI context, few-shot examples, report builder, and DB view. Renamed `weekly_labor_hours.total_hours` → `paid_hours` via migration. Few-shot SQL examples updated to use pre-computed columns. |
 
 ### Medium Priority
 

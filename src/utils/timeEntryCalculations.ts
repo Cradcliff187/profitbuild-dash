@@ -45,7 +45,7 @@ export function calculateTimeEntryHours(
 /**
  * Calculate the amount (cost) for a time entry
  * 
- * @param netHours - Net worked hours after lunch deduction
+ * @param netHours - Paid hours after lunch deduction
  * @param hourlyRate - Worker's hourly rate
  * @returns Amount in dollars
  */
@@ -59,7 +59,7 @@ export function calculateTimeEntryAmount(
 /**
  * Format hours for display with optional lunch indicator
  * 
- * @param netHours - Net worked hours
+ * @param netHours - Paid hours after lunch deduction
  * @param lunchTaken - Whether lunch was taken
  * @param showLunchIndicator - Whether to show 🍴 icon
  * @returns Formatted string like "8.0" or "8.0 🍴"
