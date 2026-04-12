@@ -165,7 +165,7 @@ The application uses Supabase Auth. First user must be created via:
 ### Frontend (React SPA)
 ```
 src/
-├── components/          # UI components (21 subdirectories)
+├── components/          # UI components (22 subdirectories)
 │   ├── ui/              # 66 shadcn/ui base components — do NOT edit directly
 │   ├── dashboard/       # Dashboard widgets
 │   ├── schedule/        # Gantt chart & scheduling
@@ -175,7 +175,7 @@ src/
 │   ├── contracts/       # Contract generation & management
 │   ├── payment-applications/ # AIA G702/G703 billing
 │   └── ...              # (13 more feature directories)
-├── pages/               # 36 route pages
+├── pages/               # 36 route pages (one per major view)
 ├── hooks/               # 50+ custom React hooks
 ├── utils/               # 50+ utility/calculation modules
 ├── types/               # 25 TypeScript type definition files
@@ -458,7 +458,7 @@ git push origin feature/your-feature-name
 ## Product Documentation
 
 For a comprehensive overview of all application features, modules, and capabilities, see:
-- **[Product Overview](docs/PRODUCT_OVERVIEW.md)** - Complete feature documentation for all 8 modules
+- **[Product Overview](PRODUCT_OVERVIEW.md)** - Complete feature documentation for all 8 modules
 
 ---
 

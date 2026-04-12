@@ -64,7 +64,7 @@ npm run upload:template       # Upload contract Word template to Storage
 
 ```
 src/
-├── components/          # UI components (21 subdirectories)
+├── components/          # UI components (22 subdirectories)
 │   ├── ui/              # 66 shadcn/ui base components — do NOT edit these directly
 │   ├── dashboard/       # Dashboard widgets
 │   ├── schedule/        # Gantt chart & scheduling
@@ -75,10 +75,10 @@ src/
 │   ├── contracts/       # Contract generation & management
 │   ├── payment-applications/ # AIA G702/G703 billing (SOV, payment apps, PDF export)
 │   └── ...              # (13 more feature directories)
-├── pages/               # 38 route pages (one per major view)
-├── hooks/               # 30+ custom React hooks
+├── pages/               # 36 route pages (one per major view)
+├── hooks/               # 50+ custom React hooks
 ├── utils/               # 50+ utility/calculation modules
-├── types/               # 24 TypeScript type definition files
+├── types/               # 25 TypeScript type definition files
 ├── lib/
 │   ├── kpi-definitions/ # KPI schema, business rules, benchmarks
 │   └── featureFlags.ts  # Env-based feature flags

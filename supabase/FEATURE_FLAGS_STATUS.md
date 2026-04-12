@@ -51,12 +51,13 @@ WHERE flag_name = 'quickbooks_auto_sync';
 
 ## Other Feature Flags
 
-### Schedule View Features
+### Environment-Based Feature Flags
 **Location**: `src/lib/featureFlags.ts`
 **Type**: Environment-based (not database)
 
-- `scheduleView`: Enabled via `VITE_FEATURE_SCHEDULE=true`
-- `scheduleWarnings`: Enabled via `VITE_FEATURE_SCHEDULE_WARNINGS=true`
-- `scheduleDependencies`: Enabled via `VITE_FEATURE_SCHEDULE_DEPS=true`
+| Flag | Env Variable | Default | Status |
+|------|-------------|---------|--------|
+| `scheduleView` | `VITE_FEATURE_SCHEDULE=true` | Off | ✅ Enabled |
+| `aiaBilling` | `VITE_FEATURE_AIA_BILLING` | On (unless explicitly set to `false`) | ✅ Enabled |
 
-Current Status: ✅ ALL ENABLED (via .env file)
+**Note:** Only two environment-based feature flags exist in `featureFlags.ts`. The schedule warnings and dependencies features are built into the schedule module directly — they are not feature-flagged.

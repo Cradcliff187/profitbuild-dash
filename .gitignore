@@ -15,6 +15,9 @@ dist-ssr
 # Claude Code local settings (auto-generated permissions, not project config)
 .claude/
 
+# Serena AI agent config
+.serena/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
