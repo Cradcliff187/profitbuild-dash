@@ -420,12 +420,12 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | `.serena/` not gitignored | Added to `.gitignore` |
 | Untracked migration placeholder | Committed to keep file count in sync with DB |
 | Deprecated margin field fallbacks | Backfilled 2 rows, removed all `?? current_margin` (7 locations) and `?? projected_margin` (20 locations) fallbacks. Deleted `margin.ts` (zero imports). Code now uses only `actual_margin` and `adjusted_est_margin`. |
+| Non-null assertion in `useScheduleOfValues.ts` | Replaced `sovQuery.data!.id` with `sovQuery.data?.id ?? ""` |
 
 ### Medium Priority
 
 | Issue | File(s) | Notes |
 |-------|---------|-------|
-| Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
 | Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not reflected in Supabase generated types |
 | `as any` type casts | 117 across 60 files | Top offenders: `EstimateForm.tsx`, `ChangeOrdersList.tsx`, `csvParser.ts`. Reduce incrementally. |
 

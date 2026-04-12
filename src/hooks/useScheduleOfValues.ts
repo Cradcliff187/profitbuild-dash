@@ -26,7 +26,7 @@ export function useScheduleOfValues(projectId: string) {
       const { data, error } = await supabase
         .from("sov_line_items")
         .select("*")
-        .eq("sov_id", sovQuery.data!.id)
+        .eq("sov_id", sovQuery.data?.id ?? "")
         .order("sort_order");
       if (error) throw error;
       return data || [];
