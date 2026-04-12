@@ -7,6 +7,7 @@ import packageJson from "./package.json";
 import { execSync } from 'child_process';
 
 // Auto-generate version from Git — format: YYYY.MM.DD (build {sha})
+// Falls back to build date when git isn't available (e.g., Lovable's build env)
 const getVersion = () => {
   try {
     const commitDate = execSync('git log -1 --format=%ci HEAD').toString().trim();
@@ -17,7 +18,12 @@ const getVersion = () => {
     const commitSha = execSync('git rev-parse --short HEAD').toString().trim();
     return `${yyyy}.${mm}.${dd} (build ${commitSha})`;
   } catch {
-    return packageJson.version;
+    // Git unavailable — use build timestamp instead of static package.json version
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}.${mm}.${dd} (build latest)`;
   }
 };
 
