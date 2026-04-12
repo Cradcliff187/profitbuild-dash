@@ -8,6 +8,7 @@ interface AddNoteParams {
   attachmentUrl?: string;
   attachmentType?: 'image' | 'video' | 'file';
   attachmentName?: string;
+  mentionedUserIds?: string[];
 }
 
 export function useProjectNotes(projectId: string) {
@@ -36,7 +37,8 @@ export function useProjectNotes(projectId: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      // Insert note and get back the ID
+      const { data: noteData, error } = await supabase
         .from('project_notes')
         .insert({
           project_id: projectId,
@@ -45,9 +47,55 @@ export function useProjectNotes(projectId: string) {
           attachment_url: params.attachmentUrl,
           attachment_type: params.attachmentType,
           attachment_name: params.attachmentName,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Insert mentions + notifications for tagged users
+      const mentionedIds = params.mentionedUserIds?.filter((id) => id !== user.id) || [];
+      if (mentionedIds.length > 0 && noteData?.id) {
+        // Get author name for notification title
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single();
+        const authorName = profile?.full_name || profile?.email || 'Someone';
+
+        // Get project name for notification body
+        const { data: project } = await supabase
+          .from('projects')
+          .select('project_name')
+          .eq('id', projectId)
+          .single();
+
+        // Insert mention records
+        await supabase.from('note_mentions').insert(
+          mentionedIds.map((uid) => ({
+            note_id: noteData.id,
+            user_id: uid,
+          }))
+        );
+
+        // Insert notification records
+        const notePreview = params.text
+          .replace(/@\[[^\]]+\]\([^)]+\)/g, (m) => '@' + m.slice(2, m.indexOf(']')))
+          .slice(0, 100);
+
+        await supabase.from('user_notifications').insert(
+          mentionedIds.map((uid) => ({
+            user_id: uid,
+            type: 'mention',
+            title: `${authorName} mentioned you`,
+            body: `${project?.project_name || 'Project'}: ${notePreview}`,
+            link_url: `/field-schedule/${projectId}`,
+            reference_id: noteData.id,
+            reference_type: 'project_note',
+          }))
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });

@@ -16,6 +16,8 @@ import { NoteInput } from '@/components/notes/NoteInput';
 import { NoteLightbox } from '@/components/notes/NoteLightbox';
 import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
 import { ProjectNote } from '@/types/projectNote';
+import { useMentionableUsers } from '@/hooks/useMentionableUsers';
+import { resolveMentions } from '@/utils/mentionUtils';
 
 interface ProjectNotesTimelineProps {
   projectId: string;
@@ -43,6 +45,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   const isMobile = useIsMobile();
   const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
   const { startRecording, isRecording } = useVideoCapture();
+  const { data: mentionableUsers } = useMentionableUsers();
 
   // --- Handlers ---
 
@@ -105,11 +108,17 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       if (url) attachmentUrl = url;
     }
 
+    // Resolve @mentions to stored format + extract user IDs
+    const { formattedText, mentionedUserIds } = mentionableUsers
+      ? resolveMentions(trimmedText, mentionableUsers)
+      : { formattedText: trimmedText, mentionedUserIds: [] };
+
     addNote({
-      text: trimmedText,
+      text: formattedText,
       attachmentUrl,
       attachmentType: attachmentType || undefined,
       attachmentName: attachmentFileName || undefined,
+      mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
     });
 
     setNoteText('');
@@ -188,6 +197,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
         onTranscription={(text) => setNoteText((prev) => (prev ? `${prev}\n${text}` : text))}
       />
     ),
+    mentionableUsers: mentionableUsers || [],
   };
 
   // --- Shared props for NoteCard ---

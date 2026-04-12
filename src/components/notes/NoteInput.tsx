@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, Video, Paperclip, PlusCircle, X, FileText } from 'lucide-react';
+import { MentionTextarea } from '@/components/notes/MentionTextarea';
+import type { MentionableUser } from '@/types/notification';
 
 export type NoteInputVariant = 'default' | 'compact';
 
@@ -25,8 +27,10 @@ interface NoteInputProps {
   isRecording: boolean;
   // File input ID must be unique per instance
   fileInputId?: string;
-  // Extension point for voice notes (Phase 4)
+  // Extension point for voice notes
   voiceNoteSlot?: ReactNode;
+  // @mention support
+  mentionableUsers?: MentionableUser[];
 }
 
 const styles = {
@@ -76,6 +80,7 @@ export function NoteInput({
   isRecording,
   fileInputId = 'file-upload-notes',
   voiceNoteSlot,
+  mentionableUsers,
 }: NoteInputProps) {
   const s = styles[variant];
   const isCompact = variant === 'compact';
@@ -111,13 +116,24 @@ export function NoteInput({
       {isCompact ? (
         /* Compact: horizontal layout with textarea + vertical button stack */
         <div className="flex gap-1">
-          <Textarea
-            value={noteText}
-            onChange={(e) => onNoteTextChange(e.target.value)}
-            placeholder="Add note..."
-            rows={s.rows}
-            className={s.textarea}
-          />
+          {mentionableUsers ? (
+            <MentionTextarea
+              value={noteText}
+              onChange={onNoteTextChange}
+              placeholder="Add note... @ to tag"
+              rows={s.rows}
+              className={s.textarea}
+              mentionableUsers={mentionableUsers}
+            />
+          ) : (
+            <Textarea
+              value={noteText}
+              onChange={(e) => onNoteTextChange(e.target.value)}
+              placeholder="Add note..."
+              rows={s.rows}
+              className={s.textarea}
+            />
+          )}
           <div className="flex flex-col gap-0.5">
             <Button onClick={onCapturePhoto} disabled={isCapturingPhoto || isUploading} size="sm" variant="outline" className={s.buttonClass}>
               <Camera className={s.buttonIconSize} />
@@ -144,13 +160,24 @@ export function NoteInput({
       ) : (
         /* Default: vertical layout */
         <>
-          <Textarea
-            value={noteText}
-            onChange={(e) => onNoteTextChange(e.target.value)}
-            placeholder="Type note..."
-            rows={s.rows}
-            className={s.textarea}
-          />
+          {mentionableUsers ? (
+            <MentionTextarea
+              value={noteText}
+              onChange={onNoteTextChange}
+              placeholder="Type note... @ to tag"
+              rows={s.rows}
+              className={s.textarea}
+              mentionableUsers={mentionableUsers}
+            />
+          ) : (
+            <Textarea
+              value={noteText}
+              onChange={(e) => onNoteTextChange(e.target.value)}
+              placeholder="Type note..."
+              rows={s.rows}
+              className={s.textarea}
+            />
+          )}
 
           <div className="flex gap-1 mb-2">
             <Button onClick={onCapturePhoto} disabled={isCapturingPhoto || isUploading} size="sm" variant="outline" className={s.buttonClass}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, ClipboardCheck, StickyNote, Camera, FileText } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -36,11 +36,13 @@ const tabs: TabDef[] = [
 export default function FieldSchedule() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [projectName, setProjectName] = useState<string>('');
   const [projectStartDate, setProjectStartDate] = useState<string>('');
   const [projectEndDate, setProjectEndDate] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<FieldTab>('tasks');
+  const initialTab = (searchParams.get('tab') as FieldTab) || 'tasks';
+  const [activeTab, setActiveTab] = useState<FieldTab>(initialTab);
 
   // Load project details
   useEffect(() => {

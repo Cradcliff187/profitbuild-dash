@@ -12,6 +12,7 @@ import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 // Mobile menu trigger component (must be inside SidebarProvider)
 function MobileMenuTrigger() {
@@ -185,6 +186,7 @@ export default function AppLayout() {
                     {pageTitle}
                   </div>
                 </div>
+                <NotificationBell />
                 <MobileMenuTrigger />
               </div>
               <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400" />

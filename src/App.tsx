@@ -36,6 +36,7 @@ const BidVideoCapture = lazy(() => import("./pages/BidVideoCapture"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 const FieldMedia = lazy(() => import("./pages/FieldMedia"));
 const FieldSchedule = lazy(() => import("./pages/FieldSchedule"));
+const Mentions = lazy(() => import("./pages/Mentions"));
 const BranchBids = lazy(() => import("./pages/BranchBids"));
 const BranchBidDetail = lazy(() => import("./pages/BranchBidDetail"));
 const Reports = lazy(() => import("./pages/Reports"));
@@ -91,6 +92,7 @@ const App = () => (
                   <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
                   <Route path="time-entries" element={<LazyRoute component={TimeEntries} />} />
                   <Route path="field-schedule/:projectId" element={<LazyRoute component={FieldSchedule} />} />
+                  <Route path="mentions" element={<LazyRoute component={Mentions} />} />
                   {/* Admin/Manager Project Routes - use :id parameter for consistency with existing routes */}
                   <Route path="projects" element={<Projects />} />
                   <Route path="projects/:id" element={<LazyRoute component={ProjectDetail} />}>

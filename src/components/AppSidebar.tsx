@@ -37,6 +37,7 @@ import {
   BookOpen,
   LogOut,
   ChevronUp,
+  AtSign,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
@@ -54,6 +55,7 @@ import { useState, useEffect } from "react";
 import { getCompanyBranding } from "@/utils/companyBranding";
 import { supabase } from "@/integrations/supabase/client";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
+import { useUnreadMentions } from "@/hooks/useUnreadMentions";
 
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/large%20icon%20only%20(2).png';
 const logoHorizontalDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/glossy%20full%20horizontal.png';
@@ -79,6 +81,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { isAdmin, isManager, isFieldWorker, roles } = useRoles();
   const { total: pendingCount } = usePendingCounts();
+  const { unreadCount: mentionCount } = useUnreadMentions();
 
   const collapsed = state === "collapsed";
   
@@ -135,6 +138,7 @@ export function AppSidebar() {
         { title: "Dashboard", url: "/", icon: LayoutDashboard, show: hasFinancialAccess },
         { title: "Time Tracker", url: "/time-tracker", icon: Clock, show: true },
         { title: "My Training", url: "/training", icon: GraduationCap, show: true },
+        { title: "Mentions", url: "/mentions", icon: AtSign, show: true, badgeCount: mentionCount },
       ],
     },
     {

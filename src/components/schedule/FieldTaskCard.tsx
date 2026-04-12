@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { ChevronDown, CheckCircle2, Camera, AlertCircle, Send } from 'lucide-react';
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { useProjectNotes } from '@/hooks/useProjectNotes';
+import { useMentionableUsers } from '@/hooks/useMentionableUsers';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
+import { MentionTextarea } from '@/components/notes/MentionTextarea';
+import { resolveMentions } from '@/utils/mentionUtils';
 import { toast } from 'sonner';
 
 interface FieldTaskCardProps {
@@ -85,12 +87,21 @@ function TaskActions({
   const [isSaving, setIsSaving] = useState(false);
   const { addNote, uploadAttachment } = useProjectNotes(projectId);
   const { capturePhoto, isCapturing } = useCameraCapture();
+  const { data: mentionableUsers } = useMentionableUsers();
 
   const handleAddNote = () => {
     const text = noteText.trim();
     if (!text) return;
     setIsSaving(true);
-    addNote({ text: `**${taskName}:** ${text}` });
+
+    const { formattedText, mentionedUserIds } = mentionableUsers
+      ? resolveMentions(text, mentionableUsers)
+      : { formattedText: text, mentionedUserIds: [] };
+
+    addNote({
+      text: `**${taskName}:** ${formattedText}`,
+      mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
+    });
     setNoteText('');
     setIsSaving(false);
   };
@@ -113,12 +124,13 @@ function TaskActions({
     <div className="space-y-3 pt-3 border-t border-border/50">
       {/* Note input */}
       <div className="flex gap-2">
-        <Textarea
+        <MentionTextarea
           value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          placeholder="What happened?"
+          onChange={setNoteText}
+          placeholder="What happened? @ to tag"
           rows={2}
           className="text-sm resize-none flex-1"
+          mentionableUsers={mentionableUsers || []}
         />
         <div className="flex flex-col gap-1.5">
           <Button

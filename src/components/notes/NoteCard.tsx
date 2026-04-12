@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Clock, MoreVertical, Pencil, Trash2, Maximize2, FileText, Download, Eye } from 'lucide-react';
 import { ProjectNote } from '@/types/projectNote';
+import { splitTextAndMentions } from '@/utils/mentionUtils';
 
 export type NoteCardVariant = 'default' | 'compact';
 
@@ -166,7 +167,15 @@ export function NoteCard({
           ) : (
             <>
               <p className={`${s.noteText} text-foreground`}>
-                {note.note_text}
+                {splitTextAndMentions(note.note_text).map((part, i) =>
+                  part.type === 'mention' ? (
+                    <span key={i} className="font-semibold text-primary bg-primary/10 px-0.5 rounded">
+                      @{part.name}
+                    </span>
+                  ) : (
+                    <span key={i}>{part.content}</span>
+                  )
+                )}
               </p>
               {note.attachment_url && (
                 <div className="mt-1.5">

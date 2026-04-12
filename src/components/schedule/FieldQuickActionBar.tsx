@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { StickyNote, Camera, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useProjectNotes } from '@/hooks/useProjectNotes';
+import { useMentionableUsers } from '@/hooks/useMentionableUsers';
+import { MentionTextarea } from '@/components/notes/MentionTextarea';
 import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
+import { resolveMentions } from '@/utils/mentionUtils';
 import { toast } from 'sonner';
 
 interface FieldQuickActionBarProps {
@@ -21,13 +23,21 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
 
   const { addNote, uploadAttachment } = useProjectNotes(projectId);
   const { capturePhoto, isCapturing } = useCameraCapture();
+  const { data: mentionableUsers } = useMentionableUsers();
 
   const handleQuickNote = async () => {
     const text = quickNoteText.trim();
     if (!text) return;
 
     setIsSaving(true);
-    addNote({ text });
+    const { formattedText, mentionedUserIds } = mentionableUsers
+      ? resolveMentions(text, mentionableUsers)
+      : { formattedText: text, mentionedUserIds: [] };
+
+    addNote({
+      text: formattedText,
+      mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
+    });
     setQuickNoteText('');
     setNoteSheetOpen(false);
     setIsSaving(false);
@@ -98,13 +108,13 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
             <SheetTitle className="text-left">Quick Note</SheetTitle>
           </SheetHeader>
           <div className="p-4 space-y-3">
-            <Textarea
+            <MentionTextarea
               value={quickNoteText}
-              onChange={(e) => setQuickNoteText(e.target.value)}
-              placeholder="What's happening on site..."
+              onChange={setQuickNoteText}
+              placeholder="What's happening on site... @ to tag"
               rows={3}
               className="text-base resize-none"
-              autoFocus
+              mentionableUsers={mentionableUsers || []}
             />
             <Button
               onClick={handleQuickNote}
