@@ -107,11 +107,11 @@ All colors MUST be HSL.
 
     /* Sidebar is always dark regardless of theme */
     --sidebar-background: 217 33% 10%;
-    --sidebar-foreground: 214 32% 91%;
+    --sidebar-foreground: 215 20% 75%;
     --sidebar-primary: 24 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 214 32% 91%;
+    --sidebar-accent: 217 25% 20%;
+    --sidebar-accent-foreground: 215 25% 90%;
     --sidebar-border: 217 19% 22%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
