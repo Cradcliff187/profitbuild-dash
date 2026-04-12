@@ -206,7 +206,7 @@ export const workOrderKPIs: KPIMeasure[] = [
     id: 'work_order_projected_margin',
     name: 'Projected Margin',
     source: 'database',
-    field: 'projects.projected_margin',
+    field: 'projects.adjusted_est_margin',
     formula: 'contracted_amount - adjusted_est_costs',
     dataType: 'currency',
     domain: 'work_order',

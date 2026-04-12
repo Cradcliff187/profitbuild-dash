@@ -91,7 +91,7 @@ const getStatusKPIs = (
   const contractValue = project.contracted_amount ?? 0;
   const adjustedEstCosts = project.adjusted_est_costs ?? 0;
   const projectedMarginPct = contractValue > 0
-    ? (((project.adjusted_est_margin ?? project.projected_margin) ?? 0) / contractValue) * 100
+    ? ((project.adjusted_est_margin ?? 0) / contractValue) * 100
     : 0;
 
   // Actuals: use total_expenses from reporting view when available, else actualExpenses (frontend enrichment)
@@ -626,7 +626,7 @@ export const ProjectsList = ({
                         // Project details: use project actuals
                         contract = project.contracted_amount ?? 0;
                         adjustedCosts = project.adjusted_est_costs ?? 0;
-                        projectedMargin = project.adjusted_est_margin ?? project.projected_margin ?? (contract - adjustedCosts);
+                        projectedMargin = project.adjusted_est_margin ?? (contract - adjustedCosts);
                       }
                       const derivedMarginPct = contract > 0 ? (projectedMargin / contract) * 100 : 0;
                       const marginPctToShow = project.margin_percentage ?? derivedMarginPct;

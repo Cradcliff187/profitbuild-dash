@@ -132,7 +132,7 @@ export function validateProjectMargin(
   }
   
   // Check for negative margin
-  const projectedMargin = project.projected_margin || 0;
+  const projectedMargin = project.adjusted_est_margin || 0;
   if (projectedMargin < 0) {
     warnings.push(`⚠ Negative projected margin ($${projectedMargin.toFixed(0)}). Costs exceed revenue.`);
   }

@@ -136,7 +136,7 @@ export const WorkOrdersTableView = ({
       costsLabel: "Adj. Est. Costs",
       costsValue: workOrder.adjusted_est_costs ?? 0,
       marginLabel: "Proj. Margin",
-      marginValue: workOrder.adjusted_est_margin ?? workOrder.projected_margin ?? 0,
+      marginValue: workOrder.adjusted_est_margin ?? 0,
       marginPct: workOrder.margin_percentage ?? 0,
       isEstimate: false,
     };
@@ -691,7 +691,7 @@ export const WorkOrdersTableView = ({
                           );
                         }
                         case "actual_margin": {
-                          const value = workOrder.actual_margin ?? workOrder.current_margin;
+                          const value = workOrder.actual_margin;
                           return (
                             <TableCell key={colKey} className="p-1.5 font-mono text-xs text-right">
                               {value !== null && value !== undefined 

@@ -541,12 +541,12 @@ const WorkOrders = () => {
           bValue = b.do_not_exceed || 0;
           break;
         case 'adjusted_est_margin':
-          aValue = a.adjusted_est_margin ?? a.projected_margin ?? 0;
-          bValue = b.adjusted_est_margin ?? b.projected_margin ?? 0;
+          aValue = a.adjusted_est_margin ?? 0;
+          bValue = b.adjusted_est_margin ?? 0;
           break;
         case 'actual_margin':
-          aValue = a.actual_margin ?? a.current_margin ?? 0;
-          bValue = b.actual_margin ?? b.current_margin ?? 0;
+          aValue = a.actual_margin ?? 0;
+          bValue = b.actual_margin ?? 0;
           break;
         case 'adjusted_est_costs':
           aValue = a.adjusted_est_costs || 0;

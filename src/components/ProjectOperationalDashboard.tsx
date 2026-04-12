@@ -389,7 +389,7 @@ export function ProjectOperationalDashboard({
       // If project has adjusted values from quotes/COs, use those
       const contractValue = project.contracted_amount ?? 0;
       const adjustedEstCosts = project.adjusted_est_costs ?? 0;
-      const adjustedMargin = project.adjusted_est_margin ?? project.projected_margin ?? 0;
+      const adjustedMargin = project.adjusted_est_margin ?? 0;
       const adjustedMarginPct = contractValue > 0 ? (adjustedMargin / contractValue) * 100 : 0;
       
       if (contractValue > 0 || adjustedEstCosts > 0) {
@@ -452,7 +452,7 @@ export function ProjectOperationalDashboard({
       label2: 'Adjusted Est. Costs',
       value2: project.adjusted_est_costs ?? 0,
       marginLabel: 'Adj. Est. Margin',
-      marginValue: project.adjusted_est_margin ?? project.projected_margin ?? 0,
+      marginValue: project.adjusted_est_margin ?? 0,
       marginPct: project.margin_percentage ?? 0,
       showBudgetStatus: true,
       showVariance: false,

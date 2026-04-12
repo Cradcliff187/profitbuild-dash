@@ -80,7 +80,7 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
       contracted_amount: acc.contracted_amount + project.contracted_amount,
       total_invoiced: acc.total_invoiced + project.total_invoiced,
       original_margin: acc.original_margin + project.original_margin,
-      adjusted_est_margin: acc.adjusted_est_margin + (project.adjusted_est_margin ?? project.projected_margin ?? 0),
+      adjusted_est_margin: acc.adjusted_est_margin + (project.adjusted_est_margin ?? 0),
       actual_margin: acc.actual_margin + project.actual_margin,
       margin_change: acc.margin_change + (project.actual_margin - project.original_margin),
     }), {
@@ -210,10 +210,10 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
                         </div>
                         <div>
                           <div className="text-muted-foreground">Adj. Est. Margin</div>
-                          <div className="font-semibold font-mono">{formatCurrency((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0)}</div>
+                          <div className="font-semibold font-mono">{formatCurrency((project as any).adjusted_est_margin ?? 0)}</div>
                           <div className="text-[10px] text-muted-foreground">
                             {project.contracted_amount > 0 
-                              ? (((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0) / project.contracted_amount * 100).toFixed(1)
+                              ? (((project as any).adjusted_est_margin ?? 0) / project.contracted_amount * 100).toFixed(1)
                               : '0.0'}%
                           </div>
                         </div>
@@ -346,11 +346,11 @@ export function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props)
                       : '0.0'}%
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">
-                    {formatCurrency((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0)}
+                    {formatCurrency((project as any).adjusted_est_margin ?? 0)}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground">
                     {project.contracted_amount > 0 
-                      ? (((project as any).adjusted_est_margin ?? (project as any).projected_margin ?? 0) / project.contracted_amount * 100).toFixed(1)
+                      ? (((project as any).adjusted_est_margin ?? 0) / project.contracted_amount * 100).toFixed(1)
                       : '0.0'}%
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">

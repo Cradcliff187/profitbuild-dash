@@ -1048,9 +1048,9 @@ export const ProjectsTableView = ({
       label: 'Adj. Est. Margin ($)',
       align: 'right' as const,
       sortable: true,
-      getSortValue: (project) => project.adjusted_est_margin ?? project.projected_margin ?? 0,
+      getSortValue: (project) => project.adjusted_est_margin ?? 0,
       render: (project: ProjectWithFinancials) => {
-        const margin = project.adjusted_est_margin ?? project.projected_margin ?? 0;
+        const margin = project.adjusted_est_margin ?? 0;
         const contract = project.contracted_amount || 0;
         const isPositive = margin >= 0;
 
