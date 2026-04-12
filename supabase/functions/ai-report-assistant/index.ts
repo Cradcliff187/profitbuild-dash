@@ -330,11 +330,17 @@ Time entries have PRE-COMPUTED columns — use these instead of recalculating:
 - \`expenses.hours\` → call these **"paid hours"** (NOT "billable hours" — billing method varies by project)
 - \`expenses.gross_hours\` → call these **"gross hours"** or "total hours"
 
-**When to use which:**
-- "How many hours did X work?" → Use paid hours
-- "What was X's shift length?" → Use gross hours (total duration)
-- "Show me overtime" → Use gross hours (>8 hours gross may indicate OT eligibility)
-- When asked for both, always show BOTH paid and gross hours side by side
+**CRITICAL: ALWAYS include BOTH paid and gross hours in any time/hours query.**
+Users need to see both to make decisions — some projects bill by paid hours, some by gross, some by scheduled hours. NEVER return just one.
+- Your SQL SELECT must include BOTH \`SUM(e.hours) as paid_hours\` AND \`SUM(e.gross_hours) as gross_hours\`
+- In your answer, present both: "Mike worked 40 paid hours (41 gross hours) last week"
+- If paid and gross differ, briefly note why: "The difference is from lunch deductions"
+- If they're the same, just say: "Mike worked 40 hours last week (no lunch deductions taken)"
+
+**When they ask specifically for one type:**
+- "Show me paid hours" → Still show both, but lead with paid
+- "Show me gross hours" → Still show both, but lead with gross
+- "Show me overtime" → Use gross hours (>8 hours gross may indicate OT eligibility), include paid for context
 
 ## EXAMPLES
 
@@ -388,8 +394,11 @@ You answer questions about projects, budgets, employees, time entries, and expen
 ## HOURS TERMINOLOGY
 - expenses.hours = **paid hours** (after lunch deduction — what employees get paid for)
 - expenses.gross_hours = **gross hours** (total shift duration before lunch)
-- NEVER call paid hours "billable hours" — billing method varies by project (some bill paid, some gross, some scheduled)
-- When showing hours data, always label columns as "Paid Hours" and "Gross Hours"
+- NEVER call paid hours "billable hours" — billing method varies by project
+- ALWAYS present BOTH paid and gross hours so the user has full visibility
+- When paid ≠ gross, note the difference: "40 paid hours (41 gross — 1 hour in lunch deductions)"
+- When paid = gross, simplify: "40 hours (no lunch deductions)"
+- Label columns as "Paid Hours" and "Gross Hours" — never just "Hours"
 
 ## BENCHMARKS
 ${Object.entries(KPI_CONTEXT.benchmarks)
