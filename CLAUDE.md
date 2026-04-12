@@ -218,7 +218,7 @@ Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quic
 ## Key Architectural Rules
 
 ### 1. Database-First Financials
-All financial calculations (margins, totals, projections) live in PostgreSQL triggers and functions — **not** in frontend code. `projectFinancials.ts` is **deprecated**. Read financial data directly from the `projects` table and `reporting.project_financials` view.
+All financial calculations (margins, totals, projections) live in PostgreSQL triggers and functions — **not** in frontend code. Both `projectFinancials.ts` and `margin.ts` have been **deleted** — read financial data directly from the `projects` table and `reporting.project_financials` view. Use `actual_margin` (not the deprecated `current_margin`) and `adjusted_est_margin` (not the deprecated `projected_margin`). The deprecated columns still exist in the DB but all code references use the new names exclusively.
 
 ### 1a. Canonical `ProjectStatus` Type
 `src/types/project.ts` is the **single source of truth** for `ProjectStatus`. All other type files (`profit.ts`, `profitAnalysis.ts`) import from it. **Never** define project status literals in other files — always import `ProjectStatus` from `@/types/project`.
@@ -419,6 +419,7 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Phantom feature flags in FEATURE_FLAGS_STATUS.md | Removed `scheduleWarnings`/`scheduleDependencies`; added `aiaBilling` |
 | `.serena/` not gitignored | Added to `.gitignore` |
 | Untracked migration placeholder | Committed to keep file count in sync with DB |
+| Deprecated margin field fallbacks | Backfilled 2 rows, removed all `?? current_margin` (7 locations) and `?? projected_margin` (20 locations) fallbacks. Deleted `margin.ts` (zero imports). Code now uses only `actual_margin` and `adjusted_est_margin`. |
 
 ### Medium Priority
 
@@ -426,7 +427,6 @@ Issues identified during codebase audit, validated, and prioritized for future w
 |-------|---------|-------|
 | Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
 | Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not reflected in Supabase generated types |
-| Deprecated margin field names | 69 refs across 20 files | `current_margin` → `actual_margin`, `projected_margin` → `adjusted_est_margin`. Coordinate with DB column availability. |
 | `as any` type casts | 117 across 60 files | Top offenders: `EstimateForm.tsx`, `ChangeOrdersList.tsx`, `csvParser.ts`. Reduce incrementally. |
 
 ### Deferred (Requires Broader Planning)
