@@ -325,7 +325,7 @@ Set in Supabase Dashboard → Settings → Edge Functions → Secrets:
 |--------------|---------|
 | `README.md` | Setup, architecture, deployment, troubleshooting |
 | `PRODUCT_OVERVIEW.md` | Comprehensive feature documentation (all 8 modules) |
-| `.cursorrules` | AI agent rules for Cursor IDE — migration workflow, edge function deployment, code style |
+| `.cursorrules` | Cursor IDE pointer to `CLAUDE.md` + Cursor-specific MCP tool names |
 | `supabase/FEATURE_FLAGS_STATUS.md` | Current feature flag states |
 | `DEV_CLEAN_RELOAD.md` | Clearing stale dev cache (service worker) |
 | `docs/` | 200+ documentation files organized by feature area |
@@ -421,6 +421,7 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Untracked migration placeholder | Committed to keep file count in sync with DB |
 | Deprecated margin field fallbacks | Backfilled 2 rows, removed all `?? current_margin` (7 locations) and `?? projected_margin` (20 locations) fallbacks. Deleted `margin.ts` (zero imports). Code now uses only `actual_margin` and `adjusted_est_margin`. |
 | Non-null assertion in `useScheduleOfValues.ts` | Replaced `sovQuery.data!.id` with `sovQuery.data?.id ?? ""` |
+| `.cursorrules` consolidation | Replaced 274-line duplicate with slim pointer to `CLAUDE.md` + Cursor-specific MCP tool names |
 
 ### Medium Priority
 
@@ -435,4 +436,3 @@ Issues identified during codebase audit, validated, and prioritized for future w
 |-------|-------|-------|
 | 26 edge functions with wildcard CORS (`*`) | All functions except `quickbooks-callback` | Replace with `rcgwork.com` origin allowlist. Especially important for no-JWT functions: `send-auth-email`, `forgot-password`, `send-receipt-notification`, `send-training-notification` |
 | `console.log` cleanup | 132 across 38 files | Mix of intentional logging and debug leftovers. Needs triage to distinguish. |
-| `.cursorrules` consolidation | `.cursorrules` + `CLAUDE.md` | Significant overlap — consider making `.cursorrules` a minimal pointer to `CLAUDE.md` |

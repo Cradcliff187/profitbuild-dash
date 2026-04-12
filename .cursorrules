@@ -1,273 +1,32 @@
 # Cursor AI Rules for ProfitBuild Dashboard
 
-## Supabase Database Migrations - CRITICAL
+## Primary Reference
 
-### When Using Supabase MCP in Cursor
+**All project rules, conventions, and workflows are in `CLAUDE.md` at the project root.**
 
-**ALWAYS follow this workflow when applying database migrations:**
+Read `CLAUDE.md` before making any changes. It is the single source of truth for:
+- Database migration workflow (critical — mismatches cause deployment failures)
+- Edge function deployment and version pinning
+- Code conventions and architectural rules
+- Feature flags and known gotchas
+- Outstanding audit items and tech debt
 
-1. **After applying ANY migration via `mcp_supabase_apply_migration`:**
-   - IMMEDIATELY query the database to get the exact migration name that was recorded:
-     ```sql
-     SELECT version, name FROM supabase_migrations.schema_migrations 
-     ORDER BY version DESC LIMIT 1;
-     ```
-   
-2. **Create a matching local placeholder file:**
-   - Filename format: `{version}_{name}.sql` or `{version}_migration.sql` if name is empty
-   - Location: `supabase/migrations/`
-   - Content: `-- Applied via Supabase dashboard since the actual SQL is already in your database.`
-   - Example: `supabase/migrations/20260108191339_add_last_active_at_to_profiles.sql`
+## Cursor-Specific Notes
 
-3. **Verify synchronization:**
-   - Compare local file count with database migration count
-   - Local files MUST match database exactly for CI/CD to pass
+### Pre-deployment Checklist
 
-### Why This Matters
+Before deploying any edge function, run `ReadLints` on the file to catch syntax errors. This supplements the general pre-deploy checks documented in `CLAUDE.md`.
 
-- Supabase CI/CD validates that every database migration has a corresponding local file
-- Database records migrations with UTC timestamps
-- Filenames MUST match exactly: `{version}_{name}.sql`
-- Missing or mismatched files cause deployment failures
+### MCP Tool Names
 
-### Example Workflow
+When using Supabase MCP in Cursor, the tool names are:
+- `mcp_supabase_apply_migration` — DDL operations (CREATE, ALTER, DROP)
+- `mcp_supabase_execute_sql` — queries and DML (SELECT, INSERT, UPDATE, DELETE)
+- `mcp_supabase_deploy_edge_function` — deploy edge functions
+- `mcp_supabase_list_edge_functions` / `mcp_supabase_get_edge_function` — verify deployments
 
-```typescript
-// 1. Apply migration
-await mcp_supabase_apply_migration({
-  project_id: "...",
-  name: "add_new_feature",
-  query: "ALTER TABLE..."
-});
+For the 4 branded-email functions (`send-auth-email`, `send-receipt-notification`, `send-training-notification`, `generate-media-report`), always include `_shared/brandedTemplate.ts` in the `files` array. See `CLAUDE.md` for full deployment details and pinned versions.
 
-// 2. Query to get exact name
-const result = await mcp_supabase_execute_sql({
-  query: "SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 1"
-});
+### Supabase Project
 
-// 3. Create local file
-const filename = `${result.version}_${result.name || 'migration'}.sql`;
-await write({
-  file_path: `supabase/migrations/${filename}`,
-  contents: "-- Applied via Supabase dashboard since the actual SQL is already in your database.\n"
-});
-```
-
-## Troubleshooting Deployment Failures
-
-### "Failed to bundle function" Error
-
-This error is **misleading** - it often means migration validation failed, NOT an edge function syntax error.
-
-**Diagnosis workflow:**
-
-1. **Check migration alignment first:**
-   ```sql
-   SELECT COUNT(*) FROM supabase_migrations.schema_migrations;
-   ```
-   Compare to: `(Get-ChildItem supabase\migrations\*.sql).Count`
-
-2. **If counts don't match - sync missing migrations:**
-   ```sql
-   SELECT version, name FROM supabase_migrations.schema_migrations 
-   WHERE version > '20260101000000' 
-   ORDER BY version;
-   ```
-   Create placeholder files for any missing migrations
-
-3. **Then check edge function syntax:**
-   - Use `ReadLints` on edge function files
-   - Look for duplicate variable declarations
-   - Check for incomplete template literals
-   - Verify all imports are valid
-
-### Periodic Health Check
-
-Run this check weekly or after using Lovable:
-
-```typescript
-// 1. Get DB migration count
-const dbCount = await mcp_supabase_execute_sql({
-  query: "SELECT COUNT(*) FROM supabase_migrations.schema_migrations"
-});
-
-// 2. Count local files
-const localCount = (await glob("supabase/migrations/*.sql")).length;
-
-// 3. If mismatch, query missing migrations and create placeholders
-if (dbCount !== localCount) {
-  // Query DB for all migrations
-  // Compare to local files
-  // Create missing placeholder files
-}
-```
-
-## Database Best Practices
-
-1. **Always use `mcp_supabase_apply_migration` for DDL operations** (CREATE, ALTER, DROP)
-2. **Use `mcp_supabase_execute_sql` only for queries and DML** (SELECT, INSERT, UPDATE, DELETE)
-3. **Never hardcode UUIDs in migrations** - they won't match between environments
-4. **Test migrations on a branch first** before applying to production
-5. **After working in Lovable** - always verify migration alignment before deploying
-
-## Edge Functions Best Practices
-
-### Common Pitfalls to Avoid
-
-1. **Duplicate variable declarations** - Check for accidental copy-paste duplicates
-2. **Incomplete template literals** - Ensure all backtick strings are properly closed
-3. **Variable scope in try-catch** - Declare variables outside try block if used in catch
-4. **Missing Deno imports** - Always import from official Deno/ESM sources
-
-### Pre-deployment Checklist - MANDATORY
-
-**⚠️ CRITICAL: ALWAYS follow this checklist BEFORE deploying ANY edge function changes:**
-
-1. **Run `ReadLints` on the edge function file**
-   - Use: `read_lints` tool with path to the edge function
-   - Fix any errors before proceeding
-
-2. **Check for duplicate `const/let/var` declarations**
-   - Use `grep` to find all declarations: `grep -E "const|let|var" path/to/file.ts`
-   - Verify no duplicate variable names in same scope
-
-3. **Verify all template literals are complete**
-   - Check all backtick strings (`` `...` ``) are properly closed
-   - Ensure no unclosed template literals
-
-4. **Test locally if possible**
-   - Run `supabase functions serve` to test locally
-   - Verify function starts without errors
-
-5. **Only then deploy using MCP**
-   - Use `mcp_supabase_deploy_edge_function` after all checks pass
-   - For **send-auth-email**, **send-receipt-notification**, **send-training-notification**, or **generate-media-report**: see "Edge Functions Using _shared (brandedTemplate) - PINNED" below — you must pass both the function index and `supabase/functions/_shared/brandedTemplate.ts` in the `files` array with the exact path structure
-   - Never skip the checklist - it catches issues before deployment
-
-**Note:** Even for small changes (like CORS headers), always run the full checklist. It takes seconds and prevents deployment failures.
-
-### Edge Functions Using _shared (brandedTemplate) - PINNED
-
-**These functions import from `../_shared/brandedTemplate.ts` and MUST be deployed via Supabase MCP with the shared file included:**
-
-| Function | verify_jwt | Current live version (pinned) |
-|----------|------------|--------------------------------|
-| send-auth-email | false | 111 |
-| send-receipt-notification | false | 95 |
-| send-training-notification | false | 44 |
-| generate-media-report | true | 113 |
-
-**Source of truth (local):**
-- `supabase/functions/send-auth-email/index.ts`
-- `supabase/functions/send-receipt-notification/index.ts`
-- `supabase/functions/send-training-notification/index.ts`
-- `supabase/functions/generate-media-report/index.ts`
-- `supabase/functions/_shared/brandedTemplate.ts` (shared by all four)
-
-**Deploying or updating these functions (use Supabase MCP in Cursor):**
-
-1. **Full content – CRITICAL:** The content passed to MCP must be the **entire** file from the repo. Always read each file with the Read tool (no line limit, no truncation) and use that exact string as the `content` for each entry in `files`. Never paste summarized, truncated, or placeholder code; incomplete content causes broken or partially deployed functions.
-
-2. **Always** include both files when deploying any of the four functions:
-   - `supabase/functions/<function-name>/index.ts` (entrypoint)
-   - `supabase/functions/_shared/brandedTemplate.ts` (full content from repo)
-
-3. **MCP deploy parameters:**
-   - `project_id`: `clsjdxwbsjbhjibvlqbz` (Estimates/Projects/WO)
-   - `name`: function slug (e.g. `send-auth-email`)
-   - `entrypoint_path`: `supabase/functions/<function-name>/index.ts`
-   - `verify_jwt`: true for generate-media-report; false for send-auth-email, send-receipt-notification, send-training-notification
-   - `files`: array with both the index content and the shared module content, with `name` keys exactly:
-     - `supabase/functions/<function-name>/index.ts`
-     - `supabase/functions/_shared/brandedTemplate.ts`
-
-4. **When updating `_shared/brandedTemplate.ts`:** Redeploy all four functions so each bundle gets the updated shared code.
-
-5. **Other _shared usage:** Any edge function that imports from `_shared/` (e.g. `quickbooks-callback` uses `_shared/quickbooks.ts`) must be deployed with that shared file included in `files` the same way—full file content, correct path in `name`.
-
-6. **Validation after deploy:** Use `mcp_supabase_list_edge_functions` and `mcp_supabase_get_edge_function` to confirm status ACTIVE and that the deployed files include the `_shared/brandedTemplate.ts` import and bundled content.
-
-## Edge Function Dependencies - CRITICAL
-
-### Version Pinning Rule
-
-**⚠️ ALWAYS pin exact versions for edge function dependencies**
-
-**DO:**
-```typescript
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-```
-
-**DON'T:**
-```typescript
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createClient } from '@supabase/supabase-js'; // bare imports don't work in Deno
-```
-
-**Why:** Floating versions (`@2`, `@latest`) resolve to different versions depending on:
-- When the deployment happens (CDN may return newer versions)
-- Which deployment system is used (Lovable vs Supabase MCP)
-- CDN caching state
-
-This causes "works in dev, breaks in production" issues.
-
-### Lovable Auto-Deployment Behavior
-
-**⚠️ IMPORTANT: This project is hosted on Lovable**
-
-When you push to GitHub:
-1. **Lovable automatically deploys** everything including edge functions
-2. **Lovable's deployment environment** may behave differently than Supabase MCP
-3. **Always verify** edge functions work after Lovable deploys
-
-### Edge Function Change Workflow
-
-**Normal changes (recommended):**
-1. Make changes to edge function locally
-2. Commit and push to GitHub
-3. Lovable auto-deploys
-4. **Verify function works** (test with a real query)
-
-**Emergency fixes (when production is broken):**
-1. Make changes locally
-2. Deploy directly via `mcp_supabase_deploy_edge_function` (bypasses Lovable)
-3. Verify fix works immediately
-4. Then push to GitHub to keep code in sync
-
-**Major changes (safest):**
-1. Use a feature branch
-2. Test in Lovable preview/staging first
-3. Merge to main only after verification
-
-### Known Issues & Lessons Learned
-
-**Problem:** `createRequire` errors in Lovable deployments
-- **Cause:** Floating version imports (`@2`) resolve to versions with Node.js code that doesn't work in Deno edge runtime
-- **Solution:** Always use pinned versions (`@2.57.4`)
-- **Fixed:** January 2026 - `ai-report-assistant` imports now pinned
-
-**Problem:** Edge function works in Cursor MCP but breaks in Lovable
-- **Cause:** Different deployment environments may resolve dependencies differently
-- **Solution:** Pin exact versions that work in both environments
-- **Lesson:** Always test in Lovable after deployment, not just in Cursor
-
-## Code Style
-
-- Use TypeScript for all new files
-- Follow existing project patterns
-- Use Shadcn UI components consistently
-- Maintain proper error handling with try-catch blocks
-
-## Git Workflow
-
-- Never force push to main/master
-- Always pull before pushing
-- Write descriptive commit messages
-- Reference issue numbers when applicable
-
-## Security
-
-- Never commit API keys, tokens, or credentials
-- Use environment variables for sensitive data
-- Follow RLS (Row Level Security) patterns in Supabase
-- Validate user input on both client and server
+- **Project ID:** `clsjdxwbsjbhjibvlqbz`
