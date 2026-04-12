@@ -35,7 +35,6 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('🔒 RoleContext: Error from Supabase:', error);
         throw error;
       }
 

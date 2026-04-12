@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface QuickBooksSyncConfig {
@@ -18,6 +19,7 @@ export interface UseQuickBooksSyncReturn {
  * Hook to check QuickBooks auto sync feature flag and configuration
  */
 export function useQuickBooksSync(): UseQuickBooksSyncReturn {
+  const { user } = useAuth();
   const [isEnabled, setIsEnabled] = useState(false);
   const [config, setConfig] = useState<QuickBooksSyncConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,8 +56,12 @@ export function useQuickBooksSync(): UseQuickBooksSyncReturn {
   };
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     fetchFeatureFlag();
-  }, []);
+  }, [user]);
 
   return {
     isEnabled,

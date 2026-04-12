@@ -105,6 +105,7 @@ export default function AppLayout() {
   const pageTitle = getPageTitle(location.pathname);
 
   useEffect(() => {
+    if (!user) return;
     const loadBranding = async () => {
       const branding = await getCompanyBranding();
       if (branding) {
@@ -113,7 +114,7 @@ export default function AppLayout() {
       }
     };
     loadBranding();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) {

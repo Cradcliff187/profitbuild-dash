@@ -88,7 +88,7 @@ export function AppSidebar() {
   const [userFullName, setUserFullName] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load company branding
+    if (!user) return;
     const loadBranding = async () => {
       const branding = await getCompanyBranding();
       if (branding) {
@@ -97,7 +97,7 @@ export function AppSidebar() {
       }
     };
     loadBranding();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
