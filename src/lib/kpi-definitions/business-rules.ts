@@ -87,10 +87,10 @@ export const businessRules: BusinessRule[] = [
     severity: 'advisory'
   },
   {
-    id: 'actual_vs_current_margin',
+    id: 'actual_vs_adjusted_est_margin',
     category: 'calculation',
-    rule: 'actual_margin = invoiced - expenses (REAL profit). current_margin = contracted - expenses (EXPECTED profit).',
-    reason: 'Users asking about "real" or "actual" profit want actual_margin. Users asking about "expected" want current_margin.',
+    rule: 'actual_margin = invoiced - expenses (REAL profit). adjusted_est_margin = contracted - adjusted estimated costs (EXPECTED profit). current_margin is deprecated — use adjusted_est_margin instead.',
+    reason: 'Users asking about "real" or "actual" profit want actual_margin. Users asking about "expected" or "projected" profit want adjusted_est_margin.',
     severity: 'important'
   },
   {
@@ -98,7 +98,7 @@ export const businessRules: BusinessRule[] = [
     category: 'calculation',
     rule: 'Use pre-calculated fields from the reporting view or projects table instead of recalculating in queries. Prefer reporting.project_financials for multi-project queries; projects table is OK for single project lookups.',
     reason: 'Database triggers maintain these calculations accurately. Manual calculations may be inconsistent.',
-    correctExample: 'SELECT current_margin FROM reporting.project_financials WHERE project_id = ...',
+    correctExample: 'SELECT actual_margin, adjusted_est_margin FROM reporting.project_financials WHERE project_id = ...',
     incorrectExample: 'SELECT (contracted_amount - (SELECT SUM(amount) FROM expenses...)) as margin',
     severity: 'important'
   },

@@ -105,6 +105,33 @@ function extractKPIsUsed(sqlQuery: string, explanation: string): string[] {
 }
 
 // ============================================================================
+// SCHEMA CACHE (avoid re-fetching on every request)
+// ============================================================================
+
+let schemaCache: { data: any; fetchedAt: number } | null = null;
+const SCHEMA_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+async function getCachedSchema(supabase: any): Promise<any> {
+  const now = Date.now();
+  if (schemaCache && (now - schemaCache.fetchedAt) < SCHEMA_CACHE_TTL_MS) {
+    return schemaCache.data;
+  }
+
+  const { data: schema, error: schemaError } = await supabase.rpc('get_database_schema');
+  if (schemaError) {
+    // If cache exists but is stale, use stale data rather than failing
+    if (schemaCache) {
+      console.warn('Schema fetch failed, using stale cache:', schemaError.message);
+      return schemaCache.data;
+    }
+    throw new Error(`Failed to fetch database schema: ${schemaError.message}`);
+  }
+
+  schemaCache = { data: schema, fetchedAt: now };
+  return schema;
+}
+
+// ============================================================================
 // CORS HEADERS
 // ============================================================================
 
@@ -233,7 +260,6 @@ ${KPI_CONTEXT.criticalRules.map((r: string) => `- ${r}`).join('\n')}
 
 When users say these terms, use these database fields:
 ${Object.entries(KPI_CONTEXT.semanticLookup)
-  .slice(0, 50)
   .map(([term, field]) => `- "${term}" → ${field}`)
   .join('\n')}
 
@@ -250,17 +276,18 @@ ${Array.isArray(KPI_CONTEXT.disambiguationGuide) ? KPI_CONTEXT.disambiguationGui
 | original_margin | contracted_amount - original_est_costs | User asks about ORIGINAL/BASELINE comparison |
 | margin_percentage | (contracted - expenses) / contracted × 100 | User asks for percentage |
 
-Note: current_margin and projected_margin still exist in the view but adjusted_est_margin is the preferred field for expected margin.
+Note: current_margin and projected_margin are DEPRECATED — always use adjusted_est_margin for expected margin. Never use current_margin in new queries.
 
 ## REPORTING VIEWS (Use these for efficient queries!)
 
 | View | Best For | Key Columns |
 |------|----------|-------------|
 | reporting.project_financials | All project financial queries | margins, costs, revenues, change orders, composition flags |
-| reporting.weekly_labor_hours | Employee weekly hour summaries | employee_name, week_start_sunday, total_hours, gross_hours, approved/pending counts |
+| reporting.weekly_labor_hours | Employee weekly hour summaries | employee_name, week_start_sunday, paid_hours, gross_hours, approved/pending counts |
 | reporting.internal_labor_hours_by_project | Labor budget vs actual by project | estimated_hours, actual_hours, hours_variance, estimated_cost, actual_cost |
 | reporting.estimate_line_items_quote_status | Line-item quote coverage | line_item details + quote_count, accepted/pending/rejected counts |
 | reporting.estimate_quote_status_summary | Estimate-level quote coverage | total_line_items, line_items_with/without_quotes, quote_coverage_percent |
+| reporting.training_status | Employee training completion | employee_name, content_title, status (completed/overdue/pending/assigned), days_remaining, is_completed, is_overdue |
 
 **PREFER views over manual joins** — they handle splits, aggregations, and edge cases correctly.
 
@@ -852,14 +879,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch database schema
-    const schemaStartTime = Date.now();
-    const { data: schema, error: schemaError } = await supabase.rpc('get_database_schema');
-    
-    if (schemaError) {
-      console.error("Schema fetch error:", schemaError);
-      throw new Error(`Failed to fetch database schema: ${schemaError.message}`);
-    }
+    // Fetch database schema (cached — avoids redundant DB round-trips)
+    const schema = await getCachedSchema(supabase);
 
     // Generate system prompt with KPI context
     const systemPrompt = generateSystemPrompt(schema);

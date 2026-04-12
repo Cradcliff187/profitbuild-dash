@@ -75,7 +75,7 @@ ORDER BY cost_variance DESC`,
     sql: `SELECT
   project_number,
   project_name,
-  current_margin,
+  actual_margin,
   margin_percentage,
   status
 FROM reporting.project_financials
@@ -83,7 +83,7 @@ WHERE category = 'construction'
   AND margin_percentage < 15
   AND status NOT IN ('cancelled', 'on_hold')
 ORDER BY margin_percentage ASC`,
-    kpisUsed: ['current_margin', 'margin_percentage'],
+    kpisUsed: ['actual_margin', 'margin_percentage'],
     category: 'filtering'
   },
   {
@@ -221,12 +221,12 @@ ORDER BY variance DESC`,
   status,
   contracted_amount,
   total_expenses,
-  current_margin,
+  actual_margin,
   margin_percentage
 FROM reporting.project_financials
 WHERE category = 'construction'
   AND (project_name ILIKE '%smith%' OR client_name ILIKE '%smith%')`,
-    kpisUsed: ['contracted_amount', 'total_expenses', 'current_margin', 'margin_percentage'],
+    kpisUsed: ['contracted_amount', 'total_expenses', 'actual_margin', 'margin_percentage'],
     category: 'lookup'
   },
   {
@@ -403,18 +403,14 @@ WHERE project_name ILIKE '%smith%'
   },
   {
     question: "Show me today's time entries",
-    reasoning: "List request. Simple mode - return the data, minimal commentary.",
-    sql: `SELECT 
+    reasoning: "List request. Simple mode - return the data, minimal commentary. Use pre-computed expenses.hours (paid hours).",
+    sql: `SELECT
   p.payee_name as employee,
   pr.project_name,
   e.start_time,
   e.end_time,
-  CASE 
-    WHEN e.lunch_taken = true THEN
-      ROUND((EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0), 1)
-    ELSE
-      ROUND((EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600), 1)
-  END as hours
+  e.hours as paid_hours,
+  e.gross_hours
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 JOIN projects pr ON e.project_id = pr.id
@@ -564,17 +560,12 @@ ORDER BY e.submitted_for_approval_at DESC`,
   },
   {
     question: "What time entries were approved today?",
-    reasoning: "User wants entries by APPROVAL date. Use approved_at field.",
+    reasoning: "User wants entries by APPROVAL date. Use approved_at field. Use pre-computed expenses.hours (paid hours).",
     sql: `SELECT
   p.payee_name,
   e.expense_date as work_date,
   e.approved_at,
-  CASE
-    WHEN e.lunch_taken = true THEN
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-    ELSE
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-  END as hours,
+  e.hours as paid_hours,
   e.amount
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
@@ -588,18 +579,13 @@ ORDER BY e.approved_at DESC`,
   },
   {
     question: "How long have pending time entries been waiting for approval?",
-    reasoning: "Calculate days since submission. Use submitted_for_approval_at to calculate pending duration.",
+    reasoning: "Calculate days since submission. Use submitted_for_approval_at to calculate pending duration. Use pre-computed expenses.hours (paid hours).",
     sql: `SELECT
   p.payee_name,
   e.expense_date as work_date,
   e.submitted_for_approval_at,
   EXTRACT(DAY FROM (NOW() - e.submitted_for_approval_at)) as days_pending,
-  CASE
-    WHEN e.lunch_taken = true THEN
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-    ELSE
-      (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-  END as hours,
+  e.hours as paid_hours,
   e.amount
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
