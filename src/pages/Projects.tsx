@@ -19,7 +19,7 @@ import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectWithFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials } from "@/types/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { parseDateOnly } from "@/utils/dateUtils";

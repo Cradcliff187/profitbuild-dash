@@ -26,7 +26,7 @@ import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectWithFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials } from "@/types/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 

@@ -6,7 +6,7 @@ import { Project } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
-import { ProjectWithFinancials } from "@/utils/projectFinancials";
+import { ProjectWithFinancials } from "@/types/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { parseDateOnly } from "@/utils/dateUtils";
 

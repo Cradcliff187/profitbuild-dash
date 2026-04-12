@@ -381,7 +381,7 @@ Use this list when doing periodic documentation reviews:
 
 7. **QuickBooks is UI-hidden** — The `quickbooks_auto_sync` feature flag is disabled. The edge functions and DB schema exist but the UI is hidden.
 
-8. **`projectFinancials.ts` is deprecated** — Do not add new logic here. Read financial data from the DB directly. **4 files still import `ProjectWithFinancials` from it** (`ProjectDetailView.tsx`, `ProjectsTableView.tsx`, `useProjectData.tsx`, `Projects.tsx`) — these need migrating to a proper type definition.
+8. **`projectFinancials.ts` was removed** — The deprecated utility file (`src/utils/projectFinancials.ts`) containing `calculateProjectFinancials()` and `calculateMultipleProjectFinancials()` was deleted in Apr 2026. The `ProjectWithFinancials` interface was relocated to `src/types/projectFinancials.ts`. Read financial data from the DB directly.
 
 9. **Time entries store as `timestamptz`** — Always in UTC. Display in local browser timezone. The existing pattern is correct; do not add explicit timezone conversion unless improving the time entry form.
 
@@ -409,7 +409,6 @@ Issues identified during codebase audit, validated, and prioritized for future w
 
 | Issue | File(s) | Notes |
 |-------|---------|-------|
-| 4 files import deprecated `projectFinancials.ts` | `ProjectDetailView.tsx:29`, `ProjectsTableView.tsx:31`, `useProjectData.tsx:9`, `Projects.tsx:22` | Need to move `ProjectWithFinancials` type to `src/types/` and remove deprecated file |
 | `as unknown as T` double-cast | `ImportBatchDetail.tsx:87` | Type safety bypass; replace with proper type guard or assertion |
 | `as any` casts | `BulkExpenseAllocationSheet.tsx` (4), `ExpenseForm.tsx` (2) | Disables type checking for Supabase join results; fix with proper typed queries |
 | Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
