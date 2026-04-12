@@ -54,7 +54,7 @@ npm run upload:template       # Upload contract Word template to Storage
 | Backend | Supabase (PostgreSQL, Auth, Storage, Edge Functions) |
 | Email | Resend (via edge functions) |
 | SMS | Textbelt (via edge functions) |
-| AI features | Supabase edge functions calling AI APIs |
+| AI features | Supabase edge functions → OpenAI API (gpt-4o-mini for reports, Whisper for audio) |
 | File handling | PapaParse (CSV), XLSX, JSZip, react-dropzone |
 | Sanitization | DOMPurify (HTML sanitization for user-provided embeds) |
 
@@ -117,9 +117,13 @@ These four functions MUST be deployed together with the shared file via Supabase
 
 The `ai-report-assistant` function uses a generated `kpi-context.generated.ts` file that must be deployed alongside `index.ts`. After any KPI definition changes, run `npm run sync:edge-kpis` to regenerate it.
 
-| Function | verify_jwt | Pinned version |
-|----------|------------|----------------|
-| `ai-report-assistant` | true | 66 |
+| Function | verify_jwt | Pinned version | AI Model | API Key Secret |
+|----------|------------|----------------|----------|----------------|
+| `ai-report-assistant` | true | 68 | `gpt-4o-mini` (OpenAI) | `OPENAI_API_KEY` |
+
+**Model history:** Switched from Lovable AI Gateway (`google/gemini-3-flash-preview` via `LOVABLE_API_KEY`) to direct OpenAI API in v5.0.0 (Apr 2026). Reasons: Lovable gateway had 6+ week deployment lag, Gemini Flash preview-tier had inconsistent SQL generation, and `OPENAI_API_KEY` was already configured for 3 other edge functions.
+
+**Deployment note:** Lovable does NOT reliably auto-deploy this function on git push. Always deploy via Supabase CLI (`supabase functions deploy ai-report-assistant`) or MCP after changes. The file size (~135KB across index.ts + kpi-context.generated.ts) may exceed MCP tool parameter limits — prefer CLI deployment.
 
 Always read full file contents (no truncation) before deploying via MCP. See `.cursorrules` for the complete deployment checklist.
 
@@ -322,6 +326,7 @@ VITE_FEATURE_AIA_BILLING=true
 ### Supabase Edge Function Secrets
 
 Set in Supabase Dashboard → Settings → Edge Functions → Secrets:
+- `OPENAI_API_KEY` — OpenAI API key (required for AI report assistant, caption enhancement, estimate enrichment, audio transcription)
 - `ResendAPI` — Resend email service API key (required)
 - `TEXTBELT_API_KEY` — Textbelt SMS key (required for SMS features)
 

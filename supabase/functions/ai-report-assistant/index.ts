@@ -14,11 +14,13 @@
  * - Conversation-aware error recovery (v4)
  * - Suggested follow-up questions (v4)
  *
- * @version 4.0.0
+ * @version 5.0.0
  *
- * VERSION PINNING (.cursorrules): Keep these exact versions so deployment sticks.
+ * VERSION PINNING: Keep these exact versions so deployment sticks.
  * - supabase-js: https://esm.sh/@supabase/supabase-js@2.57.4 (do not use @2 or @latest)
  * - deno std: https://deno.land/std@0.168.0/http/server.ts
+ * - AI model: gpt-4o-mini via OpenAI API (OPENAI_API_KEY secret)
+ *   Switched from Lovable AI Gateway / google/gemini-3-flash-preview in v5.0.0
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -592,14 +594,14 @@ Otherwise respond with:
 `;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a SQL expert. Generate simpler, working queries when the original fails." },
           ...conversationHistory.slice(-4).map((msg: any) => ({
@@ -711,14 +713,14 @@ Respond with JSON:
 `;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are an expert at analyzing why database queries return no results. Provide helpful suggestions for users." },
           { role: "user", content: emptyAnalysisPrompt }
@@ -883,12 +885,12 @@ serve(async (req) => {
     });
 
     // Initialize Supabase
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    // Guard: Ensure LOVABLE_API_KEY is defined
-    if (!LOVABLE_API_KEY) {
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+
+    // Guard: Ensure OPENAI_API_KEY is defined
+    if (!OPENAI_API_KEY) {
       return new Response(JSON.stringify({
-        error: "LOVABLE_API_KEY not configured",
+        error: "OPENAI_API_KEY not configured",
         answer: "The AI assistant is not properly configured. Please contact support."
       }), {
         status: 500,
@@ -942,14 +944,14 @@ serve(async (req) => {
     console.log("Calling AI to generate SQL...");
 
     // Call AI Gateway
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages,
         tools,
         tool_choice: "auto",
@@ -1058,7 +1060,7 @@ serve(async (req) => {
           sqlQuery,
           query,
           supabase,
-          LOVABLE_API_KEY,
+          OPENAI_API_KEY,
           conversationHistory
         );
 
@@ -1098,14 +1100,14 @@ Give a helpful response explaining that the original query had issues but we fou
 
           let retryAnswer = "";
           try {
-            const answerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            const answerResponse = await fetch("https://api.openai.com/v1/chat/completions", {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
+                model: "gpt-4o-mini",
                 messages: [
                   { role: "system", content: generateAnswerSystemPrompt() },
                   ...conversationHistory.slice(-6),
@@ -1227,7 +1229,7 @@ Give a helpful response explaining that the original query had issues but we fou
     // If no results, analyze why and add suggestions
     if (rowCount === 0) {
       try {
-        const analysis = await analyzeEmptyResults(query, sqlQuery, LOVABLE_API_KEY);
+        const analysis = await analyzeEmptyResults(query, sqlQuery, OPENAI_API_KEY);
         answerPrompt += `
 
 No results found. Analysis: ${analysis.likelyReason}
@@ -1273,14 +1275,14 @@ FOLLOW_UPS: ["question 1", "question 2", "question 3"]
     let suggestedFollowUps: string[] = [];
 
     try {
-      const answerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const answerResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: generateAnswerSystemPrompt() },
             ...conversationHistory.slice(-6),
