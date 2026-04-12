@@ -13,7 +13,7 @@ A comprehensive full-stack web application built for construction companies to m
 ## Key Features
 
 ### Project Management
-- Multi-project tracking with status workflows (Estimating → Quoted → Approved → In Progress → Complete)
+- Multi-project tracking with status workflows (Estimating → Approved → In Progress → Complete | On Hold | Cancelled)
 - Interactive Gantt chart scheduling with task dependencies
 - Change order management and approval workflows
 - Project financial reconciliation and variance analysis
@@ -22,7 +22,8 @@ A comprehensive full-stack web application built for construction companies to m
 - Estimate creation with hierarchical line items (phases, categories, items)
 - Quote generation and comparison tools
 - Expense tracking with receipt capture (mobile camera support)
-- Real-time profit margin calculations and reporting
+- AIA G702/G703 payment applications (Schedule of Values, cumulative billing)
+- Real-time profit margin calculations and reporting (database-driven)
 - Budget vs. actual cost analysis
 
 ### Time & Labor
@@ -85,7 +86,7 @@ Before you begin, ensure you have:
 
 ### 1. Clone the Repository
 ```bash
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Cradcliff187/profitbuild-dash.git
 cd profitbuild-dash
 ```
 
@@ -96,11 +97,13 @@ npm install
 
 ### 3. Environment Configuration
 
-The project is pre-configured with Supabase connection details in `src/integrations/supabase/client.ts`. For production deployments or custom instances, create a `.env` file:
+Create a `.env` file in the project root (git-ignored):
 
 ```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=https://clsjdxwbsjbhjibvlqbz.supabase.co
+VITE_SUPABASE_ANON_KEY=<your_supabase_anon_key>
+VITE_FEATURE_SCHEDULE=true
+VITE_FEATURE_AIA_BILLING=true
 ```
 
 **How to get Supabase credentials:**
@@ -162,23 +165,32 @@ The application uses Supabase Auth. First user must be created via:
 ### Frontend (React SPA)
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── ui/              # shadcn/ui base components
-│   ├── dashboard/       # Dashboard-specific components
+├── components/          # UI components (21 subdirectories)
+│   ├── ui/              # 66 shadcn/ui base components — do NOT edit directly
+│   ├── dashboard/       # Dashboard widgets
 │   ├── schedule/        # Gantt chart & scheduling
-│   └── time-tracker/    # Timesheet components
-├── pages/               # Route pages
-├── hooks/               # Custom React hooks
-├── utils/               # Helper functions & calculations
-├── types/               # TypeScript type definitions
-└── integrations/        # Supabase client & API types
+│   ├── time-tracker/    # Field worker time tracking
+│   ├── time-entries/    # Admin time entry management
+│   ├── reports/         # Report builder & templates
+│   ├── contracts/       # Contract generation & management
+│   ├── payment-applications/ # AIA G702/G703 billing
+│   └── ...              # (13 more feature directories)
+├── pages/               # 36 route pages
+├── hooks/               # 50+ custom React hooks
+├── utils/               # 50+ utility/calculation modules
+├── types/               # 25 TypeScript type definition files
+├── lib/
+│   ├── kpi-definitions/ # KPI schema, business rules, benchmarks
+│   └── featureFlags.ts  # Env-based feature flags
+└── integrations/
+    └── supabase/        # Supabase client + generated types
 ```
 
 ### Backend (Supabase)
 - **Database**: PostgreSQL with Row Level Security (RLS)
 - **Authentication**: Supabase Auth (email/password)
 - **Storage**: File uploads for receipts, photos, videos
-- **Edge Functions** (28 total in `supabase/functions/`): Server-side Deno functions for:
+- **Edge Functions** (27 in `supabase/functions/`): Server-side Deno functions for:
   - **Auth:** `send-auth-email`, `forgot-password`, `admin-create-user`, `admin-reset-password`, `admin-delete-user`, `admin-disable-user`
   - **Notifications:** `send-receipt-notification`, `send-training-notification`
   - **SMS:** `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key`
@@ -200,8 +212,12 @@ src/
 | Backend | Supabase | Database, auth, storage, functions |
 | Charts | Recharts | Financial analytics |
 | Scheduling | gantt-task-react | Gantt chart visualization |
-| PDF Export | jspdf + html2pdf.js | Report generation |
-| PWA | vite-plugin-pwa + Workbox | Offline support |
+| PDF Export | jsPDF + html2pdf.js + html2canvas | Report generation |
+| PWA | Capacitor v7 + vite-plugin-pwa + Workbox | Mobile/offline support |
+| File handling | PapaParse, XLSX, JSZip, react-dropzone | CSV/Excel import, file upload |
+| Sanitization | DOMPurify | HTML sanitization for user embeds |
+| Email | Resend (via edge functions) | Branded transactional email |
+| SMS | Textbelt (via edge functions) | Field worker messaging |
 
 ---
 
@@ -295,7 +311,7 @@ All tables enforce RLS policies based on:
 
 ### File Naming
 - Components: PascalCase (e.g., `ProjectForm.tsx`)
-- Utilities: camelCase (e.g., `projectFinancials.ts`)
+- Utilities: camelCase (e.g., `formatCurrency.ts`)
 - Types: PascalCase interfaces (e.g., `Project`, `Estimate`)
 
 ---
@@ -362,8 +378,7 @@ Some features are gated by flags stored in the `feature_flags` database table or
 |------|------|----------------|-------|
 | `quickbooks_auto_sync` | DB table | ❌ Disabled | Hidden until production-ready; see `supabase/FEATURE_FLAGS_STATUS.md` |
 | `VITE_FEATURE_SCHEDULE` | `.env` | ✅ Enabled | Gantt schedule view |
-| `VITE_FEATURE_SCHEDULE_WARNINGS` | `.env` | ✅ Enabled | Schedule sequence warnings |
-| `VITE_FEATURE_SCHEDULE_DEPS` | `.env` | ✅ Enabled | Task dependencies |
+| `VITE_FEATURE_AIA_BILLING` | `.env` | ✅ Enabled | AIA G702/G703 payment applications |
 
 **Note:** PWA service worker is disabled in development mode (`devOptions: { enabled: false }` in `vite.config.ts`). This prevents stale cache issues during development.
 
@@ -381,7 +396,7 @@ npm install
 
 **Supabase connection errors**
 - Verify Supabase project is active (not paused)
-- Check credentials in `src/integrations/supabase/client.ts`
+- Check `.env` has correct `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
 - Verify API keys match your project in Supabase Dashboard
 
 **Build fails with TypeScript errors**
@@ -403,12 +418,12 @@ npm run type-check  # See detailed errors
 ## Contributing
 
 ### Development Workflow
-1. Create feature branch from `master`
+1. Create feature branch from `main`
 2. Make changes with descriptive commits
 3. Run `npm run pre-deploy` before pushing
 4. Push to GitHub (auto-syncs to Lovable)
 5. Test in Lovable preview environment
-6. Merge to `master` when ready
+6. Merge to `main` when ready
 
 ### Git Workflow
 ```bash
@@ -433,9 +448,10 @@ git push origin feature/your-feature-name
 
 ## Support
 
-- **Documentation**: [Lovable Docs](https://docs.lovable.dev/)
+- **Production PWA**: [rcgwork.com](https://rcgwork.com)
+- **GitHub**: [Cradcliff187/profitbuild-dash](https://github.com/Cradcliff187/profitbuild-dash)
 - **Lovable Project**: [ProfitBuild Dashboard](https://lovable.dev/projects/8ad59cd4-cdfa-472d-b4a1-52ac194e00f2)
-- **Community**: [Lovable Discord](https://discord.gg/lovable)
+- **Documentation**: [Lovable Docs](https://docs.lovable.dev/)
 
 ---
 
@@ -448,4 +464,4 @@ For a comprehensive overview of all application features, modules, and capabilit
 
 ## License
 
-[Specify your license here - MIT, Apache 2.0, Proprietary, etc.]
+Proprietary — Radcliff Construction Group. All rights reserved.
