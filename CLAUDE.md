@@ -119,7 +119,7 @@ The `ai-report-assistant` function uses a generated `kpi-context.generated.ts` f
 
 | Function | verify_jwt | Pinned version | AI Model | API Key Secret |
 |----------|------------|----------------|----------|----------------|
-| `ai-report-assistant` | true | 68 | `gpt-4o-mini` (OpenAI) | `OPENAI_API_KEY` |
+| `ai-report-assistant` | true | 69 | `gpt-4o-mini` (OpenAI) | `OPENAI_API_KEY` |
 
 **Model history:** Switched from Lovable AI Gateway (`google/gemini-3-flash-preview` via `LOVABLE_API_KEY`) to direct OpenAI API in v5.0.0 (Apr 2026). Reasons: Lovable gateway had 6+ week deployment lag, Gemini Flash preview-tier had inconsistent SQL generation, and `OPENAI_API_KEY` was already configured for 3 other edge functions.
 

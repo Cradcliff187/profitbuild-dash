@@ -165,6 +165,15 @@ export const businessRules: BusinessRule[] = [
   // SECURITY RULES
   // ==========================================================================
   {
+    id: 'expenses_amount_not_total_cost',
+    category: 'terminology',
+    rule: 'The expenses table cost column is `amount`, NOT `total_cost`. There is no `total_cost` column on expenses. For labor cost per project, use `reporting.internal_labor_hours_by_project` which has pre-calculated `actual_cost`.',
+    reason: 'Common AI hallucination: generating e.total_cost when the column is e.amount. The internal_labor_hours_by_project view handles the aggregation correctly.',
+    correctExample: "SELECT SUM(e.amount) FROM expenses e WHERE e.category = 'labor_internal'",
+    incorrectExample: "SELECT SUM(e.total_cost) FROM expenses e (column does not exist)",
+    severity: 'critical'
+  },
+  {
     id: 'select_only',
     category: 'security',
     rule: 'Only SELECT queries are allowed. No INSERT, UPDATE, DELETE, DROP, or DDL statements.',

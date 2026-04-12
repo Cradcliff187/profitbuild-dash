@@ -295,6 +295,25 @@ ORDER BY e.amount DESC`,
   // LABOR ANALYSIS QUERIES
   // ==========================================================================
   {
+    question: "What are the current active projects and how many labor hours do they have, along with total cost of labor per project?",
+    reasoning: "User wants active projects with labor hours and costs. Use reporting.internal_labor_hours_by_project view — it has estimated vs actual hours and costs pre-calculated. DO NOT try to manually join expenses and calculate total_cost (that column doesn't exist on expenses — the column is 'amount').",
+    sql: `SELECT
+  project_number,
+  project_name,
+  status,
+  estimated_hours,
+  actual_hours,
+  hours_variance,
+  estimated_cost as budgeted_labor_cost,
+  actual_cost as actual_labor_cost,
+  cost_variance as labor_cost_variance
+FROM reporting.internal_labor_hours_by_project
+WHERE status IN ('in_progress', 'approved')
+ORDER BY actual_cost DESC`,
+    kpisUsed: ['estimated_hours', 'actual_hours', 'total_expenses'],
+    category: 'lookup'
+  },
+  {
     question: "What's our total labor profit opportunity?",
     reasoning: "Labor cushion comes from billing internal labor above actual cost. Use reporting.internal_labor_hours_by_project to compare estimated vs actual labor, and calculate the spread.",
     sql: `SELECT
