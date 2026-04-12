@@ -44,7 +44,7 @@ export function ReassignExpenseProjectDialog({
     }
 
     // Cast to Project type - ProjectSelectorNew only needs these fields
-    setProjects(data as any || []);
+    setProjects(data || []);
   };
 
   const handleReassign = async () => {

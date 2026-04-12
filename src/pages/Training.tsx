@@ -223,7 +223,7 @@ export default function Training() {
           <MobileTabSelector
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as FilterTab)}
-            options={tabOptions as any}
+            options={tabOptions}
           />
         </div>
 

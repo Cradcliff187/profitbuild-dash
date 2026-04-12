@@ -38,7 +38,7 @@ interface EstimateQuoteStatusViewProps {
   estimateId: string;
 }
 
-const getQuoteStatusBadgeVariant = (hasQuotes: boolean, hasAccepted: boolean) => {
+const getQuoteStatusBadgeVariant = (hasQuotes: boolean, hasAccepted: boolean): "default" | "secondary" | "destructive" => {
   if (hasAccepted) return 'default';
   if (hasQuotes) return 'secondary';
   return 'destructive';
@@ -254,7 +254,7 @@ export function EstimateQuoteStatusView({ estimateId }: EstimateQuoteStatusViewP
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
-                            variant={getQuoteStatusBadgeVariant(hasQuotes, hasAccepted) as any}
+                            variant={getQuoteStatusBadgeVariant(hasQuotes, hasAccepted)}
                             className="text-xs"
                           >
                             {getQuoteStatusLabel(hasQuotes, hasAccepted, item.quote_count)}

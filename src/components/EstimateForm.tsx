@@ -1034,7 +1034,7 @@ useEffect(() => {
             targetMarginPercent: 20,
             date_created: new Date(createdEstimate.date_created),
             total_amount: createdEstimate.total_amount,
-            status: createdEstimate.status as any,
+            status: createdEstimate.status,
             notes: createdEstimate.notes,
             valid_until: createdEstimate.valid_until ? new Date(createdEstimate.valid_until) : undefined,
             revision_number: createdEstimate.revision_number,

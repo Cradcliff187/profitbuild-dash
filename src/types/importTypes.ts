@@ -70,6 +70,10 @@ export interface EnrichedLineItem extends ExtractedLineItem {
   category: ItemCategory;
   normalizedName: string;
   categoryConfidence: number;
+  laborHours?: number;
+  billingRatePerHour?: number;
+  actualCostRatePerHour?: number;
+  laborCushionAmount?: number;
 }
 
 // =============================================================================

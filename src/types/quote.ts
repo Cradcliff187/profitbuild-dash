@@ -3,6 +3,7 @@ import { LineItemCategory } from "./estimate";
 export interface QuoteLineItem {
   id: string;
   estimateLineItemId?: string; // Optional link to original estimate line
+  estimate_line_item_id?: string; // Snake-case alias (raw Supabase data)
   changeOrderLineItemId?: string; // Optional link to change order line item
   changeOrderNumber?: string; // Display CO number for reference
   category: LineItemCategory;

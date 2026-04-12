@@ -229,7 +229,7 @@ export function getEstimateLineItemCost(
   // Match via quote line items' estimateLineItemId links
   if (quoteLineItems.length > 0) {
     quoteLineItems.forEach(qli => {
-      const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+      const linkId = qli.estimateLineItemId || qli.estimate_line_item_id;
       if (linkId) {
         const eli = estimateLineItems.find(item => item.id === linkId);
         if (eli) {
@@ -274,7 +274,7 @@ export function getEstimateLineItemPrice(
 
   if (quoteLineItems.length > 0) {
     quoteLineItems.forEach(qli => {
-      const linkId = qli.estimateLineItemId || (qli as any).estimate_line_item_id;
+      const linkId = qli.estimateLineItemId || qli.estimate_line_item_id;
       if (linkId) {
         const eli = estimateLineItems.find(item => item.id === linkId);
         if (eli) {

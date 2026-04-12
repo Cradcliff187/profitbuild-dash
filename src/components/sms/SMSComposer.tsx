@@ -146,7 +146,7 @@ export function SMSComposer() {
         // Check for HTTP error from edge function
         if (error) {
           console.error(`❌ HTTP error for ${recipient.full_name}:`, error);
-          console.error(`📄 Response object:`, (response as any).response);
+          console.error(`📄 Response object:`, response);
           
           // The Supabase client doesn't give us the error message easily
           // Direct users to check Network tab for actual error

@@ -254,13 +254,13 @@ async function enrichWithLLM(
 export function convertToEstimateLineItems(items: EnrichedLineItem[]): any[] {
   return items.map((item, i) => {
     // Determine if this is an hourly labor item
-    const isHourlyLabor = item.component === 'labor' && 'laborHours' in item && (item as any).laborHours > 0;
-    
-    const quantity = isHourlyLabor ? (item as any).laborHours : 1;
+    const isHourlyLabor = item.component === 'labor' && item.laborHours != null && item.laborHours > 0;
+
+    const quantity = isHourlyLabor ? item.laborHours! : 1;
     const unit = isHourlyLabor ? 'HR' : 'LS';
     // For labor items, use billing rate (not actual cost) so the cushion is baked into the cost structure
-    const costPerUnit = isHourlyLabor && (item as any).billingRatePerHour 
-      ? (item as any).billingRatePerHour
+    const costPerUnit = isHourlyLabor && item.billingRatePerHour
+      ? item.billingRatePerHour
       : (quantity > 0 ? item.cost / quantity : item.cost);
     const pricePerUnit = quantity > 0 ? (item.price || item.cost) / quantity : (item.price || item.cost);
     
@@ -281,10 +281,10 @@ export function convertToEstimateLineItems(items: EnrichedLineItem[]): any[] {
       total,
       totalCost,
       totalMarkup,
-      laborHours: isHourlyLabor ? (item as any).laborHours : null,
-      billingRatePerHour: isHourlyLabor ? (item as any).billingRatePerHour : null,
-      actualCostRatePerHour: isHourlyLabor ? (item as any).actualCostRatePerHour : null,
-      laborCushionAmount: isHourlyLabor ? (item as any).laborCushionAmount : null,
+      laborHours: isHourlyLabor ? item.laborHours : null,
+      billingRatePerHour: isHourlyLabor ? item.billingRatePerHour : null,
+      actualCostRatePerHour: isHourlyLabor ? item.actualCostRatePerHour : null,
+      laborCushionAmount: isHourlyLabor ? item.laborCushionAmount : null,
       notes: item.wasSplit ? `Split from: ${item.splitFromName}` : undefined,
       vendorId: null,
       subcontractorId: null,

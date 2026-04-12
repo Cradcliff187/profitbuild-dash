@@ -9,7 +9,7 @@ import type { ProjectMedia } from '@/types/project';
 import { dismissCaptionPrompts } from '@/utils/userPreferences';
 
 interface QuickCaptionModalProps {
-  photo: ProjectMedia;
+  photo: Pick<ProjectMedia, 'file_url' | 'caption'>;
   open: boolean;
   onClose: () => void;
   onSave: (caption: string) => void;

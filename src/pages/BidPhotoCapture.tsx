@@ -308,7 +308,7 @@ export default function BidPhotoCapture() {
 
         {/* Modals */}
         <QuickCaptionModal
-          photo={{ file_url: '', caption: captions.pendingCaption } as any}
+          photo={{ file_url: '', caption: captions.pendingCaption }}
           open={captions.showCaptionModal}
           onClose={() => captions.setShowCaptionModal(false)}
           onSave={handleSaveCaption}

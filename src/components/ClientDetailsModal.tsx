@@ -30,7 +30,7 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
     switch (field.type) {
       case 'badge':
-        return <Badge variant={field.variant as any}>{field.value}</Badge>;
+        return <Badge variant={field.variant as "default" | "secondary" | "destructive" | "outline"}>{field.value}</Badge>;
       case 'date':
         return new Date(field.value).toLocaleDateString();
       case 'boolean':

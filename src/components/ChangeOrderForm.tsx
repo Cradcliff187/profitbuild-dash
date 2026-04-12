@@ -337,7 +337,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
         .select('id', { count: 'exact', head: true })
         .eq('sov_id', sov.id);
 
-      let itemNum = itemCountData ? (itemCountData as any).length || 0 : 0;
+      let itemNum = itemCountData ? (itemCountData as unknown[]).length || 0 : 0;
 
       const sovEntries = newLineItems.map((item) => {
         currentSort++;

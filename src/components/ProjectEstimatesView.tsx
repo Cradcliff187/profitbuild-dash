@@ -100,7 +100,7 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
               <MobileTabSelector
                 value={activeTab}
                 onValueChange={handleTabChange}
-                options={tabOptions as any}
+                options={tabOptions}
               />
             </div>
 

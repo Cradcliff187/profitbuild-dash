@@ -39,7 +39,7 @@ export async function updateBidMediaMetadata(
         .single();
       
       if (profile) {
-        (updatedMedia as any).profiles = profile;
+        Object.assign(updatedMedia, { profiles: profile });
       }
     }
 
