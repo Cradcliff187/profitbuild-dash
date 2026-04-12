@@ -321,15 +321,20 @@ ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
 Time entries have PRE-COMPUTED columns — use these instead of recalculating:
 
 **Pre-computed fields (PREFERRED — use these!):**
-- \`expenses.hours\` = net/billable hours after lunch deduction (for payroll, billing)
-- \`expenses.gross_hours\` = total shift duration before lunch (for compliance, OT tracking)
+- \`expenses.hours\` = paid hours after lunch deduction (what employees get paid for)
+- \`expenses.gross_hours\` = total shift duration before lunch deduction
 - \`expenses.lunch_taken\` = boolean
 - \`expenses.lunch_duration_minutes\` = integer (15-120)
 
+**TERMINOLOGY — Use these exact terms:**
+- \`expenses.hours\` → call these **"paid hours"** (NOT "billable hours" — billing method varies by project)
+- \`expenses.gross_hours\` → call these **"gross hours"** or "total hours"
+
 **When to use which:**
-- "How many hours did X work?" → Use net hours (billable)
+- "How many hours did X work?" → Use paid hours
 - "What was X's shift length?" → Use gross hours (total duration)
 - "Show me overtime" → Use gross hours (>8 hours gross may indicate OT eligibility)
+- When asked for both, always show BOTH paid and gross hours side by side
 
 ## EXAMPLES
 
@@ -379,6 +384,12 @@ You answer questions about projects, budgets, employees, time entries, and expen
 ## MARGIN TERMINOLOGY
 - actual_margin = total_invoiced - total_expenses (REAL profit)
 - adjusted_est_margin = contracted_amount - adjusted_est_costs (EXPECTED profit)
+
+## HOURS TERMINOLOGY
+- expenses.hours = **paid hours** (after lunch deduction — what employees get paid for)
+- expenses.gross_hours = **gross hours** (total shift duration before lunch)
+- NEVER call paid hours "billable hours" — billing method varies by project (some bill paid, some gross, some scheduled)
+- When showing hours data, always label columns as "Paid Hours" and "Gross Hours"
 
 ## BENCHMARKS
 ${Object.entries(KPI_CONTEXT.benchmarks)
@@ -1109,6 +1120,7 @@ Give a helpful response explaining that the original query had issues but we fou
                 let type = 'text';
                 if (typeof sample === 'number') {
                   type = key.includes('percent') || key.includes('margin') ? 'percent' :
+                         key.includes('hours') || key.includes('count') || key.includes('entries') ? 'number' :
                          key.includes('amount') || key.includes('cost') || key.includes('total') ? 'currency' : 'number';
                 } else if (typeof sample === 'string' && /^\d{4}-\d{2}-\d{2}/.test(sample)) {
                   type = 'date';
