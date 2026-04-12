@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { ManualTimeEntrySheet } from '@/components/time-entry-form';
 import type { TimeEntryFormData } from '@/components/time-entry-form';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,11 +76,6 @@ export const AdminCreateTimeEntrySheet = ({
       const rate = workerData?.hourly_rate || 75;
       const amount = calculateTimeEntryAmount(formData.hours, rate);
 
-      const description =
-        formData.startTime && formData.endTime
-          ? `${format(formData.startTime, 'h:mm a')} - ${format(formData.endTime, 'h:mm a')}`
-          : '';
-
       const { data: { user } } = await supabase.auth.getUser();
 
       const { error } = await supabase.from('expenses').insert({
@@ -93,7 +87,7 @@ export const AdminCreateTimeEntrySheet = ({
           : null,
         end_time: formData.endTime ? formData.endTime.toISOString() : null,
         amount,
-        description,
+        description: formData.notes || '',
         category: 'labor_internal',
         transaction_type: 'expense',
         user_id: user?.id,

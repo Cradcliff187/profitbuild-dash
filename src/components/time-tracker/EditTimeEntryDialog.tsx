@@ -98,6 +98,11 @@ export const EditTimeEntryDialog = ({
       hours = netHours;
     }
 
+    // Strip auto-generated time range descriptions from old entries
+    const TIME_RANGE_PATTERN = /^\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M$/i;
+    const rawDescription = entry.description || '';
+    const notes = TIME_RANGE_PATTERN.test(rawDescription.trim()) ? '' : rawDescription;
+
     return {
       workerId: entry.payee_id || '',
       projectId: entry.project_id || '',
@@ -110,6 +115,7 @@ export const EditTimeEntryDialog = ({
       lunchDurationMinutes:
         entry.lunch_duration_minutes ?? DEFAULT_LUNCH_DURATION,
       receiptUrl: entry.attachment_url,
+      notes,
     };
   }, [entry, projectNumber]);
 
@@ -191,7 +197,7 @@ export const EditTimeEntryDialog = ({
           project_id: formData.projectId,
           expense_date: formData.date,
           amount,
-          description: '',
+          description: formData.notes || '',
           updated_by: user?.id,
           start_time: formData.startTime
             ? formData.startTime.toISOString()

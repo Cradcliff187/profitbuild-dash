@@ -11,6 +11,7 @@ export const timeEntryColumnDefinitions = [
   { key: "lunch", label: "Lunch", required: false, sortable: false },
   { key: "amount", label: "Amount", required: false, sortable: true },
   { key: "receipt", label: "Receipt", required: false, sortable: true },
+  { key: "notes", label: "Notes", required: false, sortable: false },
   { key: "status", label: "Status", required: false, sortable: true },
   { key: "submitted_at", label: "Submitted At", required: false, sortable: true },
   { key: "actions", label: "Actions", required: true },

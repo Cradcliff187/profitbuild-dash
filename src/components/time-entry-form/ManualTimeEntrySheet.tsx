@@ -29,6 +29,7 @@ export interface ManualTimeEntrySheetProps {
     lunchTaken: boolean;
     lunchDurationMinutes: number;
     receiptUrl?: string;
+    notes?: string;
   };
   onSave: (data: TimeEntryFormData) => Promise<void>;
   onCancel: () => void;

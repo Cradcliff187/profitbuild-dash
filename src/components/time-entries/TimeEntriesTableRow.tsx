@@ -175,6 +175,21 @@ const TimeEntriesTableRowComponent: React.FC<TimeEntriesTableRowProps> = ({
                 )}
               </TableCell>
             );
+          case "notes": {
+            // Strip auto-generated time range descriptions from old entries
+            const TIME_RANGE_PATTERN = /^\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M$/i;
+            const rawNote = entry.note || '';
+            const displayNote = TIME_RANGE_PATTERN.test(rawNote.trim()) ? '' : rawNote.trim();
+            return (
+              <TableCell key={colKey} className="p-1.5 text-xs text-muted-foreground max-w-[160px]">
+                {displayNote ? (
+                  <span className="truncate block" title={displayNote}>{displayNote}</span>
+                ) : (
+                  <span>-</span>
+                )}
+              </TableCell>
+            );
+          }
           case "status":
             return (
               <TableCell key={colKey} className="p-1.5">

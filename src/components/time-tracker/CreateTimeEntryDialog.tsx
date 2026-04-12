@@ -85,7 +85,7 @@ export const CreateTimeEntryDialog = ({
         project_id: formData.projectId,
         expense_date: formData.date,
         amount,
-        description: '',
+        description: formData.notes || '',
         category: 'labor_internal',
         transaction_type: 'expense',
         user_id: user?.id,

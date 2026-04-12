@@ -21,6 +21,7 @@ export interface TimeEntryFormData {
   lunchDurationMinutes: number;
   isOvernight: boolean;
   isPTO: boolean;
+  notes: string;
 }
 
 export interface TimeEntryFormInitialValues {
@@ -34,6 +35,7 @@ export interface TimeEntryFormInitialValues {
   hours: number;
   lunchTaken: boolean;
   lunchDurationMinutes: number;
+  notes?: string;
 }
 
 export interface UseTimeEntryFormOptions {
@@ -64,6 +66,7 @@ export function useTimeEntryForm(options: UseTimeEntryFormOptions = {}) {
     initialValues.lunchDurationMinutes ?? DEFAULT_LUNCH_DURATION
   );
   const [manualHours, setManualHours] = useState(initialValues.hours ?? 0);
+  const [notes, setNotes] = useState(initialValues.notes ?? '');
 
   const overnight = useOvernightDetection({ date, startTime, endTime });
 
@@ -140,6 +143,7 @@ export function useTimeEntryForm(options: UseTimeEntryFormOptions = {}) {
       lunchDurationMinutes: lunchDuration,
       isOvernight: overnightAdjusted,
       isPTO,
+      notes,
     };
   }, [
     workerId,
@@ -153,6 +157,7 @@ export function useTimeEntryForm(options: UseTimeEntryFormOptions = {}) {
     isAutoCalculated,
     netHours,
     manualHours,
+    notes,
   ]);
 
   return {
@@ -180,6 +185,8 @@ export function useTimeEntryForm(options: UseTimeEntryFormOptions = {}) {
     lunchHours,
     isAutoCalculated,
     effectiveNetHours,
+    notes,
+    setNotes,
     getFormData,
   };
 }

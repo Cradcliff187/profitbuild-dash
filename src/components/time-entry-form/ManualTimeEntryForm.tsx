@@ -7,6 +7,7 @@ import { TimeRangeField } from './fields/TimeRangeField';
 import { OvernightIndicator } from './fields/OvernightIndicator';
 import { LunchSection } from './fields/LunchSection';
 import { HoursDisplay } from './fields/HoursDisplay';
+import { NotesField } from './fields/NotesField';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ export interface ManualTimeEntryFormProps {
     lunchTaken: boolean;
     lunchDurationMinutes: number;
     receiptUrl?: string;
+    notes?: string;
   };
   disabled?: boolean;
   canEdit?: boolean;
@@ -63,6 +65,7 @@ export function ManualTimeEntryForm({
           hours: initialValues.hours,
           lunchTaken: initialValues.lunchTaken,
           lunchDurationMinutes: initialValues.lunchDurationMinutes,
+          notes: initialValues.notes,
         }
       : undefined,
     selectedProjectNumber: selectedProjectNumber ?? undefined,
@@ -157,6 +160,11 @@ export function ManualTimeEntryForm({
           isPTO={form.isPTO}
         />
       )}
+      <NotesField
+        value={form.notes}
+        onChange={form.setNotes}
+        disabled={effectiveDisabled}
+      />
     </div>
   );
 }

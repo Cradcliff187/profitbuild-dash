@@ -67,10 +67,11 @@ src/
 ├── components/          # UI components (22 subdirectories)
 │   ├── ui/              # 66 shadcn/ui base components — do NOT edit these directly
 │   ├── dashboard/       # Dashboard widgets
-│   ├── schedule/        # Gantt chart & scheduling
+│   ├── notes/           # Shared note components (NoteCard, NoteInput, NoteLightbox, VoiceNoteButton)
+│   ├── schedule/        # Gantt chart, field schedule (FieldTaskCard, FieldTaskSection, FieldMediaGallery, FieldDocumentsList, FieldQuickActionBar)
 │   ├── time-tracker/    # Field worker time tracking
 │   ├── time-entries/    # Admin time entry management
-│   ├── time-entry-form/ # Shared time entry form (rebuilt unified version)
+│   ├── time-entry-form/ # Shared time entry form (rebuilt unified version, includes NotesField)
 │   ├── reports/         # Report builder & templates
 │   ├── contracts/       # Contract generation & management
 │   ├── payment-applications/ # AIA G702/G703 billing (SOV, payment apps, PDF export)
@@ -267,6 +268,26 @@ AIA billing uses a three-layer data model: **Schedule of Values (SOV)** → **Pa
 **Key triggers**: `calculate_payment_line_totals` (line-level), `calculate_payment_application_totals` (roll-up to G702), `add_change_order_to_sov` (auto-append CO lines)
 **PDF storage**: Generated G702/G703 PDFs are saved to Supabase Storage (`project-documents` bucket, path `{projectId}/aia-billing/`) and cross-referenced in both `payment_applications` (via `g702_pdf_url`/`g703_pdf_url`) and `project_documents` (for the Documents tab). Follows the same pattern as `reportStorageUtils.ts`.
 
+### 9. Field Worker Project View (Field Schedule)
+The field schedule (`/field-schedule/:projectId`) is the primary interface for field workers on mobile. It uses a **tab-based layout** with four tabs: Tasks, Notes, Media, Docs. Each tab shows a count badge.
+
+**Key components:**
+- `FieldScheduleTable` → `FieldTaskSection` (collapsible groups: Today/Active, This Week, Upcoming, Completed) → `FieldTaskCard` (expandable with note input + photo capture + mark complete)
+- `FieldQuickActionBar` — sticky bottom bar with Note, Photo, Voice buttons (bottom sheets)
+- `FieldMediaGallery` — read-only photo/video grid using `useProjectMedia` → `PhotoLightbox`/`VideoLightbox`
+- `FieldDocumentsList` — filtered to field-relevant types only: `drawing`, `permit`, `license`, `specification`. Does **NOT** show contracts, reports, or receipts.
+
+**Notes architecture (decomposed):**
+- `useProjectNotes` hook — query, mutations, upload (shared by all note views)
+- `NoteCard` — variant-based renderer (`'default'` | `'compact'`)
+- `NoteInput` — textarea + capture buttons + `voiceNoteSlot` for voice transcription
+- `VoiceNoteButton` — self-contained audio recording + Whisper transcription (reuses `useAudioRecording` + `useAudioTranscription` from bid notes)
+- `ProjectNotesTimeline` — thin composition shell (~250 lines, down from 1,169)
+
+**Task card interaction model:** Tap to expand → see admin notes, type "What happened?", snap a photo, or mark complete. Notes are created as project notes with task name prefix (e.g., `**Framing:** North wall done`). No accidental completion — checkbox was replaced with a deliberate "Mark Complete" button inside the expanded view.
+
+**Time entry notes:** The `ManualTimeEntryForm` includes a `NotesField` component. Notes are stored in `expenses.description`. Auto-generated time range patterns in old entries are stripped via regex when loading for edit.
+
 ---
 
 ## TypeScript Configuration
@@ -444,6 +465,11 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | 23 `as any` type casts removed | Extended `EnrichedLineItem`/`QuoteLineItem` interfaces, added return types, narrowed props. Count: 109 → 86. |
 | App version showing `v0.0.0` | Fixed — Changed from `VITE_APP_VERSION` to `__APP_VERSION__` define in `vite.config.ts`. Lovable's build env was overriding `VITE_*` vars. |
 | Hours terminology inconsistent ("Net Hours", "Total Hours", "Worked Hours") | Standardized to "Paid Hours" and "Gross Hours" everywhere — 24 files across UI, KPI definitions, AI context, few-shot examples, report builder, and DB view. Renamed `weekly_labor_hours.total_hours` → `paid_hours` via migration. Few-shot SQL examples updated to use pre-computed columns. |
+| `ProjectNotesTimeline` monolith (1,169 lines, 4 duplicated rendering modes) | Decomposed into `useProjectNotes` hook + `NoteCard` + `NoteInput` + `NoteLightbox` + `VoiceNoteButton`. Shell reduced to ~250 lines. |
+| Field workers had no access to project media or documents | Added `FieldMediaGallery` and `FieldDocumentsList` in tab-based field schedule layout. |
+| No voice note input for project notes | Ported `useAudioRecording` + `useAudioTranscription` from bid notes into `VoiceNoteButton` component. Available in both NoteInput and FieldQuickActionBar. |
+| Time entry form had no notes field | Added `NotesField` to `ManualTimeEntryForm`, stored in `expenses.description`. Notes column added to admin table + mobile card view. |
+| Task cards had accidental-completion risk (small checkbox) | Replaced checkbox with expandable card interaction: tap to expand → "Mark Complete" button + "What happened?" note input + photo capture. |
 
 ### Medium Priority
 

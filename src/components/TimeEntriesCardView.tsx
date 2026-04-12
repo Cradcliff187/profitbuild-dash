@@ -32,6 +32,8 @@ interface TimeEntry {
   approval_status: string;
   created_at: string;
   attachment_url?: string;
+  description?: string;
+  note?: string;
 }
 
 interface TimeEntriesCardViewProps {
@@ -264,6 +266,20 @@ export const TimeEntriesCardView = ({
                             </span>
                           </div>
                         </div>
+
+                        {/* Notes */}
+                        {(() => {
+                          const TIME_RANGE_PATTERN = /^\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M$/i;
+                          const rawNote = entry.note || entry.description || '';
+                          const displayNote = TIME_RANGE_PATTERN.test(rawNote.trim()) ? '' : rawNote.trim();
+                          if (!displayNote) return null;
+                          return (
+                            <div className="pt-2 border-t border-primary/20">
+                              <div className="text-xs text-muted-foreground mb-0.5">Notes</div>
+                              <p className="text-xs leading-relaxed">{displayNote}</p>
+                            </div>
+                          );
+                        })()}
 
                         {/* Submitted Info */}
                         {entry.created_at && (

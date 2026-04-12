@@ -39,6 +39,12 @@ export const AdminEditTimeEntrySheet = ({
 
     const hours = entry.hours ?? 8;
 
+    // Strip auto-generated time range descriptions from old entries
+    // so they don't appear as user-written notes
+    const TIME_RANGE_PATTERN = /^\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M$/i;
+    const rawDescription = entry.description || '';
+    const notes = TIME_RANGE_PATTERN.test(rawDescription.trim()) ? '' : rawDescription;
+
     return {
       workerId: entry.payee_id || '',
       projectId: entry.project_id || '',
@@ -50,6 +56,7 @@ export const AdminEditTimeEntrySheet = ({
       lunchTaken: entry.lunch_taken || false,
       lunchDurationMinutes:
         entry.lunch_duration_minutes ?? DEFAULT_LUNCH_DURATION,
+      notes,
     };
   }, [entry]);
 
@@ -120,11 +127,6 @@ export const AdminEditTimeEntrySheet = ({
       const rate = workerData?.hourly_rate || 75;
       const amount = calculateTimeEntryAmount(formData.hours, rate);
 
-      const description =
-        formData.startTime && formData.endTime
-          ? `${format(formData.startTime, 'h:mm a')} - ${format(formData.endTime, 'h:mm a')}`
-          : '';
-
       const { data: { user } } = await supabase.auth.getUser();
 
       const { error } = await supabase
@@ -140,7 +142,7 @@ export const AdminEditTimeEntrySheet = ({
             ? formData.endTime.toISOString()
             : null,
           amount,
-          description,
+          description: formData.notes || '',
           lunch_taken: formData.lunchTaken,
           lunch_duration_minutes: formData.lunchTaken
             ? formData.lunchDurationMinutes
