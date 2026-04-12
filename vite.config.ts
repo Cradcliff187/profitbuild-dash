@@ -6,11 +6,16 @@ import { VitePWA } from "vite-plugin-pwa";
 import packageJson from "./package.json";
 import { execSync } from 'child_process';
 
-// Generate version from Git — format: {major}.{minor}.{patch} (build {sha})
+// Auto-generate version from Git — format: YYYY.MM.DD (build {sha})
 const getVersion = () => {
   try {
+    const commitDate = execSync('git log -1 --format=%ci HEAD').toString().trim();
+    const date = new Date(commitDate);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
     const commitSha = execSync('git rev-parse --short HEAD').toString().trim();
-    return `${packageJson.version} (build ${commitSha})`;
+    return `${yyyy}.${mm}.${dd} (build ${commitSha})`;
   } catch {
     return packageJson.version;
   }
