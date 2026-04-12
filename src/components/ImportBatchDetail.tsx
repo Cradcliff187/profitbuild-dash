@@ -84,9 +84,9 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
         `).eq('import_batch_id', batchId).order('invoice_date', { ascending: false })
       ]);
 
-      if (batchRes.data) setBatch(batchRes.data as unknown as BatchInfo);
-      if (expensesRes.data) setExpenses(expensesRes.data as any[]);
-      if (revenuesRes.data) setRevenues(revenuesRes.data as any[]);
+      if (batchRes.data) setBatch(batchRes.data as BatchInfo);
+      if (expensesRes.data) setExpenses(expensesRes.data as BatchExpense[]);
+      if (revenuesRes.data) setRevenues(revenuesRes.data as BatchRevenue[]);
 
       setIsLoading(false);
     };
@@ -207,8 +207,8 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
                       <TableRow key={exp.id}>
                         <TableCell className="text-xs py-2">{exp.expense_date}</TableCell>
                         <TableCell className="text-xs py-2 max-w-[200px] truncate">{exp.description}</TableCell>
-                        <TableCell className="text-xs py-2">{(exp.projects as any)?.project_number || '—'}</TableCell>
-                        <TableCell className="text-xs py-2">{(exp.payees as any)?.payee_name || '—'}</TableCell>
+                        <TableCell className="text-xs py-2">{exp.projects?.project_number || '—'}</TableCell>
+                        <TableCell className="text-xs py-2">{exp.payees?.payee_name || '—'}</TableCell>
                         <TableCell className="text-xs py-2">
                           <Badge variant="outline" className="text-[10px]">{exp.category}</Badge>
                         </TableCell>
@@ -242,8 +242,8 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
                       <TableRow key={rev.id}>
                         <TableCell className="text-xs py-2">{rev.invoice_date}</TableCell>
                         <TableCell className="text-xs py-2 max-w-[200px] truncate">{rev.description}</TableCell>
-                        <TableCell className="text-xs py-2">{(rev.projects as any)?.project_number || '—'}</TableCell>
-                        <TableCell className="text-xs py-2">{(rev.clients as any)?.client_name || '—'}</TableCell>
+                        <TableCell className="text-xs py-2">{rev.projects?.project_number || '—'}</TableCell>
+                        <TableCell className="text-xs py-2">{rev.clients?.client_name || '—'}</TableCell>
                         <TableCell className="text-xs py-2">{rev.invoice_number || '—'}</TableCell>
                         <TableCell className="text-xs py-2 text-right">{formatCurrency(rev.amount)}</TableCell>
                       </TableRow>

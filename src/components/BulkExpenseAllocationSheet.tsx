@@ -131,7 +131,7 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
               type: 'estimate',
               source_id: est.id,
               project_id: est.project_id,
-              project_name: (est as any).projects?.project_name || '',
+              project_name: est.projects?.project_name || '',
               category: item.category,
               description: item.description,
               total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
@@ -148,12 +148,12 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
           type: 'quote' as const,
           source_id: quote.id,
           project_id: quote.project_id,
-          project_name: (quote as any).projects?.project_name || '',
+          project_name: quote.projects?.project_name || '',
           category: item.category as LineItemCategory,
           description: item.description,
           total: item.total_cost || (item.cost_per_unit * item.quantity) || 0,
           allocated_amount: 0,
-          payee_name: (quote as any).payees?.payee_name,
+          payee_name: quote.payees?.payee_name,
         }))
       );
 
@@ -166,7 +166,7 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
             type: 'change_order',
             source_id: co.id,
             project_id: co.project_id,
-            project_name: (co as any).projects?.project_name || '',
+            project_name: co.projects?.project_name || '',
             category: item.category,
             description: item.description,
             total: item.total_cost || 0,
@@ -193,8 +193,8 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
         const validation = canCorrelateExpense({
           is_split: expense.is_split || false,
           project_id: expense.project_id,
-          project_number: (expense as any).projects?.project_number,
-          category: (expense as any).projects?.category as ProjectCategory | undefined,
+          project_number: expense.projects?.project_number,
+          category: expense.projects?.category as ProjectCategory | undefined,
         });
         if (!validation.isValid) continue;
 
@@ -206,11 +206,11 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
           description: expense.description || undefined,
           category: expense.category as ExpenseCategory,
           payee_id: expense.payee_id || undefined,
-          payee_name: (expense as any).payees?.payee_name,
+          payee_name: expense.payees?.payee_name,
           project_id: expense.project_id,
-          project_name: (expense as any).projects?.project_name,
-          project_number: (expense as any).projects?.project_number,
-          project_category: (expense as any).projects?.category as ProjectCategory | undefined,
+          project_name: expense.projects?.project_name,
+          project_number: expense.projects?.project_number,
+          project_category: expense.projects?.category as ProjectCategory | undefined,
           match_status: 'unallocated',
           is_split: expense.is_split || false,
         };

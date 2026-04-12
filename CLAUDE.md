@@ -409,8 +409,6 @@ Issues identified during codebase audit, validated, and prioritized for future w
 
 | Issue | File(s) | Notes |
 |-------|---------|-------|
-| `as unknown as T` double-cast | `ImportBatchDetail.tsx:87` | Type safety bypass; replace with proper type guard or assertion |
-| `as any` casts | `BulkExpenseAllocationSheet.tsx` (4), `ExpenseForm.tsx` (2) | Disables type checking for Supabase join results; fix with proper typed queries |
 | Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
 | Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not reflected in Supabase generated types |
 

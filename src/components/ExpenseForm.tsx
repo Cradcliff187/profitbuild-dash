@@ -17,6 +17,7 @@ import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TR
 import { Project } from '@/types/project';
 import { Payee, PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -186,7 +187,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
       const expenseData = {
         project_id: data.project_id,
         description: data.description,
-        category: data.category as any, // Cast enum to database string
+        category: data.category as Database["public"]["Enums"]["expense_category"],
         transaction_type: data.transaction_type,
         amount: parseFloat(data.amount),
         expense_date: data.expense_date.toISOString().split('T')[0],
@@ -211,7 +212,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
         // Create new expense
         const { data: newExpense, error } = await supabase
           .from('expenses')
-          .insert([expenseData] as any) // Cast to handle enum conversion
+          .insert([expenseData])
           .select()
           .single();
         
