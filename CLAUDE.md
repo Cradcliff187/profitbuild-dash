@@ -422,13 +422,14 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Deprecated margin field fallbacks | Backfilled 2 rows, removed all `?? current_margin` (7 locations) and `?? projected_margin` (20 locations) fallbacks. Deleted `margin.ts` (zero imports). Code now uses only `actual_margin` and `adjusted_est_margin`. |
 | Non-null assertion in `useScheduleOfValues.ts` | Replaced `sovQuery.data!.id` with `sovQuery.data?.id ?? ""` |
 | `.cursorrules` consolidation | Replaced 274-line duplicate with slim pointer to `CLAUDE.md` + Cursor-specific MCP tool names |
+| 23 `as any` type casts removed | Extended `EnrichedLineItem`/`QuoteLineItem` interfaces, added return types, narrowed props. Count: 109 → 86. |
 
 ### Medium Priority
 
 | Issue | File(s) | Notes |
 |-------|---------|-------|
 | Storage bucket names untyped | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Supabase `gen types` does not generate Storage bucket types — only DB schema. No user impact; bucket names are string literals in code. A manual `StorageBucket` type could be added for autocomplete but is not worth the maintenance. |
-| `as any` type casts | 117 across 60 files | Top offenders: `EstimateForm.tsx`, `ChangeOrdersList.tsx`, `csvParser.ts`. Reduce incrementally. |
+| `as any` type casts | 86 across 40 files | Remaining are Supabase type mismatches, dynamic access patterns, third-party library gaps, and form/export handlers. Lower ROI to fix. |
 
 ### Deferred (Requires Broader Planning)
 
