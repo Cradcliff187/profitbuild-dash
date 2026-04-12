@@ -405,15 +405,34 @@ Use this list when doing periodic documentation reviews:
 
 Issues identified during codebase audit, validated, and prioritized for future work.
 
+### Resolved (Apr 2026 Cleanup)
+
+| Issue | Resolution |
+|-------|-----------|
+| 21 dead components (zero imports) | Deleted — 5,044 lines removed. KPI `whereUsed` strings cleaned up. |
+| 76 console errors on page load | Fixed — auth guards added to branding/QB flag fetches; RoleContext double-log removed. Now 0 errors. |
+| 13 stale docs (Nov 2024 – Jan 2026) | Archived to `docs/_archived/` |
+| Stale CURSOR_TASK_email_tracking.md | Deleted (feature was already implemented) |
+| Doc count discrepancies across CLAUDE.md, README.md | All counts corrected to match actual codebase |
+| Broken PRODUCT_OVERVIEW.md link in README | Fixed path (was `docs/PRODUCT_OVERVIEW.md`, now `PRODUCT_OVERVIEW.md`) |
+| DEV_CLEAN_RELOAD.md wrong port | Fixed (5173 → 8080) |
+| Phantom feature flags in FEATURE_FLAGS_STATUS.md | Removed `scheduleWarnings`/`scheduleDependencies`; added `aiaBilling` |
+| `.serena/` not gitignored | Added to `.gitignore` |
+| Untracked migration placeholder | Committed to keep file count in sync with DB |
+
 ### Medium Priority
 
 | Issue | File(s) | Notes |
 |-------|---------|-------|
 | Non-null assertion | `useScheduleOfValues.ts:29` | `sovQuery.data!.id` — safe in practice due to `enabled` guard but should use optional chain |
 | Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not reflected in Supabase generated types |
+| Deprecated margin field names | 69 refs across 20 files | `current_margin` → `actual_margin`, `projected_margin` → `adjusted_est_margin`. Coordinate with DB column availability. |
+| `as any` type casts | 117 across 60 files | Top offenders: `EstimateForm.tsx`, `ChangeOrdersList.tsx`, `csvParser.ts`. Reduce incrementally. |
 
 ### Deferred (Requires Broader Planning)
 
 | Issue | Scope | Notes |
 |-------|-------|-------|
 | 26 edge functions with wildcard CORS (`*`) | All functions except `quickbooks-callback` | Replace with `rcgwork.com` origin allowlist. Especially important for no-JWT functions: `send-auth-email`, `forgot-password`, `send-receipt-notification`, `send-training-notification` |
+| `console.log` cleanup | 132 across 38 files | Mix of intentional logging and debug leftovers. Needs triage to distinguish. |
+| `.cursorrules` consolidation | `.cursorrules` + `CLAUDE.md` | Significant overlap — consider making `.cursorrules` a minimal pointer to `CLAUDE.md` |
