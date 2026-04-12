@@ -29,9 +29,9 @@ RCG Work combines **eight core modules** into a unified platform:
 
 Projects flow through a defined status workflow:
 ```
-Estimating → Quoted → Approved → In Progress → Complete
-                                      ↓
-                                  On Hold / Cancelled
+Estimating → Approved → In Progress → Complete
+                              ↓
+                          On Hold / Cancelled
 ```
 
 ### Project Types

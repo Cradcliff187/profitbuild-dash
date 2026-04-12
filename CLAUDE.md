@@ -78,7 +78,7 @@ src/
 ├── pages/               # 36 route pages (one per major view)
 ├── hooks/               # 50+ custom React hooks
 ├── utils/               # 50+ utility/calculation modules
-├── types/               # 25 TypeScript type definition files
+├── types/               # 24 TypeScript type definition files
 ├── lib/
 │   ├── kpi-definitions/ # KPI schema, business rules, benchmarks
 │   └── featureFlags.ts  # Env-based feature flags
