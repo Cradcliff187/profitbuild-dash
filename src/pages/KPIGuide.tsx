@@ -423,7 +423,7 @@ export default function KPIGuide() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">Version History</h3>
+                  <h3 className="text-sm font-semibold mb-2">KPI Definition Changelog</h3>
                   <div className="space-y-2">
                     {KPI_GUIDE_METADATA.changelog.map((entry, idx) => (
                       <div key={idx} className="flex items-start gap-3 pb-2 border-b border-border/50 last:border-0">

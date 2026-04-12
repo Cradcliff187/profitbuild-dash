@@ -6,14 +6,12 @@ import { VitePWA } from "vite-plugin-pwa";
 import packageJson from "./package.json";
 import { execSync } from 'child_process';
 
-// Generate version from Git
+// Generate version from Git — format: {major}.{minor}.{patch} (build {sha})
 const getVersion = () => {
   try {
-    const commitCount = execSync('git rev-list --count HEAD').toString().trim();
     const commitSha = execSync('git rev-parse --short HEAD').toString().trim();
-    return `${packageJson.version}.${commitCount}-${commitSha}`;
-  } catch (error) {
-    // Fallback to package.json version if Git is not available
+    return `${packageJson.version} (build ${commitSha})`;
+  } catch {
     return packageJson.version;
   }
 };
