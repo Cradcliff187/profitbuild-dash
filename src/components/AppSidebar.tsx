@@ -206,7 +206,7 @@ export function AppSidebar() {
       <div key={group.label}>
         <SidebarGroup className={cn(collapsed && "p-1")}>
           {!collapsed && (
-            <SidebarGroupLabel className="text-xs uppercase text-slate-400 mb-1">
+            <SidebarGroupLabel className="text-xs uppercase text-sidebar-foreground/60 mb-1">
               {group.label}
             </SidebarGroupLabel>
           )}
@@ -223,7 +223,7 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={collapsed && !isMobile ? `${item.title}${showBadge ? ` (${item.badgeCount})` : ''}` : undefined}
                       className={cn(
-                        "cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800 transition-all duration-150",
+                        "cursor-pointer text-sidebar-foreground hover:text-white hover:bg-sidebar-accent transition-all duration-150",
                         collapsed ? "min-h-[36px] py-1.5" : "min-h-[44px] py-2.5",
                         active && "font-semibold bg-orange-500/10 text-white border-l-[3px] border-orange-500"
                       )}
@@ -251,7 +251,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-slate-700 to-transparent" />}
+        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />}
       </div>
     );
   };
@@ -264,11 +264,11 @@ export function AppSidebar() {
       : "??";
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarRail />
       {/* Header with Logo */}
       <SidebarHeader className={cn(
-        "border-b border-slate-700/50",
+        "border-b border-sidebar-border/50",
         collapsed ? "px-1 py-3" : "px-3 py-3"
       )}>
         <div className={cn(
@@ -314,7 +314,7 @@ export function AppSidebar() {
             </div>
           )}
           {!collapsed && (
-            <SidebarTrigger className="h-7 w-7 text-slate-400 hover:text-white shrink-0" />
+            <SidebarTrigger className="h-7 w-7 text-sidebar-foreground/60 hover:text-white shrink-0" />
           )}
         </div>
       </SidebarHeader>
@@ -336,16 +336,16 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer with User */}
-      <SidebarFooter className="border-t border-slate-700 bg-slate-800/30">
+      <SidebarFooter className="border-t border-sidebar-border bg-sidebar-accent/30">
         {/* User Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="w-full justify-start gap-3 px-2 text-slate-300 hover:text-white hover:bg-slate-800"
+              className="w-full justify-start gap-3 px-2 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent"
             >
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-slate-700 text-white text-xs">
+                <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
@@ -354,12 +354,12 @@ export function AppSidebar() {
                   <span className="text-sm font-medium truncate w-full text-white">
                     {userFullName || user?.email?.split("@")[0] || "User"}
                   </span>
-                  <span className="text-xs text-slate-400 truncate w-full">
+                  <span className="text-xs text-sidebar-foreground/60 truncate w-full">
                     {user?.email}
                   </span>
                 </div>
               )}
-              {!collapsed && <ChevronUp className="h-4 w-4 shrink-0 text-slate-400" />}
+              {!collapsed && <ChevronUp className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
