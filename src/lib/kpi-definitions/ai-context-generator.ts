@@ -18,6 +18,8 @@ import { quoteKPIs } from './quote-kpis';
 import { revenueKPIs } from './revenue-kpis';
 import { changeOrderKPIs } from './change-order-kpis';
 import { workOrderKPIs } from './work-order-kpis';
+import { timeEntryKPIs } from './time-entry-kpis';
+import { payeeKPIs } from './payee-kpis';
 import { deprecatedKPIs } from './deprecated-kpis';
 import { semanticMappings } from './semantic-mappings';
 import { businessRules } from './business-rules';
@@ -25,8 +27,8 @@ import { fewShotExamples } from './few-shot-examples';
 import { getBenchmarksForPrompt } from './business-benchmarks';
 
 // Version tracking for cache invalidation
-export const KPI_DEFINITIONS_VERSION = '3.3.0';
-export const LAST_UPDATED = '2026-02-09';
+export const KPI_DEFINITIONS_VERSION = '4.0.0';
+export const LAST_UPDATED = '2026-04-12';
 
 /**
  * Generate the complete AI context object
@@ -41,9 +43,9 @@ export function generateAIContext(): AIKPIContext {
       revenue: revenueKPIs,
       change_order: changeOrderKPIs,
       work_order: workOrderKPIs,
-      time_entry: [], // TODO: Add time entry KPIs if needed
-      payee: [], // TODO: Add payee KPIs if needed
-      training: [], // TODO: Add training KPIs if needed
+      time_entry: timeEntryKPIs,
+      payee: payeeKPIs,
+      training: [], // No training KPIs defined yet
       deprecated: deprecatedKPIs,
     },
     semanticMappings,
@@ -141,6 +143,18 @@ ${benchmarksSection}
 
 Use these to provide context like "that's healthy" or "below target" - but only in analytical mode or when the value is concerning.
 
+## REPORTING VIEWS (Use these for efficient queries!)
+
+| View | Best For | Key Columns |
+|------|----------|-------------|
+| \`reporting.project_financials\` | All project financial queries | margins, costs, revenues, change orders, composition flags |
+| \`reporting.weekly_labor_hours\` | Employee weekly hour summaries | employee_name, week_start_sunday, total_hours, gross_hours, approved/pending counts |
+| \`reporting.internal_labor_hours_by_project\` | Labor budget vs actual by project | estimated_hours, actual_hours, hours_variance, estimated_cost, actual_cost |
+| \`reporting.estimate_line_items_quote_status\` | Line-item quote coverage | line_item details + quote_count, accepted/pending/rejected counts, quote_details JSON |
+| \`reporting.estimate_quote_status_summary\` | Estimate-level quote coverage | total_line_items, line_items_with/without_quotes, quote_coverage_percent |
+
+**PREFER views over manual joins** — they handle splits, aggregations, and edge cases correctly.
+
 ## ENTITY LOOKUPS
 
 - **Employees:** \`payees WHERE is_internal = true\`
@@ -157,33 +171,32 @@ ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
 
 ## TIME CALCULATIONS
 
-Time entries track both gross and net hours:
+Time entries have PRE-COMPUTED columns — use these instead of recalculating:
 
-**Gross Hours (Total Shift Duration):**
-\`\`\`sql
-EXTRACT(EPOCH FROM (end_time - start_time)) / 3600 as gross_hours
-\`\`\`
-
-**Net Hours (Billable Hours after Lunch):**
-\`\`\`sql
-CASE 
-  WHEN lunch_taken = true THEN
-    (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600) - (lunch_duration_minutes / 60.0)
-  ELSE
-    (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600)
-END as net_hours
-\`\`\`
-
-**Database Fields:**
-- \`expenses.hours\` = net/billable hours (use for payroll, billing)
-- \`expenses.gross_hours\` = total shift duration (use for compliance, shift tracking)
+**Pre-computed fields (PREFERRED — use these!):**
+- \`expenses.hours\` = net/billable hours after lunch deduction (for payroll, billing)
+- \`expenses.gross_hours\` = total shift duration before lunch (for compliance, OT tracking)
 - \`expenses.lunch_taken\` = boolean
 - \`expenses.lunch_duration_minutes\` = integer (15-120)
 
+**Fallback calculation (only if pre-computed fields are NULL):**
+\`\`\`sql
+COALESCE(e.hours,
+  CASE WHEN e.lunch_taken = true THEN
+    (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
+  ELSE
+    (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
+  END
+) as net_hours
+\`\`\`
+
+**Weekly aggregations:** Use \`reporting.weekly_labor_hours\` view — it pre-calculates totals per employee per week.
+
 **When to use which:**
-- "How many hours did X work?" → Use net hours (billable)
-- "What was X's shift length?" → Use gross hours (total duration)
-- "Show me overtime" → Use gross hours (>8 hours gross may indicate OT eligibility)
+- "How many hours did X work?" → \`expenses.hours\` (net/billable)
+- "What was X's shift length?" → \`expenses.gross_hours\` (total duration)
+- "Show me overtime" → \`expenses.gross_hours > 8\` (OT eligibility)
+- "Weekly summary" → \`reporting.weekly_labor_hours\` view
 
 ${examplesSection}
 
@@ -286,10 +299,17 @@ CRITICAL RULES:
 - Time entries: expenses WHERE category = 'labor_internal'
 - Employees: payees WHERE is_internal = true
 - Use ILIKE '%name%' for fuzzy name matching
+- Use pre-computed expenses.hours (net) and expenses.gross_hours (total) — don't recalculate
+
+REPORTING VIEWS:
+- reporting.project_financials — project financial metrics
+- reporting.weekly_labor_hours — employee weekly hours/costs
+- reporting.internal_labor_hours_by_project — estimated vs actual labor
+- reporting.estimate_quote_status_summary — quote coverage per estimate
 
 MARGIN TYPES:
 - actual_margin = invoiced - expenses (REAL profit)
-- current_margin = contracted - expenses (EXPECTED profit)
+- adjusted_est_margin = contracted - adjusted_est_costs (EXPECTED profit)
 
 KEY FIELDS:
 - contracted_amount: Contract value with client

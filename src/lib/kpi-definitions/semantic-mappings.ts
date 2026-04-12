@@ -207,12 +207,11 @@ export const semanticMappings: SemanticMapping[] = [
     concept: 'quotes',
     aliases: ['bids', 'proposals', 'estimates from vendors'],
     description: 'Quotes received from vendors/subcontractors',
-    kpiIds: ['quote_total_amount', 'quote_status', 'total_accepted_quotes'],
-    defaultKpiId: 'quote_total_amount',
+    kpiIds: ['quote_quote_amount', 'quote_status'],
+    defaultKpiId: 'quote_quote_amount',
     disambiguation: {
-      quote_total_amount: 'Amount quoted by vendor (vendor cost)',
+      quote_quote_amount: 'Amount quoted by vendor (vendor cost)',
       quote_status: 'Quote status (pending/accepted/rejected)',
-      total_accepted_quotes: 'Sum of all accepted quotes for project'
     }
   },
 

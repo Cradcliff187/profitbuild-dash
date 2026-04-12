@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive, Database } from 'lucide-react';
+import { BookOpen, Download, Building, Calculator, FileText, Receipt, DollarSign, RefreshCw, Clipboard, Archive, Database, Clock, Users } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ import {
   revenueKPIs,
   changeOrderKPIs,
   workOrderKPIs,
+  timeEntryKPIs,
+  payeeKPIs,
   viewKPIs,
   deprecatedKPIs,
   KPI_DEFINITIONS_VERSION,
@@ -43,6 +45,7 @@ const KPI_GUIDE_METADATA = {
   lastUpdated: LAST_UPDATED,
   version: KPI_DEFINITIONS_VERSION,
   changelog: [
+    { date: '2026-04-12', version: '4.0', changes: 'Added Time Entry KPIs (21 measures) and Payee KPIs (24 measures) tabs. Wired into AI context for report assistant. Added 5 reporting views to AI system prompt. Fixed broken labor cushion few-shot example. Fixed semantic mapping for quotes.' },
     { date: '2026-02-09', version: '3.3', changes: 'expenses.hours (net/billable) is now a database-stored column, auto-calculated by trigger. Reports, exports, and dashboards now read hours from DB. weekly_labor_hours view updated to use SUM(expenses.hours) for total_hours.' },
     { date: '2026-02-09', version: '3.2', changes: 'gross_hours is now a database-stored column (expenses.gross_hours), auto-calculated by trigger from start_time/end_time. weekly_labor_hours view updated to use SUM(expenses.gross_hours). Frontend and KPI definitions already use this field.' },
     { date: '2026-02-03', version: '3.1', changes: 'Added Labor Tracking section to Project KPIs: estimated_hours, actual_hours, hours_variance (3 new measures). Fixed contingency_amount field mapping from estimates to projects table. Applied database migration to add missing project fields (contingency_amount, estimated_hours, actual_hours).' },
@@ -79,6 +82,8 @@ export default function KPIGuide() {
     { value: 'revenue', label: 'Revenue', icon: DollarSign },
     { value: 'change-orders', label: 'Change Orders', icon: RefreshCw },
     { value: 'work-orders', label: 'Work Orders', icon: Clipboard },
+    { value: 'time-entries', label: 'Time Entries', icon: Clock },
+    { value: 'payees', label: 'Payees', icon: Users },
     { value: 'views', label: 'Views', icon: Database },
     { value: 'reference', label: 'Reference', icon: BookOpen },
     { value: 'deprecated', label: 'Deprecated', icon: Archive },
@@ -310,6 +315,30 @@ export default function KPIGuide() {
             </CardHeader>
             <CardContent className="p-0">
               {renderKPITable(workOrderKPIs)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="time-entries" className="mt-0 sm:mt-4">
+          <Card>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Time Entry Measures ({timeEntryKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Time tracking, hours calculations, lunch tracking, and labor cost fields</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {renderKPITable(timeEntryKPIs)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payees" className="mt-0 sm:mt-4">
+          <Card>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Payee Measures ({payeeKPIs.length})</CardTitle>
+              <CardDescription className="text-sm">Vendor, subcontractor, and employee data — contact info, rates, and spending</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {renderKPITable(payeeKPIs)}
             </CardContent>
           </Card>
         </TabsContent>

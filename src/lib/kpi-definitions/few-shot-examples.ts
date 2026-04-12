@@ -309,22 +309,59 @@ ORDER BY e.amount DESC`,
   },
 
   // ==========================================================================
-  // LABOR CUSHION QUERIES
+  // LABOR ANALYSIS QUERIES
   // ==========================================================================
   {
     question: "What's our total labor profit opportunity?",
-    reasoning: "Labor cushion is the hidden profit from billing at $75/hr vs $35/hr actual cost. Use the estimated_labor_cushion from the view.",
+    reasoning: "Labor cushion comes from billing internal labor above actual cost. Use reporting.internal_labor_hours_by_project to compare estimated vs actual labor, and calculate the spread.",
     sql: `SELECT
-  SUM(estimated_labor_cushion) as total_labor_opportunity,
-  SUM(estimated_labor_hours) as total_labor_hours,
-  SUM(estimated_max_profit_potential) as total_max_profit_potential,
+  SUM(estimated_cost) as total_estimated_labor_cost,
+  SUM(actual_cost) as total_actual_labor_cost,
+  SUM(estimated_cost - actual_cost) as labor_cost_savings,
+  SUM(estimated_hours) as total_estimated_hours,
+  SUM(actual_hours) as total_actual_hours,
   COUNT(*) as project_count
-FROM reporting.project_financials
-WHERE category = 'construction'
-  AND status IN ('in_progress', 'approved')
-  AND estimated_labor_cushion > 0`,
-    kpisUsed: ['estimated_labor_cushion', 'estimated_labor_hours', 'estimated_max_profit_potential'],
+FROM reporting.internal_labor_hours_by_project
+WHERE status IN ('in_progress', 'approved')`,
+    kpisUsed: ['total_expenses'],
     category: 'aggregation'
+  },
+  {
+    question: "Show me weekly hours for all employees",
+    reasoning: "Use the reporting.weekly_labor_hours view which pre-calculates weekly totals, gross hours, and approval status by employee.",
+    sql: `SELECT
+  employee_name,
+  employee_number,
+  week_start_sunday,
+  total_hours,
+  gross_hours,
+  total_cost,
+  entry_count,
+  approved_entries,
+  pending_entries
+FROM reporting.weekly_labor_hours
+WHERE week_start_sunday >= CURRENT_DATE - INTERVAL '14 days'
+ORDER BY week_start_sunday DESC, employee_name`,
+    kpisUsed: ['time_entry_hours', 'time_entry_gross_hours'],
+    category: 'time_based'
+  },
+  {
+    question: "Which estimate line items don't have quotes yet?",
+    reasoning: "Use reporting.estimate_quote_status_summary to see quote coverage per estimate, then drill into estimate_line_items_quote_status for line-level detail.",
+    sql: `SELECT
+  project_number,
+  project_name,
+  estimate_number,
+  total_line_items,
+  line_items_with_quotes,
+  line_items_without_quotes,
+  quote_coverage_percent,
+  total_quotes_received
+FROM reporting.estimate_quote_status_summary
+WHERE line_items_without_quotes > 0
+ORDER BY quote_coverage_percent ASC`,
+    kpisUsed: [],
+    category: 'filtering'
   },
 
   // ==========================================================================
@@ -332,21 +369,33 @@ WHERE category = 'construction'
   // ==========================================================================
   {
     question: "How many hours did I work this week?",
-    reasoning: "Personal time lookup. Simple mode - just give them their hours.",
-    sql: `SELECT 
-  SUM(
-    CASE 
-      WHEN e.lunch_taken = true THEN
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600) - (e.lunch_duration_minutes / 60.0)
-      ELSE
-        (EXTRACT(EPOCH FROM (e.end_time - e.start_time)) / 3600)
-    END
-  ) as total_hours,
+    reasoning: "Personal time lookup. Simple mode - just give them their hours. Use pre-computed expenses.hours column.",
+    sql: `SELECT
+  ROUND(SUM(e.hours)::numeric, 1) as total_hours,
   COUNT(DISTINCT e.project_id) as projects_worked
 FROM expenses e
 WHERE e.category = 'labor_internal'
   AND e.expense_date >= DATE_TRUNC('week', CURRENT_DATE)`,
     kpisUsed: [],
+    category: 'lookup',
+    responseMode: 'simple'
+  },
+  {
+    question: "How many hours did Mike work this month?",
+    reasoning: "Single employee lookup by first name. Use ILIKE for fuzzy match. If only 1 Mike exists, that's the right person — answer confidently. Use pre-computed hours column.",
+    sql: `SELECT
+  p.payee_name as employee,
+  ROUND(SUM(e.hours)::numeric, 1) as total_hours,
+  COUNT(*) as entries,
+  COUNT(DISTINCT e.project_id) as projects_worked
+FROM expenses e
+JOIN payees p ON e.payee_id = p.id
+WHERE p.is_internal = true
+  AND p.payee_name ILIKE '%mike%'
+  AND e.category = 'labor_internal'
+  AND e.expense_date >= DATE_TRUNC('month', CURRENT_DATE)
+GROUP BY p.payee_name`,
+    kpisUsed: ['time_entry_hours'],
     category: 'lookup',
     responseMode: 'simple'
   },

@@ -108,10 +108,18 @@ These four functions MUST be deployed together with the shared file via Supabase
 
 | Function | verify_jwt | Pinned version |
 |----------|------------|----------------|
-| `send-auth-email` | false | 111 |
-| `send-receipt-notification` | false | 95 |
-| `send-training-notification` | false | 44 |
-| `generate-media-report` | true | 113 |
+| `send-auth-email` | false | 114 |
+| `send-receipt-notification` | false | 97 |
+| `send-training-notification` | false | 46 |
+| `generate-media-report` | true | 115 |
+
+### Critical: AI Report Assistant Version
+
+The `ai-report-assistant` function uses a generated `kpi-context.generated.ts` file that must be deployed alongside `index.ts`. After any KPI definition changes, run `npm run sync:edge-kpis` to regenerate it.
+
+| Function | verify_jwt | Pinned version |
+|----------|------------|----------------|
+| `ai-report-assistant` | true | 66 |
 
 Always read full file contents (no truncation) before deploying via MCP. See `.cursorrules` for the complete deployment checklist.
 
