@@ -14,7 +14,7 @@
  * - Conversation-aware error recovery (v4)
  * - Suggested follow-up questions (v4)
  *
- * @version 5.0.0
+ * @version 5.1.0 — Added SQL validation layer (generate → validate → fix → execute)
  *
  * VERSION PINNING: Keep these exact versions so deployment sticks.
  * - supabase-js: https://esm.sh/@supabase/supabase-js@2.57.4 (do not use @2 or @latest)
@@ -134,6 +134,192 @@ async function getCachedSchema(supabase: any): Promise<any> {
 }
 
 // ============================================================================
+// SQL VALIDATION — Check generated SQL against live schema before executing
+// ============================================================================
+
+interface ColumnValidation {
+  valid: boolean;
+  invalidColumns: Array<{
+    table: string;
+    column: string;
+    availableColumns: string[];
+  }>;
+}
+
+/**
+ * Build a lookup map from the schema: { "tablename" -> Set<column_name>, "schema.viewname" -> Set<column_name> }
+ */
+function buildSchemaLookup(schemaInfo: any): Map<string, Set<string>> {
+  const lookup = new Map<string, Set<string>>();
+
+  // Tables (public schema)
+  for (const t of (schemaInfo.tables || [])) {
+    const cols = new Set<string>();
+    for (const c of (t.columns || [])) {
+      cols.add(c.column_name);
+    }
+    lookup.set(t.table_name, cols);
+  }
+
+  // Views (reporting schema + public views)
+  for (const v of (schemaInfo.views || [])) {
+    const cols = new Set<string>();
+    for (const c of (v.columns || [])) {
+      cols.add(c.column_name);
+    }
+    // Store under both "view_name" and "schema.view_name"
+    lookup.set(v.view_name, cols);
+    if (v.schema) {
+      lookup.set(`${v.schema}.${v.view_name}`, cols);
+    }
+  }
+
+  return lookup;
+}
+
+/**
+ * Extract table.column references from SQL and validate them against the schema.
+ * Uses regex patterns to find:
+ *   - table_alias.column_name (e.g., e.total_cost, p.project_name)
+ *   - FROM/JOIN table references to resolve aliases
+ */
+function validateSqlColumns(sql: string, schemaLookup: Map<string, Set<string>>): ColumnValidation {
+  const invalidColumns: ColumnValidation['invalidColumns'] = [];
+
+  // Step 1: Build alias → table mapping from FROM and JOIN clauses
+  const aliasMap = new Map<string, string>();
+
+  // Match: FROM tablename alias, FROM schema.tablename alias, JOIN tablename alias
+  const fromJoinPattern = /(?:FROM|JOIN)\s+((?:\w+\.)?(\w+))\s+(?:AS\s+)?(\w+)/gi;
+  let match;
+  while ((match = fromJoinPattern.exec(sql)) !== null) {
+    const fullTable = match[1]; // e.g., "reporting.project_financials" or "expenses"
+    const alias = match[3];     // e.g., "e", "p", "rpf"
+    // Skip if alias is a SQL keyword
+    if (['ON', 'WHERE', 'AND', 'OR', 'SET', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'CROSS', 'GROUP', 'ORDER', 'HAVING', 'LIMIT', 'UNION'].includes(alias.toUpperCase())) continue;
+    aliasMap.set(alias.toLowerCase(), fullTable);
+  }
+
+  // Also match: FROM tablename (no alias — table used directly)
+  const fromNoAlias = /(?:FROM|JOIN)\s+((?:\w+\.)?\w+)(?:\s+(?:WHERE|ON|LEFT|RIGHT|INNER|ORDER|GROUP|HAVING|LIMIT|;|\)|$))/gi;
+  while ((match = fromNoAlias.exec(sql)) !== null) {
+    const table = match[1];
+    const tableName = table.includes('.') ? table.split('.').pop()! : table;
+    aliasMap.set(tableName.toLowerCase(), table);
+  }
+
+  // Step 2: Find all alias.column references
+  const colRefPattern = /\b(\w+)\.(\w+)\b/g;
+  const checked = new Set<string>(); // avoid duplicate checks
+
+  while ((match = colRefPattern.exec(sql)) !== null) {
+    const prefix = match[1].toLowerCase();
+    const column = match[2].toLowerCase();
+
+    // Skip schema references (e.g., "reporting.project_financials" — prefix is schema)
+    if (['reporting', 'public', 'pg_catalog', 'information_schema'].includes(prefix)) continue;
+    // Skip function calls and common SQL patterns
+    if (['date_trunc', 'extract', 'coalesce', 'nullif', 'jsonb_build_object', 'jsonb_agg', 'row_to_json', 'count', 'sum', 'avg', 'min', 'max', 'round', 'to_char', 'now', 'current_date', 'interval', 'case', 'when', 'then', 'else', 'end'].includes(prefix)) continue;
+
+    const checkKey = `${prefix}.${column}`;
+    if (checked.has(checkKey)) continue;
+    checked.add(checkKey);
+
+    // Resolve alias to table name
+    const tableFull = aliasMap.get(prefix);
+    if (!tableFull) continue; // Can't resolve alias — skip (might be a subquery alias)
+
+    // Look up the table in schema
+    const tableColumns = schemaLookup.get(tableFull) || schemaLookup.get(tableFull.split('.').pop()!);
+    if (!tableColumns) continue; // Table not in schema — might be a CTE
+
+    // Check if column exists
+    if (!tableColumns.has(column)) {
+      invalidColumns.push({
+        table: tableFull,
+        column: column,
+        availableColumns: Array.from(tableColumns).sort()
+      });
+    }
+  }
+
+  return {
+    valid: invalidColumns.length === 0,
+    invalidColumns
+  };
+}
+
+/**
+ * When validation fails, re-prompt the AI with ONLY the relevant table columns.
+ * This focused prompt is tiny (~200 tokens) so the model gets it right.
+ */
+async function fixInvalidSql(
+  originalSql: string,
+  validation: ColumnValidation,
+  userQuery: string,
+  apiKey: string,
+  conversationHistory: Array<{ role: string; content: string }> = []
+): Promise<{ fixedSql: string | null; explanation: string }> {
+
+  const columnErrors = validation.invalidColumns.map(ic =>
+    `- Column "${ic.column}" does NOT exist on "${ic.table}". Available columns: ${ic.availableColumns.join(', ')}`
+  ).join('\n');
+
+  const fixPrompt = `Your SQL has invalid column references. Fix them.
+
+Original SQL:
+${originalSql}
+
+Column errors:
+${columnErrors}
+
+User's question: "${userQuery}"
+
+Generate ONLY the corrected SQL. Use the available columns listed above. Do not add explanation.`;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You are a SQL expert. Fix the invalid column references using ONLY the available columns listed. Return just the corrected SQL, nothing else." },
+          ...conversationHistory.slice(-2),
+          { role: "user", content: fixPrompt }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      return { fixedSql: null, explanation: 'Fix request failed' };
+    }
+
+    const data = await response.json();
+    let content = data.choices?.[0]?.message?.content?.trim() || '';
+
+    // Strip markdown code fences if present
+    const sqlMatch = content.match(/```(?:sql)?\n?([\s\S]*?)```/);
+    if (sqlMatch) {
+      content = sqlMatch[1].trim();
+    }
+
+    // Basic sanity: must start with SELECT or WITH
+    if (content && /^(SELECT|WITH)\b/i.test(content)) {
+      return { fixedSql: content, explanation: `Auto-corrected invalid columns: ${validation.invalidColumns.map(ic => ic.column).join(', ')}` };
+    }
+
+    return { fixedSql: null, explanation: 'Could not extract valid SQL from fix response' };
+  } catch (error) {
+    console.error('SQL fix failed:', error);
+    return { fixedSql: null, explanation: 'Fix request error' };
+  }
+}
+
+// ============================================================================
 // CORS HEADERS
 // ============================================================================
 
@@ -164,9 +350,13 @@ function generateSystemPrompt(schemaInfo: any): string {
   ).join('\n') || '';
 
   // Format examples (from generated fewShotExamples: .question, .reasoning, .sql)
-  const examplesText = KPI_CONTEXT.fewShotExamples.map((ex: { question: string; reasoning: string; sql: string }) =>
-    `Q: "${ex.question}"\nReasoning: ${ex.reasoning}\nSQL: ${ex.sql}`
-  ).join('\n\n');
+  // Use up to 20 best examples — enough to cover key patterns without bloating the prompt.
+  // The SQL validator catches column errors, so examples teach query STRUCTURE not column names.
+  const examplesText = KPI_CONTEXT.fewShotExamples
+    .slice(0, 20)
+    .map((ex: { question: string; reasoning: string; sql: string }) =>
+      `Q: "${ex.question}"\nReasoning: ${ex.reasoning}\nSQL: ${ex.sql}`
+    ).join('\n\n');
 
   return `You are a financial analyst for RCG Work, a construction project management system.
 Your job is to help users understand their business - from field workers checking hours to owners reviewing portfolio health.
@@ -348,17 +538,18 @@ Users need to see both to make decisions — some projects bill by paid hours, s
 
 ${examplesText}
 
-${tablesSummary || viewsSummary || enumsSummary ? `## DATABASE SCHEMA
+## KEY TABLE COLUMN REMINDERS (common gotchas)
 
-### Tables:
-${tablesSummary}
+- \`expenses\`: cost column is \`amount\` (NOT total_cost). Hours columns: \`hours\`, \`gross_hours\`. Date: \`expense_date\`.
+- \`payees\`: name column is \`payee_name\` (NOT name). Filter employees: \`is_internal = true\`.
+- \`projects\`: margin columns: \`actual_margin\`, \`adjusted_est_margin\` (NOT current_margin).
+- \`quotes\`: cost column is \`total_amount\`. Status enum: \`pending\`, \`accepted\`, \`rejected\`, \`expired\`.
+- \`estimates\`: filter active: \`status = 'approved' AND is_current_version = true\`.
 
-### Views (use these for financial queries!):
-${viewsSummary}
+Note: Your SQL will be validated against the live database schema before execution. If you reference a column that doesn't exist, it will be auto-corrected — but try to use the correct column names above.
 
-### Enums:
-${enumsSummary}
-` : ''}
+${enumsSummary ? `### Enums:
+${enumsSummary}` : ''}
 
 ## FINAL REMINDER
 
@@ -1028,6 +1219,32 @@ serve(async (req) => {
     // Extract query intent and KPIs for logging
     const queryCategory = extractQueryIntent(sqlQuery, explanation);
     const kpisUsed = extractKPIsUsed(sqlQuery, explanation);
+
+    // ========================================================================
+    // VALIDATE SQL — Check column references against live schema BEFORE executing
+    // ========================================================================
+    const schemaLookup = buildSchemaLookup(schema);
+    const validation = validateSqlColumns(sqlQuery, schemaLookup);
+
+    if (!validation.valid) {
+      console.log('[AI Debug] SQL validation failed:', JSON.stringify(validation.invalidColumns));
+
+      // Auto-fix: re-prompt with ONLY the relevant table columns
+      const fix = await fixInvalidSql(sqlQuery, validation, query, OPENAI_API_KEY, conversationHistory);
+
+      if (fix.fixedSql) {
+        console.log('[AI Debug] SQL auto-corrected:', fix.explanation);
+
+        // Validate the fix too (one round only — don't loop)
+        const fixValidation = validateSqlColumns(fix.fixedSql, schemaLookup);
+        if (fixValidation.valid) {
+          sqlQuery = fix.fixedSql;
+          explanation = fix.explanation;
+        } else {
+          console.warn('[AI Debug] Auto-fix still has invalid columns, proceeding with original (will likely fail at execution)');
+        }
+      }
+    }
 
     logQuery({
       timestamp: new Date().toISOString(),

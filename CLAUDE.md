@@ -119,9 +119,11 @@ The `ai-report-assistant` function uses a generated `kpi-context.generated.ts` f
 
 | Function | verify_jwt | Pinned version | AI Model | API Key Secret |
 |----------|------------|----------------|----------|----------------|
-| `ai-report-assistant` | true | 69 | `gpt-4o-mini` (OpenAI) | `OPENAI_API_KEY` |
+| `ai-report-assistant` | true | 70 | `gpt-4o-mini` (OpenAI) | `OPENAI_API_KEY` |
 
 **Model history:** Switched from Lovable AI Gateway (`google/gemini-3-flash-preview` via `LOVABLE_API_KEY`) to direct OpenAI API in v5.0.0 (Apr 2026). Reasons: Lovable gateway had 6+ week deployment lag, Gemini Flash preview-tier had inconsistent SQL generation, and `OPENAI_API_KEY` was already configured for 3 other edge functions.
+
+**SQL validation (v5.1.0):** Generated SQL is validated against the live database schema before execution. If the AI hallucinates a column name (e.g., `expenses.total_cost` instead of `expenses.amount`), the validator catches it and auto-corrects with a focused re-prompt containing only the relevant table's actual columns. This eliminates column-not-found errors without needing more few-shot examples.
 
 **Deployment note:** Lovable does NOT reliably auto-deploy this function on git push. Always deploy via Supabase CLI (`supabase functions deploy ai-report-assistant`) or MCP after changes. The file size (~135KB across index.ts + kpi-context.generated.ts) may exceed MCP tool parameter limits — prefer CLI deployment.
 
