@@ -25,7 +25,7 @@ export const revenueKPIs: KPIMeasure[] = [
     formula: 'Direct DB field - individual invoice amount',
     dataType: 'currency',
     domain: 'revenue',
-    whereUsed: 'ProjectFinancialReconciliation, financial reports, invoice tracking',
+    whereUsed: 'Financial reports, invoice tracking',
     notes: 'The dollar amount of a specific invoice/revenue entry.',
     aliases: ['invoice amount', 'revenue amount', 'billed amount', 'amount'],
     relatedTo: ['revenue_total_invoiced', 'revenue_invoice_count'],

@@ -82,7 +82,7 @@ export const changeOrderKPIs: KPIMeasure[] = [
     formula: 'Portion of contingency recovered from client',
     dataType: 'currency',
     domain: 'change_order',
-    whereUsed: 'ContingencyAllocation, contingency tracking',
+    whereUsed: 'Contingency tracking, financial dashboards',
     notes: 'Amount of project contingency that was billed to the client as part of this change.',
     aliases: ['contingency billed', 'recovered contingency', 'contingency recovery'],
     relatedTo: ['contingency_amount', 'contingency_used'],
