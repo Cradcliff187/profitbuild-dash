@@ -249,14 +249,14 @@ export const ProjectDetailView = () => {
 
   // Desktop NavContent - Compact for mouse with 36px targets and 14px fonts
   const DesktopNavContent = () => (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[hsl(217,25%,15%)]">
       {/* Back to Projects */}
-      <div className="px-3 py-3 border-b border-border/40">
+      <div className="px-3 py-3 border-b border-white/10">
         <Button
           variant="ghost"
           size="sm"
           className={cn(
-            "w-full justify-start gap-2 h-9 text-sm text-muted-foreground hover:text-foreground hover:bg-transparent",
+            "w-full justify-start gap-2 h-9 text-sm text-slate-400 hover:text-white hover:bg-white/5",
             panelCollapsed && "justify-center px-0"
           )}
           onClick={() => navigate("/projects")}
@@ -272,11 +272,11 @@ export const ProjectDetailView = () => {
           <div key={group.label} className={cn("mb-5", groupIndex === 0 && "mt-0")}>
             {/* Section Header */}
             {!panelCollapsed && (
-              <h3 className="px-3 mb-2 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">
+              <h3 className="px-3 mb-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                 {group.label}
               </h3>
             )}
-            
+
             {/* Nav Items - 36px for mouse */}
             <div className="space-y-0.5">
               {group.items.map((item) => {
@@ -290,11 +290,11 @@ export const ProjectDetailView = () => {
                     className={cn(
                       // Base - compact for desktop
                       "w-full justify-start gap-2.5 h-9 text-sm font-normal rounded-md",
-                      "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                      // Active state - subtle
+                      "text-slate-300 hover:text-white hover:bg-white/8",
+                      // Active state
                       active && [
-                        "bg-primary/8 text-foreground font-medium",
-                        "border-l-[3px] border-primary -ml-[3px] pl-[calc(0.75rem+3px)]",
+                        "bg-orange-500/10 text-white font-medium",
+                        "border-l-[3px] border-orange-500 -ml-[3px] pl-[calc(0.75rem+3px)]",
                       ],
                       // Collapsed mode
                       panelCollapsed && "justify-center px-0 w-10 mx-auto"
@@ -304,7 +304,7 @@ export const ProjectDetailView = () => {
                   >
                     <Icon className={cn(
                       "h-4 w-4 shrink-0",
-                      active ? "text-primary" : "text-muted-foreground"
+                      active ? "text-orange-400" : "text-slate-400"
                     )} />
                     {!panelCollapsed && <span>{item.title}</span>}
                   </Button>
@@ -557,8 +557,8 @@ export const ProjectDetailView = () => {
       {/* Secondary Navigation Panel - Sticky */}
       <aside
           className={cn(
-            "sticky top-0 self-start h-screen border-r border-border/50",
-            "bg-slate-50/50 transition-all duration-200 flex flex-col shrink-0 relative",
+            "sticky top-0 self-start h-screen border-r border-white/10",
+            "bg-[hsl(217,25%,15%)] transition-all duration-200 flex flex-col shrink-0 relative",
             panelCollapsed ? "w-14" : "w-52"  // 56px collapsed, 208px expanded
           )}
       >
@@ -578,8 +578,8 @@ export const ProjectDetailView = () => {
               aria-label={panelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               <div className={cn(
-                "w-1 h-12 rounded-full bg-border group-hover:bg-primary/60 group-focus:bg-primary/60 transition-all",
-                panelCollapsed && "bg-primary/40"
+                "w-1 h-12 rounded-full bg-white/20 group-hover:bg-orange-500/60 group-focus:bg-orange-500/60 transition-all",
+                panelCollapsed && "bg-orange-500/40"
               )} />
             </button>
           </TooltipTrigger>
@@ -592,12 +592,12 @@ export const ProjectDetailView = () => {
         </Tooltip>
 
         {/* Compact Bottom Toggle (fallback) */}
-        <div className="p-2 border-t border-border/30 mt-auto">
+        <div className="p-2 border-t border-white/10 mt-auto">
           <Button
             variant="ghost"
             size="sm"
             className={cn(
-              "w-full justify-center h-8 text-xs text-muted-foreground hover:text-foreground",
+              "w-full justify-center h-8 text-xs text-slate-400 hover:text-white hover:bg-white/5",
               panelCollapsed && "px-0"
             )}
             onClick={() => setPanelCollapsed(!panelCollapsed)}
