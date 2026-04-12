@@ -426,7 +426,7 @@ Issues identified during codebase audit, validated, and prioritized for future w
 
 | Issue | File(s) | Notes |
 |-------|---------|-------|
-| Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not reflected in Supabase generated types |
+| Storage buckets not in types | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Used in code but not in generated types. No user impact — purely developer-experience (autocomplete, typo detection). Fix: run `supabase gen types typescript` with authenticated CLI. |
 | `as any` type casts | 117 across 60 files | Top offenders: `EstimateForm.tsx`, `ChangeOrdersList.tsx`, `csvParser.ts`. Reduce incrementally. |
 
 ### Deferred (Requires Broader Planning)
