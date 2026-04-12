@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { UserNotification } from '@/types/notification';
 
+const QUERY_KEY = 'unread-mentions';
+
 export function useUnreadMentions() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<UserNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: [QUERY_KEY, user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
 
-    try {
       const { data, error } = await supabase
         .from('user_notifications')
         .select('*')
@@ -24,20 +24,13 @@ export function useUnreadMentions() {
         .limit(50);
 
       if (error) throw error;
-      setNotifications((data || []) as UserNotification[]);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
+      return (data || []) as UserNotification[];
+    },
+    enabled: !!user?.id,
+  });
 
-  // Initial fetch
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
-
-  // Real-time subscription
+  // Real-time subscription — listen to ALL events (INSERT, UPDATE, DELETE)
+  // so marking as read triggers a re-fetch across all hook instances
   useEffect(() => {
     if (!user?.id) return;
 
@@ -46,13 +39,13 @@ export function useUnreadMentions() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'user_notifications',
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          fetchNotifications();
+          queryClient.invalidateQueries({ queryKey: [QUERY_KEY, user.id] });
         }
       )
       .subscribe();
@@ -60,27 +53,33 @@ export function useUnreadMentions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, fetchNotifications]);
+  }, [user?.id, queryClient]);
 
   const markAsRead = async (notificationId: string) => {
+    // Optimistic: remove from cache immediately
+    queryClient.setQueryData(
+      [QUERY_KEY, user?.id],
+      (old: UserNotification[] | undefined) =>
+        (old || []).filter((n) => n.id !== notificationId)
+    );
+
     await supabase
       .from('user_notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('id', notificationId);
-
-    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
   };
 
   const markAllAsRead = async () => {
     if (!user?.id) return;
+
+    // Optimistic: clear cache immediately
+    queryClient.setQueryData([QUERY_KEY, user.id], []);
 
     await supabase
       .from('user_notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('user_id', user.id)
       .eq('is_read', false);
-
-    setNotifications([]);
   };
 
   return {
