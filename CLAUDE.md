@@ -64,10 +64,11 @@ npm run upload:template       # Upload contract Word template to Storage
 
 ```
 src/
-├── components/          # UI components (22 subdirectories)
+├── components/          # UI components (24 subdirectories)
 │   ├── ui/              # 66 shadcn/ui base components — do NOT edit these directly
 │   ├── dashboard/       # Dashboard widgets
-│   ├── notes/           # Shared note components (NoteCard, NoteInput, NoteLightbox, VoiceNoteButton)
+│   ├── notes/           # Shared note components (NoteCard, NoteInput, NoteLightbox, VoiceNoteButton, MentionTextarea)
+│   ├── notifications/   # NotificationBell (in-app mention notifications)
 │   ├── schedule/        # Gantt chart, field schedule (FieldTaskCard, FieldTaskSection, FieldMediaGallery, FieldDocumentsList, FieldQuickActionBar)
 │   ├── time-tracker/    # Field worker time tracking
 │   ├── time-entries/    # Admin time entry management
@@ -76,7 +77,7 @@ src/
 │   ├── contracts/       # Contract generation & management
 │   ├── payment-applications/ # AIA G702/G703 billing (SOV, payment apps, PDF export)
 │   └── ...              # (13 more feature directories)
-├── pages/               # 36 route pages (one per major view)
+├── pages/               # 37 route pages (one per major view)
 ├── hooks/               # 50+ custom React hooks
 ├── utils/               # 50+ utility/calculation modules
 ├── types/               # 24 TypeScript type definition files
@@ -154,7 +155,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 ## Database Migrations
 
-**338 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
+**339 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -287,6 +288,25 @@ The field schedule (`/field-schedule/:projectId`) is the primary interface for f
 **Task card interaction model:** Tap to expand → see admin notes, type "What happened?", snap a photo, or mark complete. Notes are created as project notes with task name prefix (e.g., `**Framing:** North wall done`). No accidental completion — checkbox was replaced with a deliberate "Mark Complete" button inside the expanded view.
 
 **Time entry notes:** The `ManualTimeEntryForm` includes a `NotesField` component. Notes are stored in `expenses.description`. Auto-generated time range patterns in old entries are stripped via regex when loading for edit.
+
+### 10. @Mention Tagging & In-App Notifications
+Users can @mention team members in project notes. Tagged users see a notification badge.
+
+**Mention format:** Stored inline as `@[Display Name](userId)` in `note_text`. Display layer parses tokens and renders as styled spans. Resolved on submit via `resolveMentions()` in `mentionUtils.ts`.
+
+**Key tables:**
+- `note_mentions` — junction table: `note_id` → `project_notes`, `user_id` → `auth.users`. Enables indexed "notes mentioning me" queries.
+- `user_notifications` — generic notification store: `user_id`, `type` ('mention'), `title`, `body`, `link_url`, `is_read`, `reference_id`, `reference_type`. Designed for future notification types (approvals, training, etc.). Realtime enabled.
+
+**Key components:**
+- `MentionTextarea` — textarea that detects `@` keystrokes, shows filtered employee list. Mobile: bottom Sheet. Desktop: floating dropdown. Uses `useMentionableUsers` hook (queries `payees` where `is_internal=true`, `is_active=true`, `user_id IS NOT NULL`).
+- `NotificationBell` — bell icon in mobile header with orange dot when unread mentions exist.
+- `Mentions` page (`/mentions`) — lists unread notifications. Tap → navigates to `/field-schedule/{projectId}?tab=notes`. Mark individual or all as read.
+- Sidebar: "Mentions" nav item with `badgeCount` (visible to all users).
+
+**Data flow:** Note created → `useProjectNotes.addNote` resolves mentions → inserts `note_mentions` + `user_notifications` rows → real-time subscription fires → `useUnreadMentions` (TanStack Query with shared key) updates all instances (bell, sidebar, mentions page) → optimistic cache update on mark-as-read for instant UI response.
+
+**Mentionable users:** Only active internal employees with linked auth accounts (`payees.user_id IS NOT NULL`). Display name from `payee_name` (not `full_name` which is null for all internal employees).
 
 ---
 
@@ -470,6 +490,8 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | No voice note input for project notes | Ported `useAudioRecording` + `useAudioTranscription` from bid notes into `VoiceNoteButton` component. Available in both NoteInput and FieldQuickActionBar. |
 | Time entry form had no notes field | Added `NotesField` to `ManualTimeEntryForm`, stored in `expenses.description`. Notes column added to admin table + mobile card view. |
 | Task cards had accidental-completion risk (small checkbox) | Replaced checkbox with expandable card interaction: tap to expand → "Mark Complete" button + "What happened?" note input + photo capture. |
+| No way to tag/mention team members in project notes | Built `MentionTextarea` with @autocomplete, `note_mentions` + `user_notifications` tables, `NotificationBell` in header, `Mentions` page, sidebar badge. |
+| No in-app notification system | Created generic `user_notifications` table with realtime, `useUnreadMentions` hook with TanStack Query shared key + optimistic updates. |
 
 ### Medium Priority
 
