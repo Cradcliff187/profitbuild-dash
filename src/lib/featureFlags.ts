@@ -8,16 +8,18 @@ export interface FeatureFlags {
   aiaBilling: boolean;
 }
 
-// Default flags - all OFF initially
+// Default flags - shipped features default ON
 const defaultFlags: FeatureFlags = {
-  scheduleView: false,
-  aiaBilling: false,
+  scheduleView: true,
+  aiaBilling: true,
 };
 
 // Check environment variables
 const getEnvFlags = (): Partial<FeatureFlags> => {
   return {
-    scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE === "true",
+    // Shipped on main: on unless host sets VITE_FEATURE_SCHEDULE=false
+    // (Lovable strips VITE_* vars, so we must default ON, not require opt-in)
+    scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE !== "false",
     // Shipped on main: on unless host sets VITE_FEATURE_AIA_BILLING=false
     aiaBilling: import.meta.env.VITE_FEATURE_AIA_BILLING !== "false",
   };
