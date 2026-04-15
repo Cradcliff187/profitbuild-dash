@@ -255,8 +255,39 @@ Use shadcn/ui components from `src/components/ui/`. Do not edit these base compo
 ### 6. Project Categories
 - `construction` — Normal jobs; visible across all views
 - `system` — Internal tracking (SYS-000, 000-UNASSIGNED)
-- `overhead` — Expense/receipt allocation only (001-GAS, 002-GA)
+- `overhead` — Expense/receipt allocation only. Eight overhead projects exist:
+  - `001-GAS` Gas Expense, `002-GA` General & Administrative, `003-AM` Auto Maintenance,
+    `004-TOOL` Tools, `005-MEAL` Meals & Entertainment, `006-SICK` Sick Time,
+    `007-VAC` Vacation Time, `008-HOL` Holiday Time
+
 Field workers only see construction projects in the mobile time tracker.
+
+### 6a. Project → Category Lock (overhead projects)
+The `projects.default_expense_category` column (added Apr 2026) lets an overhead project declare a single forced expense category. When set, every expense on that project is forced to that category — by trigger at the DB level, by override in the CSV importer, and by a locked Category dropdown in the manual `ExpenseForm`. **Three layers**, so the rule survives any future code path.
+
+| Project | Forced category |
+|---|---|
+| `001-GAS` | `gas` |
+| `003-AM` | `vehicle_maintenance` |
+| `004-TOOL` | `tools` |
+| `005-MEAL` | `meals` |
+| `006-SICK`, `007-VAC`, `008-HOL` | `labor_internal` |
+| `002-GA` | *(intentionally NULL — G&A spend is heterogeneous)* |
+
+**Implementation:**
+- DB trigger `enforce_project_default_expense_category` on `expenses` (BEFORE INSERT/UPDATE) silently rewrites `category` when the project has a forced default. No error raised — the data just lands correctly.
+- `enhancedTransactionImporter.ts` performs the same override before write, populating a `project_default_category` matchLog entry.
+- `ExpenseForm.tsx` disables the Category dropdown and shows "Locked to … for project XXX-YYY" when an overhead project with a forced category is selected.
+- `ExpenseImportModal.tsx` preview shows a "Will be set to … (rule for XXX-YYY)" hint per row.
+
+**Verification SQL:**
+```sql
+-- Should return 0 misaligned for every project with a forced category
+SELECT p.project_number, COUNT(*) FILTER (WHERE e.category != p.default_expense_category) AS misaligned
+FROM projects p LEFT JOIN expenses e ON e.project_id = p.id
+WHERE p.default_expense_category IS NOT NULL
+GROUP BY p.project_number;
+```
 
 ### 7. Receipts vs. Expenses
 Receipts are **documentation only** — they do NOT feed financial calculations. Financial data comes from direct expense entry or QuickBooks CSV import.
@@ -458,6 +489,10 @@ Use this list when doing periodic documentation reviews:
 17. **Hours terminology is standardized** — Two canonical terms: **"Paid Hours"** (`expenses.hours`, after lunch deduction) and **"Gross Hours"** (`expenses.gross_hours`, total shift duration). Never use "net hours", "total hours", or "worked hours" for paid hours. The `weekly_labor_hours` view column is `paid_hours` (renamed from `total_hours` in Apr 2026). The KPI ID `expense_net_hours` is kept for backwards compatibility but the display name is "Paid Hours".
 
 18. **App version uses `__APP_VERSION__` not `VITE_APP_VERSION`** — Lovable's build environment overrides `VITE_*` env vars. The version is defined as `__APP_VERSION__` in `vite.config.ts` (via `define`) to prevent Lovable from injecting `0.0.0`. Declared in `src/vite-env.d.ts`. Auto-generated from git as `YYYY.MM.DD (build {sha})`.
+
+19. **Bids → Leads is UI-only (Apr 2026)** — User-facing strings, route paths (`/leads/*`), nav, and page titles all say "Lead". The DB layer is **intentionally unchanged**: tables (`branch_bids`, `bid_media`, `bid_notes`), columns (`bid_id` FKs), storage buckets (`bid-media`, `bid-documents`), TanStack Query keys (`['bid-media', bidId]`), and TS types in `src/types/bid.ts` (`BranchBid`, `BidMedia`, `BidNote`) all keep their legacy names. Renaming buckets in Supabase is non-trivial (object copy + RLS rewrite + URL rebuild) — skipped because the labels are the only thing users see. Old `/branch-bids/*` URLs redirect to `/leads/*` via the `LegacyBidRedirect` wrapper in `App.tsx`, which uses `useParams()` because `<Navigate>` doesn't interpolate route params. **Do NOT "finish the rename" by touching DB names** — it's a coordination cost with zero functional gain.
+
+20. **Project → Category lock for overhead projects (Apr 2026)** — See "Key Architectural Rules → 6a." Three layers (DB trigger + importer + form) enforce that an expense's `category` matches `projects.default_expense_category` whenever the project has one set. The trigger silently overrides; never raises. Common pitfall: writing test SQL like `INSERT INTO expenses (project_id='001-GAS', category='materials')` will succeed but the row's category will be `gas` after the trigger runs. Verify with the SQL in section 6a.
 
 ---
 
