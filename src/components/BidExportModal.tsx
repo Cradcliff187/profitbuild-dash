@@ -69,7 +69,7 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
 
   const exportToCSV = async (bids: BranchBid[]) => {
     // Build headers based on options
-    const headers: string[] = ["Bid Name"];
+    const headers: string[] = ["Lead Name"];
 
     if (exportOptions.includeDescription) {
       headers.push("Description");
@@ -156,7 +156,7 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
         <SheetHeader>
           <SheetTitle className="flex items-center space-x-2">
             <Download className="h-5 w-5" />
-            <span>Export Bids</span>
+            <span>Export Leads</span>
           </SheetTitle>
           <SheetDescription>
             Configure export options and download bid data

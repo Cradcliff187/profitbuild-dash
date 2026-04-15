@@ -179,7 +179,7 @@ export default function BidVideoCapture() {
   };
 
   const handleGoBack = () => {
-    navigate(`/branch-bids/${bidId}`);
+    navigate(`/leads/${bidId}`);
   };
 
   return (
@@ -196,7 +196,7 @@ export default function BidVideoCapture() {
             <X className="h-4 w-4" />
             Close
           </Button>
-          <div className="text-sm font-medium">Bid Video Capture</div>
+          <div className="text-sm font-medium">Lead Video Capture</div>
           <div className="w-20" /> {/* Spacer for centering */}
         </div>
 

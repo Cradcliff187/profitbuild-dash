@@ -115,7 +115,7 @@ export default function BranchBidDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branch-bid', id] });
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
-      toast.success('Bid updated successfully');
+      toast.success('Lead updated successfully');
       setIsEditing(false);
     },
     onError: (error: Error) => {
@@ -137,10 +137,10 @@ export default function BranchBidDetail() {
   const convertToProjectMutation = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error('No bid ID');
-      if (!bid) throw new Error('Bid not found');
+      if (!bid) throw new Error('Lead not found');
 
       // Validate required fields
-      if (!name.trim()) throw new Error('Bid name is required');
+      if (!name.trim()) throw new Error('Lead name is required');
       if (!clientId) throw new Error('Client is required to create a project');
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -228,8 +228,8 @@ export default function BranchBidDetail() {
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <h3 className="text-lg font-semibold mb-2">Bid not found</h3>
-            <Button onClick={() => navigate('/branch-bids')}>
+            <h3 className="text-lg font-semibold mb-2">Lead not found</h3>
+            <Button onClick={() => navigate('/leads')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Bids
             </Button>
@@ -245,7 +245,7 @@ export default function BranchBidDetail() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/branch-bids">Bids</BreadcrumbLink>
+            <BreadcrumbLink href="/leads">Leads</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -257,7 +257,7 @@ export default function BranchBidDetail() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/branch-bids')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/leads')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -309,13 +309,13 @@ export default function BranchBidDetail() {
       {/* Bid Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Bid Information</CardTitle>
+          <CardTitle>Lead Information</CardTitle>
           <CardDescription>Basic details and project links</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Bid Name *</Label>
+              <Label htmlFor="name">Lead Name *</Label>
               <Input
                 id="name"
                 value={name}
@@ -468,7 +468,7 @@ export default function BranchBidDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => navigate(`/branch-bids/${id}/capture`)}
+                onClick={() => navigate(`/leads/${id}/capture`)}
               >
                 <Camera className="h-4 w-4 mr-2" />
                 Photo
@@ -476,7 +476,7 @@ export default function BranchBidDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => navigate(`/branch-bids/${id}/capture-video`)}
+                onClick={() => navigate(`/leads/${id}/capture-video`)}
               >
                 <Video className="h-4 w-4 mr-2" />
                 Video
@@ -528,7 +528,7 @@ export default function BranchBidDetail() {
           <Button
             size="icon"
             className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => navigate(`/branch-bids/${id}/capture-video`)}
+            onClick={() => navigate(`/leads/${id}/capture-video`)}
             title="Capture Video"
           >
             <Video className="h-5 w-5" />
@@ -536,7 +536,7 @@ export default function BranchBidDetail() {
           <Button
             size="icon"
             className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => navigate(`/branch-bids/${id}/capture`)}
+            onClick={() => navigate(`/leads/${id}/capture`)}
             title="Capture Photo"
           >
             <Camera className="h-5 w-5" />

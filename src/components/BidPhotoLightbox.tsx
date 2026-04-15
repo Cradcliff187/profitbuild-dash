@@ -113,7 +113,7 @@ export function BidPhotoLightbox({ photo, allPhotos, onClose, onNavigate, bidId 
         <div className="flex-1 min-h-0 flex items-center justify-center bg-muted relative">
           <img
             src={photo.file_url}
-            alt="Bid photo"
+            alt="Lead photo"
             className="max-h-full max-w-full object-contain"
           />
 

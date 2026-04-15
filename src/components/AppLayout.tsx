@@ -54,7 +54,7 @@ const getPageTitle = (pathname: string): string => {
     '/clients': 'Clients',
     '/payees': 'Payees',
     '/field-media': 'Field Media',
-    '/branch-bids': 'Bids',
+    '/leads': 'Leads',
     '/role-management': 'Role Management',
     '/send-sms': 'Send SMS',
     '/training': 'My Training',
@@ -82,8 +82,8 @@ const getPageTitle = (pathname: string): string => {
   if (path.startsWith('/field-schedule/')) {
     return 'Field Schedule';
   }
-  if (path.startsWith('/branch-bids/')) {
-    return 'Bid Details';
+  if (path.startsWith('/leads/') || path.startsWith('/branch-bids/')) {
+    return 'Lead Details';
   }
   
   // Default fallback

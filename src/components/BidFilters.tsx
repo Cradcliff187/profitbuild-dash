@@ -71,7 +71,7 @@ export const BidFilters = ({
 
   return (
     <CollapsibleFilterSection
-      title="Filter Bids"
+      title="Filter Leads"
       hasActiveFilters={hasActiveFilters()}
       activeFilterCount={getActiveFilterCount()}
       onClearFilters={handleClearFilters}

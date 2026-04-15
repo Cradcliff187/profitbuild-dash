@@ -127,7 +127,7 @@ export default function BidPhotoCapture() {
   };
 
   const handleGoBack = () => {
-    navigate(`/branch-bids/${bidId}`);
+    navigate(`/leads/${bidId}`);
   };
 
   const gpsAgeString = metadata.gpsAge !== null
@@ -150,7 +150,7 @@ export default function BidPhotoCapture() {
             <X className="h-4 w-4" />
             Close
           </Button>
-          <div className="text-sm font-medium">Bid Photo Capture</div>
+          <div className="text-sm font-medium">Lead Photo Capture</div>
           <div className="w-20" /> {/* Spacer for centering */}
         </div>
 

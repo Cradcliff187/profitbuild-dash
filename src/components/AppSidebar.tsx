@@ -147,7 +147,7 @@ export function AppSidebar() {
       items: [
         { title: "Estimates", url: "/estimates", icon: Calculator, show: hasFinancialAccess },
         { title: "Quotes", url: "/quotes", icon: FileText, show: hasFinancialAccess },
-        { title: "Bids", url: "/branch-bids", icon: Package, show: isAdmin || isManager },
+        { title: "Leads", url: "/leads", icon: Package, show: isAdmin || isManager },
       ],
     },
     {

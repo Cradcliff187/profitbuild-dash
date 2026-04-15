@@ -25,7 +25,7 @@ import type { BranchBid } from '@/types/bid';
 
 // Define column metadata for selector
 const columnDefinitions = [
-  { key: "name", label: "Bid Name", required: true, sortable: true },
+  { key: "name", label: "Lead Name", required: true, sortable: true },
   { key: "client_name", label: "Client", required: false, sortable: true },
   { key: "created_at", label: "Created", required: false, sortable: true },
   { key: "project", label: "Linked Project", required: false, sortable: false },
@@ -167,12 +167,12 @@ export default function BranchBids() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
-      toast.success('Bid created successfully');
+      toast.success('Lead created successfully');
       setShowCreateDialog(false);
       setName('');
       setDescription('');
       setClientId('');
-      navigate(`/branch-bids/${data.id}`);
+      navigate(`/leads/${data.id}`);
     },
     onError: (error: Error) => {
       toast.error('Failed to create bid', {
@@ -193,7 +193,7 @@ export default function BranchBids() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
-      toast.success('Bid deleted successfully');
+      toast.success('Lead deleted successfully');
     },
     onError: (error: Error) => {
       toast.error('Failed to delete bid', {
@@ -367,15 +367,15 @@ export default function BranchBids() {
   };
 
   if (isLoading) {
-    return <BrandedLoader message="Loading bids..." />;
+    return <BrandedLoader message="Loading leads..." />;
   }
 
   return (
     <MobilePageWrapper>
       <PageHeader
         icon={Package}
-        title="Bids"
-        description="Track and manage project bids"
+        title="Leads"
+        description="Track and manage project leads"
         actions={
           <>
             <Button 
@@ -390,7 +390,7 @@ export default function BranchBids() {
             </Button>
             <Button onClick={() => setShowCreateDialog(true)} size="sm" className="hidden sm:flex">
               <Plus className="h-3 w-3 mr-1" />
-              New Bid
+              New Lead
             </Button>
           </>
         }
@@ -404,7 +404,7 @@ export default function BranchBids() {
               <div className="flex items-center space-x-2">
                 <FileText className="h-4 w-4 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Bids</p>
+                  <p className="text-xs text-muted-foreground">Total Leads</p>
                   <p className="text-xl font-bold">{statistics.totalBids}</p>
                 </div>
               </div>
@@ -512,7 +512,7 @@ export default function BranchBids() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Bid</DialogTitle>
+            <DialogTitle>Create New Lead</DialogTitle>
             <DialogDescription>
               Start gathering information for a new project estimate
             </DialogDescription>
@@ -551,7 +551,7 @@ export default function BranchBids() {
               Cancel
             </Button>
             <Button onClick={handleCreateBid} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Creating...' : 'Create Bid'}
+              {createMutation.isPending ? 'Creating...' : 'Create Lead'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -561,7 +561,7 @@ export default function BranchBids() {
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedIds.length} {selectedIds.length === 1 ? 'Bid' : 'Bids'}</AlertDialogTitle>
+            <AlertDialogTitle>Delete {selectedIds.length} {selectedIds.length === 1 ? 'Lead' : 'Leads'}</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete {selectedIds.length} selected {selectedIds.length === 1 ? 'bid' : 'bids'}? This action cannot be undone.
             </AlertDialogDescription>

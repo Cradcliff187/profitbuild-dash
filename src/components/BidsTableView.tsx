@@ -72,7 +72,7 @@ export const BidsTableView = ({
   });
 
   const columnDefinitions = [
-    { key: "name", label: "Bid Name", required: true, sortable: true },
+    { key: "name", label: "Lead Name", required: true, sortable: true },
     { key: "client_name", label: "Client", required: false, sortable: true },
     { key: "created_at", label: "Created", required: false, sortable: true },
     { key: "project", label: "Linked Project", required: false, sortable: false },
@@ -95,7 +95,7 @@ export const BidsTableView = ({
   };
   
   const labels: Record<string, string> = {
-    name: "Bid Name",
+    name: "Lead Name",
     client_name: "Client",
     created_at: "Created",
     project: "Linked Project",
@@ -104,7 +104,7 @@ export const BidsTableView = ({
   };
 
   const handleViewDetails = (bid: BranchBid) => {
-    navigate(`/branch-bids/${bid.id}`);
+    navigate(`/leads/${bid.id}`);
   };
 
   const handleDeleteClick = (bid: BranchBid, e: React.MouseEvent) => {
@@ -194,7 +194,7 @@ export const BidsTableView = ({
         <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({ open, bid: null })}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Bid</AlertDialogTitle>
+              <AlertDialogTitle>Delete Lead</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete "{deleteConfirm.bid?.name}"? This action cannot be undone.
               </AlertDialogDescription>
@@ -369,7 +369,7 @@ export const BidsTableView = ({
       <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({ open, bid: null })}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Bid</AlertDialogTitle>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{deleteConfirm.bid?.name}"? This action cannot be undone.
             </AlertDialogDescription>

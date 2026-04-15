@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
 import AppLayout from "@/components/AppLayout";
@@ -47,6 +47,15 @@ const Training = lazy(() => import("./pages/Training"));
 const TrainingAdmin = lazy(() => import("./pages/TrainingAdmin"));
 const TrainingViewer = lazy(() => import("./pages/TrainingViewer"));
 const DevMobileCards = lazy(() => import("./pages/DevMobileCards"));
+
+/**
+ * Redirects legacy `/branch-bids/:id[/suffix]` URLs to `/leads/:id[/suffix]`.
+ * Keeps deep-links (emails, bookmarks) working after the Bids → Leads UI rename.
+ */
+const LegacyBidRedirect = ({ suffix }: { suffix: string }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/leads/${id}${suffix}`} replace />;
+};
 
 // Project route components
 const ProjectOverviewRoute = lazy(() => import("./components/project-routes/ProjectOverviewRoute").then(m => ({ default: m.ProjectOverviewRoute })));
@@ -120,11 +129,15 @@ const App = () => (
                   <Route path="field-media/:id/capture" element={<LazyRoute component={FieldPhotoCapture} />} />
                   <Route path="field-media/:id/capture-video" element={<LazyRoute component={FieldVideoCapture} />} />
                   
-                  {/* Bids Routes */}
-                  <Route path="branch-bids" element={<LazyRoute component={BranchBids} />} />
-                  <Route path="branch-bids/:id" element={<LazyRoute component={BranchBidDetail} />} />
-                  <Route path="branch-bids/:id/capture" element={<LazyRoute component={BidPhotoCapture} />} />
-                  <Route path="branch-bids/:id/capture-video" element={<LazyRoute component={BidVideoCapture} />} />
+                  {/* Leads Routes (primary). Legacy /branch-bids/* paths redirect below for back-compat. */}
+                  <Route path="leads" element={<LazyRoute component={BranchBids} />} />
+                  <Route path="leads/:id" element={<LazyRoute component={BranchBidDetail} />} />
+                  <Route path="leads/:id/capture" element={<LazyRoute component={BidPhotoCapture} />} />
+                  <Route path="leads/:id/capture-video" element={<LazyRoute component={BidVideoCapture} />} />
+                  <Route path="branch-bids" element={<Navigate to="/leads" replace />} />
+                  <Route path="branch-bids/:id" element={<LegacyBidRedirect suffix="" />} />
+                  <Route path="branch-bids/:id/capture" element={<LegacyBidRedirect suffix="/capture" />} />
+                  <Route path="branch-bids/:id/capture-video" element={<LegacyBidRedirect suffix="/capture-video" />} />
                   
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
                   <Route path="quotes" element={<LazyRoute component={Quotes} />} />
