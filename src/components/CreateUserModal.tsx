@@ -66,6 +66,45 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
+      // Auto-create the linked internal payee ONLY for field workers.
+      // Admins and managers don't log labor by default, so they don't need a payee row.
+      // If later they're assigned as a project owner or receive an expense, the admin
+      // can add one on demand from Role Management → Accounting Linkage ("Add anyway").
+      // Separate from auth so we don't need to redeploy the edge function.
+      // The unique partial index on payees.user_id WHERE is_internal makes duplicate
+      // inserts a cheap no-op (23505 → treated as success). See Architectural Rule 11.
+      if (role === 'field_worker') {
+        const newUserId: string | undefined = data.userId ?? data.user?.id;
+        if (newUserId) {
+          try {
+            const payeeName = fullName.trim() || email.trim().split('@')[0];
+            const { error: payeeError } = await supabase.from('payees').insert({
+              user_id: newUserId,
+              payee_name: payeeName,
+              email: email.trim(),
+              is_internal: true,
+              is_active: true,
+              provides_labor: true,
+              payee_type: 'internal_labor',
+            });
+            if (payeeError && (payeeError as { code?: string }).code !== '23505') {
+              console.error('Linked payee creation failed:', payeeError);
+              toast.warning(
+                'User created, but expense & time setup did not save. Enable it from Role Management.'
+              );
+            }
+          } catch (payeeErr) {
+            console.error('Linked payee creation threw:', payeeErr);
+            toast.warning(
+              'User created, but expense & time setup did not save. Enable it from Role Management.'
+            );
+          }
+        } else {
+          // edge function didn't return a user id — admin will need to fix linkage manually
+          console.warn('admin-create-user returned no user id; cannot auto-create payee');
+        }
+      }
+
       // Handle response based on method
       if (method === 'temporary_password') {
         setTemporaryPassword(data.tempPassword);
