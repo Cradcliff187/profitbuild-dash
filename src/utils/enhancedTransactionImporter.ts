@@ -357,7 +357,8 @@ export const processTransactionImport = async (
   const partialProjects: PartialProject[] = projects.map(p => ({
     id: p.id,
     project_number: p.project_number,
-    project_name: p.project_name || ''
+    project_name: p.project_name || '',
+    default_expense_category: p.default_expense_category ?? null,
   }));
 
   // Build partial clients for fuzzy matching
@@ -483,7 +484,26 @@ export const processTransactionImport = async (
         }
       }
 
-      const category = categorizeExpense(name, accountFullName, dbMappings);
+      let category = categorizeExpense(name, accountFullName, dbMappings);
+
+      // === Project → Category override ===
+      // Overhead projects (e.g. 001-GAS) carry a deterministic default category.
+      // When set, it overrides whatever the QB account or description mapper produced.
+      // This ensures filtering by project = 001-GAS reconciles with category = 'gas'.
+      const projectForCategoryOverride = partialProjects.find(p => p.id === project_id);
+      if (projectForCategoryOverride?.default_expense_category
+          && projectForCategoryOverride.default_expense_category !== category) {
+        const previous = category;
+        category = projectForCategoryOverride.default_expense_category as ExpenseCategory;
+        matchLog.push({
+          qbName: projectForCategoryOverride.project_number,
+          matchedEntity: `${previous} → ${category}`,
+          entityType: 'category',
+          confidence: 100,
+          decision: 'auto_matched',
+          algorithm: 'project_default_category'
+        });
+      }
 
       // Track mapping statistics
       if (accountFullName && dbMappings.some(m => 

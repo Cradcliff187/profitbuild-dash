@@ -154,6 +154,19 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
     }
   }, [form.watch('project_id')]);
 
+  // Project → Category lock: when the selected project carries a
+  // `default_expense_category` (typically overhead projects like 001-GAS → 'gas'),
+  // force the category to that value and disable the dropdown so users can't
+  // diverge from the rule. Mirrors the importer override.
+  const watchedProjectId = form.watch('project_id');
+  const lockedCategoryProject = projects.find(p => p.id === watchedProjectId);
+  const lockedCategory = (lockedCategoryProject as { default_expense_category?: string | null } | undefined)?.default_expense_category ?? null;
+  useEffect(() => {
+    if (lockedCategory && form.getValues('category') !== lockedCategory) {
+      form.setValue('category', lockedCategory as ExpenseCategory);
+    }
+  }, [lockedCategory, form]);
+
   // Handle internal labor payee selection
   useEffect(() => {
     if (selectedPayee?.is_internal && selectedPayee?.payee_type === 'internal_labor') {
@@ -318,7 +331,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!!lockedCategory}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -332,6 +349,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
                         ))}
                       </SelectContent>
                     </Select>
+                    {lockedCategory && lockedCategoryProject && (
+                      <p className="text-xs text-muted-foreground">
+                        Locked to <span className="font-medium">
+                          {EXPENSE_CATEGORY_DISPLAY[lockedCategory as ExpenseCategory]}
+                        </span> for project {lockedCategoryProject.project_number}.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

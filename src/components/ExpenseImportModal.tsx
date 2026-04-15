@@ -185,6 +185,10 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     matchedClientId?: string;
   }>>(new Map());
   const [accountCategoryMappings, setAccountCategoryMappings] = useState<Map<string, ExpenseCategory>>(new Map());
+  // project_number → forced ExpenseCategory (e.g. "001-GAS" → "gas").
+  // Populated from projects.default_expense_category. Used to surface a per-row hint
+  // in the import preview so users see "will be reclassified to Gas & Fuel" before commit.
+  const [projectCategoryDefaults, setProjectCategoryDefaults] = useState<Map<string, ExpenseCategory>>(new Map());
   const [showMappingsManager, setShowMappingsManager] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [txStatusFilter, setTxStatusFilter] = useState<'all' | 'new' | 'duplicate' | 'unassigned'>('all');
@@ -356,15 +360,30 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         status = 'unassigned';
       }
 
+      // Project → Category override hint: when the row's project has a forced
+      // default_expense_category (e.g. 001-GAS → gas), let the user know the
+      // category will be enforced on import. Server-side trigger guarantees it;
+      // this is just transparency in the preview.
+      let categoryOverrideHint: string | undefined;
+      if (projectWO && projectCategoryDefaults.size > 0) {
+        const forced = projectCategoryDefaults.get(projectWO.toLowerCase().trim());
+        if (forced) {
+          categoryOverrideHint = `Will be set to ${EXPENSE_CATEGORY_DISPLAY[forced]} (rule for ${projectWO})`;
+        }
+      }
+
+      // Compose matchInfo: dup info wins, then override hint as fallback.
+      const composedMatchInfo = dupInfo?.matchInfo ?? categoryOverrideHint;
+
       return {
         row,
         originalIndex: index,
         status,
         matchKey: dupInfo?.matchKey,
-        matchInfo: dupInfo?.matchInfo,
+        matchInfo: composedMatchInfo,
       };
     });
-  }, [csvData, validationResults]);
+  }, [csvData, validationResults, projectCategoryDefaults]);
 
   // Derived convenience arrays for backward compat with the rest of the component
   const categorizeTransactions = useMemo(() => {
@@ -493,6 +512,30 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       setSelectedRows(initial);
     }
   }, [allCategorized]);
+
+  // Load project_number → forced category map once on mount.
+  // Used to surface a "will be reclassified" hint in the preview row's matchInfo.
+  // Server-side trigger guarantees correctness; this is purely transparency.
+  useEffect(() => {
+    const loadProjectCategoryDefaults = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('project_number, default_expense_category')
+        .not('default_expense_category', 'is', null);
+      if (error) {
+        console.error('Error loading project category defaults:', error);
+        return;
+      }
+      const map = new Map<string, ExpenseCategory>();
+      (data || []).forEach((p) => {
+        if (p.project_number && p.default_expense_category) {
+          map.set(p.project_number.toLowerCase().trim(), p.default_expense_category as ExpenseCategory);
+        }
+      });
+      setProjectCategoryDefaults(map);
+    };
+    loadProjectCategoryDefaults();
+  }, []);
 
   // Bulk action handlers
   const selectAllNew = useCallback(() => {

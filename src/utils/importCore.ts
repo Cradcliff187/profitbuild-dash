@@ -235,6 +235,12 @@ export interface PartialProject {
   id: string;
   project_number: string;
   project_name: string;
+  /**
+   * When set, all expenses on this project are forced to this category.
+   * Typically populated for overhead projects (e.g. 001-GAS → 'gas').
+   * Stored as the raw enum string from `projects.default_expense_category`.
+   */
+  default_expense_category?: string | null;
 }
 
 export interface ProjectAlias {

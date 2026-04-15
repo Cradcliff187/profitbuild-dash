@@ -2218,6 +2218,7 @@ export type Database = {
           created_at: string | null
           current_margin: number | null
           customer_po_number: string | null
+          default_expense_category: Database["public"]["Enums"]["expense_category"] | null
           do_not_exceed: number | null
           end_date: string | null
           estimated_hours: number | null
@@ -2261,6 +2262,7 @@ export type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
+          default_expense_category?: Database["public"]["Enums"]["expense_category"] | null
           do_not_exceed?: number | null
           end_date?: string | null
           estimated_hours?: number | null
@@ -2304,6 +2306,7 @@ export type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
+          default_expense_category?: Database["public"]["Enums"]["expense_category"] | null
           do_not_exceed?: number | null
           end_date?: string | null
           estimated_hours?: number | null

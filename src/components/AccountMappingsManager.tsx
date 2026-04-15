@@ -74,8 +74,8 @@ export const AccountMappingsManager = () => {
       if (error) throw error;
 
       // Update local state
-      setMappings(mappings.map(m => 
-        m.id === mappingId 
+      setMappings(mappings.map(m =>
+        m.id === mappingId
           ? { ...m, ...editingMappings[mappingId] }
           : m
       ));
