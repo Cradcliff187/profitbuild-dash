@@ -3,8 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,11 @@ interface PayeeFormProps {
 export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaultIsInternal, defaultProvidesLabor, isSubmittingRef }: PayeeFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Internal employees are managed exclusively from Role Management.
+  // When editing an existing internal payee we lock all fields except Notes.
+  // See Architectural Rule 11 in CLAUDE.md.
+  const isInternalLocked = !!payee?.is_internal;
+
   // Sync submitting state with ref for parent
   useEffect(() => {
     if (isSubmittingRef) {
@@ -104,6 +111,18 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
   const onSubmit = async (data: PayeeFormData) => {
     setIsSubmitting(true);
     try {
+      // Locked internal payees: only notes are persisted.
+      if (isInternalLocked && payee) {
+        const { error } = await supabase
+          .from("payees")
+          .update({ notes: data.notes || null })
+          .eq("id", payee.id);
+        if (error) throw error;
+        toast.success("Notes updated");
+        onSuccess();
+        return;
+      }
+
       if (payee) {
         // Update existing payee
         const payeeData = {
@@ -188,6 +207,23 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
   return (
     <Form {...form}>
       <form id="payee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {isInternalLocked && (
+          <Alert className="border-primary/40 bg-primary/5">
+            <Lock className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              <div className="font-medium mb-1">Employee expense &amp; time setup — managed from Role Management</div>
+              <div className="text-muted-foreground mb-2">
+                Fields are locked here so this record stays in sync with the user's account.
+                You can still edit Notes below.
+              </div>
+              <Button asChild size="sm" variant="link" className="h-auto p-0 text-xs">
+                <Link to="/role-management">Open Role Management →</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        {/* Lock every control when editing an internal payee; Notes is re-enabled below. */}
+        <fieldset disabled={isInternalLocked} className={isInternalLocked ? "opacity-60 pointer-events-none select-none" : ""}>
         {/* Basic Information */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -538,23 +574,26 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Internal notes, special instructions, payment preferences..."
-                    rows={3}
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Notes: always editable, even when the rest of the form is locked for an internal payee */}
+          <fieldset disabled={false} className={isInternalLocked ? "pointer-events-auto opacity-100" : ""}>
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Internal notes, special instructions, payment preferences..."
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </fieldset>
         </div>
 
         {/* Contract Information (for contract generation) */}
@@ -644,6 +683,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
             />
           </div>
         </div>
+        </fieldset>
 
       </form>
     </Form>

@@ -92,7 +92,7 @@ src/
 
 ## Backend: Supabase
 
-**27 Edge Functions** in `supabase/functions/`:
+**30 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
 
 | Group | Functions |
 |-------|-----------|
@@ -100,9 +100,13 @@ src/
 | Notifications | `send-receipt-notification`, `send-training-notification` |
 | SMS | `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key` |
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
-| Business | `generate-contract`, `enrich-estimate-items`, `ai-report-assistant` |
-| QuickBooks | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
+| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import) |
+| Contracts | `generate-contract`, `generate-subcontractor-contract` ⚠️ **status uncertain — do not touch without verifying live usage** |
+| QuickBooks (CSV flow, live) | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
+| QuickBooks API (**in-dev — not production**) | `quickbooks-sync-receipt`, `quickbooks-sync-transactions` |
 | Shared | `_shared/brandedTemplate.ts`, `_shared/quickbooks.ts` |
+
+**Removed (Apr 15, 2026):** `ai-project-assistant` (unused, replaced by `ai-report-assistant`), `parse-estimate-import` (dead — live path is `enrich-estimate-items`). Both deleted via `npx supabase functions delete <name> --project-ref clsjdxwbsjbhjibvlqbz`.
 
 ### Critical: Functions That Use `_shared/brandedTemplate.ts`
 
@@ -114,6 +118,12 @@ These four functions MUST be deployed together with the shared file via Supabase
 | `send-receipt-notification` | false | 97 |
 | `send-training-notification` | false | 46 |
 | `generate-media-report` | true | 115 |
+
+### Critical: `admin-disable-user` Pinned Version
+
+| Function | verify_jwt | Pinned version | Notes |
+|----------|------------|----------------|-------|
+| `admin-disable-user` | true | 102 | Cascades `payees.is_active=false` for the linked internal payee (best-effort; payee failure does NOT roll back the auth disable). See Architectural Rule 11. |
 
 ### Critical: AI Report Assistant Version
 
@@ -127,35 +137,58 @@ The `ai-report-assistant` function uses a generated `kpi-context.generated.ts` f
 
 **SQL validation (v5.1.0):** Generated SQL is validated against the live database schema before execution. If the AI hallucinates a column name (e.g., `expenses.total_cost` instead of `expenses.amount`), the validator catches it and auto-corrects with a focused re-prompt containing only the relevant table's actual columns. This eliminates column-not-found errors without needing more few-shot examples.
 
-**Deployment note:** Lovable does NOT reliably auto-deploy this function on git push. Always deploy via Supabase CLI (`supabase functions deploy ai-report-assistant`) or MCP after changes. The file size (~135KB across index.ts + kpi-context.generated.ts) may exceed MCP tool parameter limits — prefer CLI deployment.
+**Deployment note:** Lovable does NOT reliably auto-deploy this function on git push. Always deploy via Supabase CLI (`supabase functions deploy ai-report-assistant`) or MCP after changes. The file size (~135KB across index.ts + kpi-context.generated.ts) may exceed MCP tool parameter limits — prefer CLI deployment. See "Managing Edge Functions" below for the full CLI flow.
 
-Always read full file contents (no truncation) before deploying via MCP. See `.cursorrules` for the complete deployment checklist.
+### Managing Edge Functions
 
-### Deploying Edge Functions
+Three deployment paths, in order of preference:
 
-**Normal flow** (push to GitHub → Lovable auto-deploys):
+**1. Normal flow — push to GitHub, Lovable auto-deploys**
 ```bash
 git push origin <branch>
-# Lovable picks it up automatically
 ```
+Works for most functions. **Does NOT reliably work for `ai-report-assistant`** — see below.
 
-**Emergency / direct MCP deploy** (bypasses Lovable):
-- Use `mcp_supabase_deploy_edge_function` in Cursor with full file content
-- Then push to GitHub to keep code in sync
+**2. CLI (preferred for anything Lovable won't pick up)**
+```bash
+# List all functions with current versions
+npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz
 
-**ALWAYS pin dependency versions in edge functions:**
+# Deploy a single function (bundles files in supabase/functions/<name>/)
+npx supabase functions deploy <name> --project-ref clsjdxwbsjbhjibvlqbz
+
+# Delete a function (verified Apr 15, 2026 — works without interactive prompts)
+npx supabase functions delete <name> --project-ref clsjdxwbsjbhjibvlqbz
+```
+CLI authentication uses a cached token from a prior `npx supabase login` — check memory for auth state before assuming. If CLI fails with auth errors, run `npx supabase login` first. **Known gotcha:** a BOM character in `.env.local` has historically blocked CLI deploys (strip with `sed -i '1s/^\xEF\xBB\xBF//' .env.local`).
+
+**3. MCP direct deploy (emergency bypass)**
+- Tool: `mcp__supabase__deploy_edge_function`
+- Requires sending full file content inline — **MCP parameter limits can truncate large functions** (e.g. `ai-report-assistant` at ~135KB). Prefer CLI for anything over ~60KB.
+- After deploy, push to GitHub to keep source in sync.
+
+**MCP does NOT expose a delete tool.** Edge function deletions MUST go through CLI (option 2) or the Supabase dashboard.
+
+### Version Pinning — Two Layers
+
+**Layer 1: Dependency imports inside function source.** Always pin explicit versions, never floating ranges:
 ```typescript
 // Good
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-// Bad — floating versions break across environments
+// Bad — floating versions break across environments and between Lovable vs. CLI deploys
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 ```
+Lovable and direct CLI deploys can resolve `@2` to different minor versions, causing subtle breakage only one path catches.
+
+**Layer 2: Deployed function version numbers.** Supabase increments an integer version on every deploy. For the five critical functions below, **pin the current production version in this doc** so drift is visible on sight. After every deploy of these functions, update the version number in the tables above.
+
+Always read full file contents (no truncation) before deploying via MCP. See `.cursorrules` for the complete deployment checklist.
 
 ---
 
 ## Database Migrations
 
-**339 sequential migrations** in `supabase/migrations/`. File naming: `{UTC_timestamp}_{name}.sql`.
+**343 sequential migrations** in `supabase/migrations/` (as of Apr 15, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -337,7 +370,55 @@ Users can @mention team members in project notes. Tagged users see a notificatio
 
 **Data flow:** Note created → `useProjectNotes.addNote` resolves mentions → inserts `note_mentions` + `user_notifications` rows → real-time subscription fires → `useUnreadMentions` (TanStack Query with shared key) updates all instances (bell, sidebar, mentions page) → optimistic cache update on mark-as-read for instant UI response.
 
-**Mentionable users:** Only active internal employees with linked auth accounts (`payees.user_id IS NOT NULL`). Display name from `payee_name` (not `full_name` which is null for all internal employees).
+**Mentionable users:** Sourced via the `get_mentionable_employees()` SECURITY DEFINER RPC, which returns one row per role-holder regardless of payee state — see Architectural Rule 11 below. Display name resolution: `payees.payee_name` → `profiles.full_name` → email local-part.
+
+### 11. Employees vs Payees (Apr 2026)
+
+> **Users are the employees.** An employee is an `auth.users` row with at least one `user_roles` entry. The internal `payees` row (`is_internal=true`) is a **shadow record** that exists only to satisfy FK constraints on 7 accounting tables (`expenses`, `contracts`, `change_order_line_items`, `quotes`, `receipts`, `pending_payee_reviews`, `projects.owner_id`).
+
+**The bridge is one column:** `payees.user_id` (uuid, nullable, FK to `auth.users(id)`, `ON DELETE SET NULL`). Setting it links the accounting record to the auth user. Nothing else makes the connection.
+
+**Why this isn't collapsed into one table:** 600+ live expense rows reference internal payees. The accounting ledger is load-bearing history; we cannot rename or delete `payees`.
+
+#### The unified surfaces
+
+| Surface | What it does | Source |
+|---|---|---|
+| `/role-management` → Users & Roles table (single table) | One row per user with columns for Roles, **Messages**, **Expense & time setup**, Password, Sign-in, Actions. The three employee-facing attributes sit side-by-side: **Roles** (access), **Messages** (clickable On/Off toggle — backed by `profiles.can_be_mentioned`, defaults On if user has any role), **Expense & time setup** (payee state: Enabled / Not enabled (optional) / Required red for field workers / Unattached / Retired) with inline quick-fix buttons (Enable / Set up / Attach / Retire / Restore / Delete). The 3-dot menu has Edit / Reset Password / **Deactivate User** / Delete User. | Joins existing `get_user_auth_status` (users list) with `get_employees_audit()` keyed by `user_id`; Messages toggle writes via `set_user_can_be_mentioned(target_user_id, value)` SECURITY DEFINER RPC (admin-gated) |
+| `@mention` autocomplete | Lists every active role-holder for any authenticated caller | `get_mentionable_employees()` RPC (SECURITY DEFINER bypasses cross-user RLS on profiles/auth.users) |
+| `CreateUserModal` | Creates auth user → role. Auto-creates a linked internal payee **only when role is `field_worker`** (they log labor → expenses need `payee_id`). Admins/managers don't get an auto-payee — they don't need one unless they become project owners or receive expense allocations, and the admin can add one on demand from Role Management via the "Set up" ghost button in the Employee record column. | client-side after `admin-create-user` succeeds |
+| `admin-disable-user` edge function (v102) | Bans auth → flips `profiles.is_active` → best-effort flips `payees.is_active=false` for the linked internal payee. Payee step is non-blocking; auth disable is the source of truth. Invoked from the **Deactivate User** menu item. | edge function |
+| `PayeeForm` for `is_internal=true` payees | Banner + locked fieldset; only Notes editable. Redirects to Role Management. | UI lock |
+| `/payees` page | Defaults to **excluding** internal employees ("Show employee records (read-only)" toggle to reveal). | `PayeesList` filter |
+
+**UI surface history:** An earlier pass used a separate "Accounting Linkage" / "Employees" card above the Users & Roles table. That duplicated the user list and forced admins to mentally merge two views. Collapsed into the single Users & Roles table Apr 15, 2026 ([src/components/role-management/EmployeeAuditSection.tsx](src/components/role-management/EmployeeAuditSection.tsx) is still in the repo but unused — safe rollback point if needed).
+
+#### Structural guardrails (DB level)
+
+- **`idx_payees_user_id_internal_unique`** — unique partial index `ON payees(user_id) WHERE is_internal AND user_id IS NOT NULL`. Prevents a single auth user from having more than one linked internal payee. Auto-create handlers treat `23505` as benign (no-op success).
+- `payees.user_id` FK → `auth.users(id) ON DELETE SET NULL` — deleting an auth user nulls the payee link but preserves the payee row + its expense history.
+
+#### Common pitfalls
+
+1. **Only field workers get auto-payees.** Admins and managers do not. They're allowed to have a payee (for project-owner assignments or occasional expense allocations) but the auto-create flow will not make one — it would clutter WorkerPicker and create unnecessary accounting records. Admin can add one on demand via Role Management → "Add anyway".
+2. **`NO_PAYEE` is only a problem for field workers.** In `EmployeeAuditSection`, admin/manager users without a payee render in the collapsed "other users" section as valid, not as "needs attention". Field workers without a payee are red.
+3. **Don't add an `app_role` enum value without UI guards.** `manager` exists but has zero assignments today; sidebars and time-entry forms already gate on `isManager`.
+4. **Don't query `payees` directly for "who can be @mentioned".** The view of truth is the RPC. Querying payees misses role-holders whose payee row is missing or unlinked.
+5. **Don't edit internal payees from `PayeeForm`.** They're locked. Use Role Management. The lock prevents drift between the auth side and the accounting side.
+6. **Retire is the default soft-delete; hard Delete is reference-gated.** Role Management exposes two destructive actions on an Unattached employee record: **Retire** (flips `is_active=false`, always safe) and **Delete permanently** (hard `DELETE FROM payees`, which Postgres blocks via the 7 FK constraints if anything references it). The UI doesn't pre-check — the DB is the source of truth. On FK violation (`23503`) the hook translates the error into plain language and tells the admin to use Retire instead. The unique partial index on `(user_id) WHERE is_internal AND user_id IS NOT NULL` keeps "one active internal payee per user" invariant; inactive/retired ones are fine.
+
+#### Verifying linkage health (admin SQL)
+
+```sql
+-- "Needs attention" count:
+--   PAYEE_NOT_LINKED or PAYEE_INACTIVE (always a problem), plus
+--   NO_PAYEE for field workers only (admins/managers without payees are valid)
+SELECT COUNT(*)
+FROM public.get_employees_audit()
+WHERE linkage_status IN ('PAYEE_NOT_LINKED', 'PAYEE_INACTIVE')
+   OR (linkage_status = 'NO_PAYEE' AND 'field_worker' = ANY(roles));
+-- Expect zero.
+```
 
 ---
 
@@ -493,6 +574,10 @@ Use this list when doing periodic documentation reviews:
 19. **Bids → Leads is UI-only (Apr 2026)** — User-facing strings, route paths (`/leads/*`), nav, and page titles all say "Lead". The DB layer is **intentionally unchanged**: tables (`branch_bids`, `bid_media`, `bid_notes`), columns (`bid_id` FKs), storage buckets (`bid-media`, `bid-documents`), TanStack Query keys (`['bid-media', bidId]`), and TS types in `src/types/bid.ts` (`BranchBid`, `BidMedia`, `BidNote`) all keep their legacy names. Renaming buckets in Supabase is non-trivial (object copy + RLS rewrite + URL rebuild) — skipped because the labels are the only thing users see. Old `/branch-bids/*` URLs redirect to `/leads/*` via the `LegacyBidRedirect` wrapper in `App.tsx`, which uses `useParams()` because `<Navigate>` doesn't interpolate route params. **Do NOT "finish the rename" by touching DB names** — it's a coordination cost with zero functional gain.
 
 20. **Project → Category lock for overhead projects (Apr 2026)** — See "Key Architectural Rules → 6a." Three layers (DB trigger + importer + form) enforce that an expense's `category` matches `projects.default_expense_category` whenever the project has one set. The trigger silently overrides; never raises. Common pitfall: writing test SQL like `INSERT INTO expenses (project_id='001-GAS', category='materials')` will succeed but the row's category will be `gas` after the trigger runs. Verify with the SQL in section 6a.
+
+21. **Supabase preview branches are usable for risky work — but local migration files are placeholder-only, so a fresh branch comes up `MIGRATIONS_FAILED`** (Apr 2026). The branch DB still gets ~290 of the 343 migrations replayed (anything that landed via Lovable's dashboard before this codebase moved to the placeholder convention). For most schema work — including all of Architectural Rule 11's new RPCs/index — that's enough. Workflow: `mcp create_branch` → seed test data with `execute_sql` → `apply_migration` to branch + production with the same SQL → develop UI on a git feature branch → `npx supabase functions deploy` for any edge function changes → push → PR → `delete_branch` to stop the $0.01344/hr meter. Do **not** call `merge_branch` — the MIGRATIONS_FAILED state blocks it, and we manage schema changes the existing way (via `apply_migration` on production).
+
+22. **Internal employees are accounting plumbing, not a user-facing concept (Apr 2026)** — See Architectural Rule 11. The bridge from auth user → internal payee is a single nullable column (`payees.user_id`) with no auto-sync. Cleanup added a unique partial index, two SECURITY DEFINER RPCs (`get_mentionable_employees`, `get_employees_audit`), an Accounting Linkage section in `/role-management`, locked editing of internal payees in `PayeeForm`, default-hidden internal payees in `/payees`, auto-create payee on user creation in `CreateUserModal`, and cascade-deactivate in `admin-disable-user` (v102). Common pitfall: querying `payees` directly to determine "who can be @mentioned" — use `get_mentionable_employees()` instead, since it returns role-holders even when their payee row is missing or unlinked.
 
 ---
 

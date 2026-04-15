@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoles, AppRole } from '@/contexts/RoleContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +23,27 @@ import { DeleteUserDialog } from '@/components/DeleteUserDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreVertical, UserCog } from 'lucide-react';
 import { ActiveTimersTable } from '@/components/role-management/ActiveTimersTable';
+import {
+  useEmployeesAudit,
+  useCreateLinkedPayee,
+  useLinkExistingPayee,
+  useDeactivatePayee,
+  useReactivatePayee,
+  useHardDeletePayee,
+  useToggleMentionable,
+  type EmployeeAuditRow,
+} from '@/hooks/useEmployeesAudit';
+import { AlertTriangle, CheckCircle2, Link2, Plus, Archive, UserX, RotateCcw, MessageSquare } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
@@ -59,6 +80,25 @@ export default function RoleManagement() {
   const [bulkRoleOpen, setBulkRoleOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [deactivateUserTarget, setDeactivateUserTarget] = useState<UserWithRoles | null>(null);
+  const [deactivatingUser, setDeactivatingUser] = useState(false);
+
+  // Employee record (payee) data — keyed by user_id so each row in the Users table
+  // can show its own payee status + actions without a separate section.
+  const { data: auditRows } = useEmployeesAudit();
+  const auditByUserId = useMemo(() => {
+    const map = new Map<string, EmployeeAuditRow>();
+    (auditRows ?? []).forEach((r) => map.set(r.user_id, r));
+    return map;
+  }, [auditRows]);
+  const createLinkedPayee = useCreateLinkedPayee();
+  const linkExistingPayee = useLinkExistingPayee();
+  const deactivatePayee = useDeactivatePayee();
+  const reactivatePayee = useReactivatePayee();
+  const hardDeletePayee = useHardDeletePayee();
+  const toggleMentionable = useToggleMentionable();
+  const [payeeRetireTarget, setPayeeRetireTarget] = useState<EmployeeAuditRow | null>(null);
+  const [payeeDeleteTarget, setPayeeDeleteTarget] = useState<EmployeeAuditRow | null>(null);
 
   useEffect(() => {
     if (!rolesLoading && !isAdmin) {
@@ -317,6 +357,150 @@ export default function RoleManagement() {
     </Card>
   );
 
+  // Helper: one-line summary + inline actions describing the user's employee (payee) state.
+  // Compact on purpose — details live in the dialog confirms. See Architectural Rule 11.
+  const renderEmployeeRecord = (user: UserWithRoles) => {
+    const audit = auditByUserId.get(user.id);
+    const isFieldWorker = user.roles.includes('field_worker');
+    const busy = createLinkedPayee.isPending || linkExistingPayee.isPending
+      || deactivatePayee.isPending || reactivatePayee.isPending;
+
+    if (!audit) {
+      // User has no role → not in the audit set. Usually won't render if filtered, but be safe.
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+
+    switch (audit.linkage_status) {
+      case 'OK':
+        return (
+          <div className="flex items-center gap-2 text-xs">
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px] gap-1">
+              <CheckCircle2 className="h-3 w-3 text-green-600" /> Enabled
+            </Badge>
+            {audit.provides_labor === true && (
+              <span className="text-[10px] text-muted-foreground">logs time</span>
+            )}
+          </div>
+        );
+      case 'NO_PAYEE':
+        if (isFieldWorker) {
+          return (
+            <div className="flex items-center gap-2">
+              <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
+                <AlertTriangle className="h-3 w-3" /> Required
+              </Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[11px] px-2"
+                disabled={busy}
+                onClick={() => createLinkedPayee.mutate(audit)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Enable
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Not enabled</span>
+            <span className="text-[10px]">(optional)</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[11px] px-2 text-muted-foreground"
+              disabled={busy}
+              onClick={() => createLinkedPayee.mutate(audit)}
+              title="Only needed if they'll own a project or be billed an expense"
+            >
+              Enable
+            </Button>
+          </div>
+        );
+      case 'PAYEE_NOT_LINKED':
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1" title={`An employee record named "${audit.payee_name ?? ''}" exists with this email but isn't attached to this user`}>
+              <AlertTriangle className="h-3 w-3" /> Unattached
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] px-2"
+              disabled={busy}
+              onClick={() => linkExistingPayee.mutate(audit)}
+              title={`Attach the existing "${audit.payee_name ?? ''}" record to this user`}
+            >
+              <Link2 className="h-3 w-3 mr-1" />
+              Attach
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[11px] px-2 text-muted-foreground"
+              disabled={busy}
+              onClick={() => setPayeeRetireTarget(audit)}
+              title="Retire the existing record (keeps history, marks inactive)"
+            >
+              Retire
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[11px] px-2 text-destructive hover:text-destructive"
+              disabled={busy || hardDeletePayee.isPending}
+              onClick={() => setPayeeDeleteTarget(audit)}
+              title="Delete permanently — only succeeds if nothing in the system references this record"
+            >
+              Delete
+            </Button>
+          </div>
+        );
+      case 'PAYEE_INACTIVE':
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+              Retired
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] px-2"
+              disabled={busy || !audit.payee_id}
+              onClick={() => audit.payee_id && reactivatePayee.mutate(audit.payee_id)}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Restore
+            </Button>
+          </div>
+        );
+      default:
+        return <span className="text-xs text-muted-foreground">—</span>;
+    }
+  };
+
+  const handleDeactivateUser = async (target: UserWithRoles) => {
+    setDeactivatingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-disable-user', {
+        body: { userId: target.id },
+      });
+      if (error) throw error;
+      if (data && data.success === false) {
+        throw new Error(data.error || 'Failed to deactivate user');
+      }
+      toast.success(`${target.full_name || target.email} deactivated`);
+      setDeactivateUserTarget(null);
+      await loadUsers();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast.error(`Failed to deactivate: ${msg}`);
+    } finally {
+      setDeactivatingUser(false);
+    }
+  };
+
   if (rolesLoading || loading) {
     return (
       <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
@@ -510,7 +694,7 @@ export default function RoleManagement() {
                               variant="ghost"
                               className="w-full justify-between px-3 py-2 h-auto hover:bg-muted/50 border-t"
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {user.roles.length === 0 ? (
                                   <span className="text-xs text-muted-foreground">No roles assigned</span>
                                 ) : (
@@ -522,6 +706,40 @@ export default function RoleManagement() {
                                     ))}
                                   </div>
                                 )}
+                                {/* Employee record status chip */}
+                                {(() => {
+                                  const audit = auditByUserId.get(user.id);
+                                  if (!audit) return null;
+                                  if (audit.linkage_status === 'OK') {
+                                    return (
+                                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px] gap-1">
+                                        <CheckCircle2 className="h-3 w-3 text-green-600" /> Employee
+                                      </Badge>
+                                    );
+                                  }
+                                  if (audit.linkage_status === 'NO_PAYEE' && user.roles.includes('field_worker')) {
+                                    return (
+                                      <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
+                                        <AlertTriangle className="h-3 w-3" /> Required
+                                      </Badge>
+                                    );
+                                  }
+                                  if (audit.linkage_status === 'PAYEE_NOT_LINKED') {
+                                    return (
+                                      <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
+                                        <AlertTriangle className="h-3 w-3" /> Unattached
+                                      </Badge>
+                                    );
+                                  }
+                                  if (audit.linkage_status === 'PAYEE_INACTIVE') {
+                                    return (
+                                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                                        Retired
+                                      </Badge>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                               <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                             </Button>
@@ -552,6 +770,45 @@ export default function RoleManagement() {
                                     ))
                                   )}
                                 </div>
+                              </div>
+
+                              {/* Messages — clickable toggle (requires a role) */}
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="text-xs font-medium text-muted-foreground">Messages</div>
+                                {user.roles.length === 0 ? (
+                                  <span className="text-xs text-muted-foreground">Off — user has no role</span>
+                                ) : (() => {
+                                  const audit = auditByUserId.get(user.id);
+                                  const mentionOn = audit?.can_be_mentioned ?? true;
+                                  return (
+                                    <div className="flex flex-col gap-1">
+                                      <Button
+                                        type="button"
+                                        variant={mentionOn ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        className="h-5 px-1.5 text-[10px] gap-1 w-fit"
+                                        disabled={toggleMentionable.isPending || !audit}
+                                        onClick={() =>
+                                          toggleMentionable.mutate({ userId: user.id, canBeMentioned: !mentionOn })
+                                        }
+                                      >
+                                        <MessageSquare className={`h-3 w-3 ${mentionOn ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                                        {mentionOn ? 'On · can be @mentioned' : 'Off · hidden from @mentions'}
+                                      </Button>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {mentionOn
+                                          ? 'Tap the chip to exclude them from @mentions'
+                                          : 'Tap the chip to include them in @mentions'}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+
+                              {/* Expense & time setup (payee linkage) */}
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="text-xs font-medium text-muted-foreground">Expense & time setup</div>
+                                {renderEmployeeRecord(user)}
                               </div>
 
                               {/* Account Info */}
@@ -605,7 +862,7 @@ export default function RoleManagement() {
                                       <MoreVertical className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuContent align="end" className="w-52">
                                     <DropdownMenuItem onClick={() => openEditProfile(user)} className="text-xs">
                                       <UserCog className="h-3 w-3 mr-2" />
                                       Edit Profile
@@ -616,8 +873,17 @@ export default function RoleManagement() {
                                       Reset Password
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => openDeleteUser(user)} 
+                                    {user.is_active !== false && (
+                                      <DropdownMenuItem
+                                        onClick={() => setDeactivateUserTarget(user)}
+                                        className="text-xs text-amber-700 focus:text-amber-700"
+                                      >
+                                        <UserX className="h-3 w-3 mr-2" />
+                                        Deactivate User
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onClick={() => openDeleteUser(user)}
                                       className="text-xs text-destructive focus:text-destructive"
                                     >
                                       <Trash2 className="h-3 w-3 mr-2" />
@@ -647,6 +913,8 @@ export default function RoleManagement() {
                         </TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Roles</TableHead>
+                        <TableHead>Messages</TableHead>
+                        <TableHead>Expense &amp; time setup</TableHead>
                         <TableHead>Password Status</TableHead>
                         <TableHead>Last Sign-In</TableHead>
                         <TableHead>Last Active</TableHead>
@@ -702,6 +970,39 @@ export default function RoleManagement() {
                                 )}
                               </div>
                             </TableCell>
+
+                            {/* Messages — clickable toggle (requires a role) */}
+                            <TableCell>
+                              {user.roles.length === 0 ? (
+                                <span className="text-xs text-muted-foreground" title="User has no role — cannot be @mentioned">—</span>
+                              ) : (() => {
+                                const audit = auditByUserId.get(user.id);
+                                const mentionOn = audit?.can_be_mentioned ?? true;
+                                return (
+                                  <Button
+                                    type="button"
+                                    variant={mentionOn ? 'secondary' : 'outline'}
+                                    size="sm"
+                                    className="h-5 px-1.5 text-[10px] gap-1"
+                                    disabled={toggleMentionable.isPending || !audit}
+                                    onClick={() =>
+                                      toggleMentionable.mutate({ userId: user.id, canBeMentioned: !mentionOn })
+                                    }
+                                    title={
+                                      mentionOn
+                                        ? 'Click to exclude this user from @mentions (they can still log in)'
+                                        : 'Click to include this user in @mentions'
+                                    }
+                                  >
+                                    <MessageSquare className={`h-3 w-3 ${mentionOn ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                                    {mentionOn ? 'On' : 'Off'}
+                                  </Button>
+                                );
+                              })()}
+                            </TableCell>
+
+                            {/* Employee Record Column */}
+                            <TableCell>{renderEmployeeRecord(user)}</TableCell>
 
                             {/* Password Status Column */}
                             <TableCell>
@@ -776,7 +1077,7 @@ export default function RoleManagement() {
                                       <MoreVertical className="h-3.5 w-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuContent align="end" className="w-52">
                                     <DropdownMenuItem onClick={() => openEditProfile(user)} className="text-xs">
                                       <UserCog className="h-3 w-3 mr-2" />
                                       Edit Profile
@@ -787,8 +1088,17 @@ export default function RoleManagement() {
                                       Reset Password
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => openDeleteUser(user)} 
+                                    {user.is_active !== false && (
+                                      <DropdownMenuItem
+                                        onClick={() => setDeactivateUserTarget(user)}
+                                        className="text-xs text-amber-700 focus:text-amber-700"
+                                      >
+                                        <UserX className="h-3 w-3 mr-2" />
+                                        Deactivate User
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onClick={() => openDeleteUser(user)}
                                       className="text-xs text-destructive focus:text-destructive"
                                     >
                                       <Trash2 className="h-3 w-3 mr-2" />
@@ -838,6 +1148,100 @@ export default function RoleManagement() {
           />
         </>
       )}
+
+      {/* Deactivate User confirmation */}
+      <AlertDialog
+        open={deactivateUserTarget !== null}
+        onOpenChange={(open) => !open && setDeactivateUserTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium">{deactivateUserTarget?.full_name || deactivateUserTarget?.email}</span> will be signed out and blocked from logging in. Their employee record is retired too — they won't appear in @mentions or the time tracker. All of their historical data (expenses, time entries, notes) stays intact. You can bring them back later, or delete permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deactivatingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deactivatingUser}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deactivateUserTarget) handleDeactivateUser(deactivateUserTarget);
+              }}
+            >
+              {deactivatingUser ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Hard delete employee record confirmation */}
+      <AlertDialog
+        open={payeeDeleteTarget !== null}
+        onOpenChange={(open) => !open && setPayeeDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this record permanently?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">{payeeDeleteTarget?.payee_name}</span> will be removed from the database entirely. This cannot be undone.
+                </p>
+                <p>
+                  The database will block this if anything still points at this record (expenses, contracts, quotes, receipts, change-order lines, project ownership). In that case we'll show an error and you should use <span className="font-medium text-foreground">Retire</span> instead, which keeps the audit trail intact.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={hardDeletePayee.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (payeeDeleteTarget?.payee_id) {
+                  hardDeletePayee.mutate(payeeDeleteTarget.payee_id, {
+                    onSettled: () => setPayeeDeleteTarget(null),
+                  });
+                }
+              }}
+            >
+              {hardDeletePayee.isPending ? 'Deleting...' : 'Delete permanently'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Retire employee record confirmation */}
+      <AlertDialog
+        open={payeeRetireTarget !== null}
+        onOpenChange={(open) => !open && setPayeeRetireTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retire this record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This retires <span className="font-medium">{payeeRetireTarget?.payee_name}</span>. The user's login and role are unaffected. Past expenses and contracts stay intact. Use this when the record is a duplicate or legacy placeholder.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (payeeRetireTarget?.payee_id) {
+                  deactivatePayee.mutate(payeeRetireTarget.payee_id);
+                }
+                setPayeeRetireTarget(null);
+              }}
+            >
+              Retire
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Active Timers Section - Admin Only */}
       <Card className="mt-6">

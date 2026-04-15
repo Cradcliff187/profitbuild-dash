@@ -116,10 +116,28 @@ Deno.serve(async (req) => {
         }
       });
 
+    // Best-effort cascade: deactivate the linked internal payee so the user drops
+    // from @mentions, WorkerPicker, and any other is_active=true filter. Do not
+    // roll back the auth disable if this fails — auth is the source of truth and
+    // the admin can reconcile from Role Management → Accounting Linkage.
+    // See Architectural Rule 11 in CLAUDE.md.
+    try {
+      const { error: payeeError } = await serviceClient
+        .from('payees')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('is_internal', true);
+      if (payeeError) {
+        console.error('Linked payee deactivate failed (user still disabled successfully):', payeeError);
+      }
+    } catch (payeeErr) {
+      console.error('Linked payee deactivate threw (user still disabled successfully):', payeeErr);
+    }
+
     console.log(`User ${userId} deactivated successfully by admin ${user.id}`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'User deactivated successfully'
       }),

@@ -47,6 +47,9 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
   const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  // Internal employees are managed from /role-management. Hidden by default here so
+  // admins see only the vendors/subs/materials side. See Architectural Rule 11 in CLAUDE.md.
+  const [includeInternalEmployees, setIncludeInternalEmployees] = useState(false);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const isSubmittingRef = useRef(false);
@@ -162,6 +165,11 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
   // Filtered payees based on search and filters
   const filteredPayees = useMemo(() => {
     return payees.filter(payee => {
+      // Hide internal employees from this page by default — they're managed via /role-management.
+      if (!includeInternalEmployees && payee.is_internal) {
+        return false;
+      }
+
       // Search filter
       const matchesSearch = payee.payee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -302,6 +310,30 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
   };
 
   const hasActiveFilters = searchTerm !== "" || selectedType !== "all" || servicesFilter !== "all";
+
+  const internalHiddenCount = useMemo(
+    () => payees.filter((p) => p.is_internal).length,
+    [payees]
+  );
+
+  const internalToggle = (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground px-1 py-1">
+      <Checkbox
+        id="include-employee-records"
+        checked={includeInternalEmployees}
+        onCheckedChange={(v) => setIncludeInternalEmployees(v === true)}
+        className="h-3.5 w-3.5"
+      />
+      <label htmlFor="include-employee-records" className="cursor-pointer">
+        Show employee records (read-only)
+        {!includeInternalEmployees && internalHiddenCount > 0 && (
+          <span className="ml-1 text-[10px]">
+            — {internalHiddenCount} hidden; manage employees in <a href="/role-management" className="underline hover:text-foreground">Role Management</a>
+          </span>
+        )}
+      </label>
+    </div>
+  );
 
   const columns = [
     {
@@ -474,17 +506,20 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
           onSelectAll={handleSelectAll}
           renderActions={renderActions}
           filters={
-            <PayeeFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
-              servicesFilter={servicesFilter}
-              onServicesFilterChange={setServicesFilter}
-              onClearFilters={clearFilters}
-              hasActiveFilters={hasActiveFilters}
-              resultCount={filteredPayees.length}
-            />
+            <div className="space-y-1">
+              {internalToggle}
+              <PayeeFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                selectedType={selectedType}
+                onTypeChange={setSelectedType}
+                servicesFilter={servicesFilter}
+                onServicesFilterChange={setServicesFilter}
+                onClearFilters={clearFilters}
+                hasActiveFilters={hasActiveFilters}
+                resultCount={filteredPayees.length}
+              />
+            </div>
           }
           bulkActions={
             selectedPayees.length > 0 ? (
@@ -503,6 +538,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
 
       {/* Mobile Card View */}
       <div className="sm:hidden space-y-3 pb-20 w-full max-w-full min-w-0">
+        {internalToggle}
         <PayeeFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
