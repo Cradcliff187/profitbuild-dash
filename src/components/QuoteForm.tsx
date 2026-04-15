@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer, MoreHorizontal, Trash2 } from "lucide-react";
+import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer, MoreHorizontal, Trash2, Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +117,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     return estimates.find(e => e.id === initialQuote.estimate_id) || undefined;
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
+  const [projectComboOpen, setProjectComboOpen] = useState(false);
   const [selectedLineItemIds, setSelectedLineItemIds] = useState<string[]>([]);
   const [selectedPayee, setSelectedPayee] = useState<Payee>();
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
@@ -756,25 +759,55 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                 <Label className="text-sm font-medium">
                   Project <span className="text-destructive">*</span>
                 </Label>
-                <Select 
-                  value={selectedProjectId ?? ""} 
-                  onValueChange={(value) => {
-                    setSelectedProjectId(value);
-                    setSelectedEstimate(undefined); // Reset estimate when project changes
-                  }}
-                  disabled={isViewMode}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueProjects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.project_number} - {project.project_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={projectComboOpen} onOpenChange={setProjectComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={projectComboOpen}
+                      className="w-full justify-between font-normal"
+                      disabled={isViewMode}
+                    >
+                      {selectedProjectId
+                        ? (() => {
+                            const p = uniqueProjects.find(pr => pr.id === selectedProjectId);
+                            return p ? `${p.project_number} - ${p.project_name}` : "Select project...";
+                          })()
+                        : "Select project..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search project number, name, or client..." />
+                      <CommandList>
+                        <CommandEmpty>No projects match.</CommandEmpty>
+                        <CommandGroup>
+                          {uniqueProjects.map(project => (
+                            <CommandItem
+                              key={project.id}
+                              value={`${project.project_number} ${project.project_name}`}
+                              onSelect={() => {
+                                setSelectedProjectId(project.id);
+                                setSelectedEstimate(undefined); // Reset estimate when project changes
+                                setProjectComboOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedProjectId === project.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {project.project_number} - {project.project_name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               {/* Estimate Dropdown (only enabled after project selected) */}
@@ -1323,6 +1356,38 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                     <span className="text-muted-foreground">Quote Total:</span>
                     <span className="font-mono">{formatCurrency(quoteFinancials.totalCost)}</span>
                   </div>
+                  {(() => {
+                    // Variance convention matches per-line rows above: estimate - quote.
+                    // Positive = under estimate (good). Negative = quote exceeds estimate (warning).
+                    const variance = estimateFinancials.totalCost - quoteFinancials.totalCost;
+                    const isOverEstimate = variance < 0;
+                    return (
+                      <div className={cn(
+                        "flex justify-between items-center",
+                        variance > 0 && "text-green-600",
+                        isOverEstimate && "text-destructive"
+                      )}>
+                        <span className="flex items-center gap-1.5">
+                          {isOverEstimate && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertTriangle className="h-3.5 w-3.5" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  This quote exceeds the estimate by{" "}
+                                  {formatCurrency(Math.abs(variance))}. The quote will still save —
+                                  review pricing before accepting.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <span>Variance vs. Estimate:</span>
+                        </span>
+                        <span className="font-mono">{formatCurrency(variance)}</span>
+                      </div>
+                    );
+                  })()}
                   <Separator />
                   <div className={cn(
                     "flex justify-between font-medium",
