@@ -104,7 +104,7 @@ export function validateProjectMargin(
     adjusted_est_costs?: number | null;
     original_est_costs?: number | null;
     contracted_amount?: number | null;
-    projected_margin?: number | null;
+    adjusted_est_margin?: number | null;
   },
   quoteLineItems?: Array<{ total_cost: number | null; total: number | null }>
 ): string[] {
@@ -132,9 +132,9 @@ export function validateProjectMargin(
   }
   
   // Check for negative margin
-  const projectedMargin = project.adjusted_est_margin || 0;
-  if (projectedMargin < 0) {
-    warnings.push(`⚠ Negative projected margin ($${projectedMargin.toFixed(0)}). Costs exceed revenue.`);
+  const adjustedEstMargin = project.adjusted_est_margin || 0;
+  if (adjustedEstMargin < 0) {
+    warnings.push(`⚠ Negative adjusted estimated margin ($${adjustedEstMargin.toFixed(0)}). Costs exceed revenue.`);
   }
   
   return warnings;

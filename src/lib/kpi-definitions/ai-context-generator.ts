@@ -283,7 +283,7 @@ ${formatted}`;
 function generateKPIReference(): string {
   const financialKPIs = projectFinancialKPIs
     .filter(k => k.source === 'database' || k.source === 'view')
-    .filter(k => ['contracted_amount', 'total_invoiced', 'actual_margin', 'current_margin',
+    .filter(k => ['contracted_amount', 'total_invoiced', 'actual_margin', 'adjusted_est_margin',
                   'total_expenses', 'cost_variance', 'contingency_remaining'].includes(k.id))
     .map(k => `- **${k.name}** (\`${k.field}\`): ${k.notes || k.formula}`)
     .join('\n');

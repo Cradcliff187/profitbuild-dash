@@ -190,17 +190,17 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     relatedTo: ['adjusted_est_margin', 'margin_percentage'],
   },
   
-  // Calculated client-side from actual_margin and total_invoiced
+  // Exposed directly by the reporting.project_financials view
   {
     id: 'actual_margin_percent',
     name: 'Actual Margin %',
-    source: 'frontend',
-    field: 'calculated',
+    source: 'view',
+    field: 'reporting.project_financials.actual_margin_percent',
     formula: '(actual_margin / total_invoiced) × 100',
     dataType: 'percent',
     domain: 'project',
     whereUsed: 'Completed project analysis, profit reports',
-    notes: 'Actual realized margin as percentage of actual revenue. Calculated client-side from actual_margin and total_invoiced (both available from reporting.project_financials view).',
+    notes: 'Actual realized margin as percentage of actual revenue. Computed by the reporting.project_financials view — read it directly, do not recompute client-side.',
     aliases: ['real margin %', 'true margin %', 'profit %'],
     relatedTo: ['actual_margin', 'total_invoiced'],
     preferWhen: 'User asks about actual margin percentage for completed work',
@@ -279,13 +279,13 @@ export const projectFinancialKPIs: KPIMeasure[] = [
     name: 'Budget Utilization %',
     source: 'view',
     field: 'reporting.project_financials.budget_utilization_percent',
-    formula: '(total_expenses / contracted_amount) × 100',
+    formula: '(total_expenses / adjusted_est_costs) × 100',
     dataType: 'percent',
     domain: 'project',
     whereUsed: 'Financial dashboards, project progress',
-    notes: 'Percentage of contract value consumed by expenses. 100% = all revenue spent. View uses contracted_amount as denominator.',
+    notes: 'Percentage of the adjusted cost budget consumed by actual expenses. 100% = budget fully spent, >100% = over budget. View uses adjusted_est_costs as denominator (not contracted_amount).',
     aliases: ['budget used', 'burn rate', 'budget consumed'],
-    relatedTo: ['total_expenses', 'contracted_amount'],
+    relatedTo: ['total_expenses', 'adjusted_est_costs'],
   },
 
   // ==========================================================================
