@@ -56,7 +56,7 @@ export interface ReceiptsManagementRef {
 
 export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref) => {
   const isMobile = useIsMobile();
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [filters, setFilters] = useState<ReceiptFilters>({
     dateFrom: null,
     dateTo: null,

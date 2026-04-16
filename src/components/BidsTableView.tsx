@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { CompletePagination } from "@/components/ui/complete-pagination";
 import type { BranchBid } from "@/types/bid";
 
 interface BidsTableViewProps {
@@ -50,8 +51,8 @@ interface BidsTableViewProps {
   onPageChange?: (page: number) => void;
 }
 
-export const BidsTableView = ({ 
-  bids, 
+export const BidsTableView = ({
+  bids,
   onDelete,
   isLoading = false,
   selectedIds = [],
@@ -63,6 +64,12 @@ export const BidsTableView = ({
   sortDirection = 'asc',
   onSort,
   renderSortIcon,
+  totalCount,
+  pageSize,
+  onPageSizeChange,
+  currentPage,
+  totalPages,
+  onPageChange,
 }: BidsTableViewProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -118,6 +125,36 @@ export const BidsTableView = ({
       setDeleteConfirm({ open: false, bid: null });
     }
   };
+
+  const paginationFooter = (totalCount ?? 0) > 0 && pageSize ? (
+    <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Rows per page:</span>
+        <select
+          value={pageSize}
+          onChange={(e) => {
+            if (onPageSizeChange) {
+              onPageSizeChange(Number(e.target.value));
+            }
+          }}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+      </div>
+
+      {(totalCount ?? 0) > pageSize && onPageChange && currentPage !== undefined && totalPages !== undefined && (
+        <CompletePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
+      )}
+    </div>
+  ) : null;
 
   if (isLoading) {
     return (
@@ -190,6 +227,12 @@ export const BidsTableView = ({
             />
           ))}
         </div>
+
+        {paginationFooter && (
+          <div className="mt-3 px-2">
+            {paginationFooter}
+          </div>
+        )}
 
         <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm({ open, bid: null })}>
           <AlertDialogContent>
@@ -363,6 +406,12 @@ export const BidsTableView = ({
               </TableBody>
             </Table>
           </div>
+
+          {paginationFooter && (
+            <div className="p-3 border-t">
+              {paginationFooter}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -75,7 +75,7 @@ const WorkOrders = () => {
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [selectedWorkOrderForEdit, setSelectedWorkOrderForEdit] = useState<WorkOrderWithDetails | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);

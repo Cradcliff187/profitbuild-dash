@@ -21,6 +21,7 @@ import { BidFilters, BidSearchFilters } from '@/components/BidFilters';
 import { BidsTableView } from '@/components/BidsTableView';
 import { BidBulkActions } from '@/components/BidBulkActions';
 import { ColumnSelector } from '@/components/ui/column-selector';
+import { usePagination } from '@/hooks/usePagination';
 import type { BranchBid } from '@/types/bid';
 
 // Define column metadata for selector
@@ -43,6 +44,7 @@ export default function BranchBids() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [pageSize, setPageSize] = useState(50);
   
   // Form state
   const [name, setName] = useState('');
@@ -297,6 +299,17 @@ export default function BranchBids() {
     });
   }, [filteredBids, sortColumn, sortDirection]);
 
+  // Pagination
+  const pagination = usePagination({
+    totalItems: sortedBids.length,
+    pageSize,
+    initialPage: 1,
+  });
+
+  const paginatedBids = useMemo(() => {
+    return sortedBids.slice(pagination.startIndex, pagination.endIndex);
+  }, [sortedBids, pagination.startIndex, pagination.endIndex]);
+
   const handleSort = (columnKey: string) => {
     const column = columnDefinitions.find(col => col.key === columnKey);
     if (!column?.sortable) return;
@@ -323,7 +336,7 @@ export default function BranchBids() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(sortedBids.map((bid) => bid.id));
+      setSelectedIds(paginatedBids.map((bid) => bid.id));
     } else {
       setSelectedIds([]);
     }
@@ -482,7 +495,7 @@ export default function BranchBids() {
 
         {/* Table */}
         <BidsTableView
-          bids={sortedBids}
+          bids={paginatedBids}
           onDelete={(id) => deleteMutation.mutate(id)}
           selectedIds={selectedIds}
           onSelectAll={handleSelectAll}
@@ -493,6 +506,15 @@ export default function BranchBids() {
           sortDirection={sortDirection}
           onSort={handleSort}
           renderSortIcon={renderSortIcon}
+          totalCount={sortedBids.length}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            pagination.goToPage(1);
+          }}
+          currentPage={pagination.currentPage}
+          totalPages={Math.ceil(sortedBids.length / pageSize)}
+          onPageChange={pagination.goToPage}
         />
       </div>
 

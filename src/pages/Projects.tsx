@@ -61,7 +61,7 @@ const Projects = () => {
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
 
   // Apply URL parameters to filters on mount
   useEffect(() => {

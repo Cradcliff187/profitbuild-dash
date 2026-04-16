@@ -123,7 +123,7 @@ export interface ExpensesListRef {
 }
 
 export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>(
-  ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize: initialPageSize = 25, visibleColumns: externalVisibleColumns, onVisibleColumnsChange, columnOrder: externalColumnOrder, onColumnOrderChange }, ref) => {
+  ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize: initialPageSize = 50, visibleColumns: externalVisibleColumns, onVisibleColumnsChange, columnOrder: externalColumnOrder, onColumnOrderChange }, ref) => {
     const navigate = useNavigate();
     const isMobile = useIsMobile();
     const [pageSize, setPageSize] = useState(initialPageSize);

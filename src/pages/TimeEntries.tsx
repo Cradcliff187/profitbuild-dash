@@ -81,7 +81,7 @@ const TimeEntriesPage = () => {
   const [projects, setProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
   
   // Pagination state
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Receipt management ref

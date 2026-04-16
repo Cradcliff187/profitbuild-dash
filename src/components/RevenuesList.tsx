@@ -77,7 +77,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   onDelete,
   onRefresh,
   enablePagination = true,
-  pageSize: initialPageSize = 25,
+  pageSize: initialPageSize = 50,
   visibleColumns: externalVisibleColumns,
   onVisibleColumnsChange,
   columnOrder: externalColumnOrder,
