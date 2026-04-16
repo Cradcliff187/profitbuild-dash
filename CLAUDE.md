@@ -188,7 +188,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**343 sequential migrations** in `supabase/migrations/` (as of Apr 15, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**347 sequential migrations** in `supabase/migrations/` (as of Apr 16, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -638,6 +638,13 @@ Use this list when doing periodic documentation reviews:
 22. **Internal employees are accounting plumbing, not a user-facing concept (Apr 2026)** — See Architectural Rule 11. The bridge from auth user → internal payee is a single nullable column (`payees.user_id`) with no auto-sync. Cleanup added a unique partial index, two SECURITY DEFINER RPCs (`get_mentionable_employees`, `get_employees_audit`), an Accounting Linkage section in `/role-management`, locked editing of internal payees in `PayeeForm`, default-hidden internal payees in `/payees`, auto-create payee on user creation in `CreateUserModal`, and cascade-deactivate in `admin-disable-user` (v102). Common pitfall: querying `payees` directly to determine "who can be @mentioned" — use `get_mentionable_employees()` instead, since it returns role-holders even when their payee row is missing or unlinked.
 
 23. **PostgREST default 1,000-row cap on `expenses` (Apr 16, 2026)** — See Architectural Rule 12. At 1,278 rows, any unbounded `.from('expenses').select(...)` silently loses ~279 rows. The failure mode is invisible — no error, no warning, just missing data. Repro with `SELECT COUNT(*) FROM expenses WHERE is_split = false` — if it exceeds 1,000, grep the codebase for unfiltered `.from('expenses')` usages. Current offenders flagged in Outstanding Audit Items. Do NOT pass `.limit()` as a fix — bump to `.range(0, 9999)` as a tactical band-aid OR (better) route through `public.expenses_search` + `useExpensesQuery`.
+
+24. **Contingency sync chain (Apr 16, 2026)** — `projects.contingency_amount` and `projects.contingency_remaining` are NOT columns you should ever write to directly. They are maintained by the `update_contingency_remaining()` trigger function, which is polymorphic across `estimates` and `change_orders` via `TG_TABLE_NAME`:
+    - On `estimates` INSERT/UPDATE: syncs `contingency_amount` ONLY when `NEW.status = 'approved' AND NEW.is_current_version = true` (guard prevents draft/superseded edits from corrupting approved state). Always refreshes `contingency_remaining` via `calculate_contingency_remaining()`.
+    - On `change_orders` INSERT/UPDATE/DELETE: refreshes `contingency_remaining` only (amount is owned by the estimate).
+    - The frontend reads `projects.contingency_amount` and `projects.contingency_remaining` directly — no view indirection needed for this field. This is deliberate per Architectural Rule 1.
+    - **Common pitfall**: when debugging contingency display issues, don't assume the frontend is stale — check if `projects.contingency_amount` is NULL first. Backfill with: `UPDATE projects p SET contingency_amount = e.contingency_amount, contingency_remaining = calculate_contingency_remaining(p.id) FROM estimates e WHERE e.project_id = p.id AND e.status = 'approved' AND e.is_current_version = true;` (safe to re-run).
+    - **When adding sync for other estimate-derived columns** (e.g. if another `projects` field ends up NULL despite the estimate having data), follow this same polymorphic trigger pattern rather than creating a new one. Future-proofing: the `guard` condition (`status = 'approved' AND is_current_version = true`) is the important invariant to preserve.
 
 ---
 
