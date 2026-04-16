@@ -1,14 +1,5 @@
 import { differenceInDays, isAfter, isBefore, addDays } from 'date-fns';
-import type { Expense } from '@/types/expense';
 import type { Quote } from '@/types/quote';
-
-export interface BudgetStatus {
-  totalSpent: number;
-  remaining: number;
-  percentSpent: number;
-  status: 'good' | 'warning' | 'critical';
-  adjustedEstCosts?: number;
-}
 
 export interface ScheduleStatus {
   totalDays: number;
@@ -78,42 +69,6 @@ export async function getProjectScheduleDates(
   return {
     start: startDates.length > 0 ? new Date(Math.min(...startDates.map(d => d.getTime()))) : null,
     end: endDates.length > 0 ? new Date(Math.max(...endDates.map(d => d.getTime()))) : null
-  };
-}
-
-export function calculateBudgetStatus(
-  contracted: number | null | undefined,
-  expenses: Expense[],
-  adjustedEstCosts?: number | null
-): BudgetStatus {
-  const contractAmount = contracted || 0;
-  const estimatedCosts = adjustedEstCosts || 0;
-  
-  // Use display_amount if available (for split expenses), otherwise fall back to amount
-  const totalSpent = expenses.reduce((sum, e) => {
-    const amount = (e as any).display_amount ?? e.amount ?? 0;
-    return sum + amount;
-  }, 0);
-  
-  // Calculate remaining based on adjusted estimated costs vs spent
-  const remaining = estimatedCosts - totalSpent;
-  
-  // Calculate percentage spent against adjusted estimated costs
-  const percentSpent = estimatedCosts > 0 ? (totalSpent / estimatedCosts) * 100 : 0;
-  
-  let status: 'good' | 'warning' | 'critical' = 'good';
-  if (percentSpent > 90) {
-    status = 'critical';
-  } else if (percentSpent > 70) {
-    status = 'warning';
-  }
-  
-  return {
-    totalSpent,
-    remaining,
-    percentSpent,
-    status,
-    adjustedEstCosts: estimatedCosts
   };
 }
 

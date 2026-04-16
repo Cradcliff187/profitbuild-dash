@@ -24,7 +24,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, cn } from '@/lib/utils';
 import { getMarginThresholdStatus, getThresholdStatusColor } from '@/utils/thresholdUtils';
-import { calculateBudgetStatus, calculateScheduleStatus, getExpiringQuotes, getProjectScheduleDates } from '@/utils/projectDashboard';
+import { calculateScheduleStatus, getExpiringQuotes, getProjectScheduleDates } from '@/utils/projectDashboard';
 import { getContingencyColor } from '@/utils/financialColors';
 import type { Project } from '@/types/project';
 import type { Estimate } from '@/types/estimate';
@@ -347,12 +347,7 @@ export function ProjectOperationalDashboard({
     return items;
   }, [pendingTimeEntries, pendingReceipts, changeOrders, quotes, project, navigate, dataFreshness]);
 
-  const budgetStatus = useMemo(() => 
-    calculateBudgetStatus(project.contracted_amount, expenses, project.adjusted_est_costs),
-    [project.contracted_amount, expenses, project.adjusted_est_costs]
-  );
-
-  const scheduleStatus = useMemo(() => 
+  const scheduleStatus = useMemo(() =>
     calculateScheduleStatus(scheduleDates.start, scheduleDates.end, project.status),
     [scheduleDates.start, scheduleDates.end, project.status]
   );
@@ -604,68 +599,45 @@ export function ProjectOperationalDashboard({
         </CardContent>
       </Card>
 
-      {/* Budget Status + Contingency */}
-      {financialDisplay.showBudgetStatus && project.status !== 'cancelled' && (
+      {/* Contingency (budget metrics now live in Cost Tracking > Buckets) */}
+      {financialDisplay.showBudgetStatus
+        && project.status !== 'cancelled'
+        && (project.contingency_amount ?? 0) > 0 && (
         <Card>
           <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-tight">Budget Status</h3>
+              <h3 className="text-sm font-semibold tracking-tight">Contingency</h3>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Adjusted Est. Cost:</span>
-                <span className="font-medium">{formatCurrency(project.adjusted_est_costs)}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Spent:</span>
-                <span className="font-medium">{formatCurrency(budgetStatus.totalSpent)}</span>
-              </div>
-              <Progress 
-                value={budgetStatus.percentSpent} 
-                className={`h-2 ${
-                  budgetStatus.status === 'critical' ? '[&>div]:bg-destructive' :
-                  budgetStatus.status === 'warning' ? '[&>div]:bg-warning' :
-                  '[&>div]:bg-success'
-                }`}
-              />
-              <div className="flex justify-between text-xs">
-                <button
-                  onClick={() => navigate(`/projects/${project.id}/expenses`)}
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {budgetStatus.percentSpent.toFixed(1)}% spent →
-                </button>
-                <span className="font-medium">{formatCurrency(budgetStatus.remaining)} remaining</span>
-              </div>
-              {/* Contingency — inside Budget Status card, below existing progress bar */}
-              {(project.contingency_amount ?? 0) > 0 && (
-                <div className="mt-2 pt-2 border-t">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Contingency</span>
-                    <span
-                      className={getContingencyColor(
-                        ((project.contingency_remaining ?? 0) /
-                          (project.contingency_amount ?? 0)) *
-                          100
-                      )}
-                    >
-                      {formatCurrency(project.contingency_remaining ?? 0)} left
-                    </span>
-                  </div>
-                  <Progress
-                    value={
-                      ((project.contingency_remaining ?? 0) /
-                        (project.contingency_amount ?? 0)) *
-                      100
-                    }
-                    className="h-1.5"
-                  />
-                </div>
-              )}
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-muted-foreground">Remaining</span>
+              <span
+                className={getContingencyColor(
+                  ((project.contingency_remaining ?? 0) /
+                    (project.contingency_amount ?? 0)) *
+                    100
+                )}
+              >
+                {formatCurrency(project.contingency_remaining ?? 0)} of {formatCurrency(project.contingency_amount ?? 0)}
+              </span>
             </div>
+            <Progress
+              value={
+                ((project.contingency_remaining ?? 0) /
+                  (project.contingency_amount ?? 0)) *
+                100
+              }
+              className="h-1.5"
+            />
+            <button
+              onClick={() => navigate(`/projects/${project.id}/control`)}
+              className="mt-3 pt-2 border-t text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
+            >
+              View Cost Tracking
+              <ChevronRight className="h-3 w-3" />
+            </button>
           </CardContent>
         </Card>
       )}
