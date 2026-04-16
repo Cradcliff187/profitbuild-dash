@@ -259,15 +259,18 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Status',
       align: 'center',
       width: '100px',
+      // CLAUDE.md Gotcha #25: same row-click-bubble guard as the actions cell.
       render: (estimate) => (
-        <EstimateStatusSelector
-          estimateId={estimate.id}
-          currentStatus={estimate.status}
-          estimateNumber={estimate.estimate_number}
-          projectId={estimate.project_id}
-          totalAmount={estimate.total_amount}
-          onStatusChange={(newStatus) => handleStatusUpdate(estimate.id, newStatus)}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <EstimateStatusSelector
+            estimateId={estimate.id}
+            currentStatus={estimate.status}
+            estimateNumber={estimate.estimate_number}
+            projectId={estimate.project_id}
+            totalAmount={estimate.total_amount}
+            onStatusChange={(newStatus) => handleStatusUpdate(estimate.id, newStatus)}
+          />
+        </div>
       ),
     },
     {
@@ -480,13 +483,19 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
       label: 'Actions',
       align: 'center',
       width: '60px',
+      // CLAUDE.md Gotcha #25: TableRow has onClick={handleRowClick} → onView.
+      // Without stopPropagation here, clicking the dropdown trigger or any menu
+      // item bubbles back to the row and opens view mode instead of the
+      // intended action (e.g. "Edit Estimate" silently opened view mode).
       render: (estimate) => (
-        <EstimateActionsMenu
-          estimate={estimate}
-          onView={onView}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <EstimateActionsMenu
+            estimate={estimate}
+            onView={onView}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </div>
       ),
     },
   ];

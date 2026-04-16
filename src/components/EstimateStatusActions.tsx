@@ -11,6 +11,10 @@ import {
 import { EstimateStatus } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  approveEstimateSideEffects,
+  unapproveEstimateSideEffects,
+} from "@/utils/estimateApproval";
 
 interface EstimateStatusActionsProps {
   estimateId: string;
@@ -50,8 +54,8 @@ export const EstimateStatusActions = ({
 
       // Handle project contracted_amount and status updates
       if (newStatus === 'approved') {
-        // When approving: single write that sets status + is_current_version together
-        // (eliminates the previous double-write pattern)
+        // Atomic write — Gotcha #26: status='approved' + is_current_version=true
+        // must land together or the contingency-sync trigger no-ops silently.
         const { error: approveError } = await supabase
           .from('estimates')
           .update({
@@ -63,39 +67,7 @@ export const EstimateStatusActions = ({
 
         if (approveError) throw approveError;
 
-        // Un-approve any other estimates for this project and mark as not current
-        const { error: unApproveError } = await supabase
-          .from('estimates')
-          .update({
-            status: 'sent',
-            is_current_version: false
-          })
-          .eq('project_id', estimate.project_id)
-          .eq('status', 'approved')
-          .neq('id', estimateId);
-
-        if (unApproveError) throw unApproveError;
-
-        // Only advance project status when in early stage (never regress)
-        const { data: project } = await supabase
-          .from('projects')
-          .select('status')
-          .eq('id', estimate.project_id)
-          .single();
-
-        const earlyStages = ['draft', 'pending', 'estimating'];
-        const shouldAdvanceStatus = project && earlyStages.includes(project.status);
-
-        const { error: projectError } = await supabase
-          .from('projects')
-          .update({
-            contracted_amount: estimate.total_amount,
-            ...(shouldAdvanceStatus ? { status: 'approved' as any } : {}),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', estimate.project_id);
-
-        if (projectError) throw projectError;
+        await approveEstimateSideEffects(estimate.project_id, estimate.total_amount);
 
         toast.success("Estimate Approved", {
           description: `Estimate approved and set as contract value (${new Intl.NumberFormat('en-US', {
@@ -116,26 +88,7 @@ export const EstimateStatusActions = ({
 
         if (estimateError) throw estimateError;
 
-        // Only revert project to 'estimating' if it's currently 'in_progress' or 'approved'
-        // Don't forcefully revert projects that have progressed further (e.g., 'complete')
-        const { data: project } = await supabase
-          .from('projects')
-          .select('status')
-          .eq('id', estimate.project_id)
-          .single();
-
-        const safeToRevert = project && ['in_progress', 'approved'].includes(project.status);
-
-        const { error: projectError } = await supabase
-          .from('projects')
-          .update({
-            contracted_amount: null,
-            ...(safeToRevert ? { status: 'estimating' as any } : {}),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', estimate.project_id);
-
-        if (projectError) throw projectError;
+        await unapproveEstimateSideEffects(estimate.project_id);
 
         toast.success(`Estimate status changed to ${newStatus} and contract value cleared`);
       } else {
@@ -175,14 +128,14 @@ export const EstimateStatusActions = ({
   };
 
   const getAvailableActions = () => {
+    // Send / Mark Approved / (Save as Draft on edit) are now primary buttons on
+    // the estimate form. This dropdown only covers the less-common transitions:
+    // Reject, Expire, and Reopen paths.
     switch (currentStatus) {
       case 'draft':
-        return [
-          { status: 'sent' as EstimateStatus, label: 'Send Estimate', icon: <Send className="h-3 w-3 mr-2" /> },
-        ];
+        return [];
       case 'sent':
         return [
-          { status: 'approved' as EstimateStatus, label: 'Mark Approved', icon: <CheckCircle className="h-3 w-3 mr-2" /> },
           { status: 'rejected' as EstimateStatus, label: 'Mark Rejected', icon: <XCircle className="h-3 w-3 mr-2" /> },
           { status: 'expired' as EstimateStatus, label: 'Mark Expired', icon: <Clock className="h-3 w-3 mr-2" /> },
         ];
@@ -194,7 +147,6 @@ export const EstimateStatusActions = ({
       case 'expired':
         return [
           { status: 'draft' as EstimateStatus, label: 'Reopen as Draft', icon: <RotateCcw className="h-3 w-3 mr-2" /> },
-          { status: 'sent' as EstimateStatus, label: 'Mark as Sent', icon: <Send className="h-3 w-3 mr-2" /> },
         ];
       default:
         return [];

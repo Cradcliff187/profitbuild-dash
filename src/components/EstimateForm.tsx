@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy, Edit, Upload } from "lucide-react";
+import { Save, Plus, Trash2, Calculator, FolderOpen, ArrowLeft, Copy, Edit, Upload, Send, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
 import { EstimateStatusActions } from "@/components/EstimateStatusActions";
+import { approveEstimateSideEffects } from "@/utils/estimateApproval";
 import { getRecommendedUnitCodes } from "@/utils/units";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
@@ -572,9 +573,9 @@ useEffect(() => {
   // Memoize labor metrics to avoid recalculating 10+ times per render
   const laborMetrics = useMemo(() => calculateLaborMetrics(), [lineItems]);
 
-  const handleSave = async () => {
+  const handleSave = async (targetStatus: EstimateStatus = 'draft') => {
     const validLineItems = lineItems.filter(item => item.description.trim());
-    
+
     if (validLineItems.length === 0) {
       toast.error("Please add at least one line item with a description.");
       return;
@@ -641,7 +642,9 @@ useEffect(() => {
 
           if (versionError) throw versionError;
 
-          // Now update the new version with our changes
+          // Now update the new version with our changes.
+          // Gotcha #26: when targetStatus === 'approved', status + is_current_version
+          // must be written atomically here (same .update() call).
           const { data: estimateData, error: updateError } = await supabase
             .from('estimates')
             .update({
@@ -651,6 +654,7 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
+              status: targetStatus,
               is_current_version: true,
               updated_at: new Date().toISOString()
             })
@@ -708,7 +712,7 @@ useEffect(() => {
             lineItems: validLineItems,
             version_number: estimateData.version_number,
             is_current_version: true,
-            status: 'draft'
+            status: targetStatus
           };
 
           // Refresh labor cushion after saving
@@ -716,12 +720,23 @@ useEffect(() => {
             p_estimate_id: newVersionId
           });
 
+          if (targetStatus === 'approved') {
+            await approveEstimateSideEffects(initialEstimate.project_id, totalAmount);
+          }
+
           onSave(newVersionEstimate);
-          
-          toast.success("New Version Created", { description: `New estimate version v${estimateData.version_number} created successfully.` });
+
+          const versionToastLabel = targetStatus === 'approved'
+            ? `Version v${estimateData.version_number} approved and set as contract.`
+            : targetStatus === 'sent'
+              ? `New version v${estimateData.version_number} sent.`
+              : `New estimate version v${estimateData.version_number} created as draft.`;
+          toast.success("New Version Created", { description: versionToastLabel });
 
         } else {
-          // Regular editing for non-approved estimates
+          // Regular editing for non-approved estimates.
+          // Gotcha #26: when targetStatus === 'approved', is_current_version must be
+          // written atomically in this same .update() call.
           const { data: estimateData, error: estimateError } = await supabase
             .from('estimates')
             .update({
@@ -731,6 +746,8 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
+              status: targetStatus,
+              ...(targetStatus === 'approved' ? { is_current_version: true } : {}),
               updated_at: new Date().toISOString()
             })
             .eq('id', initialEstimate.id)
@@ -818,12 +835,14 @@ useEffect(() => {
             ...initialEstimate,
             date_created: new Date(estimateData.date_created),
             total_amount: estimateData.total_amount,
+            status: targetStatus,
             notes: estimateData.notes,
             valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
             contingency_percent: estimateData.contingency_percent,
             contingency_used: estimateData.contingency_used,
             updated_at: new Date(estimateData.updated_at),
             lineItems: validLineItems,
+            ...(targetStatus === 'approved' ? { is_current_version: true } : {}),
           };
 
           // Refresh labor cushion after saving
@@ -831,9 +850,18 @@ useEffect(() => {
             p_estimate_id: initialEstimate.id
           });
 
+          if (targetStatus === 'approved') {
+            await approveEstimateSideEffects(initialEstimate.project_id, totalAmount);
+          }
+
           onSave(updatedEstimate);
-          
-          toast.success("Estimate Updated", { description: `Estimate has been updated successfully.` });
+
+          const updateToastLabel = targetStatus === 'approved'
+            ? "Estimate approved and set as contract."
+            : targetStatus === 'sent'
+              ? "Estimate sent."
+              : "Estimate saved as draft.";
+          toast.success("Estimate Updated", { description: updateToastLabel });
         }
 
       } else {
@@ -866,7 +894,9 @@ useEffect(() => {
 
           if (versionError) throw versionError;
 
-          // Update the new version with our data
+          // Update the new version with our data.
+          // Gotcha #26: when targetStatus === 'approved', status + is_current_version
+          // are set atomically here; the trigger then un-approves prior estimates.
           const { data: estimateData, error: updateError } = await supabase
             .from('estimates')
             .update({
@@ -877,7 +907,7 @@ useEffect(() => {
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
               is_current_version: true,
-              status: 'draft',
+              status: targetStatus,
               updated_at: new Date().toISOString()
             })
             .eq('id', newVersionId)
@@ -926,7 +956,7 @@ useEffect(() => {
             estimate_number: estimateData.estimate_number,
             date_created: new Date(estimateData.date_created),
             total_amount: estimateData.total_amount,
-            status: 'draft',
+            status: targetStatus,
             notes: estimateData.notes,
             valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
             revision_number: estimateData.revision_number,
@@ -951,14 +981,26 @@ useEffect(() => {
             p_estimate_id: newVersionId
           });
 
+          if (targetStatus === 'approved') {
+            await approveEstimateSideEffects(projectId, totalAmount);
+          }
+
           onSave(newEstimate);
-          
-          toast.success("New Version Created", { description: `New estimate version v${estimateData.version_number} created successfully.` });
+
+          const newVersionToast = targetStatus === 'approved'
+            ? `Version v${estimateData.version_number} approved and set as contract.`
+            : targetStatus === 'sent'
+              ? `New version v${estimateData.version_number} sent.`
+              : `New estimate version v${estimateData.version_number} created as draft.`;
+          toast.success("New Version Created", { description: newVersionToast });
 
         } else {
-          // Project has no estimates - create first estimate
+          // Project has no estimates - create first estimate.
+          // Gotcha #26: if targetStatus === 'approved', status + is_current_version
+          // land together in a single INSERT here (both `true`), satisfying the
+          // contingency-sync trigger (which fires on INSERT too).
           console.log('Project has no estimates, creating first estimate');
-          
+
           const contingencyAmount = calculateContingencyAmount();
           const estimateData = {
             project_id: projectId,
@@ -966,8 +1008,8 @@ useEffect(() => {
             date_created: date.toISOString().split('T')[0],
             total_amount: totalAmount,
             total_cost: calculateTotalCost(),
-            status: 'draft' as const,
-            is_draft: true,
+            status: targetStatus,
+            is_draft: targetStatus === 'draft',
             notes: notes.trim() || null,
             valid_until: validUntil?.toISOString().split('T')[0],
             contingency_percent: contingencyPercent,
@@ -1059,9 +1101,21 @@ useEffect(() => {
             p_estimate_id: createdEstimate.id
           });
 
+          if (targetStatus === 'approved') {
+            // INSERT-path: sync_contract_on_estimate_status trigger is UPDATE-only,
+            // so the project.contracted_amount update + status advance must happen
+            // explicitly via this helper.
+            await approveEstimateSideEffects(projectId, totalAmount);
+          }
+
           onSave(newEstimate);
-          
-          toast.success("First Estimate Created", { description: `Estimate ${estimateNumber} has been created successfully.` });
+
+          const firstEstimateToast = targetStatus === 'approved'
+            ? `${estimateNumber} approved and set as contract.`
+            : targetStatus === 'sent'
+              ? `${estimateNumber} created and sent.`
+              : `${estimateNumber} saved as draft.`;
+          toast.success("First Estimate Created", { description: firstEstimateToast });
         }
       }
 
@@ -1588,10 +1642,36 @@ useEffect(() => {
           {/* Actions */}
           <div className="space-y-2 pb-4">
             {mode !== 'view' && (
-              <Button onClick={handleSave} className="w-full" disabled={isLoading} size="lg">
-                <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
-              </Button>
+              <>
+                <Button
+                  onClick={() => handleSave('draft')}
+                  variant="outline"
+                  className="w-full"
+                  disabled={isLoading}
+                  size="lg"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isLoading ? "Saving..." : "Save as Draft"}
+                </Button>
+                <Button
+                  onClick={() => handleSave('sent')}
+                  className="w-full"
+                  disabled={isLoading}
+                  size="lg"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isLoading ? "Saving..." : "Send"}
+                </Button>
+                <Button
+                  onClick={() => handleSave('approved')}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  disabled={isLoading}
+                  size="lg"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Saving..." : "Approve"}
+                </Button>
+              </>
             )}
             {!(hideNavigationButtons && mode === 'view') && (
               <Button onClick={onCancel} variant="outline" disabled={isLoading} className="w-full" size="lg">
@@ -1599,9 +1679,9 @@ useEffect(() => {
               </Button>
             )}
 
-            {/* Status Actions */}
+            {/* Secondary Status Actions (Reject / Expire / Reopen) */}
             {!hideNavigationButtons && initialEstimate && (
-              <div className="pt-2">
+              <div className="pt-2 flex justify-center">
                 <EstimateStatusActions
                   estimateId={initialEstimate.id}
                   currentStatus={status}
@@ -2004,12 +2084,33 @@ useEffect(() => {
           />
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-wrap gap-3 pt-4">
             {mode !== 'view' && (
-              <Button onClick={handleSave} className="flex-1" disabled={isLoading}>
-                <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "Saving..." : (initialEstimate ? "Update Estimate" : "Create Estimate")}
-              </Button>
+              <>
+                <Button
+                  onClick={() => handleSave('draft')}
+                  variant="outline"
+                  disabled={isLoading}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isLoading ? "Saving..." : "Save as Draft"}
+                </Button>
+                <Button
+                  onClick={() => handleSave('sent')}
+                  disabled={isLoading}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isLoading ? "Saving..." : "Send"}
+                </Button>
+                <Button
+                  onClick={() => handleSave('approved')}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={isLoading}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Saving..." : "Approve"}
+                </Button>
+              </>
             )}
             {!(hideNavigationButtons && mode === 'view') && (
               <Button onClick={onCancel} variant="outline" disabled={isLoading} className={mode === 'view' ? 'flex-1' : ''}>
@@ -2018,7 +2119,7 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Status Actions - Only show for existing estimates */}
+          {/* Secondary Status Actions (Reject / Expire / Reopen) — only on edit */}
           {!hideNavigationButtons && initialEstimate && (
             <div className="border-t pt-4 mt-4">
               <div className="flex justify-center">
