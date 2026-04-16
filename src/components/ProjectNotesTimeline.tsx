@@ -260,10 +260,12 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
       </div>
     );
   } else if (isMobile) {
-    // Inline mobile (compact)
+    // Inline mobile: display-only list. The add-note affordance lives in the
+    // global FieldQuickActionBar rendered once by ProjectDetailView — a
+    // persistent bottom bar available on every project page, not just here.
+    // This card shrinks to its essential role: showing existing notes.
     mainContent = (
       <div className="border rounded-lg overflow-hidden">
-        <NoteInput variant="compact" fileInputId="file-upload-mobile" {...noteInputProps} />
         {renderNotesList('compact')}
       </div>
     );
