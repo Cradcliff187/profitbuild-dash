@@ -61,6 +61,15 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
     setIsLoading(true);
     try {
       // Step 1: Parallel Supabase queries
+      // Server-side filters on `expenses`:
+      //   - is_split = false  — split parents are never correlatable (see canCorrelateExpense)
+      //   - range(0, 9999)    — raises PostgREST's 1,000-row default cap to 10,000.
+      //                         Without this, unallocated candidates past row 1,000 are
+      //                         silently dropped (see CLAUDE.md Gotcha #23).
+      //   - order by date desc — predictable slice ordering if the 10k cap is ever hit.
+      // The correlations filter stays client-side (~line below) because pushing
+      // `.not('id', 'in', ...)` server-side can blow past URL length limits at
+      // 500+ correlated UUIDs. Client-side dedup is cheap.
       const [
         expensesResult,
         estimatesResult,
@@ -72,7 +81,10 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
           *,
           payees(payee_name),
           projects(project_name, project_number, category)
-        `),
+        `)
+          .eq('is_split', false)
+          .order('expense_date', { ascending: false })
+          .range(0, 9999),
         supabase.from('estimates').select(`
           id, project_id,
           projects(project_name),

@@ -352,14 +352,19 @@ export const MobileTimeTracker: React.FC = () => {
   const loadInitialData = async () => {
     setDataLoading(true);
     try {
-      // Load active projects (exclude system projects)
-    const { data: projectsData, error: projectsError } = await supabase
-      .from('projects')
-      .select('id, project_number, project_name, client_name, address, category')
-      .in('status', ['approved', 'in_progress'])
-      .eq('category', 'construction')
-      .order('project_number', { ascending: true })
-      .limit(20);
+      // Load active projects (exclude system projects).
+      // `.range(0, 499)` raises the cap from the previous hard-coded `.limit(20)` which
+      // silently dropped projects past position 20 once the count of active construction
+      // projects exceeded that (first surfaced Apr 16, 2026 — project 225-110 fell off
+      // the end of the alphabetical list). 500 is well beyond current scale (~24 active)
+      // and still within a reasonable mobile list size without pagination.
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, project_number, project_name, client_name, address, category')
+        .in('status', ['approved', 'in_progress'])
+        .eq('category', 'construction')
+        .order('project_number', { ascending: true })
+        .range(0, 499);
 
       if (projectsError) throw projectsError;
       

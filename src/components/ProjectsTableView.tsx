@@ -63,12 +63,15 @@ interface ProjectsTableViewProps {
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  /** Called after a row-level mutation (e.g. status change) to re-fetch parent state
+   *  without a full page reload. Parent should pass its `loadProjects` refetcher. */
+  onRefresh?: () => void | Promise<void>;
 }
 
-export const ProjectsTableView = ({ 
-  projects, 
+export const ProjectsTableView = ({
+  projects,
   estimates,
-  onEdit, 
+  onEdit,
   onView,
   onDelete,
   onArchive,
@@ -83,6 +86,7 @@ export const ProjectsTableView = ({
   currentPage = 1,
   totalPages = 1,
   onPageChange,
+  onRefresh,
 }: ProjectsTableViewProps) => {
   const isMobile = useIsMobile();
   const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean; project: Project | null}>({
@@ -541,10 +545,7 @@ export const ProjectsTableView = ({
             projectName={project.project_name}
             hasApprovedEstimate={hasApprovedEstimate}
             estimateStatus={latestEstimate?.status}
-            onStatusChange={() => {
-              // Refresh the page to show updated data
-              window.location.reload();
-            }}
+            onStatusChange={() => onRefresh?.()}
           />
         );
       },
@@ -1402,15 +1403,22 @@ export const ProjectsTableView = ({
                           if (!column || !column.render) return null;
 
                           return (
-                            <TableCell 
-                              key={`${project.id}-${colKey}`} 
+                            <TableCell
+                              key={`${project.id}-${colKey}`}
                               className={cn(
                                 "p-1.5",
                                 column.width,
                                 column.align === 'right' && 'text-right',
                                 column.align === 'center' && 'text-center'
                               )}
-                              onClick={colKey === 'actions' ? (e) => e.stopPropagation() : undefined}
+                              // Stop row-click navigation (handleViewDetails) for cells that contain
+                              // their own interactive controls — otherwise the row click steals the
+                              // event before Radix can open the dropdown / menu.
+                              onClick={
+                                colKey === 'actions' || colKey === 'status'
+                                  ? (e) => e.stopPropagation()
+                                  : undefined
+                              }
                             >
                               {column.render(project)}
                             </TableCell>

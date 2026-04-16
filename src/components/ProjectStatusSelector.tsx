@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Check, AlertTriangle, ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Check, AlertTriangle, ChevronDown, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
@@ -47,6 +48,7 @@ export const ProjectStatusSelector = ({
   disabled = false,
   showLabel = false
 }: ProjectStatusSelectorProps) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null);
@@ -57,15 +59,6 @@ export const ProjectStatusSelector = ({
 
   const getStatusWarning = (targetStatus: ProjectStatus) => {
     switch (targetStatus) {
-      case 'approved':
-        if (!hasApprovedEstimate) {
-          return {
-            title: "Estimate Approval Required",
-            message: "This project doesn't have an approved estimate. Would you like to approve the project anyway? This will prevent accurate financial tracking.",
-            severity: "error" as const
-          };
-        }
-        break;
       case 'in_progress':
         if (currentStatus !== 'approved') {
           return {
@@ -117,9 +110,12 @@ export const ProjectStatusSelector = ({
 
       if (error) throw error;
 
-      onStatusChange?.(newStatus);
-      
+      // Enqueue toast BEFORE triggering parent refetch so the toast is queued even if
+      // the refetch is synchronous/heavy. Defensive insurance in case a future parent
+      // ever reintroduces window.location.reload() or similar unload-initiating behavior.
       toast.success("Status Updated", { description: `Project "${projectName}" is now ${newStatus.replace(/_/g, ' ')}.` });
+
+      onStatusChange?.(newStatus);
     } catch (error) {
       console.error('Error updating project status:', error);
       toast.error("Failed to update project status. Please try again.");
@@ -172,22 +168,50 @@ export const ProjectStatusSelector = ({
                       </div>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    {PROJECT_STATUSES.map((status) => (
-                      <DropdownMenuItem
-                        key={status.value}
-                        onClick={() => handleStatusSelect(status.value)}
-                        className="flex items-center justify-between"
-                      >
-                        <span>{status.label}</span>
-                        {status.value === currentStatus && (
-                          <Check className="h-3 w-3 text-success" />
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                    
+                  <DropdownMenuContent align="start" className="w-56">
+                    {PROJECT_STATUSES.map((status) => {
+                      const isApprovedBlocked =
+                        status.value === 'approved' && !hasApprovedEstimate;
+
+                      if (isApprovedBlocked) {
+                        return (
+                          <React.Fragment key={status.value}>
+                            <DropdownMenuItem
+                              disabled
+                              className="flex flex-col items-start gap-0.5"
+                            >
+                              <span>{status.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                Requires approved estimate
+                              </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/projects/${projectId}/estimates`)}
+                              className="flex items-center gap-2 pl-6 text-primary"
+                            >
+                              <ArrowRight className="h-3 w-3" />
+                              <span>Approve estimate first</span>
+                            </DropdownMenuItem>
+                          </React.Fragment>
+                        );
+                      }
+
+                      return (
+                        <DropdownMenuItem
+                          key={status.value}
+                          onClick={() => handleStatusSelect(status.value)}
+                          className="flex items-center justify-between"
+                        >
+                          <span>{status.label}</span>
+                          {status.value === currentStatus && (
+                            <Check className="h-3 w-3 text-success" />
+                          )}
+                        </DropdownMenuItem>
+                      );
+                    })}
+
                     <DropdownMenuSeparator />
-                    
+
                     <div className="px-2 py-1.5 text-xs text-muted-foreground">
                       Workflow: Estimating → Approved → In Progress → Complete
                     </div>
@@ -217,26 +241,17 @@ export const ProjectStatusSelector = ({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {warning?.message}
-              
-              {pendingStatus === 'approved' && !hasApprovedEstimate && (
-                <div className="mt-3 p-3 bg-muted rounded-md">
-                  <p className="text-sm">
-                    <strong>Recommendation:</strong> Go to the Estimates section first and approve an estimate. 
-                    This ensures accurate financial tracking and margin calculations.
-                  </p>
-                </div>
-              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmStatusUpdate}
               className={cn(
                 warning?.severity === 'error' && 'bg-destructive hover:bg-destructive/90'
               )}
             >
-              {warning?.severity === 'error' ? 'Update Anyway' : 'Confirm Update'}
+              Confirm Update
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

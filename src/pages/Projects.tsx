@@ -542,6 +542,7 @@ const Projects = () => {
                   currentPage={pagination.currentPage}
                   totalPages={Math.ceil(filteredAndSortedProjects.length / pageSize)}
                   onPageChange={pagination.goToPage}
+                  onRefresh={loadProjects}
                 />
               )}
               
