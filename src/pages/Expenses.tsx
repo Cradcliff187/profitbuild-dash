@@ -28,6 +28,7 @@ import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header
 import { parseDateOnly } from "@/utils/dateUtils";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
+import { useUnapprovedExpensesCount } from '@/hooks/useUnapprovedExpensesCount';
 
 type ViewMode = "overview" | "list" | "invoices" | "import-history";
 
@@ -66,6 +67,9 @@ const Expenses = () => {
   const [showBulkAllocate, setShowBulkAllocate] = useState(false);
   const expensesListRef = useRef<ExpensesListRef>(null);
   const { isEnabled: isQuickBooksSyncEnabled, config: qbSyncConfig } = useQuickBooksSync();
+
+  // Badge: count of expenses pending or needing review (null/pending approval_status)
+  const { data: unapprovedCount = 0 } = useUnapprovedExpensesCount();
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -243,6 +247,14 @@ const Expenses = () => {
 
   const fetchData = async () => {
     try {
+      // NOTE: The All Expenses tab itself does NOT use `expenses` state anymore —
+      // <ExpensesList /> below is rendered without the `expenses` prop, triggering
+      // its server-side fetch via useExpensesQuery (reads public.expenses_search).
+      //
+      // This fetch still runs to feed ExpenseDashboard (Overview tab charts) and
+      // ExpenseExportModal (CSV export). `.range(0, 9999)` raises the PostgREST
+      // default 1,000-row cap to 10,000 as a tactical band-aid. Proper fix for
+      // those two consumers is a follow-up (RPC for aggregates, paginated export).
       const [expensesResult, estimatesResult] = await Promise.all([
         supabase.from("expenses").select(`
             *,
@@ -252,7 +264,9 @@ const Expenses = () => {
               full_name
             ),
             projects(project_name, project_number, category)
-          `),
+          `)
+          .order('expense_date', { ascending: false })
+          .range(0, 9999),
         supabase.from("estimates").select(`
             *,
             projects(project_name, client_name),
@@ -508,6 +522,7 @@ const Expenses = () => {
               <TabsList className="hidden w-full flex-wrap justify-start gap-2 rounded-full bg-muted/50 p-1 sm:flex">
                 {tabOptions.map((tab) => {
                   const Icon = tab.icon;
+                  const showUnapprovedBadge = tab.value === "list" && unapprovedCount > 0;
                   return (
                     <TabsTrigger
                       key={tab.value}
@@ -516,6 +531,15 @@ const Expenses = () => {
                     >
                       <Icon className="h-4 w-4" />
                       <span>{tab.label}</span>
+                      {showUnapprovedBadge && (
+                        <span
+                          className="ml-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-semibold leading-none text-white shadow-sm"
+                          title={`${unapprovedCount} expense${unapprovedCount === 1 ? '' : 's'} awaiting approval`}
+                          aria-label={`${unapprovedCount} expenses awaiting approval`}
+                        >
+                          {unapprovedCount > 999 ? '999+' : unapprovedCount}
+                        </span>
+                      )}
                     </TabsTrigger>
                   );
                 })}
@@ -539,9 +563,11 @@ const Expenses = () => {
           </TabsContent>
 
           <TabsContent value="list">
+            {/* No `expenses` prop — ExpensesList self-fetches via useExpensesQuery
+                (public.expenses_search view, server-side filter + pagination).
+                Fixes the silent row-drop bug caused by the PostgREST 1000-row cap. */}
             <ExpensesList
               ref={expensesListRef}
-              expenses={expenses}
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
               onRefresh={fetchData}

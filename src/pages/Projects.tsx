@@ -16,13 +16,11 @@ import { ProjectBulkActions } from "@/components/ProjectBulkActions";
 import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
-import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectWithFinancials } from "@/types/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { parseDateOnly } from "@/utils/dateUtils";
 import { usePagination } from "@/hooks/usePagination";
 import {
   AlertDialog,
@@ -43,7 +41,10 @@ const Projects = () => {
   const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  // `expenses` state was fetched but never read — the unused data is sourced
+  // from reporting.project_financials (via get_profit_analysis_data RPC) instead.
+  // Removed to avoid fetching up to 1,000 rows per page load and to eliminate
+  // the silent row-drop risk from the PostgREST default cap.
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
@@ -101,14 +102,11 @@ const Projects = () => {
       
       // Load all related data (exclude unassigned project and work orders)
       // Include reporting financials (total_invoiced, total_expenses) for complete/cancelled display
-      const [projectsRes, estimatesRes, quotesRes, expensesRes, changeOrdersRes, financialsRes, coLineItemsRes] = await Promise.all([
+      const [projectsRes, estimatesRes, quotesRes, changeOrdersRes, financialsRes, coLineItemsRes] = await Promise.all([
         supabase.from('projects').select('*').eq('category', 'construction').or('project_type.eq.construction_project,project_type.is.null').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*, estimate_line_items(id, category)'),
         supabase.from('quotes').select('*'),
-        supabase.from('expenses').select(`
-          *,
-          projects (project_number)
-        `),
+        // (dead-code removed: the `expenses` fetch was unused — see state declaration comment above)
         supabase.from('change_orders').select('project_id, client_amount, cost_impact, status').eq('status', 'approved'),
         supabase.rpc('get_profit_analysis_data', { status_filter: ['estimating', 'approved', 'in_progress', 'complete', 'on_hold', 'cancelled'] }),
         supabase.from('change_order_line_items').select('id, category, change_orders!inner(project_id, status)').eq('change_orders.status', 'approved')
@@ -117,7 +115,6 @@ const Projects = () => {
       if (projectsRes.error) throw projectsRes.error;
       if (estimatesRes.error) throw estimatesRes.error;
       if (quotesRes.error) throw quotesRes.error;
-      if (expensesRes.error) throw expensesRes.error;
       if (changeOrdersRes.error) throw changeOrdersRes.error;
       if (financialsRes.error) throw financialsRes.error;
 
@@ -226,32 +223,8 @@ const Projects = () => {
         createdAt: new Date(quote.created_at)
       })) || [];
 
-      const formattedExpenses = expensesRes.data?.map((expense: any) => ({
-        id: expense.id,
-        project_id: expense.project_id,
-        project_number: expense.projects?.project_number,
-        payee_id: expense.payee_id,
-        amount: expense.amount,
-        description: expense.description,
-        expense_date: parseDateOnly(expense.expense_date),
-        category: expense.category,
-        transaction_type: expense.transaction_type,
-        invoice_number: expense.invoice_number,
-        account_name: expense.account_name,
-        account_full_name: expense.account_full_name,
-        is_planned: expense.is_planned,
-        is_split: expense.is_split,
-        attachment_url: expense.attachment_url,
-        quickbooks_transaction_id: expense.quickbooks_transaction_id,
-        created_at: new Date(expense.created_at),
-        updated_at: new Date(expense.updated_at)
-      })) || [];
-
-      // Filter out all split parent expenses (defensive)
-      const displayableExpenses = formattedExpenses.filter(expense => {
-        const isSplitParent = expense.is_split === true;
-        return !isSplitParent;
-      });
+      // (dead-code removed: formattedExpenses / displayableExpenses derivation
+      // previously ended at setExpenses(...) below, which was never read anywhere.)
 
       // Projects already have financial fields from database triggers.
       // Add display-only enrichment (e.g. line item counts).
@@ -286,7 +259,6 @@ const Projects = () => {
       setProjects(enrichedProjects as ProjectWithFinancials[]);
       setEstimates(formattedEstimates);
       setQuotes(formattedQuotes);
-      setExpenses(displayableExpenses);
     } catch (error) {
       console.error('Error loading projects:', error);
       toast.error("Failed to load projects.");

@@ -45,6 +45,8 @@ import { ReceiptPreviewModal } from "./ReceiptPreviewModal";
 import { unlinkReceiptFromExpense, fetchLinkedReceipt } from "@/utils/receiptLinking";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
+import { useExpensesQuery, ExpensesQueryFilters } from '@/hooks/useExpensesQuery';
+import { Loader2 } from 'lucide-react';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { format } from 'date-fns';
 import { parseDateOnly } from '@/utils/dateUtils';
@@ -96,7 +98,14 @@ const EXPENSE_COLUMNS: ColumnDefinition[] = [
 ];
 
 interface ExpensesListProps {
-  expenses: Expense[];
+  /**
+   * Pre-filtered expenses (project-scoped mode).
+   * When omitted, the component fetches via useExpensesQuery from the
+   * public.expenses_search view with server-side filtering + pagination.
+   * This is the fix for the PostgREST 1,000-row cap that was silently
+   * dropping rows from the All Expenses tab.
+   */
+  expenses?: Expense[];
   projectId?: string;
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
@@ -146,7 +155,37 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-    
+    // ------------------------------------------------------------------
+    // Data source: either `expenses` prop (project-scoped, pre-filtered)
+    // OR server-side fetch via useExpensesQuery (global All Expenses tab).
+    // ------------------------------------------------------------------
+    const isGlobalMode = expenses === undefined;
+
+    const hookFilters: ExpensesQueryFilters = useMemo(() => ({
+      searchTerm: searchTerm || undefined,
+      categories: filterCategories.length > 0 ? filterCategories : undefined,
+      transactionTypes: filterTransactionTypes.length > 0 ? filterTransactionTypes : undefined,
+      projectIds: filterProjects.length > 0 ? filterProjects : undefined,
+      approvalStatuses: filterApprovalStatuses.length > 0 ? filterApprovalStatuses : undefined,
+      payeeIds: filterPayees.length > 0 ? filterPayees : undefined,
+      payeeTypes: filterPayeeTypes.length > 0 ? filterPayeeTypes : undefined,
+    }), [
+      searchTerm,
+      filterCategories,
+      filterTransactionTypes,
+      filterProjects,
+      filterApprovalStatuses,
+      filterPayees,
+      filterPayeeTypes,
+    ]);
+
+    const expensesQuery = useExpensesQuery(hookFilters, { enabled: isGlobalMode });
+
+    // Effective data source consumed by the rest of the component.
+    // Property-scoped mode uses the prop as-is; global mode uses the paginated hook results.
+    const effectiveExpenses: Expense[] = expenses ?? expensesQuery.data;
+
+
     // Receipt linking state
     const [receiptLinkModalOpen, setReceiptLinkModalOpen] = useState(false);
     const [expenseToLink, setExpenseToLink] = useState<Expense | null>(null);
@@ -449,15 +488,16 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
       fetchExpenseMatches();
       fetchExpenseSplits();
-    }, [expenses]);
+    }, [effectiveExpenses]);
 
-    // Defensive filter: Remove all split parent expenses regardless of project
+    // Defensive filter: Remove all split parent expenses regardless of project.
+    // (The view already excludes is_split=true, so this is a guard for project-scoped mode.)
     const displayableExpenses = useMemo(() => {
-      return expenses.filter((expense) => {
+      return effectiveExpenses.filter((expense) => {
         const isSplitParent = expense.is_split === true;
         return !isSplitParent;
       });
-    }, [expenses]);
+    }, [effectiveExpenses]);
 
     // Filter expenses based on search term and filters
     const filteredExpenses = useMemo(() => {
@@ -2229,6 +2269,36 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
             </Popover>
           </div>
         </CollapsibleFilterSection>
+
+        {/* Global mode: server-side pagination status + Load More */}
+        {isGlobalMode && (
+          <div className="mb-3 flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs">
+            <span className="text-muted-foreground">
+              {expensesQuery.isLoading
+                ? 'Loading expenses…'
+                : `Loaded ${effectiveExpenses.length.toLocaleString()} of ${expensesQuery.totalCount.toLocaleString()} matching expenses`}
+            </span>
+            {expensesQuery.hasNextPage && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => expensesQuery.fetchNextPage()}
+                disabled={expensesQuery.isFetchingNextPage}
+                className="h-7 text-xs"
+              >
+                {expensesQuery.isFetchingNextPage ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                    Loading…
+                  </>
+                ) : (
+                  `Load next ${Math.min(100, expensesQuery.totalCount - effectiveExpenses.length)}`
+                )}
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Bulk Actions */}
         {selectedExpenses.length > 0 && (

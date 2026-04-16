@@ -271,7 +271,10 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
         console.warn('[CostTracking] Error fetching change orders:', changeOrdersError);
       }
 
-      // Fetch all expenses - calculateProjectExpenses will handle split filtering
+      // Fetch expenses scoped to THIS project. The previous version fetched all
+      // expenses and filtered client-side by exp.project_id === projectId at L288;
+      // that quietly lost rows past the PostgREST 1000-row cap (see the All Expenses
+      // fix in useExpensesQuery). Server-side filter gives identical downstream data.
       const { data: expenses, error: expensesError } = await supabase
         .from('expenses')
         .select(`
@@ -279,7 +282,8 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
           payees (
             payee_name
           )
-        `);
+        `)
+        .eq('project_id', projectId);
 
       if (expensesError) throw expensesError;
 

@@ -372,6 +372,22 @@ Users can @mention team members in project notes. Tagged users see a notificatio
 
 **Mentionable users:** Sourced via the `get_mentionable_employees()` SECURITY DEFINER RPC, which returns one row per role-holder regardless of payee state — see Architectural Rule 11 below. Display name resolution: `payees.payee_name` → `profiles.full_name` → email local-part.
 
+### 12. Bounded `expenses` Queries (Apr 16, 2026)
+The `expenses` table is growing past 1,000 rows (1,278 at time of writing). **PostgREST's default row cap is 1,000**, so any unbounded `.from('expenses').select(...)` without `.eq()`/`.in()`/`.range()` silently drops rows — the original symptom was the All Expenses search "078" returning 5 rows instead of 8.
+
+**Three correct patterns for reading expenses:**
+
+1. **Global list / search / filter** — use the `public.expenses_search` view via `useExpensesQuery` hook ([src/hooks/useExpensesQuery.ts](src/hooks/useExpensesQuery.ts)):
+   - The view denormalizes `expenses + payees + projects` into one row per non-split expense with a single lowercased `search_text` column.
+   - `WITH (security_invoker = on)` so RLS from underlying tables still applies (admins see everything, field workers see only their rows).
+   - Hook uses `useInfiniteQuery` with `.range()` pagination, `count: 'exact'`, and maps filter state to PostgREST `.ilike`/`.in`/`.gte`/`.lte` clauses.
+2. **Project-scoped reads** — always use `.eq('project_id', projectId)`. Filtered example: [src/hooks/useProjectData.tsx](src/hooks/useProjectData.tsx) (`.eq('project_id', projectId).eq('is_split', false)`).
+3. **Counts / aggregates** — use `.select('*', { count: 'exact', head: true })` with filters. Example: [src/hooks/useUnapprovedExpensesCount.ts](src/hooks/useUnapprovedExpensesCount.ts).
+
+**`ExpensesList` dual-mode**: when the `expenses` prop is provided it renders pre-filtered data (project route). When omitted it falls through to `useExpensesQuery` — the All Expenses page at `/expenses` relies on this.
+
+**Admin-only exception**: `BulkExpenseAllocationSheet` still does an unbounded fetch to build match candidates; fix tracked in Outstanding Audit Items.
+
 ### 11. Employees vs Payees (Apr 2026)
 
 > **Users are the employees.** An employee is an `auth.users` row with at least one `user_roles` entry. The internal `payees` row (`is_internal=true`) is a **shadow record** that exists only to satisfy FK constraints on 7 accounting tables (`expenses`, `contracts`, `change_order_line_items`, `quotes`, `receipts`, `pending_payee_reviews`, `projects.owner_id`).
@@ -579,6 +595,8 @@ Use this list when doing periodic documentation reviews:
 
 22. **Internal employees are accounting plumbing, not a user-facing concept (Apr 2026)** — See Architectural Rule 11. The bridge from auth user → internal payee is a single nullable column (`payees.user_id`) with no auto-sync. Cleanup added a unique partial index, two SECURITY DEFINER RPCs (`get_mentionable_employees`, `get_employees_audit`), an Accounting Linkage section in `/role-management`, locked editing of internal payees in `PayeeForm`, default-hidden internal payees in `/payees`, auto-create payee on user creation in `CreateUserModal`, and cascade-deactivate in `admin-disable-user` (v102). Common pitfall: querying `payees` directly to determine "who can be @mentioned" — use `get_mentionable_employees()` instead, since it returns role-holders even when their payee row is missing or unlinked.
 
+23. **PostgREST default 1,000-row cap on `expenses` (Apr 16, 2026)** — See Architectural Rule 12. At 1,278 rows, any unbounded `.from('expenses').select(...)` silently loses ~279 rows. The failure mode is invisible — no error, no warning, just missing data. Repro with `SELECT COUNT(*) FROM expenses WHERE is_split = false` — if it exceeds 1,000, grep the codebase for unfiltered `.from('expenses')` usages. Current offenders flagged in Outstanding Audit Items. Do NOT pass `.limit()` as a fix — bump to `.range(0, 9999)` as a tactical band-aid OR (better) route through `public.expenses_search` + `useExpensesQuery`.
+
 ---
 
 ## Outstanding Audit Items (Apr 2026)
@@ -612,6 +630,14 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Task cards had accidental-completion risk (small checkbox) | Replaced checkbox with expandable card interaction: tap to expand → "Mark Complete" button + "What happened?" note input + photo capture. |
 | No way to tag/mention team members in project notes | Built `MentionTextarea` with @autocomplete, `note_mentions` + `user_notifications` tables, `NotificationBell` in header, `Mentions` page, sidebar badge. |
 | No in-app notification system | Created generic `user_notifications` table with realtime, `useUnreadMentions` hook with TanStack Query shared key + optimistic updates. |
+| KPI guide drift: `budget_utilization_percent` formula wrong | Corrected in `project-kpis.ts` — view uses `/adjusted_est_costs`, not `/contracted_amount`. Regen via `sync:edge-kpis`. |
+| KPI guide drift: `actual_margin_percent` marked `source: 'frontend'` | Fixed — it's a view column. Updated to `source: 'view'` + correct field path. |
+| KPI guide drift: quick-reference filter included deprecated `current_margin` | Swapped for `adjusted_est_margin` in `ai-context-generator.ts:286`. |
+| `marginValidation.ts` type/logic mismatch (param said `projected_margin`, code read `adjusted_est_margin`) | Renamed param type field + updated warning message. |
+| All Expenses search dropped rows past 1,000 | Fixed (Apr 16, 2026) — new `public.expenses_search` view + `useExpensesQuery` hook with `useInfiniteQuery` + `count: 'exact'` pagination. Primary bug: project 225-078 search `078` was showing 5 rows/$870 instead of 8 rows/$3,604. |
+| Cost Tracking tab per-project (via `useLineItemControl`) would hit the same 1,000-row cap | Fixed (Apr 16, 2026) — added `.eq('project_id', projectId)` server-side filter. Previously fetched all and filtered client-side. |
+| Dead code: `Projects.tsx` fetched all expenses into state but never read it | Deleted (Apr 16, 2026) — 18 lines removed, unused `Expense` + `parseDateOnly` imports cleaned up. |
+| No indicator on `/expenses` for expenses awaiting approval | Added (Apr 16, 2026) — orange count badge on "All Expenses" tab (`useUnapprovedExpensesCount` hook, same `bg-orange-500` pattern as "Time Approvals 20" sidebar badge). |
 
 ### Medium Priority
 
@@ -619,6 +645,8 @@ Issues identified during codebase audit, validated, and prioritized for future w
 |-------|---------|-------|
 | Storage bucket names untyped | `bid-media`, `bid-documents`, `project-media`, `project-documents` | Supabase `gen types` does not generate Storage bucket types — only DB schema. No user impact; bucket names are string literals in code. A manual `StorageBucket` type could be added for autocomplete but is not worth the maintenance. |
 | `as any` type casts | 86 across 40 files | Remaining are Supabase type mismatches, dynamic access patterns, third-party library gaps, and form/export handlers. Lower ROI to fix. |
+| **`BulkExpenseAllocationSheet` unbounded `from('expenses')`** | `src/components/BulkExpenseAllocationSheet.tsx:71` | Admin-only bulk-allocation tool. Currently fetches ALL expenses without `.limit()`/`.range()` — hits the 1,000-row cap described in Gotcha #23 and silently drops candidates from the match suggester. Not critical because (a) it's admin-only, (b) the filter "unallocated only" would dramatically reduce candidate count if pushed server-side. **Proper fix:** query `expense_line_item_correlations` first, then fetch only `expenses WHERE id NOT IN (correlated)` with `.range()`. Alternative quick patch: add `.range(0, 9999)` to match the pattern used in `ExpenseDashboard`/`ExpenseExportModal`. |
+| **`ExpenseDashboard` + `ExpenseExportModal` on `.range(0, 9999)` band-aid** | `src/pages/Expenses.tsx:247` | Tactical patch raises the cap from 1,000 → 10,000. Adequate at 1,278 rows but ceiling-bound. **Proper fix:** replace the fetch-and-aggregate-in-JS pattern in `ExpenseDashboard` with a category-rollup RPC (analogous to `reporting.project_financials`), and move `ExpenseExportModal` to a paginated CSV streaming export. |
 
 ### Deferred (Requires Broader Planning)
 
