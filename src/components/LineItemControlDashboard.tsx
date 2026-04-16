@@ -7,6 +7,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
+import { CostBucketView } from '@/components/cost-tracking/CostBucketView';
+import { CostBucketSummaryStrip } from '@/components/cost-tracking/CostBucketSummaryStrip';
 import {
   DollarSign,
   TrendingUp,
@@ -62,6 +66,14 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   const { lineItems, summary, isLoading, error, refetch } = useLineItemControl(projectId, project);
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
   const isMobile = useIsMobile();
+
+  // Tab view state (Buckets vs Detail) with localStorage persistence.
+  // 'buckets' is the default front door — cleaner per-category rollup. Users who want the
+  // dense table + per-line correlation drilldown switch to 'detail'.
+  const [view, setView] = useState<string>(() => {
+    const saved = localStorage.getItem('cost-tracking-view');
+    return saved === 'detail' || saved === 'buckets' ? saved : 'buckets';
+  });
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -1037,8 +1049,53 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
     );
   }
 
+  // Tab options for both mobile dropdown and desktop pill list — matches the
+  // canonical pattern from src/pages/Expenses.tsx (MobileTabSelector + rounded-pill TabsList).
+  const costTrackingTabs = [
+    { value: 'buckets', label: 'Buckets', icon: Layers },
+    { value: 'detail', label: 'Detail', icon: ClipboardList },
+  ];
+
+  const handleViewChange = (v: string) => {
+    setView(v);
+    localStorage.setItem('cost-tracking-view', v);
+  };
+
   return (
     <TooltipProvider>
+      <Tabs value={view} onValueChange={handleViewChange} className="w-full">
+        {/* Mobile: dropdown selector with primary-colored icon (matches Expenses page). */}
+        <div className="sm:hidden mb-3">
+          <MobileTabSelector
+            value={view}
+            onValueChange={handleViewChange}
+            options={costTrackingTabs}
+          />
+        </div>
+
+        {/* Desktop: rounded-pill TabsList with brand-orange active state. */}
+        <TabsList className="hidden sm:flex w-fit mb-3 flex-wrap justify-start gap-2 rounded-full bg-muted/50 p-1">
+          {costTrackingTabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        <TabsContent value="buckets" className="mt-0">
+          <CostBucketView projectId={projectId} project={project} />
+        </TabsContent>
+
+        <TabsContent value="detail" className="mt-0">
+          <CostBucketSummaryStrip projectId={projectId} project={project} />
       <div className="space-y-3 w-full max-w-full overflow-x-hidden box-border min-w-0" data-line-item-dashboard style={{ maxWidth: '100%', width: '100%' }}>
       {/* Cost Tracking Status Bar */}
       {(() => {
@@ -1554,6 +1611,8 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
           </SheetContent>
         </Sheet>
       </div>
+        </TabsContent>
+      </Tabs>
     </TooltipProvider>
   );
 }

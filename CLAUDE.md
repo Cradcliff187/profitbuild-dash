@@ -388,6 +388,48 @@ The `expenses` table is growing past 1,000 rows (1,278 at time of writing). **Po
 
 **Admin-only exception**: `BulkExpenseAllocationSheet` still does an unbounded fetch to build match candidates; fix tracked in Outstanding Audit Items.
 
+### 13. Cost Bucket Views on Cost Tracking (Apr 16, 2026)
+
+The Cost Tracking page (`/projects/:id/control`) uses a **tab toggle between two views**, both sharing a single hook:
+
+| Tab | Component | Role |
+|---|---|---|
+| **Buckets** (default) | [CostBucketView](src/components/cost-tracking/CostBucketView.tsx) | Per-category rollup (Labor, Materials, Other, etc.) with collapsible rows showing line-item detail. Replaces the dense 12-column table as the default front door. |
+| **Detail** | [CostBucketSummaryStrip](src/components/cost-tracking/CostBucketSummaryStrip.tsx) + existing dense table | Compact bucket strip pinned above the unchanged [LineItemControlDashboard](src/components/LineItemControlDashboard.tsx) table for power-user drill-in (per-line correlation, quote management). |
+
+**Data source**: [useProjectCostBuckets](src/hooks/useProjectCostBuckets.ts) composes `useLineItemControl` (line items + correlations + quotes) with three supplementary reads: per-category spend from `expenses` + `expense_splits` (Rule 12 pattern), `estimate_financial_summary` (cushion config), and `estimate_line_items` (labor_hours, billing_rate, labor_cushion_amount). TanStack Query for cache + reactivity.
+
+**Dynamic labor cushion**: the Labor bucket header is cushion-aware via a `LaborCushionState` derivation computed client-side from actual hours vs estimate. Three zones with color coding:
+- 🟢 `under_est` — cushion intact (actual ≤ est hours)
+- 🟡 `in_cushion` — eroding (estHours < actual ≤ capacityHours), remaining = `bakedIn − (actual − estHours) × actual_cost_rate`
+- 🔴 `over_capacity` — cushion gone, excess past capacity = real cost overrun
+
+Per-line cushion annotations on labor rows are static (sourced from `estimate_line_items.labor_cushion_amount`) because per-line actual hours require correlations which are rarely set today.
+
+**Visual alignment**: tab toggle uses the canonical Expenses-page pattern (`MobileTabSelector` dropdown on mobile, rounded-pill `bg-muted/50 p-1` with orange active state on desktop). Expanded bucket headers get `border-l-2 border-orange-500` per `docs/design/VISUAL_HIERARCHY.md`.
+
+**"Other" bucket as data hygiene signal**: when expenses are categorized as `other` with no matching estimate line items (common pattern for CSV imports), the bucket renders an amber warning with a recategorize CTA. Example seen on 225-078: $2,664 sat in `other` with $0 target.
+
+### 14. Global Mobile Action Bar (Apr 16, 2026)
+
+**[FieldQuickActionBar](src/components/schedule/FieldQuickActionBar.tsx)** is the single project-scoped capture/note affordance on mobile. Rendered ONCE in [ProjectDetailView](src/components/ProjectDetailView.tsx) — persistent bottom bar visible across every project detail route (`/projects/:id`, `/control`, `/documents`, etc.). Replaced the fragmented mix of per-page FABs and per-card inline inputs.
+
+**Three-button standard** (Slack / WhatsApp / Linear convergent pattern):
+
+| Button | Action | Flow |
+|---|---|---|
+| **Note** | Opens bottom sheet with textarea + `VoiceNoteButton` mic INSIDE the composer | Slack-style voice-in-composer; transcribed text appends to whatever is typed |
+| **Camera** | Capacitor camera via `useCameraCapture` | Fast in-the-moment capture (no native picker chrome) |
+| **Attach** | Hidden `<input type="file" accept="image/*,video/*,.pdf,...">` → native sheet | User routes to Take Photo / Take Video / Photo Library / Choose File |
+
+**Why voice is inside the Note composer, not a peer button**: the output of voice transcription IS a note, so it belongs with the textarea. Slack, iMessage, WhatsApp all use this pattern.
+
+**Sticky override for inline use**: `FieldQuickActionBar`'s outer div is `position: fixed bottom-0`. When a caller wants it inline (currently none after consolidation, but historically `ProjectNotesTimeline` briefly did), override with `[&>div:first-child]:!static [&>div:first-child]:!shadow-none` utilities. Bottom sheets render in Radix Portal at document root regardless of trigger position.
+
+**Content padding**: the project detail main wrapper gets `pb-20` on mobile so scrollable content never ends up hidden behind the bar.
+
+**Not rendered on `/field-schedule/:id`** — that route is outside `ProjectDetailView` and renders its own bar. If you add a new project-scoped mobile route, prefer putting it inside `ProjectDetailView`'s Outlet so it inherits the bar automatically.
+
 ### 11. Employees vs Payees (Apr 2026)
 
 > **Users are the employees.** An employee is an `auth.users` row with at least one `user_roles` entry. The internal `payees` row (`is_internal=true`) is a **shadow record** that exists only to satisfy FK constraints on 7 accounting tables (`expenses`, `contracts`, `change_order_line_items`, `quotes`, `receipts`, `pending_payee_reviews`, `projects.owner_id`).
@@ -638,6 +680,9 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | Cost Tracking tab per-project (via `useLineItemControl`) would hit the same 1,000-row cap | Fixed (Apr 16, 2026) — added `.eq('project_id', projectId)` server-side filter. Previously fetched all and filtered client-side. |
 | Dead code: `Projects.tsx` fetched all expenses into state but never read it | Deleted (Apr 16, 2026) — 18 lines removed, unused `Expense` + `parseDateOnly` imports cleaned up. |
 | No indicator on `/expenses` for expenses awaiting approval | Added (Apr 16, 2026) — orange count badge on "All Expenses" tab (`useUnapprovedExpensesCount` hook, same `bg-orange-500` pattern as "Time Approvals 20" sidebar badge). |
+| Dense 12-column Cost Tracking table was the default front door; PMs had to mentally aggregate categories | Added (Apr 16, 2026) — Buckets tab as new default view with category rollups, collapsible line items, cushion-aware labor header. See Architectural Rule 13. |
+| Mobile capture affordances fragmented across per-page Camera/Video FABs + per-card inline inputs | Replaced (Apr 16, 2026) — single global `FieldQuickActionBar` (Note / Camera / Attach) rendered once in `ProjectDetailView` on mobile. Voice-in-composer pattern. See Architectural Rule 14. |
+| `FieldQuickActionBar` had 3 buttons (Note/Photo/Voice) diverging from industry convention | Refactored (Apr 16, 2026) — now Note/Camera/Attach matching Slack/WhatsApp/Linear. Voice transcription folded into the Note composer (mic inside textarea). |
 
 ### Medium Priority
 
@@ -655,3 +700,8 @@ Issues identified during codebase audit, validated, and prioritized for future w
 | 26 edge functions with wildcard CORS (`*`) | All functions except `quickbooks-callback` | Replace with `rcgwork.com` origin allowlist. Especially important for no-JWT functions: `send-auth-email`, `forgot-password`, `send-receipt-notification`, `send-training-notification` |
 | `console.log` cleanup | 132 across 38 files | Mix of intentional logging and debug leftovers. Needs triage to distinguish. |
 | `useProjectData` not reactive — Project Detail View doesn't auto-update | `src/hooks/useProjectData.tsx`, `src/components/ProjectDetailView.tsx` | The hook uses raw `useState`/`useEffect` instead of TanStack Query, so mutations in child components (estimate approval, expense creation, change order save) don't trigger re-renders. Only `handleSaveQuote` calls `loadProjectData()`. **Fix:** Migrate to `useQuery` with proper query keys so mutations can call `queryClient.invalidateQueries()`. Alternatively, add Supabase Realtime subscriptions on `estimates`, `expenses`, `change_orders` tables to trigger `loadProjectData()` as a lighter-weight interim fix. Views that DO auto-update correctly (and can serve as reference patterns): `useScheduleOfValues`, `usePaymentApplications`, `useProjectMedia`, `ProjectDocumentsTable`. |
+| **`reporting.internal_labor_hours_by_project` view excludes split labor** | `reporting` schema | View currently filters `e.is_split = false`, so labor expenses split across projects via `expense_splits` are invisible. Today: 1 parent, 2 splits, $297.50 total globally. Causes labor + non-labor reconciliation mismatch on projects with split labor. `reporting.project_financials.total_expenses` already includes splits via the correct CTE pattern. Fix: rewrite the view's `expense_totals` CTE to FULL OUTER JOIN direct-labor + split-labor, plus update `has_labor` CTE to include projects with only-split labor. Prerequisite was dropped for the Cost Bucket Views work (that feature queries `expenses` + `expense_splits` directly). Still needed for KPI accuracy + AI report context. |
+| **Overview "Budget Status" card redundancy** | `src/components/ProjectOperationalDashboard.tsx:607-671` | Card duplicates the new Buckets view's TOTAL row (same Adjusted Est Cost / Spent / % progress). Proposed: strip dollar/progress metrics, keep only the Contingency block, replace the navigate-to-expenses link with "View Cost Buckets →" pointing to `/projects/:id/control`. Or replace entire card with a single summary line "Budget: $X of $Y (Z%)". Low risk, clean single-commit change. |
+| **AI Report Assistant edge function manual redeploy pending** | `supabase/functions/ai-report-assistant/` | KPI-guide corrections shipped in source on Apr 16 but Lovable does NOT auto-deploy this function (per CLAUDE.md gotcha). Run `npx supabase functions deploy ai-report-assistant --project-ref clsjdxwbsjbhjibvlqbz` to surface the `budget_utilization_percent` + `actual_margin_percent` fixes in the live assistant. |
+| **Mobile drill-in pattern for bucket line items** | `src/components/cost-tracking/CostBucketView.tsx` | Line items currently expand inline inside the bucket card. On narrow screens a bottom sheet could give more vertical real estate per line item (more context visible, tap-friendly). Deferred until a real UX pain point surfaces — the inline expansion is acceptable at current scale. |
+| **"Recategorize from Other bucket" quick action** | `src/components/cost-tracking/BucketEmptyState.tsx` | The `no_target` (Other) bucket surfaces uncategorized spend loud-and-clear, but doesn't offer a fix. Could add "Move N expenses to Materials / Subcontractors / ..." inline buttons with a category-picker. Nice-to-have once the pattern proves useful at scale. |

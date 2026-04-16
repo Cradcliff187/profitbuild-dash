@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Video, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProjectData } from "@/hooks/useProjectData";
+import { FieldQuickActionBar } from "@/components/schedule/FieldQuickActionBar";
 import { cn } from "@/lib/utils";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -485,8 +486,14 @@ export const ProjectDetailView = () => {
           </Sheet>
         </header>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto w-full max-w-full box-border min-w-0" data-project-detail-content style={{ maxWidth: '100%', width: '100%' }}>
+        {/* Content — bottom padding matches FieldQuickActionBar height (h-14 +
+           py-2.5 + border + safe-area ≈ 80px) so scrollable content never
+           ends up hidden behind the global action bar. */}
+        <div
+          className="flex-1 overflow-auto w-full max-w-full box-border min-w-0 pb-20"
+          data-project-detail-content
+          style={{ maxWidth: '100%', width: '100%' }}
+        >
           <Outlet context={{
             project,
             estimates,
@@ -511,26 +518,13 @@ export const ProjectDetailView = () => {
             projectId: projectId!,
           }} />
         </div>
-        
-        {/* Floating Action Buttons — mobile field worker capture */}
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => navigate(`/projects/${project.id}/capture-video`)}
-            title="Capture Video"
-          >
-            <Video className="h-5 w-5" />
-          </Button>
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => navigate(`/projects/${project.id}/capture`)}
-            title="Capture Photo"
-          >
-            <Camera className="h-5 w-5" />
-          </Button>
-        </div>
+
+        {/* Global Quick Action Bar — single capture/note affordance for the
+           entire project detail nav tree on mobile. Persistent bottom bar with
+           three large pills: Note, Camera, Attach. Replaces per-page FABs and
+           per-card inline inputs. Not rendered on /field-schedule/:id because
+           that route lives outside ProjectDetailView and has its own bar. */}
+        <FieldQuickActionBar projectId={project.id} onNoteCreated={loadProjectData} />
 
         {/* Change Order Modal */}
         <ChangeOrderModal
