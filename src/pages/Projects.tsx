@@ -22,6 +22,7 @@ import { ProjectWithFinancials } from "@/types/projectFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { usePagination } from "@/hooks/usePagination";
+import { getShowSandboxProject, SANDBOX_PROJECT_NUMBER } from "@/utils/sandboxPreferences";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,9 +102,14 @@ const Projects = () => {
       setIsLoading(true);
       
       // Load all related data (exclude unassigned project and work orders)
-      // Include reporting financials (total_invoiced, total_expenses) for complete/cancelled display
+      // Include reporting financials (total_invoiced, total_expenses) for complete/cancelled display.
+      // The Settings > Developer toggle adds the SYS-TEST sandbox project (category=system) alongside
+      // normal construction projects so it can be clicked into for testing reactive UI flows.
+      const categoryFilter = getShowSandboxProject()
+        ? `category.eq.construction,project_number.eq.${SANDBOX_PROJECT_NUMBER}`
+        : "category.eq.construction";
       const [projectsRes, estimatesRes, quotesRes, changeOrdersRes, financialsRes, coLineItemsRes] = await Promise.all([
-        supabase.from('projects').select('*').eq('category', 'construction').or('project_type.eq.construction_project,project_type.is.null').order('created_at', { ascending: false }),
+        supabase.from('projects').select('*').or(categoryFilter).or('project_type.eq.construction_project,project_type.is.null').order('created_at', { ascending: false }),
         supabase.from('estimates').select('*, estimate_line_items(id, category)'),
         supabase.from('quotes').select('*'),
         // (dead-code removed: the `expenses` fetch was unused — see state declaration comment above)

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
@@ -15,6 +15,7 @@ import { LaborRateSettings } from "@/components/admin/LaborRateSettings";
 import { QuickBooksSettings } from "@/components/QuickBooksSettings";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
 import { getCaptionPreferences, setCaptionPreferences } from "@/utils/userPreferences";
+import { getShowSandboxProject, setShowSandboxProject, SANDBOX_PROJECT_NUMBER } from "@/utils/sandboxPreferences";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ const Settings = () => {
   // Preferences state
   const [budgetThreshold, setBudgetThresholdState] = useState<number>(10);
   const [captionPromptsEnabled, setCaptionPromptsEnabled] = useState<boolean>(true);
+  const [showSandbox, setShowSandboxState] = useState<boolean>(getShowSandboxProject());
   
   // Project counter state (admin only)
   const [projectCounter, setProjectCounter] = useState<number>(225000);
@@ -550,6 +552,38 @@ const Settings = () => {
         <CompanyBrandingSettings />
 
         {isAdmin && <LaborRateSettings />}
+
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Code2 className="h-5 w-5" />
+                <span>Developer</span>
+              </CardTitle>
+              <CardDescription>Admin-only toggles for verification work</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 pr-4">
+                  <Label>Show sandbox test project</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Surfaces the <code className="text-xs">{SANDBOX_PROJECT_NUMBER}</code> project on the Projects list so it can be used for verifying reactive UI flows (approve, save, delete) without touching real data. Hidden by default.
+                  </p>
+                </div>
+                <Switch
+                  checked={showSandbox}
+                  onCheckedChange={(checked) => {
+                    setShowSandboxProject(checked);
+                    setShowSandboxState(checked);
+                    toast.success(checked ? 'Sandbox project visible' : 'Sandbox project hidden', {
+                      description: 'Refresh the Projects page to see the change.',
+                    });
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
