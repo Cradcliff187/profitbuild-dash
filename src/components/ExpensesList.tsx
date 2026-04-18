@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +126,7 @@ export interface ExpensesListRef {
 export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>(
   ({ expenses, projectId, onEdit, onDelete, onRefresh, enablePagination = true, pageSize: initialPageSize = 50, visibleColumns: externalVisibleColumns, onVisibleColumnsChange, columnOrder: externalColumnOrder, onColumnOrderChange }, ref) => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const isMobile = useIsMobile();
     const [pageSize, setPageSize] = useState(initialPageSize);
     const [searchTerm, setSearchTerm] = useState("");
@@ -188,11 +190,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Unified refresh: the parent's `onRefresh` feeds ExpenseDashboard + ExpenseExportModal
     // (and project-scoped consumers), but the visible table in global mode is owned by
     // useExpensesQuery — a separate TanStack cache that direct Supabase writes can't
-    // invalidate. Call both so mutations (bulk, row edit, delete, approve, split) show up
-    // without a full page reload.
+    // invalidate. The tab badge + any sidebar count use ['expenses-unapproved-count'].
+    // Invalidate all three so row/bulk approve/reject/delete/reassign/allocate/split
+    // show up everywhere without a page reload (Gotcha #27).
     const refreshAll = () => {
       onRefresh();
       if (isGlobalMode) expensesQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ["expenses-unapproved-count"] });
     };
 
 
