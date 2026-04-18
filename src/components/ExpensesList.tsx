@@ -185,6 +185,16 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Property-scoped mode uses the prop as-is; global mode uses the paginated hook results.
     const effectiveExpenses: Expense[] = expenses ?? expensesQuery.data;
 
+    // Unified refresh: the parent's `onRefresh` feeds ExpenseDashboard + ExpenseExportModal
+    // (and project-scoped consumers), but the visible table in global mode is owned by
+    // useExpensesQuery — a separate TanStack cache that direct Supabase writes can't
+    // invalidate. Call both so mutations (bulk, row edit, delete, approve, split) show up
+    // without a full page reload.
+    const refreshAll = () => {
+      onRefresh();
+      if (isGlobalMode) expensesQuery.refetch();
+    };
+
 
     // Receipt linking state
     const [receiptLinkModalOpen, setReceiptLinkModalOpen] = useState(false);
@@ -637,7 +647,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         toast.success("Expense deleted successfully.");
 
         onDelete(expenseId);
-        onRefresh();
+        refreshAll();
       } catch (error) {
         console.error("Error deleting expense:", error);
         toast.error("Failed to delete expense.");
@@ -676,7 +686,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
         toast.success(`Expense ${action === "submit" ? "submitted for approval" : action === "approve" ? "approved" : "rejected"}.`);
 
-        onRefresh();
+        refreshAll();
       } catch (error) {
         console.error("Error updating approval status:", error);
         toast.error("Failed to update approval status.");
@@ -844,7 +854,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
     const handleAllocationSuccess = () => {
       // Refresh the expenses list
-      onRefresh();
+      refreshAll();
       setAllocationSheetOpen(false);
       setExpenseToAllocate(null);
     };
@@ -2308,7 +2318,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               onSelectionChange={(newSet) => setSelectedExpenses(Array.from(newSet))}
               onComplete={() => {
                 setSelectedExpenses([]);
-                onRefresh();
+                refreshAll();
               }}
             />
           </div>
@@ -2783,7 +2793,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           onSuccess={() => {
             setReassignDialogOpen(false);
             setExpenseToReassign(null);
-            onRefresh();
+            refreshAll();
           }}
           expenseIds={expenseToReassign ? [expenseToReassign.id] : []}
           currentProjectName={expenseToReassign?.project_name}
@@ -2799,7 +2809,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           onSuccess={() => {
             setSplitDialogOpen(false);
             setExpenseToSplit(null);
-            onRefresh();
+            refreshAll();
           }}
         />
 
