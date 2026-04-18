@@ -85,11 +85,14 @@ export function QuoteViewRoute() {
       if (error) throw error;
       toast.success("Contract deleted", { description: "The contract has been removed." });
       await fetchQuoteContracts();
+      // DB trigger `contracts_delete_cascade` → `delete_related_project_documents()`
+      // removes a project_documents row, so documentCount in the hook is now stale.
+      loadProjectData?.();
     } catch (err) {
       console.error("Error deleting contract:", err);
       toast.error("Delete failed", { description: err instanceof Error ? err.message : "Failed to delete contract" });
     }
-  }, [fetchQuoteContracts]);
+  }, [fetchQuoteContracts, loadProjectData]);
 
   if (!quote) {
     return (
