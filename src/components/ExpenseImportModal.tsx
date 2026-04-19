@@ -305,24 +305,39 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         if (idx >= 0) duplicateIndexMap.set(idx, { matchInfo: d.reason });
       });
 
-      // Database duplicates (expenses)
+      // Database duplicates (expenses).
+      // Prefer the originalIndex stored at find-time (preserves identity when
+      // multiple CSV rows share (Date, Amount, Name)) and fall back to findIndex
+      // for older validation results that don't carry the index.
       validationResults.databaseDuplicates?.forEach((d: any) => {
-        const idx = csvData.findIndex(row =>
-          row.Date === d.transaction.Date &&
-          row.Amount === d.transaction.Amount &&
-          row.Name === d.transaction.Name
-        );
-        if (idx >= 0) duplicateIndexMap.set(idx, { matchKey: d.matchKey, matchInfo: `Matches expense ${d.existingExpenseId?.slice(0, 8)}` });
+        let idx: number | undefined = typeof d.originalIndex === 'number' ? d.originalIndex : undefined;
+        if (idx === undefined) {
+          const found = csvData.findIndex(row =>
+            row.Date === d.transaction.Date &&
+            row.Amount === d.transaction.Amount &&
+            row.Name === d.transaction.Name
+          );
+          idx = found >= 0 ? found : undefined;
+        }
+        if (idx !== undefined && idx >= 0) {
+          duplicateIndexMap.set(idx, { matchKey: d.matchKey, matchInfo: `Matches expense ${d.existingExpenseId?.slice(0, 8)}` });
+        }
       });
 
-      // Database duplicates (revenues)
+      // Database duplicates (revenues). Same originalIndex preference as expenses.
       validationResults.revenueDatabaseDuplicates?.forEach((d: any) => {
-        const idx = csvData.findIndex(row =>
-          row.Date === d.transaction.Date &&
-          row.Amount === d.transaction.Amount &&
-          row.Name === d.transaction.Name
-        );
-        if (idx >= 0) duplicateIndexMap.set(idx, { matchKey: d.matchKey, matchInfo: `Matches revenue ${d.existingRevenueId?.slice(0, 8)}` });
+        let idx: number | undefined = typeof d.originalIndex === 'number' ? d.originalIndex : undefined;
+        if (idx === undefined) {
+          const found = csvData.findIndex(row =>
+            row.Date === d.transaction.Date &&
+            row.Amount === d.transaction.Amount &&
+            row.Name === d.transaction.Name
+          );
+          idx = found >= 0 ? found : undefined;
+        }
+        if (idx !== undefined && idx >= 0) {
+          duplicateIndexMap.set(idx, { matchKey: d.matchKey, matchInfo: `Matches revenue ${d.existingRevenueId?.slice(0, 8)}` });
+        }
       });
 
       // Revenue in-file duplicates
@@ -715,6 +730,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       transaction: TransactionCSVRow;
       existingExpenseId: string;
       matchKey: string;
+      originalIndex: number; // CSV row index — preserves identity across CSV-side (Date, Amount, Name) collisions
     }> = [];
     
     if (dates.length > 0) {
@@ -842,10 +858,10 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
     }
     
-    data.forEach(row => {
+    data.forEach((row, rowIndex) => {
       const projectWO = row['Project/WO #']?.trim() || '';
       const name = row['Name']?.trim().toLowerCase();
-      
+
       // Check project match using fuzzy matching with aliases
       if (projectWO) {
         const projectMatch = fuzzyMatchProject(projectWO, partialProjects, projectAliases);
@@ -900,7 +916,8 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           databaseDuplicates.push({
             transaction: row,
             existingExpenseId: existingExpense.id,
-            matchKey: matchKey || primaryKey
+            matchKey: matchKey || primaryKey,
+            originalIndex: rowIndex // preserves identity when multiple CSV rows share (Date, Amount, Name)
           });
         }
       }
@@ -993,31 +1010,47 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       transaction: TransactionCSVRow;
       existingRevenueId: string;
       matchKey: string;
+      originalIndex: number; // CSV row index — preserves identity across (Date, Amount, InvoiceNum, Name) collisions
     }> = [];
-    
+
     if (dates.length > 0) {
       const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-      
+
       minDate.setDate(minDate.getDate() - 1);
       maxDate.setDate(maxDate.getDate() + 1);
-      
-      const { data: existingRevenuesData, error: revenuesError } = await supabase
-        .from('project_revenues')
-        .select(`
-          id, 
-          invoice_date, 
-          amount, 
-          invoice_number, 
-          description,
-          clients!project_revenues_client_id_fkey (
-            client_name
-          )
-        `)
-        .gte('invoice_date', minDate.toISOString().split('T')[0])
-        .lte('invoice_date', maxDate.toISOString().split('T')[0]);
-      
-      if (!revenuesError && existingRevenuesData) {
+
+      // Paginate the revenue fetch (Gotcha #23 — same root cause as the
+      // expenses dup-detection fetch, in case project_revenues grows past 1000).
+      const PAGE_SIZE_REV = 1000;
+      const startStr = minDate.toISOString().split('T')[0];
+      const endStr = maxDate.toISOString().split('T')[0];
+      const existingRevenuesData: any[] = [];
+      let revenuesError: any = null;
+      for (let from = 0; ; from += PAGE_SIZE_REV) {
+        const { data, error } = await supabase
+          .from('project_revenues')
+          .select(`
+            id,
+            invoice_date,
+            amount,
+            invoice_number,
+            description,
+            clients!project_revenues_client_id_fkey (
+              client_name
+            )
+          `)
+          .gte('invoice_date', startStr)
+          .lte('invoice_date', endStr)
+          .order('id', { ascending: true })
+          .range(from, from + PAGE_SIZE_REV - 1);
+        if (error) { revenuesError = error; break; }
+        const page = data ?? [];
+        existingRevenuesData.push(...page);
+        if (page.length < PAGE_SIZE_REV) break;
+      }
+
+      if (!revenuesError && existingRevenuesData.length >= 0) {
         for (const revenue of existingRevenuesData) {
           const clientName = (revenue.clients as any)?.client_name || '';
           
@@ -1034,25 +1067,26 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
       
       // Check for revenue database duplicates
-      data.forEach(row => {
+      data.forEach((row, rowIndex) => {
         if (row['Transaction type']?.toLowerCase() !== 'invoice') {
           return;
         }
-        
+
         const date = safeDateISO(row['Date']);
         const amount = parseFloat(row['Amount']?.replace(/[,$()]/g, '') || '0');
         const invoiceNumber = row['Invoice #']?.trim() || '';
         const name = row['Name']?.trim() || '';
-        
+
         // Use shared key function for consistency
         const key = createRevenueKey(amount, date, invoiceNumber, name);
         const existingRevenue = existingRevenues.get(key);
-        
+
         if (existingRevenue) {
           revenueDatabaseDuplicates.push({
             transaction: row,
             existingRevenueId: existingRevenue.id,
-            matchKey: key
+            matchKey: key,
+            originalIndex: rowIndex
           });
         }
       });
