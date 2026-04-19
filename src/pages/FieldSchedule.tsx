@@ -253,7 +253,7 @@ export default function FieldSchedule() {
       )}
 
       {activeTab === 'notes' && (
-        <ProjectNotesTimeline projectId={projectId} inSheet />
+        <ProjectNotesTimeline projectId={projectId} inSheet hideComposer />
       )}
 
       {activeTab === 'media' && (

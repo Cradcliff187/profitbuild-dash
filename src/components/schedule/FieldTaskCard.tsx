@@ -2,15 +2,10 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { ChevronDown, CheckCircle2, Camera, AlertCircle, Send } from 'lucide-react';
+import { ChevronDown, CheckCircle2, StickyNote, AlertCircle } from 'lucide-react';
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
-import { useProjectNotes } from '@/hooks/useProjectNotes';
-import { useMentionableUsers } from '@/hooks/useMentionableUsers';
-import { useCameraCapture } from '@/hooks/useCameraCapture';
-import { MentionTextarea } from '@/components/notes/MentionTextarea';
-import { resolveMentions } from '@/utils/mentionUtils';
-import { toast } from 'sonner';
+import { NoteComposer } from '@/components/notes/NoteComposer';
 
 interface FieldTaskCardProps {
   task: ScheduleTask;
@@ -83,77 +78,22 @@ function TaskActions({
   onMarkComplete: () => void;
   isComplete: boolean;
 }) {
-  const [noteText, setNoteText] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const { addNote, uploadAttachment } = useProjectNotes(projectId);
-  const { capturePhoto, isCapturing } = useCameraCapture();
-  const { data: mentionableUsers } = useMentionableUsers();
-
-  const handleAddNote = () => {
-    const text = noteText.trim();
-    if (!text) return;
-    setIsSaving(true);
-
-    const { formattedText, mentionedUserIds } = mentionableUsers
-      ? resolveMentions(text, mentionableUsers)
-      : { formattedText: text, mentionedUserIds: [] };
-
-    addNote({
-      text: `**${taskName}:** ${formattedText}`,
-      mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
-    });
-    setNoteText('');
-    setIsSaving(false);
-  };
-
-  const handlePhoto = async () => {
-    const result = await capturePhoto();
-    if (!result?.dataUrl) return;
-    toast.info('Uploading photo...');
-    const url = await uploadAttachment(result.dataUrl, 'image');
-    if (url) {
-      addNote({
-        text: `**${taskName}:** Photo`,
-        attachmentUrl: url,
-        attachmentType: 'image',
-      });
-    }
-  };
+  const [noteSheetOpen, setNoteSheetOpen] = useState(false);
 
   return (
-    <div className="space-y-3 pt-3 border-t border-border/50">
-      {/* Note input */}
-      <div className="flex gap-2">
-        <MentionTextarea
-          value={noteText}
-          onChange={setNoteText}
-          placeholder="What happened? @ to tag"
-          rows={2}
-          className="text-sm resize-none flex-1"
-          mentionableUsers={mentionableUsers || []}
-        />
-        <div className="flex flex-col gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePhoto}
-            disabled={isCapturing}
-            className="h-9 w-9 p-0"
-          >
-            <Camera className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleAddNote}
-            disabled={!noteText.trim() || isSaving}
-            className="h-9 w-9 p-0"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-2 pt-3 border-t border-border/50">
+      {/* Add Note — opens NoteComposer sheet with task context.
+         Photo / Video / File capture live inside the composer's Attach menu
+         so PMs get a full-screen composer rather than a cramped inline form. */}
+      <Button
+        variant="outline"
+        onClick={() => setNoteSheetOpen(true)}
+        className="w-full h-11 rounded-lg gap-2"
+      >
+        <StickyNote className="h-4 w-4" />
+        Add Note
+      </Button>
 
-      {/* Mark Complete */}
       {!isComplete && (
         <Button
           variant="outline"
@@ -164,6 +104,14 @@ function TaskActions({
           Mark Complete
         </Button>
       )}
+
+      <NoteComposer
+        projectId={projectId}
+        taskName={taskName}
+        presentation="sheet"
+        open={noteSheetOpen}
+        onOpenChange={setNoteSheetOpen}
+      />
     </div>
   );
 }

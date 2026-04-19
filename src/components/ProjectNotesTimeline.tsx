@@ -22,9 +22,15 @@ import { resolveMentions } from '@/utils/mentionUtils';
 interface ProjectNotesTimelineProps {
   projectId: string;
   inSheet?: boolean;
+  /**
+   * When true, suppresses the built-in NoteInput composer — timeline only.
+   * Used by callers (e.g. FieldSchedule) where the note-entry affordance
+   * lives in a separate surface like FieldQuickActionBar.
+   */
+  hideComposer?: boolean;
 }
 
-export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNotesTimelineProps) {
+export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer = false }: ProjectNotesTimelineProps) {
   // Data layer
   const { notes, isLoading, addNote, isAdding, updateNote, deleteNote, uploadAttachment } = useProjectNotes(projectId);
 
@@ -250,12 +256,15 @@ export function ProjectNotesTimeline({ projectId, inSheet = false }: ProjectNote
   let mainContent;
 
   if (inSheet) {
-    // Sheet modal (mobile full-screen bottom drawer)
+    // Sheet modal (mobile full-screen bottom drawer). Composer can be hidden
+    // by callers whose surface already provides a note-entry affordance.
     mainContent = (
       <div className="flex flex-col h-full">
-        <div className="p-3 bg-muted/20 border rounded-lg mb-3 shrink-0">
-          <NoteInput variant="default" fileInputId="file-upload-sheet" {...noteInputProps} />
-        </div>
+        {!hideComposer && (
+          <div className="p-3 bg-muted/20 border rounded-lg mb-3 shrink-0">
+            <NoteInput variant="default" fileInputId="file-upload-sheet" {...noteInputProps} />
+          </div>
+        )}
         {renderNotesList('default')}
       </div>
     );
