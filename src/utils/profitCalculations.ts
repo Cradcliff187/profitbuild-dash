@@ -56,7 +56,7 @@ export function calculateProjectProfit(
     profitMargin,
     profitVariance,
     projectStartDate: estimate.date_created,
-    projectEndDate: status === 'Complete' ? new Date() : undefined,
+    projectEndDate: status === 'complete' ? new Date() : undefined,
     status
   };
 }
@@ -117,7 +117,7 @@ export async function calculateProjectProfitAsync(
     profitMargin,
     profitVariance,
     projectStartDate: estimate.date_created,
-    projectEndDate: status === 'Complete' ? new Date() : undefined,
+    projectEndDate: status === 'complete' ? new Date() : undefined,
     status
   };
 }

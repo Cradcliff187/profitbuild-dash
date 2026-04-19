@@ -107,7 +107,10 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
         )
       ]);
 
-      if (batchRes.data) setBatch(batchRes.data as BatchInfo);
+      // batchRes.data.match_log is typed as Json but the runtime shape matches
+      // BatchInfo's typed match_log (rows produced by the importer); two-step
+      // cast tells tsc we know better than the generated Json type.
+      if (batchRes.data) setBatch(batchRes.data as unknown as BatchInfo);
       setExpenses(batchExpenses);
       setRevenues(batchRevenues);
 

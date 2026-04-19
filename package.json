@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit -p tsconfig.app.json",
     "create-test-project": "tsx scripts/create-test-project.ts",
     "cleanup-test-data": "tsx scripts/cleanup-test-data.ts",
     "pre-deploy": "bash scripts/pre-deploy-checks.sh",

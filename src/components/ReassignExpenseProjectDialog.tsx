@@ -43,8 +43,11 @@ export function ReassignExpenseProjectDialog({
       return;
     }
 
-    // Cast to Project type - ProjectSelectorNew only needs these fields
-    setProjects(data || []);
+    // Cast to Project type — ProjectSelectorNew only reads id/project_number/
+    // project_name/client_name/category. The select intentionally omits the
+    // other Project fields (project_type/status/created_at/updated_at) we don't
+    // need; two-step cast tells tsc this is deliberate.
+    setProjects((data || []) as unknown as Project[]);
   };
 
   const handleReassign = async () => {
