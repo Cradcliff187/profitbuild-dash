@@ -1124,6 +1124,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expense_line_item_correlations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"
             columns: ["expense_split_id"]
             isOneToOne: false
@@ -1186,6 +1193,13 @@ export type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_splits_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses_search"
             referencedColumns: ["id"]
           },
           {
@@ -1478,6 +1492,35 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_mentions: {
+        Row: {
+          created_at: string
+          id: string
+          note_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_mentions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "project_notes"
             referencedColumns: ["id"]
           },
         ]
@@ -1814,6 +1857,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_be_mentioned: boolean
           created_at: string
           deactivated_at: string | null
           deactivated_by: string | null
@@ -1828,6 +1872,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          can_be_mentioned?: boolean
           created_at?: string
           deactivated_at?: string | null
           deactivated_by?: string | null
@@ -1842,6 +1887,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          can_be_mentioned?: boolean
           created_at?: string
           deactivated_at?: string | null
           deactivated_by?: string | null
@@ -2218,7 +2264,9 @@ export type Database = {
           created_at: string | null
           current_margin: number | null
           customer_po_number: string | null
-          default_expense_category: Database["public"]["Enums"]["expense_category"] | null
+          default_expense_category:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
           do_not_exceed: number | null
           end_date: string | null
           estimated_hours: number | null
@@ -2262,7 +2310,9 @@ export type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
-          default_expense_category?: Database["public"]["Enums"]["expense_category"] | null
+          default_expense_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
           do_not_exceed?: number | null
           end_date?: string | null
           estimated_hours?: number | null
@@ -2306,7 +2356,9 @@ export type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
-          default_expense_category?: Database["public"]["Enums"]["expense_category"] | null
+          default_expense_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
           do_not_exceed?: number | null
           end_date?: string | null
           estimated_hours?: number | null
@@ -3565,6 +3617,48 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link_url: string | null
+          read_at: string | null
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          read_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          read_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -3627,6 +3721,101 @@ export type Database = {
           },
         ]
       }
+      expenses_search: {
+        Row: {
+          account_full_name: string | null
+          account_name: string | null
+          amount: number | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          created_at: string | null
+          created_offline: boolean | null
+          description: string | null
+          end_time: string | null
+          expense_date: string | null
+          gross_hours: number | null
+          hours: number | null
+          id: string | null
+          import_batch_id: string | null
+          invoice_number: string | null
+          is_locked: boolean | null
+          is_planned: boolean | null
+          is_split: boolean | null
+          local_id: string | null
+          lunch_duration_minutes: number | null
+          lunch_taken: boolean | null
+          payee_full_name: string | null
+          payee_id: string | null
+          payee_name: string | null
+          payee_type: string | null
+          project_category:
+            | Database["public"]["Enums"]["project_category"]
+            | null
+          project_id: string | null
+          project_name: string | null
+          project_number: string | null
+          quickbooks_transaction_id: string | null
+          receipt_id: string | null
+          rejection_reason: string | null
+          search_text: string | null
+          start_time: string | null
+          submitted_for_approval_at: string | null
+          synced_at: string | null
+          transaction_type:
+            | Database["public"]["Enums"]["transaction_type"]
+            | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_labor_hours: {
         Row: {
           approved_entries: number | null
@@ -3638,7 +3827,7 @@ export type Database = {
           pending_entries: number | null
           rejected_entries: number | null
           total_cost: number | null
-          paid_hours: number | null
+          total_hours: number | null
           week_end_saturday: string | null
           week_start_sunday: string | null
         }
@@ -3756,6 +3945,62 @@ export type Database = {
         Returns: string
       }
       get_database_schema: { Args: never; Returns: Json }
+      get_employees_audit: {
+        Args: never
+        Returns: {
+          can_be_mentioned: boolean
+          email: string
+          full_name: string
+          linkage_status: string
+          payee_id: string
+          payee_is_active: boolean
+          payee_name: string
+          payee_user_id: string
+          profile_is_active: boolean
+          provides_labor: boolean
+          roles: string[]
+          user_id: string
+        }[]
+      }
+      get_expense_category_rollup: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_project_category?: Database["public"]["Enums"]["project_category"]
+        }
+        Returns: {
+          allocated_count: number
+          category: Database["public"]["Enums"]["expense_category"]
+          project_count: number
+          row_count: number
+          total_amount: number
+        }[]
+      }
+      get_expense_dashboard_stats: {
+        Args: {
+          p_project_category?: Database["public"]["Enums"]["project_category"]
+        }
+        Returns: {
+          split_amount: number
+          split_count: number
+          this_month_amount: number
+          total_amount: number
+          total_count: number
+          unallocated_amount: number
+          unallocated_count: number
+          unassigned_amount: number
+          unassigned_count: number
+        }[]
+      }
+      get_mentionable_employees: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
       get_next_project_number: { Args: never; Returns: string }
       get_profit_analysis_data: {
         Args: { status_filter?: string[] }
@@ -3883,6 +4128,10 @@ export type Database = {
       safe_cast_to_quote_status: {
         Args: { val: string }
         Returns: Database["public"]["Enums"]["quote_status"]
+      }
+      set_user_can_be_mentioned: {
+        Args: { target_user_id: string; value: boolean }
+        Returns: undefined
       }
     }
     Enums: {
