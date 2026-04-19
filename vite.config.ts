@@ -78,7 +78,7 @@ export default defineConfig(({ mode }) => ({
       // versions. See [src/main.tsx] for the lifecycle.
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['icon-192.png', 'icon-512.png', 'icon-180.png', 'favicon.ico'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'icon-180.png', 'pwa-apple-touch-180x180.png', 'favicon.ico'],
       manifest: {
         name: 'RCG Work',
         short_name: 'RCG Work',
