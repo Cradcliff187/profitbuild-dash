@@ -603,7 +603,6 @@ Set in Supabase Dashboard → Settings → Edge Functions → Secrets:
 | `docs/_archived/` | Historical plans and outdated docs |
 | `docs/audits/` | Completed audit reports |
 | `docs/CONTRACT_MIGRATIONS_APPLIED.md` | Contract feature migration log |
-| `docs/MANUAL_TIME_ENTRY_REBUILD_PLAN.md` | Time entry form rebuild plan (pending implementation) |
 
 ---
 
