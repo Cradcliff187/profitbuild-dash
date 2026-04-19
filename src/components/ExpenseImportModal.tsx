@@ -725,23 +725,48 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       minDate.setDate(minDate.getDate() - 1);
       maxDate.setDate(maxDate.getDate() + 1);
       
-      const { data: existingExpensesData, error } = await supabase
-        .from('expenses')
-        .select(`
-          id, 
-          expense_date, 
-          amount, 
-          payee_id, 
-          description,
-          is_split,
-          payees!expenses_payee_id_fkey (
-            payee_name
-          )
-        `)
-        .gte('expense_date', minDate.toISOString().split('T')[0])
-        .lte('expense_date', maxDate.toISOString().split('T')[0]);
-      
-      if (!error && existingExpensesData) {
+      // Paginate the dup-detection fetch. Same Gotcha #23 root cause as
+      // commits f2442c3, 47267da, bf08cbe — PostgREST enforces db-max-rows=1000
+      // server-side, so the unfiltered .gte().lte() silently truncates at 1000.
+      // With 1,287 expenses in the typical CSV import range, ~287 existing
+      // rows would be invisible to dup-detection → CSV rows for them get
+      // flagged "New" → admin clicks through with default "create new" actions
+      // → duplicate expense rows inserted (no UNIQUE constraint catches the
+      // typo'd-description CSV-reimport edge case).
+      // User-caught live (Apr 19, 2026): even after fixing fetchExistingExpenses
+      // in enhancedTransactionImporter.ts (bf08cbe), the Review step in this
+      // modal STILL showed 6 of 301 rows as "New" because this independent
+      // fetch was never paginated.
+      const PAGE_SIZE = 1000;
+      const startDateStr = minDate.toISOString().split('T')[0];
+      const endDateStr = maxDate.toISOString().split('T')[0];
+      const existingExpensesData: any[] = [];
+      let fetchError: any = null;
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select(`
+            id,
+            expense_date,
+            amount,
+            payee_id,
+            description,
+            is_split,
+            payees!expenses_payee_id_fkey (
+              payee_name
+            )
+          `)
+          .gte('expense_date', startDateStr)
+          .lte('expense_date', endDateStr)
+          .order('id', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) { fetchError = error; break; }
+        const page = data ?? [];
+        existingExpensesData.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
+
+      if (!fetchError) {
         for (const expense of existingExpensesData) {
           // ALWAYS extract from description first (matches CSV format)
           let extractedName = '';
