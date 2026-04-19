@@ -1231,31 +1231,47 @@ const fetchExistingExpenses = async (
   startDate: string,
   endDate: string
 ): Promise<Map<string, { id: string; description: string; is_split?: boolean }>> => {
-  const { data: existingExpenses, error } = await supabase
-    .from('expenses')
-    .select(`
-      id, 
-      expense_date, 
-      amount, 
-      payee_id, 
-      description,
-      account_full_name,
-      is_split,
-      payees!expenses_payee_id_fkey (
-        payee_name
-      )
-    `)
-    .gte('expense_date', startDate)
-    .lte('expense_date', endDate);
+  // Paginate. PostgREST enforces db-max-rows=1000 server-side (CLAUDE.md
+  // Gotcha #23) and the project has 1,289+ expenses, so a date-range query
+  // covering the typical CSV import window silently truncates at 1,000 →
+  // existing expenses past the cap are invisible to the duplicate-detection
+  // map → CSV rows for those existing expenses are flagged as "New" and
+  // re-imported as triplicates. User-reported symptom (Apr 19, 2026):
+  // "5 of 301 keep showing as new even though I know they're already there."
+  const PAGE_SIZE = 1000;
+  const existingExpenses: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select(`
+        id,
+        expense_date,
+        amount,
+        payee_id,
+        description,
+        account_full_name,
+        is_split,
+        payees!expenses_payee_id_fkey (
+          payee_name
+        )
+      `)
+      .gte('expense_date', startDate)
+      .lte('expense_date', endDate)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (error) {
-    console.error('Error fetching existing expenses for duplicate check:', error);
-    return new Map();
+    if (error) {
+      console.error('Error fetching existing expenses for duplicate check:', error);
+      return new Map();
+    }
+    const page = data ?? [];
+    existingExpenses.push(...page);
+    if (page.length < PAGE_SIZE) break;
   }
 
   const existingMap = new Map<string, { id: string; description: string; is_split?: boolean }>();
-  
-  for (const expense of existingExpenses || []) {
+
+  for (const expense of existingExpenses) {
     // ALWAYS extract from description first (matches CSV format)
     let extractedName = '';
     if (expense.description) {

@@ -350,30 +350,45 @@ const fetchExistingExpenses = async (
   startDate: string,
   endDate: string
 ): Promise<Map<string, { id: string; description: string }>> => {
-  const { data: existingExpenses, error } = await supabase
-    .from('expenses')
-    .select(`
-      id, 
-      expense_date, 
-      amount, 
-      payee_id, 
-      description,
-      payees!expenses_payee_id_fkey (
-        payee_name
-      )
-    `)
-    .gte('expense_date', startDate)
-    .lte('expense_date', endDate)
-    .eq('is_split', false);
+  // Paginate — PostgREST enforces db-max-rows=1000 (CLAUDE.md Gotcha #23).
+  // Mirrors the fix in enhancedTransactionImporter.ts. Without pagination,
+  // a date range covering > 1000 existing expenses silently truncates to
+  // 1000 rows → existing expenses past that cap are invisible to the
+  // duplicate-detection map → CSV rows for them get flagged "New" and
+  // re-imported as duplicates.
+  const PAGE_SIZE = 1000;
+  const existingExpenses: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select(`
+        id,
+        expense_date,
+        amount,
+        payee_id,
+        description,
+        payees!expenses_payee_id_fkey (
+          payee_name
+        )
+      `)
+      .gte('expense_date', startDate)
+      .lte('expense_date', endDate)
+      .eq('is_split', false)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (error) {
-    console.error('Error fetching existing expenses for duplicate check:', error);
-    return new Map();
+    if (error) {
+      console.error('Error fetching existing expenses for duplicate check:', error);
+      return new Map();
+    }
+    const page = data ?? [];
+    existingExpenses.push(...page);
+    if (page.length < PAGE_SIZE) break;
   }
 
   const existingMap = new Map<string, { id: string; description: string }>();
-  
-  for (const expense of existingExpenses || []) {
+
+  for (const expense of existingExpenses) {
     // ALWAYS extract from description first (matches CSV format)
     let extractedName = '';
     if (expense.description) {

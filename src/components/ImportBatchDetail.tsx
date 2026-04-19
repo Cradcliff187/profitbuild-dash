@@ -70,23 +70,46 @@ export const ImportBatchDetail = ({ batchId, onBack }: ImportBatchDetailProps) =
     const fetchData = async () => {
       setIsLoading(true);
 
-      const [batchRes, expensesRes, revenuesRes] = await Promise.all([
+      // Paginate the per-batch fetches — a single CSV import can exceed
+      // PostgREST's db-max-rows=1000 cap (CLAUDE.md Gotcha #23). Without this,
+      // batches > 1000 rows would silently truncate in the drill-in view, so
+      // the user could roll back fewer rows than were actually imported.
+      const PAGE_SIZE = 1000;
+      const paginatedAll = async <T,>(
+        builder: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+      ): Promise<T[]> => {
+        const all: T[] = [];
+        for (let from = 0; ; from += PAGE_SIZE) {
+          const { data, error } = await builder(from, from + PAGE_SIZE - 1);
+          if (error) throw error;
+          const page = data ?? [];
+          all.push(...page);
+          if (page.length < PAGE_SIZE) break;
+        }
+        return all;
+      };
+
+      const [batchRes, batchExpenses, batchRevenues] = await Promise.all([
         supabase.from('import_batches').select('*').eq('id', batchId).single(),
-        supabase.from('expenses').select(`
-          id, description, amount, expense_date, category,
-          projects!expenses_project_id_fkey (project_number),
-          payees!expenses_payee_id_fkey (payee_name)
-        `).eq('import_batch_id', batchId).order('expense_date', { ascending: false }),
-        supabase.from('project_revenues').select(`
-          id, description, amount, invoice_date, invoice_number,
-          projects!project_revenues_project_id_fkey (project_number),
-          clients!project_revenues_client_id_fkey (client_name)
-        `).eq('import_batch_id', batchId).order('invoice_date', { ascending: false })
+        paginatedAll<BatchExpense>((from, to) =>
+          supabase.from('expenses').select(`
+            id, description, amount, expense_date, category,
+            projects!expenses_project_id_fkey (project_number),
+            payees!expenses_payee_id_fkey (payee_name)
+          `).eq('import_batch_id', batchId).order('expense_date', { ascending: false }).range(from, to) as any
+        ),
+        paginatedAll<BatchRevenue>((from, to) =>
+          supabase.from('project_revenues').select(`
+            id, description, amount, invoice_date, invoice_number,
+            projects!project_revenues_project_id_fkey (project_number),
+            clients!project_revenues_client_id_fkey (client_name)
+          `).eq('import_batch_id', batchId).order('invoice_date', { ascending: false }).range(from, to) as any
+        )
       ]);
 
       if (batchRes.data) setBatch(batchRes.data as BatchInfo);
-      if (expensesRes.data) setExpenses(expensesRes.data as BatchExpense[]);
-      if (revenuesRes.data) setRevenues(revenuesRes.data as BatchRevenue[]);
+      setExpenses(batchExpenses);
+      setRevenues(batchRevenues);
 
       setIsLoading(false);
     };
