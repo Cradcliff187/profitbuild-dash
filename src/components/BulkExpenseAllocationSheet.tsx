@@ -60,31 +60,17 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
   const loadBulkData = async () => {
     setIsLoading(true);
     try {
-      // Step 1: Parallel Supabase queries
-      // Server-side filters on `expenses`:
-      //   - is_split = false  — split parents are never correlatable (see canCorrelateExpense)
-      //   - range(0, 9999)    — raises PostgREST's 1,000-row default cap to 10,000.
-      //                         Without this, unallocated candidates past row 1,000 are
-      //                         silently dropped (see CLAUDE.md Gotcha #23).
-      //   - order by date desc — predictable slice ordering if the 10k cap is ever hit.
-      // The correlations filter stays client-side (~line below) because pushing
-      // `.not('id', 'in', ...)` server-side can blow past URL length limits at
-      // 500+ correlated UUIDs. Client-side dedup is cheap.
-      const [
-        expensesResult,
-        estimatesResult,
-        quotesResult,
-        changeOrdersResult,
-        correlationsResult,
-      ] = await Promise.all([
-        supabase.from('expenses').select(`
-          *,
-          payees(payee_name),
-          projects(project_name, project_number, category)
-        `)
-          .eq('is_split', false)
-          .order('expense_date', { ascending: false })
-          .range(0, 9999),
+      // Step 1: Fire the 4 bounded supporting queries in parallel, THEN paginate
+      // expenses sequentially (see comment block on the loop below). The
+      // supporting Promise.all kicks off first (no await yet) so its round-trips
+      // overlap with the expenses pagination — wall-clock stays close to the
+      // original single-Promise.all version.
+      //
+      // Bounded queries are filtered (estimates: is_current_version,
+      // quotes: status='accepted', change_orders: status='approved') so each
+      // returns << 1000 rows today. Correlations is unfiltered and may hit
+      // the 1000 cap as the project grows — flagged as a follow-up.
+      const supportingPromise = Promise.all([
         supabase.from('estimates').select(`
           id, project_id,
           projects(project_name),
@@ -109,12 +95,45 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
         supabase.from('expense_line_item_correlations').select('expense_id'),
       ]);
 
-      if (expensesResult.error) throw expensesResult.error;
+      // Paginate the candidates query. Server-side filters on `expenses`:
+      //   - is_split = false  — split parents are never correlatable (see canCorrelateExpense)
+      //   - order by date desc — deterministic page boundaries
+      // Pagination is REQUIRED because this project enforces db-max-rows=1000
+      // at the PostgREST server config — client-side .range(0, 9999) is silently
+      // clamped to 1000 rows (CLAUDE.md Gotcha #23, corrected Apr 18, 2026).
+      // Loop in pages of 1000 until a short page signals end-of-set. Mirrors the
+      // canonical pattern in src/components/ExpenseExportModal.tsx.
+      // The correlations dedup stays client-side (built below from
+      // correlationsResult) because server-side .not('id', 'in', ...) risks
+      // URL-length limits at 500+ correlated UUIDs (CLAUDE.md Rule 12).
+      const PAGE_SIZE = 1000;
+      const expenses: any[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await supabase.from('expenses').select(`
+          *,
+          payees(payee_name),
+          projects(project_name, project_number, category)
+        `)
+          .eq('is_split', false)
+          .order('expense_date', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        expenses.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
+
+      const [
+        estimatesResult,
+        quotesResult,
+        changeOrdersResult,
+        correlationsResult,
+      ] = await supportingPromise;
+
       if (estimatesResult.error) throw estimatesResult.error;
       if (quotesResult.error) throw quotesResult.error;
       if (changeOrdersResult.error) throw changeOrdersResult.error;
 
-      const expenses = expensesResult.data || [];
       const estimates = estimatesResult.data || [];
       const acceptedQuotes = quotesResult.data || [];
       const changeOrders = changeOrdersResult.data || [];
