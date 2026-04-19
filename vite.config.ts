@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => ({
         name: 'RCG Work',
         short_name: 'RCG Work',
         description: 'Professional construction project management for RCG - track profits, estimates, quotes, and expenses.',
-        theme_color: '#1b2b43',
+        theme_color: '#0F172A',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
