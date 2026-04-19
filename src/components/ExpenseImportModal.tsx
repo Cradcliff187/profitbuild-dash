@@ -638,7 +638,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     // existing vendors as "needs review" and the default UI action defaults to
     // `create_new` (line ~1175), silently creating duplicate payee rows.
     const PAGE_SIZE = 1000;
-    const paginatedAll = async <T>(
+    const paginatedAll = async <T,>(
       builder: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
     ): Promise<T[]> => {
       const all: T[] = [];
