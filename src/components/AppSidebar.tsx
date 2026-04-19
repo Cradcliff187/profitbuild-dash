@@ -270,9 +270,18 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarRail />
-      {/* Header with Logo */}
+      {/* Header with Logo.
+          The `glossy full horizontal.png` logo in company-branding is rendered
+          in grayscale + orange on transparent, designed for light backgrounds.
+          Before commit 3604195 (Apr 12 2026) the mobile sidebar Sheet was
+          white so the logo read correctly. That commit switched sidebar
+          vars to dark (fixing nav text contrast), which left the logo nearly
+          invisible on dark navy. Restoring the white header strip on mobile
+          gives the logo back its designed context. Desktop keeps the dark
+          header — it uses a different logo layout (icon + "RCG Work" text). */}
       <SidebarHeader className={cn(
         "border-b border-sidebar-border/50",
+        isMobile && "bg-white",
         collapsed ? "px-1 py-3" : "px-3 py-3"
       )}>
         <div className={cn(
