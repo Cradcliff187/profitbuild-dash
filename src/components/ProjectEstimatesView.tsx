@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { Edit, Plus, FileText, GitCompare, FileStack } from "lucide-react";
 import { EstimateForm } from "@/components/EstimateForm";
+import { EstimateStatusSelector } from "@/components/EstimateStatusSelector";
 import { QuotesList } from "@/components/QuotesList";
 import { EstimateVersionComparison } from "@/components/EstimateVersionComparison";
 import { toast } from "sonner";
@@ -140,17 +141,14 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
                     <CardTitle className="text-base font-semibold">
                       Estimate {currentEstimate.estimate_number}
                     </CardTitle>
-                    <Badge
-                      variant={
-                        currentEstimate.status === "approved"
-                          ? "default"
-                          : currentEstimate.status === "sent"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {currentEstimate.status}
-                    </Badge>
+                    <EstimateStatusSelector
+                      estimateId={currentEstimate.id}
+                      currentStatus={currentEstimate.status}
+                      estimateNumber={currentEstimate.estimate_number}
+                      projectId={projectId}
+                      totalAmount={currentEstimate.total_amount}
+                      onStatusChange={onRefresh}
+                    />
                   </div>
                   <div className="flex gap-4 text-xs text-muted-foreground mt-2">
                     <span>Version {currentEstimate.version_number}</span>

@@ -23,7 +23,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { LineItemTable } from "@/components/LineItemTable";
 import { LineItemDetailModal } from "@/components/LineItemDetailModal";
-import { EstimateStatusActions } from "@/components/EstimateStatusActions";
 import { approveEstimateSideEffects } from "@/utils/estimateApproval";
 import { getRecommendedUnitCodes } from "@/utils/units";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -68,7 +67,6 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   const [notes, setNotes] = useState(initialEstimate?.notes || "");
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent ?? 10.0);
-  const [status, setStatus] = useState<EstimateStatus>(initialEstimate?.status || 'draft');
   const [isLoading, setIsLoading] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
@@ -1678,17 +1676,6 @@ useEffect(() => {
                 {mode === 'view' ? 'Close' : 'Cancel'}
               </Button>
             )}
-
-            {/* Secondary Status Actions (Reject / Expire / Reopen) */}
-            {!hideNavigationButtons && initialEstimate && (
-              <div className="pt-2 flex justify-center">
-                <EstimateStatusActions
-                  estimateId={initialEstimate.id}
-                  currentStatus={status}
-                  onStatusUpdate={(newStatus) => setStatus(newStatus)}
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -2118,19 +2105,6 @@ useEffect(() => {
               </Button>
             )}
           </div>
-
-          {/* Secondary Status Actions (Reject / Expire / Reopen) — only on edit */}
-          {!hideNavigationButtons && initialEstimate && (
-            <div className="border-t pt-4 mt-4">
-              <div className="flex justify-center">
-                <EstimateStatusActions
-                  estimateId={initialEstimate.id}
-                  currentStatus={status}
-                  onStatusUpdate={(newStatus) => setStatus(newStatus)}
-                />
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
