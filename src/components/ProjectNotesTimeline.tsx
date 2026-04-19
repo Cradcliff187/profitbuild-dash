@@ -9,21 +9,16 @@ import {
 } from '@/components/ui/resizable';
 import { useProjectNotes } from '@/hooks/useProjectNotes';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCameraCapture } from '@/hooks/useCameraCapture';
-import { useVideoCapture } from '@/hooks/useVideoCapture';
 import { NoteCard } from '@/components/notes/NoteCard';
-import { NoteInput } from '@/components/notes/NoteInput';
+import { NoteComposer } from '@/components/notes/NoteComposer';
 import { NoteLightbox } from '@/components/notes/NoteLightbox';
-import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
 import { ProjectNote } from '@/types/projectNote';
-import { useMentionableUsers } from '@/hooks/useMentionableUsers';
-import { resolveMentions } from '@/utils/mentionUtils';
 
 interface ProjectNotesTimelineProps {
   projectId: string;
   inSheet?: boolean;
   /**
-   * When true, suppresses the built-in NoteInput composer — timeline only.
+   * When true, suppresses the built-in composer — timeline only.
    * Used by callers (e.g. FieldSchedule) where the note-entry affordance
    * lives in a separate surface like FieldQuickActionBar.
    */
@@ -31,17 +26,10 @@ interface ProjectNotesTimelineProps {
 }
 
 export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer = false }: ProjectNotesTimelineProps) {
-  // Data layer
-  const { notes, isLoading, addNote, isAdding, updateNote, deleteNote, uploadAttachment } = useProjectNotes(projectId);
+  const { notes, isLoading, updateNote, deleteNote } = useProjectNotes(projectId);
 
-  // UI state
-  const [noteText, setNoteText] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
-  const [attachmentType, setAttachmentType] = useState<'image' | 'video' | 'file' | null>(null);
-  const [attachmentFileName, setAttachmentFileName] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [enlargedVideo, setEnlargedVideo] = useState<string | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
@@ -49,89 +37,6 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
   const [selectedAttachment, setSelectedAttachment] = useState<{ url: string; name: string } | null>(null);
 
   const isMobile = useIsMobile();
-  const { capturePhoto, isCapturing: isCapturingPhoto } = useCameraCapture();
-  const { startRecording, isRecording } = useVideoCapture();
-  const { data: mentionableUsers } = useMentionableUsers();
-
-  // --- Handlers ---
-
-  const handleCapturePhoto = async () => {
-    const result = await capturePhoto();
-    if (result?.dataUrl) {
-      setAttachmentPreview(result.dataUrl);
-      setAttachmentType('image');
-    }
-  };
-
-  const handleCaptureVideo = async () => {
-    const result = await startRecording();
-    if (result?.dataUrl) {
-      setAttachmentPreview(result.dataUrl);
-      setAttachmentType('video');
-    }
-  };
-
-  const handleClearAttachment = () => {
-    setAttachmentPreview(null);
-    setAttachmentType(null);
-    setAttachmentFileName(null);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachmentPreview(reader.result as string);
-      setAttachmentFileName(file.name);
-
-      if (file.type.startsWith('image/')) {
-        setAttachmentType('image');
-      } else if (file.type.startsWith('video/')) {
-        setAttachmentType('video');
-      } else {
-        setAttachmentType('file');
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleAddNote = async () => {
-    const trimmedText = noteText.trim();
-    if (!trimmedText && !attachmentPreview) return;
-
-    let attachmentUrl: string | undefined;
-    if (attachmentPreview && attachmentType) {
-      setIsUploading(true);
-      const url = await uploadAttachment(attachmentPreview, attachmentType, attachmentFileName || undefined);
-      setIsUploading(false);
-      if (url) attachmentUrl = url;
-    }
-
-    // Resolve @mentions to stored format + extract user IDs
-    const { formattedText, mentionedUserIds } = mentionableUsers
-      ? resolveMentions(trimmedText, mentionableUsers)
-      : { formattedText: trimmedText, mentionedUserIds: [] };
-
-    addNote({
-      text: formattedText,
-      attachmentUrl,
-      attachmentType: attachmentType || undefined,
-      attachmentName: attachmentFileName || undefined,
-      mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
-    });
-
-    setNoteText('');
-    setAttachmentPreview(null);
-    setAttachmentType(null);
-    setAttachmentFileName(null);
-  };
 
   const handleStartEdit = (note: ProjectNote) => {
     setEditingNoteId(note.id);
@@ -162,8 +67,6 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
     setPdfPreviewOpen(true);
   };
 
-  // --- Timestamp formatting ---
-
   const formatTimestamp = (utcTimestamp: string | null | undefined) => {
     if (!utcTimestamp) return 'No date';
     const date = new Date(utcTimestamp);
@@ -180,34 +83,6 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
     return format(estTime, 'MMM d, h:mm a');
   };
 
-  // --- Shared props for NoteInput ---
-
-  const noteInputProps = {
-    noteText,
-    onNoteTextChange: setNoteText,
-    onSubmit: handleAddNote,
-    isSubmitting: isAdding,
-    isUploading,
-    attachmentPreview,
-    attachmentType,
-    attachmentFileName,
-    onClearAttachment: handleClearAttachment,
-    onCapturePhoto: handleCapturePhoto,
-    onCaptureVideo: handleCaptureVideo,
-    onFileSelect: handleFileSelect,
-    isCapturingPhoto,
-    isRecording,
-    voiceNoteSlot: (
-      <VoiceNoteButton
-        variant="icon"
-        onTranscription={(text) => setNoteText((prev) => (prev ? `${prev}\n${text}` : text))}
-      />
-    ),
-    mentionableUsers: mentionableUsers || [],
-  };
-
-  // --- Shared props for NoteCard ---
-
   const noteCardSharedProps = {
     editingNoteId,
     editText,
@@ -221,13 +96,9 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
     onPreviewPdf: handlePreviewAttachment,
   };
 
-  // --- Loading state ---
-
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading notes...</div>;
   }
-
-  // --- Render: Notes list ---
 
   const renderNotesList = (variant: 'default' | 'compact', maxHeight?: string) => (
     <ScrollArea className={maxHeight ? `flex-1 ${maxHeight}` : 'flex-1'}>
@@ -251,18 +122,17 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
     </ScrollArea>
   );
 
-  // --- Layout modes ---
-
   let mainContent;
 
   if (inSheet) {
-    // Sheet modal (mobile full-screen bottom drawer). Composer can be hidden
-    // by callers whose surface already provides a note-entry affordance.
     mainContent = (
       <div className="flex flex-col h-full">
         {!hideComposer && (
-          <div className="p-3 bg-muted/20 border rounded-lg mb-3 shrink-0">
-            <NoteInput variant="default" fileInputId="file-upload-sheet" {...noteInputProps} />
+          <div className="border rounded-lg mb-3 shrink-0 bg-muted/20">
+            <NoteComposer
+              projectId={projectId}
+              placeholder="Type note... @ to tag"
+            />
           </div>
         )}
         {renderNotesList('default')}
@@ -270,16 +140,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
     );
   } else if (isMobile) {
     // Inline mobile: display-only list. The add-note affordance lives in the
-    // global FieldQuickActionBar rendered once by ProjectDetailView — a
-    // persistent bottom bar available on every project page, not just here.
-    // This card shrinks to its essential role: showing existing notes.
+    // global FieldQuickActionBar rendered once by ProjectDetailView.
     mainContent = (
       <div className="border rounded-lg overflow-hidden">
         {renderNotesList('compact')}
       </div>
     );
   } else {
-    // Desktop: ResizablePanel with side-by-side layout
     mainContent = (
       <ResizablePanelGroup direction="horizontal" className="min-h-[300px] rounded-lg border">
         <ResizablePanel defaultSize={60} minSize={40}>
@@ -292,7 +159,12 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={40} minSize={30}>
-          <NoteInput variant="default" fileInputId="file-upload-desktop" {...noteInputProps} />
+          <div className="h-full bg-muted/20">
+            <NoteComposer
+              projectId={projectId}
+              placeholder="Type note... @ to tag"
+            />
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
     );

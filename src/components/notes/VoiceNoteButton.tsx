@@ -65,7 +65,7 @@ export function VoiceNoteButton({
 
   const isBusy = isProcessing || isTranscribing;
 
-  // Icon-only variant: small button for inline use (e.g., in NoteInput button row)
+  // Icon-only variant: small button for inline use (e.g., inside NoteComposer's textarea)
   if (variant === 'icon') {
     return (
       <Button
