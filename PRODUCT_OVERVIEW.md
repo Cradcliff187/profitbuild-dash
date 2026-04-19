@@ -75,9 +75,9 @@ Estimating → Approved → In Progress → Complete
 | Metric | Description |
 |--------|-------------|
 | `contracted_amount` | Approved estimate + approved change order revenue |
-| `current_margin` | Contract amount - actual expenses |
+| `actual_margin` | Contract amount − actual expenses (realized margin to date) |
 | `margin_percentage` | Margin as percentage of contract |
-| `projected_margin` | Expected final margin using best cost data |
+| `adjusted_est_margin` | Best-available projected final margin (accepted quotes override estimate costs) |
 | `contingency_remaining` | Unused contingency budget |
 | `total_accepted_quotes` | Sum of accepted vendor quotes |
 
@@ -697,7 +697,7 @@ Centralized branding used across emails, reports, and exports:
 2. **Vendors vs Subcontractors**: "Vendors" are material suppliers; "subcontractors" are trade contractors—unified structure for QuickBooks compatibility
 3. **Cost vs Price**: Cost = what company pays vendors; Price = what clients are charged
 4. **Project Categories**: Construction (visible everywhere), System (internal), Overhead (expenses/receipts only)
-5. **`projectFinancials.ts` is DEPRECATED**: Use database fields directly from projects table
+5. **Database-First Financials**: All margin / cost calculations live in PostgreSQL triggers and views. Read from the `projects` table and `reporting.project_financials` view directly — no frontend calculation utility exists (`projectFinancials.ts` and `margin.ts` have been deleted)
 6. **Reports Use Existing Builder**: Training, time, and other reports integrate with main report builder—no separate report pages
 
 ---

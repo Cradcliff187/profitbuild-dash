@@ -1,6 +1,6 @@
 # API Reference
 
-> Generated on 2026-04-19T01:09:51.073Z by `scripts/generate-api-docs.ts`.
+> Generated on 2026-04-19T02:55:16.027Z by `scripts/generate-api-docs.ts`.
 
 This reference enumerates all exported components, hooks, functions, classes, types, enums, and values exposed under `src/`. Each entry includes import examples and usage guidance.
 
@@ -10888,7 +10888,7 @@ const result = useVideoCapture(/* params */);
 
 ## Functions
 
-Total: 320
+Total: 319
 
 ### addBidMediaToQueue
 
@@ -11000,8 +11000,7 @@ Covered by triggers (do NOT duplicate here):
 NOT covered by triggers — must be written here:
   - `projects.contracted_amount` — must be set to the approved estimate's total
   - Project status advance for early stages that aren't exactly 'estimating'
-    (belt-and-suspenders with the trigger; keeps parity with the pre-refactor
-    behavior in EstimateStatusActions)
+    (belt-and-suspenders with the trigger)
 
 GOTCHA #26: the estimate row's `status='approved' AND is_current_version=true`
 MUST be written atomically in a SINGLE `.update()` BEFORE calling this helper.
@@ -17172,32 +17171,6 @@ _No inline documentation provided._
 import { tokenSimilarity } from '@/utils/fuzzyPayeeMatcher';
 
 const result = tokenSimilarity(/* args */);
-```
-
-### unapproveEstimateSideEffects
-
-**Import:** `@/utils/estimateApproval`
-
-- Defined in: `utils/estimateApproval.ts`
-- Export type: named
-
-```ts
-function unapproveEstimateSideEffects(projectId: string): Promise<void>
-```
-
-Side effects of REVERTING an approved estimate back to non-approved status
-(e.g. reopen-as-draft, reject, expire). Clears `contracted_amount` and
-reverts project status if safe.
-
-Not used by the new form buttons (the form only writes forward statuses),
-but kept here so `EstimateStatusActions` can share the logic.
-
-**Example**
-
-```ts
-import { unapproveEstimateSideEffects } from '@/utils/estimateApproval';
-
-const result = unapproveEstimateSideEffects(/* args */);
 ```
 
 ### unlinkReceiptFromExpense
