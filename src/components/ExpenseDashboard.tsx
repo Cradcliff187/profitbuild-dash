@@ -4,132 +4,54 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Expense } from '@/types/expense';
-import { Estimate } from '@/types/estimate';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import { isOperationalProject, isOverheadProject, isSystemProjectByCategory, ProjectCategory } from '@/types/project';
-import { parseDateOnly } from '@/utils/dateUtils';
+import { useExpenseDashboardData, type RecentExpenseRow } from '@/hooks/useExpenseDashboardData';
+import { isOperationalProject, isOverheadProject, ProjectCategory } from '@/types/project';
+import { EXPENSE_CATEGORY_DISPLAY, type ExpenseCategory } from '@/types/expense';
 
-interface ExpenseDashboardProps {
-  expenses: Expense[];
-  estimates: Estimate[];
-}
+/**
+ * Project dashboard summary cards + category breakdown + recent list.
+ *
+ * Fully server-aggregated (Gotcha #23 + #27): calls two RPCs plus one
+ * LIMIT 5 read from `public.expenses_search`. Does not receive raw
+ * expense rows as a prop anymore — the eager fetch in Expenses.tsx is
+ * gone. See [useExpenseDashboardData](src/hooks/useExpenseDashboardData.ts).
+ */
+export const ExpenseDashboard: React.FC = () => {
+  const { stats, categories, recent, isLoading, error } = useExpenseDashboardData();
 
-export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, estimates }) => {
-  // Filter out all split parent expenses from dashboard (defensive)
-  const displayableExpenses = React.useMemo(() => {
-    return expenses.filter(expense => {
-      const isSplitParent = expense.is_split === true;
-      return !isSplitParent;
-    });
-  }, [expenses]);
+  if (error) {
+    return (
+      <Card className="border-destructive">
+        <CardContent className="py-6">
+          <div className="text-sm text-destructive">
+            Failed to load dashboard: {error instanceof Error ? error.message : String(error)}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  // Fetch expense correlations to determine allocation status
-  const { data: correlations = [] } = useQuery({
-    queryKey: ['expense-correlations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('expense_line_item_correlations')
-        .select('expense_id');
-      if (error) throw error;
-      return data || [];
-    }
-  });
+  if (isLoading || !stats) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50 animate-pulse" />
+        <p>Loading dashboard…</p>
+      </div>
+    );
+  }
 
-  const allocatedExpenseIds = new Set(correlations.map(c => c.expense_id));
-  
-  // Fetch expense splits for accurate calculations
-  const { data: expenseSplits = [] } = useQuery({
-    queryKey: ['expense-splits-dashboard'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('expense_splits')
-        .select('expense_id, split_amount');
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  // Group splits by expense_id
-  const splitsByExpense = expenseSplits.reduce((acc, split) => {
-    if (!acc[split.expense_id]) acc[split.expense_id] = [];
-    acc[split.expense_id].push(split);
-    return acc;
-  }, {} as Record<string, typeof expenseSplits>);
-
-  // Helper function to get the actual expense amount (considering splits)
-  const getExpenseAmount = (expense: Expense) => {
-    if (expense.is_split && expense.id && splitsByExpense[expense.id]) {
-      // For split expenses, sum all split amounts
-      return splitsByExpense[expense.id].reduce((sum, s) => sum + s.split_amount, 0);
-    }
-    return expense.amount;
-  };
-
-  // Helper to check if expense can be allocated to line items
-  const canBeAllocated = (expense: Expense) => {
-    // System projects cannot be allocated
-    if (expense.project_category && isSystemProjectByCategory(expense.project_category as ProjectCategory)) {
-      return false;
-    }
-    if (!expense.project_category && (expense.project_number === "000-UNASSIGNED" || expense.project_number === "SYS-000")) {
-      return false;
-    }
-    
-    // Overhead projects cannot be allocated
-    if (expense.project_category && isOverheadProject(expense.project_category as ProjectCategory)) {
-      return false;
-    }
-    // Backward compatibility: check project_number if category not available
-    if (!expense.project_category && expense.project_number && isOperationalProject(expense.project_number)) {
-      return false;
-    }
-    
-    // Unassigned expenses cannot be allocated
-    if (!expense.project_id) {
-      return false;
-    }
-    
-    return true;
-  };
-  
-  // Calculate summary statistics (using split-aware amounts)
-  const totalExpenses = displayableExpenses.reduce((sum, expense) => sum + getExpenseAmount(expense), 0);
-  const allocatedExpenses = displayableExpenses.filter(e => allocatedExpenseIds.has(e.id)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
-  const unallocatedExpenses = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id) && canBeAllocated(e)).reduce((sum, e) => sum + getExpenseAmount(e), 0);
-  const thisMonthExpenses = displayableExpenses.filter(e => {
-    const now = new Date();
-    const expenseDate = parseDateOnly(e.expense_date);
-    return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
-  }).reduce((sum, e) => sum + getExpenseAmount(e), 0);
-
-  // Calculate unassigned expenses
-  const unassignedExpenses = displayableExpenses.filter(e => 
-    e.project_number === "000-UNASSIGNED"
-  );
-  const unassignedAmount = unassignedExpenses.reduce((sum, e) => sum + getExpenseAmount(e), 0);
-  const unassignedCount = unassignedExpenses.length;
-
-  // Count of unallocated expenses
-  const unallocatedCount = displayableExpenses.filter(e => !allocatedExpenseIds.has(e.id) && canBeAllocated(e)).length;
-
-  // Calculate split expense metrics (show original amounts before splitting)
-  const splitExpenses = displayableExpenses.filter(e => e.is_split);
-  const splitExpenseAmount = splitExpenses.reduce((sum, e) => sum + e.amount, 0); // Original amount
-  const splitExpenseCount = splitExpenses.length;
-
-  // Recent expenses (last 5)
-  const recentExpenses = displayableExpenses
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
-
-  // Category breakdown (using split-aware amounts)
-  const categoryTotals = displayableExpenses.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + getExpenseAmount(expense);
-    return acc;
-  }, {} as Record<string, number>);
+  const {
+    total_amount: totalExpenses,
+    total_count: totalCount,
+    this_month_amount: thisMonthExpenses,
+    unassigned_amount: unassignedAmount,
+    unassigned_count: unassignedCount,
+    unallocated_amount: unallocatedExpenses,
+    unallocated_count: unallocatedCount,
+    split_amount: splitExpenseAmount,
+    split_count: splitExpenseCount,
+  } = stats;
 
   return (
     <div className="space-y-3">
@@ -170,7 +92,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
-              {displayableExpenses.length} total transactions
+              {totalCount} total transactions
             </p>
           </CardContent>
         </Card>
@@ -209,7 +131,7 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{formatCurrency(unallocatedExpenses)}</div>
             <p className="text-xs text-muted-foreground">
-              {unallocatedCount} {unallocatedCount === 1 ? 'expense' : 'expenses'} • {unallocatedExpenses > 0 ? ((unallocatedExpenses / totalExpenses) * 100).toFixed(1) : '0'}% of total
+              {unallocatedCount} {unallocatedCount === 1 ? 'expense' : 'expenses'} • {totalExpenses > 0 ? ((unallocatedExpenses / totalExpenses) * 100).toFixed(1) : '0'}% of total
             </p>
           </CardContent>
         </Card>
@@ -235,59 +157,15 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
             <CardTitle>Recent Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            {recentExpenses.length === 0 ? (
+            {recent.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>No expenses recorded yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {recentExpenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between border-b pb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{getExpensePayeeLabel(expense)}</p>
-                        {expense.is_split && (
-                          <Badge variant="secondary" className="text-xs">Split</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {expense.project_name || 'Unknown Project'} • {new Date(expense.expense_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(expense.amount)}</p>
-                      <div className="flex gap-1 flex-wrap justify-end">
-                        <Badge 
-                          variant={
-                            expense.project_number === "000-UNASSIGNED"
-                              ? "secondary"
-                              : "default"
-                          } 
-                          className="text-xs"
-                        >
-                          {expense.project_number === "000-UNASSIGNED"
-                            ? "Needs Assignment"
-                            : "Assigned"
-                          }
-                        </Badge>
-                        {(() => {
-                          const isOverhead = expense.project_category && isOverheadProject(expense.project_category as ProjectCategory) ||
-                            (!expense.project_category && expense.project_number && isOperationalProject(expense.project_number));
-                          
-                          if (isOverhead) {
-                            return <Badge variant="secondary" className="text-xs">-</Badge>;
-                          }
-                          
-                          return (
-                            <Badge variant={allocatedExpenseIds.has(expense.id) ? 'default' : 'secondary'} className="text-xs">
-                              {allocatedExpenseIds.has(expense.id) ? 'Allocated' : 'Unallocated'}
-                            </Badge>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
+                {recent.map((expense) => (
+                  <RecentExpenseRow key={expense.id} expense={expense} />
                 ))}
               </div>
             )}
@@ -300,32 +178,34 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
             <CardTitle>Expenses by Category</CardTitle>
           </CardHeader>
           <CardContent>
-            {Object.keys(categoryTotals).length === 0 ? (
+            {categories.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>No category data available</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {Object.entries(categoryTotals)
-                  .sort(([,a], [,b]) => b - a)
-                  .map(([category, amount]) => {
-                    const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
-                    return (
-                      <div key={category} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{category}</span>
-                          <span>{formatCurrency(amount)} ({percentage.toFixed(1)}%)</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
+                {categories.map((row) => {
+                  const pct = totalExpenses > 0 ? (row.total_amount / totalExpenses) * 100 : 0;
+                  return (
+                    <div key={row.category} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">
+                          {EXPENSE_CATEGORY_DISPLAY[row.category as ExpenseCategory] ?? row.category}
+                        </span>
+                        <span>
+                          {formatCurrency(row.total_amount)} ({pct.toFixed(1)}%)
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -334,3 +214,43 @@ export const ExpenseDashboard: React.FC<ExpenseDashboardProps> = ({ expenses, es
     </div>
   );
 };
+
+// --- Recent expense row ---
+
+function RecentExpenseRow({ expense }: { expense: RecentExpenseRow }) {
+  const isUnassigned = expense.project_number === '000-UNASSIGNED';
+  const isOverhead =
+    (expense.project_category && isOverheadProject(expense.project_category as ProjectCategory)) ||
+    (!expense.project_category && expense.project_number && isOperationalProject(expense.project_number));
+
+  return (
+    <div className="flex items-center justify-between border-b pb-2">
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-sm">
+            {getExpensePayeeLabel({
+              payee_name: expense.payee_name,
+              payee_type: expense.payee_type,
+              payee_full_name: expense.payee_full_name,
+            } as Parameters<typeof getExpensePayeeLabel>[0])}
+          </p>
+          {expense.is_split && <Badge variant="secondary" className="text-xs">Split</Badge>}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {expense.project_name || 'Unknown Project'} • {new Date(expense.expense_date).toLocaleDateString()}
+        </p>
+      </div>
+      <div className="text-right">
+        <p className="font-medium">{formatCurrency(expense.amount)}</p>
+        <div className="flex gap-1 flex-wrap justify-end">
+          <Badge variant={isUnassigned ? 'secondary' : 'default'} className="text-xs">
+            {isUnassigned ? 'Needs Assignment' : 'Assigned'}
+          </Badge>
+          {isOverhead && (
+            <Badge variant="secondary" className="text-xs">-</Badge>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

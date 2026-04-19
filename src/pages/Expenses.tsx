@@ -19,7 +19,7 @@ import { QuickBooksSyncModal } from "@/components/QuickBooksSyncModal";
 import { QuickBooksSyncHistory } from "@/components/QuickBooksSyncHistory";
 import { ImportHistory } from "@/components/ImportHistory";
 import { BulkExpenseAllocationSheet } from "@/components/BulkExpenseAllocationSheet";
-import { Expense, ExpenseCategory } from "@/types/expense";
+import { Expense } from "@/types/expense";
 import { ProjectRevenue } from "@/types/revenue";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -29,22 +29,14 @@ import { parseDateOnly } from "@/utils/dateUtils";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
 import { useUnapprovedExpensesCount } from '@/hooks/useUnapprovedExpensesCount';
+import { useQueryClient } from "@tanstack/react-query";
 
 type ViewMode = "overview" | "list" | "invoices" | "import-history";
-
-// Helper to filter out all split parent expenses (defensive)
-const filterDisplayableExpenses = (expenses: Expense[]): Expense[] => {
-  return expenses.filter((expense) => {
-    // Hide split parent containers regardless of project assignment
-    const isSplitParent = expense.is_split === true;
-    return !isSplitParent;
-  });
-};
 
 const Expenses = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const queryClient = useQueryClient();
   const [estimates, setEstimates] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<ProjectRevenue[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("overview");
@@ -245,85 +237,67 @@ const Expenses = () => {
     fetchRevenues();
   }, []);
 
+  /**
+   * Loads estimates only — expenses are no longer fetched here.
+   *
+   * ExpenseDashboard consumes server-aggregated RPCs (get_expense_category_rollup
+   * + get_expense_dashboard_stats) via useExpenseDashboardData. ExpensesList uses
+   * useExpensesQuery against public.expenses_search. ExpenseExportModal lazy-loads
+   * its own snapshot on open. All three are cache-keyed + invalidated via
+   * invalidateExpenseQueries() below and ExpensesList.refreshAll (Gotcha #27).
+   *
+   * Estimates stay loaded here because ExpenseImportModal still receives them as
+   * a prop for line-item matching.
+   */
   const fetchData = async () => {
     try {
-      // NOTE: The All Expenses tab itself does NOT use `expenses` state anymore —
-      // <ExpensesList /> below is rendered without the `expenses` prop, triggering
-      // its server-side fetch via useExpensesQuery (reads public.expenses_search).
-      //
-      // This fetch still runs to feed ExpenseDashboard (Overview tab charts) and
-      // ExpenseExportModal (CSV export). `.range(0, 9999)` raises the PostgREST
-      // default 1,000-row cap to 10,000 as a tactical band-aid. Proper fix for
-      // those two consumers is a follow-up (RPC for aggregates, paginated export).
-      const [expensesResult, estimatesResult] = await Promise.all([
-        supabase.from("expenses").select(`
-            *,
-            payees!expenses_payee_id_fkey (
-              payee_name,
-              payee_type,
-              full_name
-            ),
-            projects(project_name, project_number, category)
-          `)
-          .order('expense_date', { ascending: false })
-          .range(0, 9999),
-        supabase.from("estimates").select(`
-            *,
-            projects(project_name, client_name),
-            estimate_line_items(
-              id,
-              category,
-              cost_per_unit,
-              total_cost,
-              quantity,
-              description
-            )
-          `),
-      ]);
+      const estimatesResult = await supabase.from("estimates").select(`
+          *,
+          projects(project_name, client_name),
+          estimate_line_items(
+            id,
+            category,
+            cost_per_unit,
+            total_cost,
+            quantity,
+            description
+          )
+        `);
 
-      if (expensesResult.error) throw expensesResult.error;
       if (estimatesResult.error) throw estimatesResult.error;
-
-      const transformedExpenses: Expense[] = (expensesResult.data || []).map((expense) => ({
-        ...expense,
-        category: expense.category as ExpenseCategory,
-        expense_date: parseDateOnly(expense.expense_date),
-        created_at: new Date(expense.created_at),
-        updated_at: new Date(expense.updated_at),
-        payee_name: expense.payees?.payee_name,
-        payee_type: expense.payees?.payee_type,
-        payee_full_name: expense.payees?.full_name,
-        project_name: expense.projects?.project_name,
-        project_number: expense.projects?.project_number,
-        project_category: expense.projects?.category,
-      }));
-
-      // Filter out split parent containers before setting state
-      const displayableExpenses = filterDisplayableExpenses(transformedExpenses);
-
-      setExpenses(displayableExpenses);
       setEstimates(estimatesResult.data || []);
     } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Failed to load data.");
+      console.error("Error loading estimates:", error);
+      toast.error("Failed to load estimates.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveExpense = (expense: Expense) => {
-    // Refresh the expenses list
-    fetchData();
+  // Fanout invalidation for any expense mutation done on this page.
+  // Mirrors ExpensesList.refreshAll (Gotcha #27) so direct writes outside
+  // that component (e.g. expense form save here) still propagate to every
+  // query keyed off the expenses surface.
+  const invalidateExpenseQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["expenses-search"] });
+    queryClient.invalidateQueries({ queryKey: ["expenses-unapproved-count"] });
+    queryClient.invalidateQueries({ queryKey: ["expense-dashboard-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["expense-category-rollup"] });
+    queryClient.invalidateQueries({ queryKey: ["expense-dashboard-recent"] });
+  };
+
+  const handleSaveExpense = (_expense: Expense) => {
+    invalidateExpenseQueries();
     setSelectedExpense(undefined);
   };
 
   const handleImportSuccess = () => {
-    fetchData();
+    invalidateExpenseQueries();
     setViewMode("list");
   };
 
   const handleTimesheetSuccess = () => {
-    fetchData();
+    invalidateExpenseQueries();
     setViewMode("list");
   };
 
@@ -332,8 +306,11 @@ const Expenses = () => {
     setExpenseFormOpen(true);
   };
 
-  const handleDeleteExpense = (id: string) => {
-    setExpenses(expenses.filter((e) => e.id !== id));
+  // ExpensesList.refreshAll already invalidates all relevant query caches
+  // after a row delete — this callback is kept as a hook point and fires
+  // the dashboard-specific keys for good measure.
+  const handleDeleteExpense = (_id: string) => {
+    invalidateExpenseQueries();
   };
 
   const handleCreateNew = () => {
@@ -559,7 +536,7 @@ const Expenses = () => {
           </div>
 
           <TabsContent value="overview">
-            <ExpenseDashboard expenses={expenses} estimates={estimates} />
+            <ExpenseDashboard />
           </TabsContent>
 
           <TabsContent value="list">
@@ -619,7 +596,6 @@ const Expenses = () => {
       <ExpenseExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        expenses={expenses}
       />
 
       <RevenueFormSheet

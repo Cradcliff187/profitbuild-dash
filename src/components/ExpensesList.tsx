@@ -187,16 +187,22 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Property-scoped mode uses the prop as-is; global mode uses the paginated hook results.
     const effectiveExpenses: Expense[] = expenses ?? expensesQuery.data;
 
-    // Unified refresh: the parent's `onRefresh` feeds ExpenseDashboard + ExpenseExportModal
-    // (and project-scoped consumers), but the visible table in global mode is owned by
-    // useExpensesQuery — a separate TanStack cache that direct Supabase writes can't
-    // invalidate. The tab badge + any sidebar count use ['expenses-unapproved-count'].
-    // Invalidate all three so row/bulk approve/reject/delete/reassign/allocate/split
-    // show up everywhere without a page reload (Gotcha #27).
+    // Unified refresh (Gotcha #27). Multiple TanStack caches hang off the
+    // expenses surface; a single mutation needs to invalidate every one that
+    // could display stale numbers:
+    //   - onRefresh(): project-scoped parent state (e.g. project-detail pages)
+    //     and the global /expenses page's estimate list.
+    //   - ['expenses-search']: useExpensesQuery (global mode table).
+    //   - ['expenses-unapproved-count']: tab badge + sidebar count.
+    //   - ['expense-dashboard-stats' | '-category-rollup' | '-recent']:
+    //     ExpenseDashboard via useExpenseDashboardData (server-aggregated).
     const refreshAll = () => {
       onRefresh();
       if (isGlobalMode) expensesQuery.refetch();
       queryClient.invalidateQueries({ queryKey: ["expenses-unapproved-count"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-category-rollup"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-dashboard-recent"] });
     };
 
 

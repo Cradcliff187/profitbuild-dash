@@ -6,15 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Download, Receipt } from "lucide-react";
+import { Download, Receipt, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { Expense } from "@/types/expense";
+import { Expense, ExpenseCategory } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
+import { parseDateOnly } from "@/utils/dateUtils";
+import { useQuery } from "@tanstack/react-query";
 
 interface ExpenseExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  expenses: Expense[];
 }
 
 interface ExportOptions {
@@ -49,12 +50,11 @@ const TRANSACTION_TYPE_DISPLAY: Record<string, string> = {
 export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
   isOpen,
   onClose,
-  expenses
 }) => {
 
   const [isExporting, setIsExporting] = useState(false);
   const [expenseSplits, setExpenseSplits] = useState<Record<string, any[]>>({});
-  const [expenseMatches, setExpenseMatches] = useState<Record<string, any>>({});
+  const [expenseMatches] = useState<Record<string, any>>({});
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'csv',
     includeProjectDetails: true,
@@ -67,15 +67,57 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
     filterApprovalStatus: 'all'
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      loadExpenseData();
-    }
-  }, [isOpen, expenses]);
+  // Lazy-load the expense snapshot on open. Previously this data was fetched
+  // eagerly on /expenses page mount (Expenses.tsx fetchData) and handed in as
+  // a prop — that fetch is gone. Cost only incurred when user clicks Export.
+  //
+  // Pagination is REQUIRED — this project has db-max-rows=1000 at the
+  // PostgREST layer, so .range(0, 9999) is ignored server-side and would
+  // silently truncate at 1000 rows (regardless of what CLAUDE.md Gotcha #23
+  // previously claimed — that claim is being corrected this pass). Loop in
+  // pages of 1000 until a short page signals we've drained the set.
+  const {
+    data: expenses = [],
+    isLoading: isLoadingExpenses,
+    error: expensesError,
+  } = useQuery({
+    queryKey: ["expenses-export-snapshot"],
+    enabled: isOpen,
+    staleTime: 0,
+    gcTime: 0,
+    queryFn: async (): Promise<Expense[]> => {
+      const PAGE_SIZE = 1000;
+      const all: any[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from("expenses_search")
+          .select("*")
+          .order("expense_date", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        all.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
+      return all.map((row: any) => ({
+        ...row,
+        category: row.category as ExpenseCategory,
+        expense_date: parseDateOnly(row.expense_date),
+        created_at: row.created_at ? new Date(row.created_at) : new Date(),
+        updated_at: row.updated_at ? new Date(row.updated_at) : new Date(),
+      })) as Expense[];
+    },
+  });
 
-  const loadExpenseData = async () => {
+  useEffect(() => {
+    if (isOpen && expenses.length > 0) {
+      loadExpenseSplits();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, expenses.length]);
+
+  const loadExpenseSplits = async () => {
     try {
-      // Load splits
       const { data: splitsData, error: splitsError } = await supabase
         .from("expense_splits")
         .select(`
@@ -98,7 +140,7 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
       });
       setExpenseSplits(splits);
     } catch (error) {
-      console.error('Error loading expense data:', error);
+      console.error('Error loading expense splits:', error);
     }
   };
 
@@ -308,9 +350,23 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
               <p className="text-sm font-medium mb-2">Export Summary:</p>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary" className="bg-primary/10 text-primary">
-                  <Receipt className="h-3 w-3 mr-1" />
-                  {filteredCount} of {expenses.length} expenses
+                  {isLoadingExpenses ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Loading expenses…
+                    </>
+                  ) : (
+                    <>
+                      <Receipt className="h-3 w-3 mr-1" />
+                      {filteredCount} of {expenses.length} expenses
+                    </>
+                  )}
                 </Badge>
+                {expensesError && (
+                  <Badge variant="destructive">
+                    Failed to load: {expensesError instanceof Error ? expensesError.message : String(expensesError)}
+                  </Badge>
+                )}
                 {exportOptions.filterCategory !== 'all' && (
                   <Badge variant="secondary">Category: {EXPENSE_CATEGORY_DISPLAY[exportOptions.filterCategory]}</Badge>
                 )}
@@ -445,9 +501,9 @@ export const ExpenseExportModal: React.FC<ExpenseExportModalProps> = ({
           <Button variant="outline" onClick={onClose} className="flex-1" disabled={isExporting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleExport} 
-            disabled={isExporting || filteredCount === 0}
+          <Button
+            onClick={handleExport}
+            disabled={isExporting || isLoadingExpenses || !!expensesError || filteredCount === 0}
             className="flex-1"
           >
             {isExporting ? (
