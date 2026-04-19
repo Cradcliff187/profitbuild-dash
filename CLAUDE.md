@@ -410,7 +410,7 @@ Per-line cushion annotations on labor rows are static (sourced from `estimate_li
 
 **"Other" bucket as data hygiene signal**: when expenses are categorized as `other` with no matching estimate line items (common pattern for CSV imports), the bucket renders an amber warning with a recategorize CTA. Example seen on 225-078: $2,664 sat in `other` with $0 target.
 
-### 14. Global Mobile Action Bar (Apr 16, 2026)
+### 14. Global Mobile Action Bar (Apr 16, 2026; Note button migrated to NoteComposer Apr 18)
 
 **[FieldQuickActionBar](src/components/schedule/FieldQuickActionBar.tsx)** is the single project-scoped capture/note affordance on mobile. Rendered ONCE in [ProjectDetailView](src/components/ProjectDetailView.tsx) — persistent bottom bar visible across every project detail route (`/projects/:id`, `/control`, `/documents`, etc.). Replaced the fragmented mix of per-page FABs and per-card inline inputs.
 
@@ -418,17 +418,61 @@ Per-line cushion annotations on labor rows are static (sourced from `estimate_li
 
 | Button | Action | Flow |
 |---|---|---|
-| **Note** | Opens bottom sheet with textarea + `VoiceNoteButton` mic INSIDE the composer | Slack-style voice-in-composer; transcribed text appends to whatever is typed |
-| **Camera** | Capacitor camera via `useCameraCapture` | Fast in-the-moment capture (no native picker chrome) |
-| **Attach** | Hidden `<input type="file" accept="image/*,video/*,.pdf,...">` → native sheet | User routes to Take Photo / Take Video / Photo Library / Choose File |
+| **Note** | Opens shared [`NoteComposer`](src/components/notes/NoteComposer.tsx) in `presentation="sheet"` — full composer with mentions, voice mic, and the in-composer Attach menu (Take Photo / Record Video / Upload File) | See Rule 15 |
+| **Camera** | `useCameraCapture().capturePhoto()` direct call | Fast in-the-moment photo capture that lands as an attachment-only note with empty text — no composition |
+| **Attach** | Hidden `<input type="file" accept="image/*,video/*,.pdf,...">` → native sheet | Same snap-and-forget pattern as Camera but for any file type |
 
-**Why voice is inside the Note composer, not a peer button**: the output of voice transcription IS a note, so it belongs with the textarea. Slack, iMessage, WhatsApp all use this pattern.
+**Why Camera + Attach stay as independent bar buttons** (instead of being folded into NoteComposer): they serve the *snap-and-forget* workflow (no text, no composition — just drop a photo/file and move on). Forcing users into a sheet for a zero-text note would be a regression. The composer is for **compose-and-send**; the bar's Camera/Attach are for **capture-only**.
 
-**Sticky override for inline use**: `FieldQuickActionBar`'s outer div is `position: fixed bottom-0`. When a caller wants it inline (currently none after consolidation, but historically `ProjectNotesTimeline` briefly did), override with `[&>div:first-child]:!static [&>div:first-child]:!shadow-none` utilities. Bottom sheets render in Radix Portal at document root regardless of trigger position.
+**Sticky override for inline use**: `FieldQuickActionBar`'s outer div is `position: fixed bottom-0`. When a caller wants it inline, override with `[&>div:first-child]:!static [&>div:first-child]:!shadow-none` utilities. Bottom sheets render in Radix Portal at document root regardless of trigger position.
 
 **Content padding**: the project detail main wrapper gets `pb-20` on mobile so scrollable content never ends up hidden behind the bar.
 
 **Not rendered on `/field-schedule/:id`** — that route is outside `ProjectDetailView` and renders its own bar. If you add a new project-scoped mobile route, prefer putting it inside `ProjectDetailView`'s Outlet so it inherits the bar automatically.
+
+### 15. Unified `NoteComposer` (Apr 18, 2026)
+
+**[`NoteComposer`](src/components/notes/NoteComposer.tsx)** is the single composer surface for creating a project note. Replaces three parallel implementations that previously drifted independently: `FieldQuickActionBar`'s inline Note sheet, `FieldTaskCard.TaskActions`'s cramped per-task composer, and the top-of-tab `NoteInput` card on the Notes tab.
+
+**Contract**:
+
+```tsx
+<NoteComposer
+  projectId={...}
+  taskName?={...}              // optional — prepends "**{taskName}:** " to stored note_text
+  presentation="inline"|"sheet" // sheet opens in a bottom Sheet; inline embeds
+  open={...} onOpenChange={...} // for sheet presentation
+  onSubmitted?={...}
+  placeholder?={...}
+  enableVoice?={true} enableAttach?={true}
+/>
+```
+
+**Internal behavior**: owns text/mentions/voice/attachment/submit. Uses `useProjectNotes` for mutations (no prop-drilled handlers), `useMentionableUsers` for @ suggestions, `useCameraCapture` for photos, `useVideoCapture` for videos, built-in `VoiceNoteButton`. On submit: `resolveMentions` → optional task prefix → optional `uploadAttachment` → `addNote`.
+
+**Attach = single paperclip → labeled menu** (Take Photo / Record Video / Upload File). Each option routes to its dedicated capture hook or a docs-only file input:
+
+- **Take Photo** → `useCameraCapture` (`accept="image/*"` — native picker offers camera OR library)
+- **Record Video** → `useVideoCapture` (`accept="video/*"`)
+- **Upload File** → hidden input (`accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"`, docs only)
+
+**Why separate code paths behind one button**: a combined `accept="image/*,video/*,.pdf,..."` input is flaky — iOS Safari sometimes drops the "Take Video" affordance, Android's combined picker deprioritizes camera access. Each hook is already tuned for its job; one visible affordance + three focused code paths beats one button with one compromised input.
+
+**Three trigger points today**:
+
+| Surface | Trigger | taskName |
+|---|---|---|
+| `FieldQuickActionBar` Note button | Tap opens composer sheet | none |
+| `FieldTaskCard.TaskActions` "Add Note" button | Tap-expand task → tap Add Note → sheet opens | task name ⇒ `**Demo:** ...` |
+| `ProjectNotesTimeline` desktop panel (not yet migrated) | — | — |
+
+**NOT migrated yet**: `ProjectNotesTimeline` desktop timeline still uses the older `NoteInput` component (resizable panel layout). Fine for now; a future consolidation can evaluate whether `NoteComposer presentation="inline"` is a drop-in replacement.
+
+**`ProjectNotesTimeline.hideComposer` prop**: callers whose surface already provides a note-entry path (`FieldSchedule.tsx:256` — has the bottom bar) pass `hideComposer` so the timeline renders list-only. Prevents two composers on one screen.
+
+**Common pitfall**: don't prop-drill `addNote` or `uploadAttachment` handlers through to `NoteComposer` — it owns its mutations via `useProjectNotes` internally. Parents use `onSubmitted` (a void callback) for side effects like closing their own sheet or scrolling.
+
+**Task-prefix format preserved exactly**: `**{taskName}:** {text}`. For attachment-only notes, the fallback body is the attachment type label (`Photo`, `Video`, or `{fileName}`) — matches the pre-existing `FieldTaskCard` "**Demo:** Photo" pattern and extends it to video/file.
 
 ### 11. Employees vs Payees (Apr 2026)
 
