@@ -20,12 +20,17 @@ if [ $? -ne 0 ]; then
 fi
 echo "✓ TypeScript compiles successfully"
 
-# Check 3: No imports of schedule components in existing code
+# Check 3: No NEW imports of schedule components in existing code.
+# Known-good cross-boundary imports (each intentional, reviewed):
+#   1. ProjectDetailView  → FieldQuickActionBar    (Rule 14 — global mobile action bar)
+#   2. ProjectScheduleRoute → ProjectScheduleView   (route → feature wiring)
+# If a third appears, stop and audit: is it genuinely needed, or could the
+# coupling go the other way (feature imports from shared instead)?
 echo "→ Checking for schedule imports in existing components..."
 SCHEDULE_IMPORTS=$(grep -r "from.*schedule/" src/components --exclude-dir=schedule --exclude-dir=node_modules 2>/dev/null | wc -l)
-if [ $SCHEDULE_IMPORTS -gt 1 ]; then  # Allow 1 for ProjectDetailView
+if [ $SCHEDULE_IMPORTS -gt 2 ]; then
     echo "✗ WARNING: Schedule components imported in existing code"
-    echo "  This may cause breaking changes. Review imports."
+    echo "  A new cross-boundary import appeared. Review below:"
     grep -r "from.*schedule/" src/components --exclude-dir=schedule 2>/dev/null
     exit 1
 fi

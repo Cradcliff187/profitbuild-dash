@@ -13,8 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
  * NOT covered by triggers — must be written here:
  *   - `projects.contracted_amount` — must be set to the approved estimate's total
  *   - Project status advance for early stages that aren't exactly 'estimating'
- *     (belt-and-suspenders with the trigger; keeps parity with the pre-refactor
- *     behavior in EstimateStatusActions)
+ *     (belt-and-suspenders with the trigger)
  *
  * GOTCHA #26: the estimate row's `status='approved' AND is_current_version=true`
  * MUST be written atomically in a SINGLE `.update()` BEFORE calling this helper.
@@ -47,33 +46,3 @@ export async function approveEstimateSideEffects(
   if (updateError) throw updateError;
 }
 
-/**
- * Side effects of REVERTING an approved estimate back to non-approved status
- * (e.g. reopen-as-draft, reject, expire). Clears `contracted_amount` and
- * reverts project status if safe.
- *
- * Not used by the new form buttons (the form only writes forward statuses),
- * but kept here so `EstimateStatusActions` can share the logic.
- */
-export async function unapproveEstimateSideEffects(projectId: string): Promise<void> {
-  const { data: project, error: fetchError } = await supabase
-    .from("projects")
-    .select("status")
-    .eq("id", projectId)
-    .single();
-
-  if (fetchError) throw fetchError;
-
-  const safeToRevert = project && ["in_progress", "approved"].includes(project.status);
-
-  const { error: updateError } = await supabase
-    .from("projects")
-    .update({
-      contracted_amount: null,
-      ...(safeToRevert ? { status: "estimating" as const } : {}),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", projectId);
-
-  if (updateError) throw updateError;
-}
