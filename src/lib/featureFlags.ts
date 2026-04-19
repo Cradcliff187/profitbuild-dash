@@ -6,12 +6,14 @@
 export interface FeatureFlags {
   scheduleView: boolean;
   aiaBilling: boolean;
+  contracts: boolean;
 }
 
 // Default flags - shipped features default ON
 const defaultFlags: FeatureFlags = {
   scheduleView: true,
   aiaBilling: true,
+  contracts: true,
 };
 
 // Check environment variables
@@ -22,6 +24,10 @@ const getEnvFlags = (): Partial<FeatureFlags> => {
     scheduleView: import.meta.env.VITE_FEATURE_SCHEDULE !== "false",
     // Shipped on main: on unless host sets VITE_FEATURE_AIA_BILLING=false
     aiaBilling: import.meta.env.VITE_FEATURE_AIA_BILLING !== "false",
+    // Kill-switch for subcontractor contract generation. On by default; set
+    // VITE_FEATURE_CONTRACTS=false to hide the Generate Contract entry points
+    // without disabling the edge function or storage pipeline.
+    contracts: import.meta.env.VITE_FEATURE_CONTRACTS !== "false",
   };
 };
 
