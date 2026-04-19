@@ -58,7 +58,12 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useUnreadMentions } from "@/hooks/useUnreadMentions";
 
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/large%20icon%20only%20(2).png';
-const logoHorizontalDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/glossy%20full%20horizontal.png';
+// Bundled white-text variant of the horizontal logo, designed for the dark
+// sidebar (slate-900). Programmatically derived from the gray-text source
+// asset: non-orange pixels mapped to white while preserving transparency,
+// tonal variation in the cube, and the orange "CONSTRUCTION" word. See the
+// asset in public/rcg-horizontal-white.png.
+const logoHorizontalDefault = '/rcg-horizontal-white.png';
 
 interface NavItem {
   title: string;
@@ -270,18 +275,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarRail />
-      {/* Header with Logo.
-          The `glossy full horizontal.png` logo in company-branding is rendered
-          in grayscale + orange on transparent, designed for light backgrounds.
-          Before commit 3604195 (Apr 12 2026) the mobile sidebar Sheet was
-          white so the logo read correctly. That commit switched sidebar
-          vars to dark (fixing nav text contrast), which left the logo nearly
-          invisible on dark navy. Restoring the white header strip on mobile
-          gives the logo back its designed context. Desktop keeps the dark
-          header — it uses a different logo layout (icon + "RCG Work" text). */}
+      {/* Header with Logo. Mobile uses /rcg-horizontal-white.png (white-text
+          variant of the RCG horizontal logo), which reads directly on the
+          dark sidebar — no white strip backdrop needed. Desktop uses a
+          separate icon + "RCG Work" text layout. */}
       <SidebarHeader className={cn(
         "border-b border-sidebar-border/50",
-        isMobile && "bg-white",
         collapsed ? "px-1 py-3" : "px-3 py-3"
       )}>
         <div className={cn(
@@ -289,11 +288,11 @@ export function AppSidebar() {
           collapsed && !isMobile && "flex-col gap-2 items-center"
         )}>
           {isMobile ? (
-            <div className="flex items-center justify-center flex-1 min-w-0 h-10 overflow-hidden">
+            <div className="flex items-center justify-center flex-1 min-w-0 h-12">
               <img
                 src={logoHorizontalDefault}
                 alt={companyAbbr}
-                className="w-auto max-h-[72px] max-w-[90%] object-contain drop-shadow-md"
+                className="w-auto max-h-[44px] max-w-[80%] object-contain drop-shadow-md"
                 onError={(e) => {
                   e.currentTarget.src = logoIconDefault;
                 }}
