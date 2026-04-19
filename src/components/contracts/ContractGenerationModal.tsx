@@ -114,6 +114,7 @@ const contractFormSchema = z.object({
   arbitrationLocation: z.string().optional(),
   outputFormat: z.enum(['docx', 'pdf', 'both']),
   saveToDocuments: z.boolean(),
+  saveToPayee: z.boolean(),
 });
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
@@ -156,6 +157,7 @@ export function ContractGenerationModal({
       listOfExhibits: [''],
       outputFormat: 'both',
       saveToDocuments: true,
+      saveToPayee: true,
     },
   });
 
@@ -205,6 +207,7 @@ export function ContractGenerationModal({
         arbitrationLocation: fieldValues.contract.arbitrationLocation ?? 'Covington, Kentucky',
         outputFormat: 'both',
         saveToDocuments: true,
+        saveToPayee: true,
       });
     }
   }, [fieldValues]);
@@ -328,6 +331,25 @@ export function ContractGenerationModal({
       setCurrentStep('complete');
       onSuccess?.(result);
       toast.success("Contract Generated", { description: `Subcontractor Project Agreement ${(result as { internalReference?: string }).internalReference || result.contractNumber || ''} has been created successfully.` });
+
+      if (values.saveToPayee && payeeId) {
+        const { error: payeeErr } = await supabase
+          .from('payees')
+          .update({
+            legal_form: values.subcontractorLegalForm,
+            state_of_formation: values.subcontractorState,
+            contact_name: values.subcontractorContactName,
+            contact_title: values.subcontractorContactTitle || null,
+            billing_address: values.subcontractorAddress,
+            phone_numbers: values.subcontractorPhone || null,
+            email: values.subcontractorEmail || null,
+          })
+          .eq('id', payeeId);
+        if (payeeErr) {
+          console.error('Payee update failed:', payeeErr);
+          toast.warning("Payee record not updated", { description: "Contract was generated but subcontractor info was not saved back to the payee record." });
+        }
+      }
     } catch (err) {
       console.error('Contract generation error:', err);
       toast.error("Generation Failed", { description: err instanceof Error ? err.message : 'Failed to generate contract' });
@@ -656,7 +678,7 @@ export function ContractGenerationModal({
                       name="subcontractNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Subcontract Number (optional)</FormLabel>
+                          <FormLabel>Subcontract Number *</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="Enter subcontractor's reference number" />
                           </FormControl>
@@ -1035,6 +1057,23 @@ export function ContractGenerationModal({
                     </FormControl>
                     <FormLabel className="!mt-0 font-normal">
                       Save to Project Documents
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="saveToPayee"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0 font-normal">
+                      Save subcontractor info to payee record (auto-fills next contract)
                     </FormLabel>
                   </FormItem>
                 )}

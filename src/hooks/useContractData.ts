@@ -122,7 +122,10 @@ export function useContractData({
       };
 
       const clientName = project?.client_name ?? '';
-      const subcontractPrice = quoteTotalCost || Number(estimate?.total_amount ?? 0);
+      const subcontractPrice =
+        quoteTotalCost ||
+        Number(quote?.total_amount ?? 0) ||
+        Number(estimate?.total_amount ?? 0);
 
       const values: ContractFieldValues = {
         subcontractor: {
