@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { LaborLineItemRow } from './LaborLineItemRow';
 import { NonLaborLineItemRow } from './NonLaborLineItemRow';
 import { BucketEmptyState } from './BucketEmptyState';
 import { CostBucketTotalsRow } from './CostBucketTotalsRow';
+import { RecategorizeOtherBucketSheet } from './RecategorizeOtherBucketSheet';
 import { Loader2, FileText } from 'lucide-react';
 
 interface CostBucketViewProps {
@@ -27,7 +29,28 @@ interface CostBucketViewProps {
  * switch to the "Detail" tab which keeps the existing dense table.
  */
 export function CostBucketView({ projectId, project }: CostBucketViewProps) {
+  const queryClient = useQueryClient();
   const { buckets, totals, isLoading, error, refetch } = useProjectCostBuckets(projectId, project);
+
+  // Only construction projects get the bulk-recategorize CTA. Overhead
+  // projects either have `default_expense_category` set (Rule 6a trigger
+  // silently rewrites any update to something else — confusing UX) or are
+  // 002-GA where "other" is a legitimate catch-all. System projects are
+  // internal tracking with their own rules.
+  const canRecategorize = project.category === 'construction';
+
+  const [recategorizeBucket, setRecategorizeBucket] = useState<ExpenseCategory | null>(null);
+
+  const handleRecategorized = () => {
+    // Fan out invalidations — same pattern as Gotcha #27's refreshAll. Cost
+    // buckets re-compute from multiple queries (expenses by category +
+    // estimate_line_items + quotes + correlations); safest bet is the project
+    // cost bucket query key + dashboard keys + the search cache used by
+    // ExpensesList.
+    queryClient.invalidateQueries({ queryKey: ['project-cost-buckets', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-data', projectId] });
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -68,34 +91,56 @@ export function CostBucketView({ projectId, project }: CostBucketViewProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Cost Buckets</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-1">
-        {buckets.map(bucket => (
-          <BucketRow key={bucket.category} bucket={bucket} />
-        ))}
-        <CostBucketTotalsRow
-          target={totals.target}
-          spent={totals.spent}
-          remaining={totals.remaining}
-          percentUsed={totals.percentUsed}
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Cost Buckets</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {buckets.map(bucket => (
+            <BucketRow
+              key={bucket.category}
+              bucket={bucket}
+              onRecategorize={canRecategorize ? () => setRecategorizeBucket(bucket.category) : undefined}
+            />
+          ))}
+          <CostBucketTotalsRow
+            target={totals.target}
+            spent={totals.spent}
+            remaining={totals.remaining}
+            percentUsed={totals.percentUsed}
+          />
+        </CardContent>
+      </Card>
+
+      {recategorizeBucket && (
+        <RecategorizeOtherBucketSheet
+          projectId={projectId}
+          sourceCategory={recategorizeBucket}
+          open={!!recategorizeBucket}
+          onOpenChange={(open) => !open && setRecategorizeBucket(null)}
+          onRecategorized={handleRecategorized}
         />
-      </CardContent>
-    </Card>
+      )}
+    </>
   );
 }
 
 interface BucketRowProps {
   bucket: CostBucket;
+  onRecategorize?: () => void;
 }
 
 /**
  * Single collapsible bucket card. Local open/close state lives here so the
  * parent can render N buckets without coordinating any global state.
+ *
+ * `onRecategorize` is only defined for construction projects (see
+ * CostBucketView). When defined AND the bucket has unmatched spend,
+ * BucketEmptyState renders a CTA button that calls this callback to open
+ * the bulk-recategorize sheet.
  */
-function BucketRow({ bucket }: BucketRowProps) {
+function BucketRow({ bucket, onRecategorize }: BucketRowProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isLabor = bucket.category === ExpenseCategory.LABOR;
   const isInternal = bucket.isInternal;
@@ -106,7 +151,11 @@ function BucketRow({ bucket }: BucketRowProps) {
       <BucketHeaderRow bucket={bucket} isOpen={isOpen} />
       <CollapsibleContent className="border-t bg-muted/10">
         {lineItemCount === 0 ? (
-          <BucketEmptyState unmatchedSpend={bucket.spent} bucketName={bucket.displayName} />
+          <BucketEmptyState
+            unmatchedSpend={bucket.spent}
+            bucketName={bucket.displayName}
+            onRecategorize={onRecategorize}
+          />
         ) : (
           <div>
             {bucket.lineItems.map(li =>
