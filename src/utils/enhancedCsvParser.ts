@@ -495,16 +495,37 @@ export const processEnhancedQuickBooksImport = async (
   };
 
   try {
-    // Load reference data
-    const [projectsResponse, payeesResponse, clientsResponse] = await Promise.all([
-      supabase.from('projects').select('id, project_number, project_name'),
-      supabase.from('payees').select('id, payee_name, full_name'),
-      supabase.from('clients').select('id, client_name, company_name')
-    ]);
+    // Load reference data. All three are unbounded universes used for fuzzy
+    // matching against CSV transactions; silent truncation past PostgREST's
+    // db-max-rows=1000 cap (CLAUDE.md Gotcha #23) would route real existing
+    // entities to the "create new" path, silently producing duplicate rows
+    // (no UNIQUE constraint on payee_name / client_name).
+    const PAGE_SIZE = 1000;
+    const paginatedAll = async <T>(
+      builder: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+    ): Promise<T[]> => {
+      const all: T[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await builder(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        all.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
+      return all;
+    };
 
-    const projects = projectsResponse.data || [];
-    const payees = payeesResponse.data || [];
-    const clients = clientsResponse.data || [];
+    const [projects, payees, clients] = await Promise.all([
+      paginatedAll<{ id: string; project_number: string; project_name: string }>(
+        (from, to) => supabase.from('projects').select('id, project_number, project_name').order('id').range(from, to)
+      ),
+      paginatedAll<{ id: string; payee_name: string; full_name: string | null }>(
+        (from, to) => supabase.from('payees').select('id, payee_name, full_name').order('id').range(from, to)
+      ),
+      paginatedAll<{ id: string; client_name: string; company_name: string | null }>(
+        (from, to) => supabase.from('clients').select('id, client_name, company_name').order('id').range(from, to)
+      )
+    ]);
 
     // Separate revenue and expense transactions
     const revenueTransactions = transactions.filter(t => 

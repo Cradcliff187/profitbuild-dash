@@ -616,10 +616,33 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       }
     };
 
-    // Fetch all projects, payees, and aliases for matching
-    const [{ data: projects }, { data: payees }, { data: projectAliasData }] = await Promise.all([
-      supabase.from('projects').select('project_number, project_name, id'),
-      supabase.from('payees').select('payee_name, full_name, id'),
+    // Fetch all projects, payees, and aliases for matching.
+    // Projects and payees are unbounded universes; silent truncation past
+    // PostgREST's db-max-rows=1000 cap (CLAUDE.md Gotcha #23) would surface
+    // existing vendors as "needs review" and the default UI action defaults to
+    // `create_new` (line ~1175), silently creating duplicate payee rows.
+    const PAGE_SIZE = 1000;
+    const paginatedAll = async <T>(
+      builder: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+    ): Promise<T[]> => {
+      const all: T[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await builder(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        all.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
+      return all;
+    };
+
+    const [projects, payees, { data: projectAliasData }] = await Promise.all([
+      paginatedAll<{ project_number: string; project_name: string; id: string }>(
+        (from, to) => supabase.from('projects').select('project_number, project_name, id').order('id').range(from, to)
+      ),
+      paginatedAll<{ payee_name: string; full_name: string | null; id: string }>(
+        (from, to) => supabase.from('payees').select('payee_name, full_name, id').order('id').range(from, to)
+      ),
       supabase.from('project_aliases').select('*').eq('is_active', true)
     ]);
     

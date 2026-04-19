@@ -60,16 +60,26 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
   const loadBulkData = async () => {
     setIsLoading(true);
     try {
-      // Step 1: Fire the 4 bounded supporting queries in parallel, THEN paginate
-      // expenses sequentially (see comment block on the loop below). The
-      // supporting Promise.all kicks off first (no await yet) so its round-trips
-      // overlap with the expenses pagination — wall-clock stays close to the
-      // original single-Promise.all version.
+      // Step 1: Three parallel work streams — bounded supporting queries (small,
+      // single round-trip Promise.all), paginated expenses, and paginated
+      // correlations. All three start concurrently via the outer Promise.all,
+      // so total wall-clock = max(supporting, expenses_pagination,
+      // correlations_pagination) rather than the sum.
       //
-      // Bounded queries are filtered (estimates: is_current_version,
-      // quotes: status='accepted', change_orders: status='approved') so each
-      // returns << 1000 rows today. Correlations is unfiltered and may hit
-      // the 1000 cap as the project grows — flagged as a follow-up.
+      // Why both `expenses` and `expense_line_item_correlations` need pagination:
+      // this project enforces db-max-rows=1000 at the PostgREST server config —
+      // client-side .range() past 1000 is silently clamped (CLAUDE.md Gotcha #23,
+      // corrected Apr 18, 2026). For correlations, silent truncation past row
+      // 1000 would leak already-correlated expenses back into the candidate set;
+      // there's NO unique constraint on (expense_id, line_item_id), so clicking
+      // "Allocate" on a leaked candidate would create a duplicate correlation
+      // and silently double-count that expense in cost-bucket actuals.
+      //
+      // The other 3 queries (estimates/quotes/change_orders) are filtered to
+      // small subsets (is_current_version / status='accepted' / status='approved'),
+      // each returning << 1000 rows. They stay in a single Promise.all.
+      const PAGE_SIZE = 1000;
+
       const supportingPromise = Promise.all([
         supabase.from('estimates').select(`
           id, project_id,
@@ -92,43 +102,58 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
             id, category, description, total_cost
           )
         `).eq('status', 'approved'),
-        supabase.from('expense_line_item_correlations').select('expense_id'),
       ]);
 
-      // Paginate the candidates query. Server-side filters on `expenses`:
-      //   - is_split = false  — split parents are never correlatable (see canCorrelateExpense)
-      //   - order by date desc — deterministic page boundaries
-      // Pagination is REQUIRED because this project enforces db-max-rows=1000
-      // at the PostgREST server config — client-side .range(0, 9999) is silently
-      // clamped to 1000 rows (CLAUDE.md Gotcha #23, corrected Apr 18, 2026).
-      // Loop in pages of 1000 until a short page signals end-of-set. Mirrors the
-      // canonical pattern in src/components/ExpenseExportModal.tsx.
-      // The correlations dedup stays client-side (built below from
-      // correlationsResult) because server-side .not('id', 'in', ...) risks
+      // Paginate expenses. Server-side filters: is_split=false (split parents
+      // are never correlatable per canCorrelateExpense) + order by date desc
+      // for deterministic page boundaries. Mirrors src/components/ExpenseExportModal.tsx.
+      const expensesPromise = (async () => {
+        const all: any[] = [];
+        for (let from = 0; ; from += PAGE_SIZE) {
+          const { data, error } = await supabase.from('expenses').select(`
+            *,
+            payees(payee_name),
+            projects(project_name, project_number, category)
+          `)
+            .eq('is_split', false)
+            .order('expense_date', { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (error) throw error;
+          const page = data ?? [];
+          all.push(...page);
+          if (page.length < PAGE_SIZE) break;
+        }
+        return all;
+      })();
+
+      // Paginate correlations. Currently 49% of cap (492/1000); will silently
+      // truncate at scale without this. Order by id to make page boundaries
+      // stable across calls (no real-world meaning, just determinism).
+      // Client-side dedup stays because server-side .not('id', 'in', ...) risks
       // URL-length limits at 500+ correlated UUIDs (CLAUDE.md Rule 12).
-      const PAGE_SIZE = 1000;
-      const expenses: any[] = [];
-      for (let from = 0; ; from += PAGE_SIZE) {
-        const { data, error } = await supabase.from('expenses').select(`
-          *,
-          payees(payee_name),
-          projects(project_name, project_number, category)
-        `)
-          .eq('is_split', false)
-          .order('expense_date', { ascending: false })
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-        const page = data ?? [];
-        expenses.push(...page);
-        if (page.length < PAGE_SIZE) break;
-      }
+      const correlationIdsPromise = (async () => {
+        const all: string[] = [];
+        for (let from = 0; ; from += PAGE_SIZE) {
+          const { data, error } = await supabase
+            .from('expense_line_item_correlations')
+            .select('expense_id')
+            .order('id', { ascending: true })
+            .range(from, from + PAGE_SIZE - 1);
+          if (error) throw error;
+          const page = data ?? [];
+          for (const row of page) {
+            if (row.expense_id) all.push(row.expense_id);
+          }
+          if (page.length < PAGE_SIZE) break;
+        }
+        return all;
+      })();
 
       const [
-        estimatesResult,
-        quotesResult,
-        changeOrdersResult,
-        correlationsResult,
-      ] = await supportingPromise;
+        [estimatesResult, quotesResult, changeOrdersResult],
+        expenses,
+        correlationExpenseIds,
+      ] = await Promise.all([supportingPromise, expensesPromise, correlationIdsPromise]);
 
       if (estimatesResult.error) throw estimatesResult.error;
       if (quotesResult.error) throw quotesResult.error;
@@ -137,9 +162,7 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       const estimates = estimatesResult.data || [];
       const acceptedQuotes = quotesResult.data || [];
       const changeOrders = changeOrdersResult.data || [];
-      const existingCorrelationExpenseIds = new Set(
-        (correlationsResult.data || []).map(c => c.expense_id).filter(Boolean)
-      );
+      const existingCorrelationExpenseIds = new Set(correlationExpenseIds);
 
       // Step 2: Build LineItemForMatching[]
       // Build set of estimate line item IDs that have accepted quote line items

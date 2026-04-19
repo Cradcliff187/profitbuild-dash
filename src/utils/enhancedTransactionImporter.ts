@@ -332,18 +332,37 @@ export const processTransactionImport = async (
   }
   // === END duplicate detection setup ===
 
-  // Load clients, payees, projects, account mappings, and project aliases for matching
-  const [clientsResponse, payeesResponse, projectsResponse, mappingsResponse, aliasesResponse] = await Promise.all([
-    supabase.from('clients').select('*'),
-    supabase.from('payees').select('*'),
-    supabase.from('projects').select('*'),
+  // Load clients, payees, projects, account mappings, and project aliases for matching.
+  // The first three are unbounded universes used as the input set for fuzzy matching —
+  // any silent truncation past PostgREST's db-max-rows=1000 cap (CLAUDE.md Gotcha #23)
+  // would cause CSV vendors/clients/projects to appear as "no match" and route to
+  // the user-review step. The default resolution is `create_new`, which would silently
+  // create duplicate payees (no UNIQUE constraint on payees.payee_name) — silent
+  // data corruption. Three paginated IIFEs run in parallel with the two filtered
+  // queries via the outer Promise.all.
+  const PAGE_SIZE = 1000;
+  const paginatedAll = async <T>(
+    builder: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+  ): Promise<T[]> => {
+    const all: T[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await builder(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      const page = data ?? [];
+      all.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+    return all;
+  };
+
+  const [clients, payees, projects, mappingsResponse, aliasesResponse] = await Promise.all([
+    paginatedAll<any>((from, to) => supabase.from('clients').select('*').order('id').range(from, to)),
+    paginatedAll<any>((from, to) => supabase.from('payees').select('*').order('id').range(from, to)),
+    paginatedAll<any>((from, to) => supabase.from('projects').select('*').order('id').range(from, to)),
     supabase.from('quickbooks_account_mappings').select('*').eq('is_active', true),
     supabase.from('project_aliases').select('*').eq('is_active', true)
   ]);
 
-  const clients = clientsResponse.data || [];
-  const payees = payeesResponse.data || [];
-  const projects = projectsResponse.data || [];
   const dbMappings = mappingsResponse.data || [];
   const projectAliases: ProjectAlias[] = (aliasesResponse.data || []).map((a: any) => ({
     id: a.id,

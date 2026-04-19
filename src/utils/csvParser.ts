@@ -583,15 +583,39 @@ export const mapQuickBooksToExpenses = async (
     }
     // === END duplicate detection setup ===
 
-    // Load projects, payees, and account mappings for matching
-    const [projectsResponse, payeesResponse, mappingsResponse] = await Promise.all([
-      supabase.from('projects').select('id, project_number, project_name'),
-      supabase.from('payees').select('id, payee_name, full_name'),
+    // Load projects, payees, and account mappings for matching.
+    // Projects and payees are unbounded universes for fuzzy matching — silent
+    // truncation past PostgREST's db-max-rows=1000 cap (CLAUDE.md Gotcha #23)
+    // would route CSV vendors to the user-review step where the default
+    // resolution is `create_new`, silently creating duplicate payees (no UNIQUE
+    // constraint on payees.payee_name). For projects, an unmatched truncation
+    // would route the row to the alphabetically-first project as a fallback —
+    // misallocating expenses onto an arbitrary real construction job.
+    const PAGE_SIZE = 1000;
+    const paginatedAll = async <T>(
+      builder: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+    ): Promise<T[]> => {
+      const all: T[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await builder(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        all.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
+      return all;
+    };
+
+    const [projects, payees, mappingsResponse] = await Promise.all([
+      paginatedAll<{ id: string; project_number: string; project_name: string }>(
+        (from, to) => supabase.from('projects').select('id, project_number, project_name').order('id').range(from, to)
+      ),
+      paginatedAll<{ id: string; payee_name: string; full_name: string | null }>(
+        (from, to) => supabase.from('payees').select('id, payee_name, full_name').order('id').range(from, to)
+      ),
       supabase.from('quickbooks_account_mappings').select('*').eq('is_active', true)
     ]);
 
-    const projects = projectsResponse.data || [];
-    const payees = payeesResponse.data || [];
     const dbMappings = mappingsResponse.data || [];
 
     // Find a default project for unmatched transactions
