@@ -266,6 +266,14 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       difference: number;
       isAligned: boolean;
       threshold: number;
+      varianceBreakdown?: Array<{
+        payee: string;
+        date: string;
+        amount: number;
+        csvRowCount: number;
+        projects: string[];
+        contribution: number;
+      }>;
     };
     revenueReconciliation?: {
       totalExistingRevenues: number;
