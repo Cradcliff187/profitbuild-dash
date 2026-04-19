@@ -91,7 +91,12 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         icons: [
           {
-            src: '/icon-192.png',
+            // Opaque solid-bg variant — used as the Android home-screen icon
+            // when the PWA is installed via "Add to Home Screen". The
+            // transparent /icon-192.png rendered as a dark cube on whatever
+            // background Android chose, same class of bug as the iOS
+            // apple-touch-icon fix above.
+            src: '/pwa-android-icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
