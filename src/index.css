@@ -105,14 +105,16 @@ All colors MUST be HSL.
     --shadow-compact: 0 1px 3px 0 hsl(210 15% 15% / 0.1), 0 1px 2px 0 hsl(210 15% 15% / 0.06);
     --shadow-data-row: 0 1px 2px 0 hsl(210 15% 15% / 0.05);
 
-    /* Sidebar is always dark regardless of theme */
-    --sidebar-background: 217 33% 10%;
+    /* Sidebar is always dark — unified with Tailwind slate family so the
+       sidebar, mobile app header (from-slate-900 via-slate-800), and PWA
+       theme_color all resolve to the same dark surface. */
+    --sidebar-background: 222 47% 11%;        /* slate-900 #0F172A */
     --sidebar-foreground: 215 20% 75%;
     --sidebar-primary: 24 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 25% 20%;
+    --sidebar-accent: 217 33% 17%;            /* slate-800 #1E293B */
     --sidebar-accent-foreground: 215 25% 90%;
-    --sidebar-border: 217 19% 22%;
+    --sidebar-border: 215 29% 27%;            /* slate-700 #334155 */
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 

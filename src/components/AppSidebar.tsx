@@ -331,6 +331,12 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
+      {/* Orange gradient accent bar — signature brand moment, matches the
+          identical 3px bar below the mobile app header in AppLayout.tsx:192.
+          Repeating the same element across surfaces makes the app feel
+          intentional rather than assembled. */}
+      <div className="h-[3px] bg-gradient-to-r from-primary to-orange-400 shrink-0" />
+
       {/* Main Navigation */}
       <SidebarContent className="px-2 py-2">
         {/* Main navigation groups */}
