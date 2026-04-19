@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RCG Work - Project Management</title>
     <meta name="description" content="Professional construction project management app to track profits, estimates, quotes, and expenses for construction businesses." />
-    <meta name="author" content="Lovable" />
+    <meta name="author" content="Radcliff Construction Group" />
     
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <!-- Favicons — 192 variant uses the opaque solid-bg asset so browser tabs
+         and the Lovable Publish dialog preview render the cube on black
+         instead of a dark-on-dark silhouette. -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-android-icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
     
     <!-- iOS Icons — use the opaque/solid-bg variant; the transparent icon-180.png
@@ -27,14 +30,23 @@
     <meta name="apple-mobile-web-app-title" content="RCG Work">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <meta property="og:title" content="8ad59cd4-cdfa-472d-b4a1-52ac194e00f2" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <!-- OpenGraph / Twitter — governs how the site appears when shared on
+         social platforms AND what Lovable's Publish dialog reflects as the
+         site's identity. Previously these were Lovable's auto-generated
+         placeholders (og:title was the raw project UUID). -->
+    <meta property="og:site_name" content="RCG Work" />
+    <meta property="og:title" content="RCG Work - Project Management" />
+    <meta property="og:description" content="Professional construction project management app to track profits, estimates, quotes, and expenses for construction businesses." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://rcgwork.com/" />
+    <meta property="og:image" content="https://rcgwork.com/pwa-android-icon-192x192.png" />
+    <meta property="og:image:width" content="192" />
+    <meta property="og:image:height" content="192" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="RCG Work - Project Management" />
+    <meta name="twitter:description" content="Professional construction project management app to track profits, estimates, quotes, and expenses for construction businesses." />
+    <meta name="twitter:image" content="https://rcgwork.com/pwa-android-icon-192x192.png" />
   </head>
 
   <body>
