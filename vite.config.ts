@@ -72,7 +72,12 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       devOptions: { enabled: false },
-      registerType: 'autoUpdate',
+      // 'prompt' (not 'autoUpdate') because we manually register the SW in
+      // main.tsx with { updateViaCache: 'none' } to bypass HTTP cache on SW
+      // script fetches — the root cause of mobile PWAs getting stuck on stale
+      // versions. See [src/main.tsx] for the lifecycle.
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icon-192.png', 'icon-512.png', 'icon-180.png', 'favicon.ico'],
       manifest: {
         name: 'RCG Work',
@@ -106,8 +111,13 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        // skipWaiting/clientsClaim are false so the new SW stays in 'waiting'
+        // until the user clicks "Reload Now" in the Update Available toast.
+        // That avoids surprise mid-session reloads that would drop in-progress
+        // form state. The SW listens for { type: 'SKIP_WAITING' } postMessage
+        // to activate on demand (workbox GenerateSW includes this handler).
+        clientsClaim: false,
+        skipWaiting: false,
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
