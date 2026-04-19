@@ -261,61 +261,72 @@ const Settings = () => {
   const handleCheckForUpdates = async () => {
     setCheckingUpdates(true);
     try {
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          await registration.update();
-          setLastUpdateCheck(new Date());
+      if (!('serviceWorker' in navigator)) {
+        toast.error('Service workers not supported in this browser');
+        return;
+      }
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        toast.info('Service worker not registered', {
+          description: 'Updates will be applied on next app refresh.',
+        });
+        return;
+      }
 
-          // Check if a new service worker is actually waiting or installing
-          const hasUpdate = !!(registration.waiting || registration.installing);
+      // Install an `updatefound` listener BEFORE triggering the check — the
+      // previous implementation polled `registration.waiting` post-hoc, but
+      // under the old `skipWaiting: true` config the new SW transitioned
+      // through installing→activated without ever parking in `waiting`, so
+      // the poll always read `null` even when an update had just landed.
+      let newSW: ServiceWorker | null = null;
+      let settled = false;
+      const fireUpdateToast = (sw: ServiceWorker) => {
+        if (settled) return;
+        settled = true;
+        toast('Update Available!', {
+          description: 'A new version is ready. Reload to apply it.',
+          action: {
+            label: 'Reload Now',
+            onClick: () => {
+              sw.postMessage({ type: 'SKIP_WAITING' });
+              // controllerchange in main.tsx triggers the reload
+            },
+          },
+          duration: Infinity,
+          dismissible: true,
+        });
+      };
 
-          if (hasUpdate) {
-            toast('Update Available!', {
-              description: 'A new version is ready. Reload to apply it.',
-              action: {
-                label: 'Reload Now',
-                onClick: () => window.location.reload()
-              },
-              duration: Infinity,
-              dismissible: true,
-            });
-          } else {
-            // Also listen briefly for an update found after the check
-            let updateFound = false;
-            const onUpdateFound = () => {
-              updateFound = true;
-              registration.removeEventListener('updatefound', onUpdateFound);
-              toast('Update Available!', {
-                description: 'A new version is ready. Reload to apply it.',
-                action: {
-                  label: 'Reload Now',
-                  onClick: () => window.location.reload()
-                },
-                duration: Infinity,
-                dismissible: true,
-              });
-            };
-            registration.addEventListener('updatefound', onUpdateFound);
+      // If a SW is already waiting (user dismissed the prior prompt), surface
+      // it immediately.
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        fireUpdateToast(registration.waiting);
+      }
 
-            // Wait a moment for the update check to resolve, then report
-            setTimeout(() => {
-              registration.removeEventListener('updatefound', onUpdateFound);
-              if (!updateFound) {
-                toast.success('You\'re up to date', {
-                  description: 'No new updates available.'
-                });
-              }
-            }, 3000);
+      const onUpdateFound = () => {
+        newSW = registration.installing;
+        if (!newSW) return;
+        newSW.addEventListener('statechange', () => {
+          if (newSW?.state === 'installed' && navigator.serviceWorker.controller) {
+            fireUpdateToast(newSW);
           }
-        } else {
-          toast.info('Service worker not registered', {
-            description: 'Updates will be applied on next app refresh.'
+        });
+      };
+      registration.addEventListener('updatefound', onUpdateFound);
+
+      await registration.update();
+      setLastUpdateCheck(new Date());
+
+      // Give the browser a few seconds to finish `updatefound` + install
+      // transitions, then report final state.
+      setTimeout(() => {
+        registration.removeEventListener('updatefound', onUpdateFound);
+        if (!settled) {
+          toast.success('You\'re up to date', {
+            description: 'No new updates available.',
           });
         }
-      } else {
-        toast.error('Service workers not supported in this browser');
-      }
+      }, 3000);
     } catch (error) {
       console.error('Update check failed:', error);
       toast.error('Failed to check for updates');

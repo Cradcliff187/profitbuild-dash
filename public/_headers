@@ -1,0 +1,19 @@
+# Belt-and-suspenders cache-control override for the PWA service worker and
+# manifest. Vite copies files from public/ into dist/ at build time. Netlify
+# reads this file natively; some other hosts (including Vercel derivatives)
+# ignore it, which is fine — the primary fix is the `updateViaCache: 'none'`
+# flag on `navigator.serviceWorker.register()` in src/main.tsx.
+#
+# Without these headers, mobile PWAs can end up stuck on a stale version for
+# days because the CDN serves a cached copy of /sw.js and registration.update()
+# byte-compares the cached copy to itself. See Gotcha #31 in CLAUDE.md.
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+
+/workbox-*.js
+  Cache-Control: public, max-age=0, must-revalidate
