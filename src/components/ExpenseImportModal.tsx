@@ -23,6 +23,7 @@ import {
   PendingClientReview,
 } from '@/utils/enhancedTransactionImporter';
 import { createExpenseKey, createRevenueKey, fuzzyMatchProject, suggestCategoryFromAccountName, PartialProject, ProjectAlias } from '@/utils/importCore';
+import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { formatCurrency, cn } from '@/lib/utils';
 import { TransactionSelectionControls } from '@/components/import/TransactionSelectionControls';
@@ -895,19 +896,43 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
         // Try multiple matching strategies to handle empty names and mismatches
         let existingExpense: { id: string; description: string } | undefined;
         let matchKey = '';
-        
+
         // Strategy 1: Primary key with CSV Name (exact match)
         const primaryKey = createExpenseKey(date, amount, rowName);
         existingExpense = existingExpenses.get(primaryKey);
         if (existingExpense) {
           matchKey = primaryKey;
-        } else {
+        } else if (!rowName) {
           // Strategy 2: If CSV Name is empty, try empty name key
-          if (!rowName) {
-            const emptyKey = createExpenseKey(date, amount, '');
-            existingExpense = existingExpenses.get(emptyKey);
-            if (existingExpense) {
-              matchKey = emptyKey;
+          const emptyKey = createExpenseKey(date, amount, '');
+          existingExpense = existingExpenses.get(emptyKey);
+          if (existingExpense) {
+            matchKey = emptyKey;
+          }
+        } else {
+          // Strategy 3: Fuzzy-match the CSV name against known payees, then look up
+          // the canonical payee_name's key. Catches typos like CSV "Archiable Electric"
+          // → DB payee "Archibald Electric" (Jaro-Winkler ≈ 72.7% on real data).
+          //
+          // Threshold 65 (NOT 75 like the importer's payee-resolution AUTO_MATCH_THRESHOLD).
+          // Asymmetric cost rationale: a wrong dedup match surfaces as a "this looks like
+          // a duplicate" UI hint the user can override; a MISSED dedup match silently
+          // creates a duplicate row in the DB that can only be cleaned up by hand. So
+          // dedup should be more lenient than payee auto-assignment.
+          const FUZZY_DEDUP_THRESHOLD = 65;
+          const fuzzy = fuzzyMatchPayee(rowName, (payees || []) as PartialPayee[]);
+          const top = fuzzy.matches?.[0];
+          if (top && top.confidence >= FUZZY_DEDUP_THRESHOLD) {
+            const canonicalName = top.payee.payee_name;
+            // Skip if the canonical name is the same as the CSV name
+            // (would produce the same key Strategy 1 already tried).
+            if (canonicalName.toLowerCase().trim() !== rowName.toLowerCase().trim()) {
+              const canonicalKey = createExpenseKey(date, amount, canonicalName);
+              const hit = existingExpenses.get(canonicalKey);
+              if (hit) {
+                existingExpense = hit;
+                matchKey = canonicalKey;
+              }
             }
           }
         }
@@ -930,14 +955,29 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       .filter((id): id is string => !!id)
       .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
     
-    let reconciliation = {
+    let reconciliation: {
+      totalExistingNonLaborExpenses: number;
+      totalDuplicateAmount: number;
+      difference: number;
+      isAligned: boolean;
+      threshold: number;
+      varianceBreakdown: Array<{
+        payee: string;
+        date: string;
+        amount: number;
+        csvRowCount: number;
+        projects: string[];
+        contribution: number;
+      }>;
+    } = {
       totalExistingNonLaborExpenses: 0,
       totalDuplicateAmount: 0,
       difference: 0,
       isAligned: true,
-      threshold: 0.01
+      threshold: 0.01,
+      varianceBreakdown: []
     };
-    
+
     if (expenseIds.length > 0 || databaseDuplicates.length > 0 || inFileDuplicates.length > 0) {
       // Query database for the specific expenses that match the duplicates
       let totalExistingNonLaborExpenses = 0;
@@ -948,28 +988,59 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
           .in('id', expenseIds)
           .neq('category', ExpenseCategory.LABOR)
           .eq('is_split', false);
-        
+
         if (!expensesError && expensesData) {
           totalExistingNonLaborExpenses = expensesData.reduce((sum, exp) => sum + Math.abs(exp.amount || 0), 0);
         }
       }
-      
+
       // Sum amounts from all duplicate transactions (both in-file and database duplicates)
       let totalDuplicateAmount = 0;
       for (const dup of [...databaseDuplicates, ...inFileDuplicates]) {
         const amount = parseFloat(dup.transaction['Amount']?.replace(/[,$()]/g, '') || '0');
         totalDuplicateAmount += Math.abs(amount);
       }
-      
+
       const difference = Math.abs(totalExistingNonLaborExpenses - totalDuplicateAmount);
       const isAligned = difference <= reconciliation.threshold;
-      
+
+      // Build variance breakdown: group databaseDuplicates by matchKey to find
+      // CSV-side (Date, Amount, Name) collisions — same vendor billing same amount
+      // on same day, split across multiple projects in QB. Each collision group of
+      // size N contributes 2*(N-1) * amount to the variance (CSV side counts the
+      // amount N times in databaseDuplicates + (N-1) more in inFileDuplicates,
+      // DB side counts it once via unique IDs).
+      const matchKeyGroups = new Map<string, typeof databaseDuplicates>();
+      for (const dup of databaseDuplicates) {
+        const key = dup.matchKey || '';
+        if (!key) continue;
+        if (!matchKeyGroups.has(key)) matchKeyGroups.set(key, []);
+        matchKeyGroups.get(key)!.push(dup);
+      }
+      const varianceBreakdown = Array.from(matchKeyGroups.values())
+        .filter(dups => dups.length > 1)
+        .map(dups => {
+          const first = dups[0];
+          const amount = parseFloat(first.transaction['Amount']?.replace(/[,$()]/g, '') || '0');
+          const projects = dups.map(d => d.transaction['Project/WO #']?.trim() || '—');
+          return {
+            payee: first.transaction['Name']?.trim() || '',
+            date: first.transaction['Date'] || '',
+            amount: Math.abs(amount),
+            csvRowCount: dups.length,
+            projects,
+            contribution: 2 * (dups.length - 1) * Math.abs(amount),
+          };
+        })
+        .sort((a, b) => b.contribution - a.contribution);
+
       reconciliation = {
         totalExistingNonLaborExpenses,
         totalDuplicateAmount,
         difference,
         isAligned,
-        threshold: reconciliation.threshold
+        threshold: reconciliation.threshold,
+        varianceBreakdown
       };
     }
     // === END reconciliation calculation ===
@@ -1752,19 +1823,49 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
                     </div>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="bg-amber-50 border border-amber-200 border-t-0 rounded-b-lg p-3 text-sm space-y-2">
+                    <div className="bg-amber-50 border border-amber-200 border-t-0 rounded-b-lg p-3 text-sm space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-amber-700">System total:</span>
+                        <span className="text-amber-700">System total (matched DB rows):</span>
                         <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalExistingNonLaborExpenses)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-amber-700">File total (matched):</span>
+                        <span className="text-amber-700">File total (CSV duplicate rows):</span>
                         <span className="font-medium">{formatCurrency(validationResults.reconciliation.totalDuplicateAmount)}</span>
                       </div>
-                      <p className="text-xs text-amber-600 pt-2 border-t border-amber-200">
-                        This may indicate some transactions were modified after import. 
-                        Review if the difference is significant.
-                      </p>
+
+                      {validationResults.reconciliation.varianceBreakdown && validationResults.reconciliation.varianceBreakdown.length > 0 && (
+                        <div className="pt-2 border-t border-amber-200 space-y-2">
+                          <p className="text-xs text-amber-700 font-medium">
+                            {validationResults.reconciliation.varianceBreakdown.length} bill{validationResults.reconciliation.varianceBreakdown.length === 1 ? '' : 's'} appear in your CSV multiple times (same vendor + date + amount, different projects). Each row is correctly detected as a duplicate of the same DB record — but the totals above sum the CSV side multiple times, so the variance reflects that math, not data corruption:
+                          </p>
+                          <ul className="text-xs space-y-1.5 pl-1">
+                            {validationResults.reconciliation.varianceBreakdown.slice(0, 10).map((item: any, idx: number) => (
+                              <li key={idx} className="flex flex-col gap-0.5">
+                                <span className="text-amber-900">
+                                  • <span className="font-medium">{item.payee}</span> · {item.date} · {formatCurrency(item.amount)}
+                                  <span className="text-amber-600"> — {item.csvRowCount} CSV rows ({item.projects.join(' + ')})</span>
+                                </span>
+                                <span className="text-amber-600 pl-3">
+                                  contributes {formatCurrency(item.contribution)} to variance
+                                </span>
+                              </li>
+                            ))}
+                            {validationResults.reconciliation.varianceBreakdown.length > 10 && (
+                              <li className="text-amber-600 italic pl-1">
+                                ...and {validationResults.reconciliation.varianceBreakdown.length - 10} more
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(!validationResults.reconciliation.varianceBreakdown || validationResults.reconciliation.varianceBreakdown.length === 0) && (
+                        <p className="text-xs text-amber-600 pt-2 border-t border-amber-200">
+                          The variance isn't from CSV-side duplicates — it may indicate some
+                          existing DB transactions were modified after import. Review if the
+                          difference is significant.
+                        </p>
+                      )}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
