@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation, Outlet, useOutletContext } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useMatch, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,16 @@ export const ProjectDetailView = () => {
     return saved === 'true';
   });
 
+  // Force-collapse the sidebar on estimate/quote edit & new routes so the form
+  // gets more horizontal breathing room. User preference in panelCollapsed stays
+  // untouched — on route exit, effectiveCollapsed falls back to it automatically.
+  const matchEstimateEdit = useMatch('/projects/:id/estimates/:estimateId/edit');
+  const matchEstimateNew = useMatch('/projects/:id/estimates/new');
+  const matchQuoteEdit = useMatch('/projects/:id/estimates/quotes/:quoteId/edit');
+  const matchQuoteNew = useMatch('/projects/:id/estimates/quotes/new');
+  const forceCollapsed = Boolean(matchEstimateEdit || matchEstimateNew || matchQuoteEdit || matchQuoteNew);
+  const effectiveCollapsed = forceCollapsed || panelCollapsed;
+
   // Mobile nav sheet state
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -119,6 +129,7 @@ export const ProjectDetailView = () => {
   // Keyboard shortcut: Cmd/Ctrl+B to toggle sidebar
   useEffect(() => {
     const handleKeyboard = (e: KeyboardEvent) => {
+      if (forceCollapsed) return; // No-op while force-collapsed on edit/new routes
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
         e.preventDefault();
         setPanelCollapsed(prev => !prev);
@@ -126,7 +137,7 @@ export const ProjectDetailView = () => {
     };
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, []);
+  }, [forceCollapsed]);
 
 
   const loadProjectOptions = async () => {
@@ -258,12 +269,12 @@ export const ProjectDetailView = () => {
           size="sm"
           className={cn(
             "w-full justify-start gap-2 h-9 text-sm text-slate-400 hover:text-white hover:bg-white/5",
-            panelCollapsed && "justify-center px-0"
+            effectiveCollapsed && "justify-center px-0"
           )}
           onClick={() => navigate("/projects")}
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />
-          {!panelCollapsed && <span>Back to Projects</span>}
+          {!effectiveCollapsed && <span>Back to Projects</span>}
         </Button>
       </div>
 
@@ -272,7 +283,7 @@ export const ProjectDetailView = () => {
         {navigationGroups.map((group, groupIndex) => (
           <div key={group.label} className={cn("mb-5", groupIndex === 0 && "mt-0")}>
             {/* Section Header */}
-            {!panelCollapsed && (
+            {!effectiveCollapsed && (
               <h3 className="px-3 mb-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                 {group.label}
               </h3>
@@ -298,16 +309,16 @@ export const ProjectDetailView = () => {
                         "border-l-[3px] border-orange-500 -ml-[3px] pl-[calc(0.75rem+3px)]",
                       ],
                       // Collapsed mode
-                      panelCollapsed && "justify-center px-0 w-10 mx-auto"
+                      effectiveCollapsed && "justify-center px-0 w-10 mx-auto"
                     )}
                     onClick={() => handleNavigation(item.url)}
-                    title={panelCollapsed ? item.title : undefined}
+                    title={effectiveCollapsed ? item.title : undefined}
                   >
                     <Icon className={cn(
                       "h-4 w-4 shrink-0",
                       active ? "text-orange-400" : "text-slate-400"
                     )} />
-                    {!panelCollapsed && <span>{item.title}</span>}
+                    {!effectiveCollapsed && <span>{item.title}</span>}
                   </Button>
                 );
               })}
@@ -553,60 +564,64 @@ export const ProjectDetailView = () => {
           className={cn(
             "sticky top-0 self-start h-screen border-r border-white/10",
             "bg-[hsl(217,25%,15%)] transition-all duration-200 flex flex-col shrink-0 relative",
-            panelCollapsed ? "w-14" : "w-52"  // 56px collapsed, 208px expanded
+            effectiveCollapsed ? "w-14" : "w-52"  // 56px collapsed, 208px expanded
           )}
       >
         <DesktopNavContent />
 
-        {/* Hover-Revealed Collapse Toggle Handle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setPanelCollapsed(!panelCollapsed)}
-              className={cn(
-                "absolute top-1/2 -translate-y-1/2 -right-3 z-50",
-                "w-6 h-16 flex items-center justify-center",
-                "opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-200",
-                "group cursor-pointer outline-none"
-              )}
-              aria-label={panelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <div className={cn(
-                "w-1 h-12 rounded-full bg-white/20 group-hover:bg-orange-500/60 group-focus:bg-orange-500/60 transition-all",
-                panelCollapsed && "bg-orange-500/40"
-              )} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
-            <p className="text-xs">
-              {panelCollapsed ? "Expand" : "Collapse"} sidebar
-              <kbd className="ml-1.5 px-1 py-0.5 text-[10px] bg-muted rounded border">⌘B</kbd>
-            </p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Hover-Revealed Collapse Toggle Handle — hidden on force-collapsed routes */}
+        {!forceCollapsed && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setPanelCollapsed(!panelCollapsed)}
+                className={cn(
+                  "absolute top-1/2 -translate-y-1/2 -right-3 z-50",
+                  "w-6 h-16 flex items-center justify-center",
+                  "opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-200",
+                  "group cursor-pointer outline-none"
+                )}
+                aria-label={panelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <div className={cn(
+                  "w-1 h-12 rounded-full bg-white/20 group-hover:bg-orange-500/60 group-focus:bg-orange-500/60 transition-all",
+                  panelCollapsed && "bg-orange-500/40"
+                )} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              <p className="text-xs">
+                {panelCollapsed ? "Expand" : "Collapse"} sidebar
+                <kbd className="ml-1.5 px-1 py-0.5 text-[10px] bg-muted rounded border">⌘B</kbd>
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-        {/* Compact Bottom Toggle (fallback) */}
-        <div className="p-2 border-t border-white/10 mt-auto">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "w-full justify-center h-8 text-xs text-slate-400 hover:text-white hover:bg-white/5",
-              panelCollapsed && "px-0"
-            )}
-            onClick={() => setPanelCollapsed(!panelCollapsed)}
-            title={panelCollapsed ? "Expand (⌘B)" : "Collapse (⌘B)"}
-          >
-            {panelCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                <span>Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Compact Bottom Toggle (fallback) — hidden on force-collapsed routes */}
+        {!forceCollapsed && (
+          <div className="p-2 border-t border-white/10 mt-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "w-full justify-center h-8 text-xs text-slate-400 hover:text-white hover:bg-white/5",
+                panelCollapsed && "px-0"
+              )}
+              onClick={() => setPanelCollapsed(!panelCollapsed)}
+              title={panelCollapsed ? "Expand (⌘B)" : "Collapse (⌘B)"}
+            >
+              {panelCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <>
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  <span>Collapse</span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </aside>
 
       {/* Main Content Area */}
