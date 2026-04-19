@@ -92,7 +92,7 @@ src/
 
 ## Backend: Supabase
 
-**30 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
+**29 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
 
 | Group | Functions |
 |-------|-----------|
@@ -101,12 +101,14 @@ src/
 | SMS | `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key` |
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
 | AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import) |
-| Contracts | `generate-contract`, `generate-subcontractor-contract` ⚠️ **status uncertain — do not touch without verifying live usage** |
+| Contracts | `generate-contract` (template-driven subcontractor project agreement; .docx placeholder substitution via JSZip) |
 | QuickBooks (CSV flow, live) | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
 | QuickBooks API (**in-dev — not production**) | `quickbooks-sync-receipt`, `quickbooks-sync-transactions` |
 | Shared | `_shared/brandedTemplate.ts`, `_shared/quickbooks.ts` |
 
 **Removed (Apr 15, 2026):** `ai-project-assistant` (unused, replaced by `ai-report-assistant`), `parse-estimate-import` (dead — live path is `enrich-estimate-items`). Both deleted via `npx supabase functions delete <name> --project-ref clsjdxwbsjbhjibvlqbz`.
+
+**Removed (Apr 19, 2026):** `generate-subcontractor-contract` (orphan — deployed direct-to-Supabase in Nov 2025, entrypoint `/source/index.ts` with no repo structure, zero UI callers, superseded by the repo-managed `generate-contract` function built Dec 2025). Deleted via CLI.
 
 ### Critical: Functions That Use `_shared/brandedTemplate.ts`
 
@@ -261,6 +263,7 @@ Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quic
 |----------|--------|---------|
 | `VITE_FEATURE_SCHEDULE` | ✅ Enabled | Gantt schedule view |
 | `VITE_FEATURE_AIA_BILLING` | ✅ Enabled | AIA G702/G703 payment applications (Billing tab in Project Detail) |
+| `VITE_FEATURE_CONTRACTS` | ✅ Enabled | Subcontractor contract generation — hides the "Generate Contract" button in `QuoteViewRoute` and `Quotes.tsx` when set to `false`. Kill-switch only; edge function + storage pipeline remain intact. |
 
 ---
 

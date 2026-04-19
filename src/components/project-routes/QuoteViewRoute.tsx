@@ -22,6 +22,7 @@ import {
 import { QuoteStatus } from "@/types/quote";
 import { getQuotedCost } from "@/utils/quoteFinancials";
 import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +128,7 @@ export function QuoteViewRoute() {
                 showLabel={false}
               />
             </div>
-            {isAccepted && (
+            {isAccepted && isFeatureEnabled('contracts') && (
               <Button onClick={() => setShowContractModal(true)} data-testid="generate-contract-btn">
                 <FileText className="mr-2 h-4 w-4" />
                 Generate Contract

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { QuoteForm } from "@/components/QuoteForm";
 import { QuoteStatusSelector } from "@/components/QuoteStatusSelector";
 import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import { QuotesList } from "@/components/QuotesList";
 import { QuoteComparison } from "@/components/QuoteComparison";
 import { QuoteFilters, QuoteSearchFilters } from "@/components/QuoteFilters";
@@ -913,28 +914,30 @@ const Quotes = () => {
                     showLabel={false}
                   />
                 </div>
-                <TooltipProvider>
-                  {(viewedQuoteStatus === QuoteStatus.ACCEPTED || viewedQuoteStatus === 'accepted') ? (
-                    <Button onClick={() => setShowContractModal(true)}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Generate Contract
-                    </Button>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-block">
-                          <Button disabled>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Generate Contract
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Accept the quote to generate a contract
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </TooltipProvider>
+                {isFeatureEnabled('contracts') && (
+                  <TooltipProvider>
+                    {(viewedQuoteStatus === QuoteStatus.ACCEPTED || viewedQuoteStatus === 'accepted') ? (
+                      <Button onClick={() => setShowContractModal(true)}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Generate Contract
+                      </Button>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-block">
+                            <Button disabled>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Generate Contract
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Accept the quote to generate a contract
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </TooltipProvider>
+                )}
               </div>
             </CardContent>
           </Card>
