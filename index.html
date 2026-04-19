@@ -9,19 +9,25 @@
     
     <!-- Favicons -->
     
-    <!-- iOS Icons -->
-    <link rel="apple-touch-icon" href="/icon-180.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="/icon-180.png">
-    <link rel="apple-touch-icon-precomposed" href="/icon-180.png">
+    <!-- iOS Icons — use the opaque solid-bg asset. The transparent icon-180.png
+         renders as a dark cube on black in iOS dark-mode home screens.
+         NOTE: These tags are NOT managed by Lovable's "Update site info for
+         publish" dialog, so they survive dialog saves. The og:*, twitter:*,
+         title, description, and <link rel="icon"> tags ARE managed by the
+         dialog and will be rewritten — don't touch them from code. See
+         CLAUDE.md "Lovable Publish dialog writes to main" gotcha. -->
+    <link rel="apple-touch-icon" href="/pwa-apple-touch-180x180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/pwa-apple-touch-180x180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/pwa-apple-touch-180x180.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/pwa-apple-touch-180x180.png">
+    <link rel="apple-touch-icon-precomposed" href="/pwa-apple-touch-180x180.png">
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#1b2b43">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ProfitBuild">
+    <meta name="apple-mobile-web-app-title" content="RCG Work">
     <meta name="mobile-web-app-capable" content="yes">
 
     

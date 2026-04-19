@@ -706,6 +706,28 @@ Use this list when doing periodic documentation reviews:
 
 30. **Regenerate Supabase types after applying RPCs / views via MCP** — The generated `src/integrations/supabase/types.ts` doesn't auto-update when you `apply_migration` or create new views/RPCs. Call `mcp generate_typescript_types` after any DB schema change that exposes new tables/views/RPCs to PostgREST. Without this, consumer code gets `error TS2769: No overload matches this call. Argument of type '"new_view_name"' is not assignable to parameter of type '"old_view_only_list"'`. The Apr 19 session shipped 4 RPCs (`get_employees_audit`, `set_user_can_be_mentioned`, `get_expense_dashboard_stats`, `get_expense_category_rollup`) and 1 view (`expenses_search`) before regenerating; ~10 consumer-side type errors accumulated. The generated file is large (~140KB) — write it to `src/integrations/supabase/types.ts` and commit. **MCP tool returns it as `{"types": "..."}` JSON** — extract the `.types` field, don't write the JSON wrapper.
 
+31. **Lovable's "Update site info for publish" dialog force-pushes to main and strips unrelated tags** — discovered Apr 19, 2026 after PR #25 (iOS icon fix) was reverted by commit `368c37b "Update site info for publish"`. The Publish dialog in the Lovable editor is NOT a passive reflection of `index.html` — it's an authoritative writer that commits directly to the repo on save. It manages a specific subset of `<head>` tags and **deletes everything it doesn't recognize** when rewriting the file. Mid-session conflict mode: PR #26 was open when the user clicked Done in the dialog, Lovable force-pushed to main, PR #26 became unmergeable, and PR #25's iOS fixes were silently reverted on main.
+
+    **Tags Lovable's Publish dialog MANAGES (do not edit via code — next dialog save will rewrite):**
+    - `<title>`
+    - `<meta name="description">`
+    - `<meta property="og:title">`, `og:description`, `og:image`, `og:type`, `og:url` (if dialog has the field)
+    - `<meta name="twitter:card">`, `twitter:title`, `twitter:description`, `twitter:image`, `twitter:site`
+    - `<meta name="author">`
+    - `<link rel="icon">` (browser favicon) — dialog strips these and relies on `/favicon.ico` fallback
+
+    **Tags Lovable's Publish dialog IGNORES (safe to edit via code — survive dialog saves):**
+    - `<link rel="apple-touch-icon">` (all 5 variants including `apple-touch-icon-precomposed`)
+    - `<meta name="apple-mobile-web-app-title">`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`
+    - `<meta name="mobile-web-app-capable">`
+    - `<meta name="theme-color">`
+    - `<link rel="manifest">`
+    - Everything outside the `<head>` block (scripts, styles, body content)
+
+    **Rule for future sessions:** when asked to change anything in `<head>` that the Publish dialog manages (title, OG, Twitter, description, favicon links, author), redirect the user to edit it in Lovable's Publish dialog rather than touching `index.html`. Code changes to those tags are ephemeral. When the fix IS in an IGNORED tag (iOS home-screen icon, apple-mobile-web-app-title, manifest), PRs are durable. PR #27 (`fix/ios-icon-restore`) re-applied only the iOS-specific tags from PR #25 for this exact reason — OG/Twitter/favicon link changes from PR #26 were abandoned because Lovable would overwrite them.
+
+    **Diagnostic:** if `index.html` in main contains a Lovable R2 URL for og:image (`pub-*.r2.dev/...lovable.app-<timestamp>.png`) or `@lovable_dev` in twitter:site, the user has run the Publish dialog recently.
+
 ---
 
 ## Outstanding Audit Items (Apr 2026)
