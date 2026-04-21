@@ -92,7 +92,7 @@ export const quoteKPIs: KPIMeasure[] = [
     formula: 'Compare actual vs quoted costs',
     dataType: 'enum',
     domain: 'quote',
-    whereUsed: 'QuoteComparison, variance analysis',
+    whereUsed: 'QuoteComparisonPeer leaderboard, variance analysis',
     notes: 'Status indicating if actual costs match quoted amounts.',
     aliases: ['variance status', 'cost comparison', 'quote vs actual'],
   },

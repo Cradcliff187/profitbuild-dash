@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown, Files } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, FileText, CheckCircle, Eye, Edit, Trash2, Calendar, User, DollarSign, MoreHorizontal, Copy, ChevronsUpDown, Files, GitCompare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +28,7 @@ import {
   getEstimateLineItemPrice,
   getQuotedCost,
   getCostVariance,
+  countLineItemPeerQuotes,
 } from "@/utils/quoteFinancials";
 import {
   AlertDialog,
@@ -86,6 +87,17 @@ export const QuotesTableView = ({
   const [quoteToDuplicate, setQuoteToDuplicate] = useState<Quote | null>(null);
   const [localQuotes, setLocalQuotes] = useState(quotes);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // Peer count per quote — # of distinct OTHER quotes that share >= 1 estimate line item with this one.
+  // Compare is only meaningful when another quote is bidding on the same scope (line-item level,
+  // not estimate-level — a plumber's quote is not a peer to an electrician's quote).
+  const peerCountByQuoteId = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const q of localQuotes) {
+      m.set(q.id, countLineItemPeerQuotes(q, localQuotes));
+    }
+    return m;
+  }, [localQuotes]);
 
   // Column visibility and order state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -305,15 +317,17 @@ export const QuotesTableView = ({
       align: 'center',
       width: '120px',
       render: (quote) => (
-        <QuoteStatusSelector
-          quoteId={quote.id}
-          currentStatus={quote.status}
-          quoteNumber={quote.quoteNumber}
-          payeeName={quote.quotedBy}
-          projectId={quote.project_id}
-          totalAmount={getQuotedCost(quote)}
-          onStatusChange={(newStatus) => handleStatusUpdate(quote.id, newStatus)}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <QuoteStatusSelector
+            quoteId={quote.id}
+            currentStatus={quote.status}
+            quoteNumber={quote.quoteNumber}
+            payeeName={quote.quotedBy}
+            projectId={quote.project_id}
+            totalAmount={getQuotedCost(quote)}
+            onStatusChange={(newStatus) => handleStatusUpdate(quote.id, newStatus)}
+          />
+        </div>
       ),
     },
     {
@@ -488,6 +502,7 @@ export const QuotesTableView = ({
       align: 'center',
       width: '60px',
       render: (quote) => (
+        <div onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -508,6 +523,35 @@ export const QuotesTableView = ({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </DropdownMenuItem>
+            {(() => {
+              const peers = peerCountByQuoteId.get(quote.id) ?? 0;
+              const canCompare = peers >= 1;
+              const item = (
+                <DropdownMenuItem
+                  disabled={!canCompare}
+                  onClick={() => canCompare && onCompare(quote)}
+                >
+                  <GitCompare className="h-4 w-4 mr-2" />
+                  Compare vs peers
+                  {canCompare && (
+                    <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                      {peers}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              );
+              if (canCompare) return item;
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>{item}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    No other quotes share line items with this one
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })()}
             <DropdownMenuItem onClick={() => {
               setQuoteToDuplicate(quote);
               setDuplicateModalOpen(true);
@@ -525,6 +569,7 @@ export const QuotesTableView = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       ),
     },
   ];
@@ -617,7 +662,7 @@ export const QuotesTableView = ({
         collapsedGroups={collapsedGroups}
         onCollapsedGroupsChange={setCollapsedGroups}
         collapseAllButton={undefined}
-        onView={onCompare}
+        onView={onView}
         onEdit={onEdit}
         onDelete={onDelete}
         getItemId={(quote) => quote.id}
