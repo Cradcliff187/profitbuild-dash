@@ -297,7 +297,218 @@ export function getEstimateLineItemPrice(
 export interface CostVarianceResult {
   amount: number;
   percentage: number;
-  status: 'under' | 'over' | 'none';
+  status: 'under' | 'over' | 'on' | 'none';
+}
+
+export interface SignedCostVariance extends CostVarianceResult {
+  /** Signed delta: negative = under estimate (good), positive = over (bad), null = no baseline */
+  signedAmount: number | null;
+  /** The estimate-side baseline used (sum of covered line-item costs), null if no match */
+  baseline: number | null;
+  /** Quoted cost that was compared */
+  quotedCost: number;
+}
+
+// ─── Peer comparison helpers ───────────────────────────────────────────
+
+export interface PeerBid {
+  quoteId: string;
+  quoteNumber: string;
+  vendor: string;
+  status: string;
+  costOnThisLine: number;
+  isCurrent: boolean;
+}
+
+export interface LineItemPeers {
+  estimateLineItemId: string;
+  description: string;
+  category: string;
+  estimatedCost: number | null;
+  bids: PeerBid[]; // sorted ascending by costOnThisLine
+  myBid: PeerBid | undefined;
+}
+
+/**
+ * For a given quote, build per-line-item peer leaderboards.
+ * Peers = any other quote whose quote_line_items reference the SAME estimate_line_item_id.
+ * Same-version-only by design — schema has no cross-version line-item family.
+ */
+export function getQuotePeersByLineItem(
+  quote: Quote,
+  allQuotes: Quote[],
+  estimates: Estimate[]
+): LineItemPeers[] {
+  const estimate = getEstimateForQuote(quote, estimates);
+  const estimateLines = estimate?.lineItems ?? [];
+
+  const myLineIds = new Set(
+    quote.lineItems
+      .map((qli) => qli.estimateLineItemId || qli.estimate_line_item_id)
+      .filter((id): id is string => !!id)
+  );
+
+  const result: LineItemPeers[] = [];
+
+  for (const lineId of myLineIds) {
+    const estLine = estimateLines.find((l) => l.id === lineId);
+    const bids: PeerBid[] = [];
+
+    for (const q of allQuotes) {
+      const hit = q.lineItems.find(
+        (qli) => (qli.estimateLineItemId || qli.estimate_line_item_id) === lineId
+      );
+      if (!hit) continue;
+      bids.push({
+        quoteId: q.id,
+        quoteNumber: q.quoteNumber,
+        vendor: q.quotedBy,
+        status: String(q.status),
+        costOnThisLine: Number(hit.totalCost ?? hit.quantity * hit.costPerUnit ?? 0),
+        isCurrent: q.id === quote.id,
+      });
+    }
+
+    bids.sort((a, b) => a.costOnThisLine - b.costOnThisLine);
+    const myBid = bids.find((b) => b.isCurrent);
+
+    result.push({
+      estimateLineItemId: lineId,
+      description: estLine?.description || "Untitled line",
+      category: String(estLine?.category || "other"),
+      estimatedCost: estLine ? Number(estLine.totalCost ?? 0) : null,
+      bids,
+      myBid,
+    });
+  }
+
+  // Sort line-items by estimated cost descending so the biggest decisions surface first
+  result.sort((a, b) => (b.estimatedCost ?? 0) - (a.estimatedCost ?? 0));
+  return result;
+}
+
+/** Count distinct OTHER quotes that share at least one line item with this quote. */
+export function countLineItemPeerQuotes(
+  quote: Quote,
+  allQuotes: Quote[]
+): number {
+  const myLineIds = new Set(
+    quote.lineItems
+      .map((qli) => qli.estimateLineItemId || qli.estimate_line_item_id)
+      .filter((id): id is string => !!id)
+  );
+  if (myLineIds.size === 0) return 0;
+
+  const peers = new Set<string>();
+  for (const q of allQuotes) {
+    if (q.id === quote.id) continue;
+    const hasOverlap = q.lineItems.some((qli) => {
+      const id = qli.estimateLineItemId || qli.estimate_line_item_id;
+      return id ? myLineIds.has(id) : false;
+    });
+    if (hasOverlap) peers.add(q.id);
+  }
+  return peers.size;
+}
+
+// ─── Margin analysis ───────────────────────────────────────────────────
+
+export interface MarginIfAccepted {
+  /** Margin % if we accept this quote and bill the estimate's sell price */
+  marginPercent: number;
+  /** Estimate's configured target margin (defaults to 20%) */
+  targetMarginPercent: number;
+  /** Minimum vendor cost that would still hit target margin */
+  maxVendorCostForTarget: number;
+  /** Dollar-level gap vs target margin (positive = exceeds target) */
+  marginDollarImpact: number;
+  /** Status band for quick visual read */
+  status: 'excellent' | 'on-target' | 'marginal' | 'loss';
+  /** True when we have baseline data to compute against */
+  available: boolean;
+}
+
+/**
+ * Compute "what margin do I keep if I accept this vendor's quote?" for the line items this quote covers.
+ * Uses estimate line-item sell totals (quote → estimate mapping already in getEstimateLineItemPrice).
+ */
+export function getMarginIfAccepted(
+  quote: Quote,
+  estimates: Estimate[]
+): MarginIfAccepted {
+  const sellBaseline = getEstimateLineItemPrice(quote, estimates);
+  const vendorCost = getQuotedCost(quote);
+  const estimate = getEstimateForQuote(quote, estimates);
+  const targetMarginPercent = estimate?.targetMarginPercent ?? 20;
+
+  if (sellBaseline === null || sellBaseline <= 0) {
+    return {
+      marginPercent: 0,
+      targetMarginPercent,
+      maxVendorCostForTarget: 0,
+      marginDollarImpact: 0,
+      status: 'marginal',
+      available: false,
+    };
+  }
+
+  const marginPercent = ((sellBaseline - vendorCost) / sellBaseline) * 100;
+  const maxVendorCostForTarget = sellBaseline * (1 - targetMarginPercent / 100);
+  const marginDollarImpact = maxVendorCostForTarget - vendorCost;
+
+  const status: MarginIfAccepted['status'] =
+    marginPercent < 0
+      ? 'loss'
+      : marginPercent < 10
+      ? 'marginal'
+      : marginPercent < targetMarginPercent
+      ? 'on-target'
+      : 'excellent';
+
+  return {
+    marginPercent,
+    targetMarginPercent,
+    maxVendorCostForTarget,
+    marginDollarImpact,
+    status,
+    available: true,
+  };
+}
+
+/**
+ * Like getCostVariance but preserves sign + baseline for UI display.
+ * Used by QuoteViewHero to render the "screaming number" variance.
+ */
+export function getSignedCostVariance(
+  quote: Quote,
+  estimates: Estimate[]
+): SignedCostVariance {
+  const baseline = getEstimateLineItemCost(quote, estimates);
+  const quotedCost = getQuotedCost(quote);
+
+  // Truly no baseline — can't compute at all.
+  if (baseline === null) {
+    return {
+      amount: 0,
+      percentage: 0,
+      status: 'none',
+      signedAmount: null,
+      baseline: null,
+      quotedCost,
+    };
+  }
+
+  const signedAmount = quotedCost - baseline;
+  const signedPercent = baseline === 0 ? 0 : (signedAmount / baseline) * 100;
+
+  return {
+    amount: Math.abs(signedAmount),
+    percentage: Math.abs(signedPercent),
+    status: signedAmount > 0 ? 'over' : signedAmount < 0 ? 'under' : 'on',
+    signedAmount,
+    baseline,
+    quotedCost,
+  };
 }
 
 /**

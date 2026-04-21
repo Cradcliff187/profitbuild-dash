@@ -61,36 +61,3 @@ export interface Quote {
   createdAt: Date;
 }
 
-export interface ComparisonData {
-  estimateTotal: number;
-  quoteTotal: number;
-  difference: number;
-  percentageDiff: number;
-  categoryComparisons: {
-    [key in LineItemCategory]: {
-      estimate: number;
-      quote: number;
-      difference: number;
-      percentageDiff: number;
-    }
-  };
-}
-
-export interface MarginComparisonData extends ComparisonData {
-  yourTotalCost: number;
-  yourTotalPrice: number;
-  vendorQuote: number;
-  marginIfAccepted: number;
-  minimumAcceptableQuote: number;
-  marginStatus: 'excellent' | 'acceptable' | 'marginal' | 'loss';
-  categoryMarginAnalysis: {
-    [key in LineItemCategory]: {
-      yourCost: number;
-      yourPrice: number;
-      vendorQuote: number;
-      marginIfAccepted: number;
-      minimumAcceptable: number;
-      status: 'excellent' | 'acceptable' | 'marginal' | 'loss';
-    }
-  };
-}

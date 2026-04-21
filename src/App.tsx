@@ -72,6 +72,7 @@ const EstimateNewRoute = lazy(() => import("./components/project-routes/Estimate
 const QuoteViewRoute = lazy(() => import("./components/project-routes/QuoteViewRoute").then(m => ({ default: m.QuoteViewRoute })));
 const QuoteEditRoute = lazy(() => import("./components/project-routes/QuoteEditRoute").then(m => ({ default: m.QuoteEditRoute })));
 const QuoteNewRoute = lazy(() => import("./components/project-routes/QuoteNewRoute").then(m => ({ default: m.QuoteNewRoute })));
+const QuoteComparePeerRoute = lazy(() => import("./components/project-routes/QuoteComparePeerRoute").then(m => ({ default: m.QuoteComparePeerRoute })));
 const queryClient = new QueryClient();
 
 const LazyRoute = ({ component: Component }: { component: React.ComponentType }) => (
@@ -111,6 +112,7 @@ const App = () => (
                     <Route path="estimates/new" element={<LazyRoute component={EstimateNewRoute} />} />
                     <Route path="estimates/quotes/:quoteId" element={<LazyRoute component={QuoteViewRoute} />} />
                     <Route path="estimates/quotes/:quoteId/edit" element={<LazyRoute component={QuoteEditRoute} />} />
+                    <Route path="estimates/quotes/:quoteId/compare" element={<LazyRoute component={QuoteComparePeerRoute} />} />
                     <Route path="estimates/quotes/new" element={<LazyRoute component={QuoteNewRoute} />} />
                     <Route path="expenses" element={<LazyRoute component={ProjectExpensesRoute} />} />
                     <Route path="control" element={<LazyRoute component={ProjectControlRoute} />} />

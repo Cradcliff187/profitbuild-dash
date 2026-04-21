@@ -4,17 +4,22 @@ import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { QuoteForm } from "@/components/QuoteForm";
-import { QuoteStatusSelector } from "@/components/QuoteStatusSelector";
+import { QuoteViewHero } from "@/components/quotes/QuoteViewHero";
+import { QuoteCoverageCard } from "@/components/quotes/QuoteCoverageCard";
+import { QuoteDocumentsCard } from "@/components/quotes/QuoteDocumentsCard";
+import { QuoteNotesCard } from "@/components/quotes/QuoteNotesCard";
 import { ContractGenerationModal } from "@/components/contracts/ContractGenerationModal";
-import { isFeatureEnabled } from "@/lib/featureFlags";
 import { QuotesList } from "@/components/QuotesList";
-import { QuoteComparison } from "@/components/QuoteComparison";
+import { QuoteComparisonPeer } from "@/components/quotes/QuoteComparisonPeer";
 import { QuoteFilters, QuoteSearchFilters } from "@/components/QuoteFilters";
 import { QuoteExportModal } from "@/components/QuoteExportModal";
 import { Quote, QuoteStatus } from "@/types/quote";
-import { getQuotedCost } from "@/utils/quoteFinancials";
+import {
+  countLineItemPeerQuotes,
+  getMarginIfAccepted,
+  getSignedCostVariance,
+} from "@/utils/quoteFinancials";
 import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contract } from "@/types/contract";
@@ -22,12 +27,6 @@ import { toast } from "sonner";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 const Quotes = () => {
   const navigate = useNavigate();
@@ -894,63 +893,33 @@ const Quotes = () => {
 
       {view === 'view' && selectedQuote && (
         <>
-          <Card className="mb-4">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Quote Status</h3>
-                  <QuoteStatusSelector
-                    quoteId={selectedQuote.id}
-                    currentStatus={viewedQuoteStatus as QuoteStatus}
-                    quoteNumber={selectedQuote.quoteNumber}
-                    payeeName={selectedQuote.quotedBy}
-                    projectId={selectedQuote.project_id}
-                    totalAmount={getQuotedCost(selectedQuote)}
-                    onStatusChange={(newStatus) => {
-                      setViewedQuoteStatus(newStatus);
-                      setSelectedQuote((prev) => (prev ? { ...prev, status: newStatus } : undefined));
-                      fetchData();
-                    }}
-                    showLabel={false}
-                  />
-                </div>
-                {isFeatureEnabled('contracts') && (
-                  <TooltipProvider>
-                    {(viewedQuoteStatus === QuoteStatus.ACCEPTED || viewedQuoteStatus === 'accepted') ? (
-                      <Button onClick={() => setShowContractModal(true)}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Generate Contract
-                      </Button>
-                    ) : (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-block">
-                            <Button disabled>
-                              <FileText className="mr-2 h-4 w-4" />
-                              Generate Contract
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Accept the quote to generate a contract
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </TooltipProvider>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          <QuoteForm
-            mode="view"
-            estimates={estimates}
-            initialQuote={selectedQuote}
-            onSave={() => {}}
-            onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
-            generatedContractsForQuote={quoteContracts}
-            projectNumber={selectedQuote.project_number ?? undefined}
-            payeeName={selectedQuote.quotedBy}
+          <QuoteViewHero
+            quote={selectedQuote}
+            variance={getSignedCostVariance(selectedQuote, estimates)}
+            margin={getMarginIfAccepted(selectedQuote, estimates)}
+            currentStatus={viewedQuoteStatus}
+            hasGeneratedContract={quoteContracts.length > 0}
+            peerCount={countLineItemPeerQuotes(selectedQuote, quotes)}
+            onStatusChange={(newStatus) => {
+              setViewedQuoteStatus(newStatus);
+              setSelectedQuote((prev) => (prev ? { ...prev, status: newStatus } : undefined));
+              fetchData();
+            }}
+            onEdit={() => setView('edit')}
+            onGenerateContract={() => setShowContractModal(true)}
+            onCompare={() => setView('compare')}
+          />
+          <QuoteCoverageCard quote={selectedQuote} estimates={estimates} />
+          <QuoteDocumentsCard
+            quote={selectedQuote}
+            contracts={quoteContracts}
+            contractsLoading={false}
             onDeleteContract={handleDeleteContract}
+            onAttachmentChange={() => fetchData()}
+          />
+          <QuoteNotesCard
+            notes={selectedQuote.notes}
+            rejectionReason={selectedQuote.rejection_reason}
           />
           <ContractGenerationModal
             open={showContractModal}
@@ -981,11 +950,19 @@ const Quotes = () => {
         </>
       )}
 
-      {view === 'compare' && selectedQuote && selectedEstimate && (
-        <QuoteComparison
+      {view === 'compare' && selectedQuote && (
+        <QuoteComparisonPeer
           quote={selectedQuote}
-          estimate={selectedEstimate}
-          onBack={() => setView('list')}
+          quotes={quotes}
+          estimates={estimates}
+          onBack={() => setView('view')}
+          onOpenPeer={(peerId) => {
+            const peer = quotes.find((q) => q.id === peerId);
+            if (peer) {
+              setSelectedQuote(peer);
+              setView('view');
+            }
+          }}
         />
       )}
 

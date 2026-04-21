@@ -478,6 +478,39 @@ Per-line cushion annotations on labor rows are static (sourced from `estimate_li
 
 **Task-prefix format preserved exactly**: `**{taskName}:** {text}`. For attachment-only notes, the fallback body is the attachment type label (`Photo`, `Video`, or `{fileName}`) — matches the pre-existing `FieldTaskCard` "**Demo:** Photo" pattern and extends it to video/file.
 
+### 16. Quote View / Edit / Compare Anatomy (Apr 21, 2026)
+
+The quote detail surfaces (project-scoped `/projects/:id/estimates/quotes/:quoteId` and sidebar `/quotes` → View) share one presentational decomposition. The old "wrap the entire 1,638-line `QuoteForm` in `mode='view'`" pattern is **removed** from both surfaces — it bled pre-decision selection UI (competing-vendor "Quote Coverage" column, line-item checkboxes, project/estimate dropdowns) into post-approval views and rendered the contracts list twice. `QuoteForm` is now used only for `new` and `edit`.
+
+**Four presentational cards compose the view** (all in [src/components/quotes/](src/components/quotes/)):
+
+| Component | Role |
+|---|---|
+| [QuoteViewHero](src/components/quotes/QuoteViewHero.tsx) | Vendor identity · signed cost variance vs estimate (the "screaming number") · margin-if-accepted % with target-band coloring · `Status` pill (`QuoteStatusSelector`) · Edit / Contract / Compare buttons · Edit guard dialog when quote is accepted AND has a generated contract |
+| [QuoteCoverageCard](src/components/quotes/QuoteCoverageCard.tsx) | Per-line-item EST → QUOTED → Δ rows; scope pills (Labor/Materials); rollup totals footer; amber "Unmatched" badge on quote_line_items with no `estimate_line_item_id` link |
+| [QuoteDocumentsCard](src/components/quotes/QuoteDocumentsCard.tsx) | Unified doc home. **Quote from vendor** section: reuses existing `QuoteAttachmentUpload`, opens the PDF in the shared `PdfPreviewModal` (not a new tab). **Generated contracts** section: versioned list sorted `version DESC`, latest marked "Current" in orange, older versions fold into a "Show N previous versions" chevron. Uses `contracts.version` (integer, already in schema) and `contracts.status='superseded'` for labeling. |
+| [QuoteNotesCard](src/components/quotes/QuoteNotesCard.tsx) | Auto-hides when empty. Renders `rejection_reason` + `notes` with labeled sections. |
+
+**Peer comparison** — [QuoteComparisonPeer](src/components/quotes/QuoteComparisonPeer.tsx) replaces the old `QuoteComparison.tsx` (deleted). The old view was single-quote-vs-estimate margin math duplicated by the new hero. The peer view is genuinely different: per-line-item leaderboards ranking every quote that references the same `estimate_line_item_id`. Summary strip: lines-you-bid, with-competition, peer-vendors, you're-lowest-on. Per-line cards: rank badge (`#1 of N`), status pills, Lowest/You badges, delta-vs-estimate on each row, click-through to peer's view.
+
+**Helpers live in [src/utils/quoteFinancials.ts](src/utils/quoteFinancials.ts)** — all client-side, no new queries needed (`useProjectContext().quotes` already has the full project set):
+- `getSignedCostVariance(quote, estimates)` → powers the hero variance. Returns `status: 'under' | 'over' | 'on' | 'none'` — `'on'` is for exact-match cost (zero variance with a real baseline), `'none'` is for truly missing baseline. Don't conflate these.
+- `getMarginIfAccepted(quote, estimates)` → margin %, target margin, status band (excellent / on-target / marginal / loss). Margin baseline is `getEstimateLineItemPrice` (customer sell), not cost.
+- `getQuotePeersByLineItem(quote, allQuotes, estimates)` → per-line leaderboard data structure
+- `countLineItemPeerQuotes(quote, allQuotes)` → # distinct OTHER quotes sharing ≥1 line item. Used to gate the `Compare vs N peers` button and the `QuotesTableView` 3-dot menu option.
+
+**Two routes, same composition**:
+- `/projects/:id/estimates/quotes/:quoteId` → [QuoteViewRoute](src/components/project-routes/QuoteViewRoute.tsx) (URL-based; Edit/Compare navigate to URLs)
+- `/projects/:id/estimates/quotes/:quoteId/compare` → [QuoteComparePeerRoute](src/components/project-routes/QuoteComparePeerRoute.tsx) (peer leaderboard with URL-based navigation back to view)
+- `/quotes` → [src/pages/Quotes.tsx](src/pages/Quotes.tsx) — in-page `view` state machine (`list` | `create` | `edit` | `view` | `compare`), uses the same four cards in `view` and the same peer component in `compare`
+
+**Peer gating at line-item level** — [QuotesTableView.tsx](src/components/QuotesTableView.tsx) 3-dot menu's `Compare vs peers` item uses `countLineItemPeerQuotes`, not estimate-level count. Cross-estimate-version peer matching is NOT supported (schema has no `estimate_line_item_family_id`). If that becomes important, add the column via trigger on estimate revision — don't fall back to fuzzy (description, category) matching.
+
+**Common pitfalls**:
+1. Don't add back `QuoteForm mode="view"` on `/quotes` or the project-scoped route — that reintroduces the duplicate contracts list and the pre-decision selection UI.
+2. `quote_line_items.estimate_line_item_id` can be null; `getQuotePeersByLineItem` filters these out silently. The Coverage card surfaces them as "Unmatched" so the PM knows the linkage is missing — leave that visible.
+3. Gotcha #25 applies here too: both the actions cell AND the status cell in `QuotesTableView` need `<div onClick={e => e.stopPropagation()}>` wrappers. Row-click now opens View (not Compare) — without the guards, any click inside those cells navigates the page before Radix can open its popover.
+
 ### 11. Employees vs Payees (Apr 2026)
 
 > **Users are the employees.** An employee is an `auth.users` row with at least one `user_roles` entry. The internal `payees` row (`is_internal=true`) is a **shadow record** that exists only to satisfy FK constraints on 7 accounting tables (`expenses`, `contracts`, `change_order_line_items`, `quotes`, `receipts`, `pending_payee_reviews`, `projects.owner_id`).
@@ -727,6 +760,10 @@ Use this list when doing periodic documentation reviews:
     **Rule for future sessions:** when asked to change anything in `<head>` that the Publish dialog manages (title, OG, Twitter, description, favicon links, author), redirect the user to edit it in Lovable's Publish dialog rather than touching `index.html`. Code changes to those tags are ephemeral. When the fix IS in an IGNORED tag (iOS home-screen icon, apple-mobile-web-app-title, manifest), PRs are durable. PR #27 (`fix/ios-icon-restore`) re-applied only the iOS-specific tags from PR #25 for this exact reason — OG/Twitter/favicon link changes from PR #26 were abandoned because Lovable would overwrite them.
 
     **Diagnostic:** if `index.html` in main contains a Lovable R2 URL for og:image (`pub-*.r2.dev/...lovable.app-<timestamp>.png`) or `@lovable_dev` in twitter:site, the user has run the Publish dialog recently.
+
+32. **Zero variance ≠ no baseline in quote helpers (Apr 21, 2026)** — `getSignedCostVariance` in [src/utils/quoteFinancials.ts](src/utils/quoteFinancials.ts) returns four statuses: `'under' | 'over' | 'on' | 'none'`. Don't collapse `'on'` (baseline exists, signed delta is exactly zero) into `'none'` (baseline missing, nothing to compute). Earlier shape of this helper did exactly that — any quote that matched its estimate to the penny rendered as "No baseline" in the hero, which is informationally wrong (the quote is literally on-estimate, that's a clean result). The fix distinguishes the two cases: `baseline === null` → `'none'`, `signedAmount === 0` with a real baseline → `'on'`. The hero renders `'on'` as `$0.00 / On estimate`. The `CostVarianceResult` type in the same file had to widen its union — if you add new consumers, handle all four statuses, not three.
+
+33. **`QuoteForm mode="view"` is dead on the primary detail routes (Apr 21, 2026)** — `/projects/:id/estimates/quotes/:quoteId` ([QuoteViewRoute](src/components/project-routes/QuoteViewRoute.tsx)) and `/quotes` → View ([Quotes.tsx](src/pages/Quotes.tsx) view branch) both bypass `QuoteForm` entirely and compose the four cards in [src/components/quotes/](src/components/quotes/). If you're tempted to swing `QuoteForm mode="view"` back in for "a quick fix," stop — it brings back (a) a duplicate contracts list, because the form internally renders contracts AND the route used to wrap a second contracts `<Card>` around it, (b) the competing-vendor "Quote Coverage" column which is decision-support UI that loses meaning post-approval, and (c) checkboxes on line items the user can't change. `QuoteForm` is still correct for `new` / `edit` — the selection UI earns its keep there. Related: the old [QuoteComparison.tsx](src/components/QuoteComparison.tsx) was deleted (it was single-quote-vs-estimate margin math now rendered inline in the hero). [QuoteComparisonPeer.tsx](src/components/quotes/QuoteComparisonPeer.tsx) replaces it with something genuinely different — per-line-item peer leaderboards. Types `ComparisonData` + `MarginComparisonData` were deleted from [src/types/quote.ts](src/types/quote.ts) at the same time (only `QuoteComparison.tsx` consumed them).
 
 ---
 
