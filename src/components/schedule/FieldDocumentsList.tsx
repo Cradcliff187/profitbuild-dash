@@ -15,13 +15,17 @@ interface FieldDocumentsListProps {
   projectId: string;
 }
 
-// Only show field-relevant document types
-const FIELD_DOCUMENT_TYPES: DocumentType[] = ['drawing', 'permit', 'license', 'specification'];
+// Field-relevant document types. "other" is included so documents attached
+// from the mobile FieldQuickActionBar Attach button (non-media files) are
+// visible in the field worker's Documents tab — otherwise they'd silently
+// vanish into the full project_documents list, invisible on this surface.
+const FIELD_DOCUMENT_TYPES: DocumentType[] = ['drawing', 'permit', 'license', 'specification', 'other'];
 
 const SECTION_LABELS: Record<string, { title: string; types: DocumentType[] }> = {
   plans: { title: 'Plans & Drawings', types: ['drawing'] },
   permits: { title: 'Permits & Licenses', types: ['permit', 'license'] },
   specs: { title: 'Specifications', types: ['specification'] },
+  attachments: { title: 'Field Attachments', types: ['other'] },
 };
 
 interface FieldDocument {
