@@ -142,16 +142,23 @@ export default function AppLayout() {
     checkPasswordChange();
   }, [user, authLoading, location.pathname, navigate]);
 
-  // Redirect field workers from dashboard/projects to time tracker
+  // Redirect field workers from dashboard/projects to time tracker.
+  //
+  // Exemption: /projects/:id/schedule is the canonical URL for the mobile
+  // schedule view (formerly /field-schedule/:projectId) — field workers need
+  // this route so mention-notification deep-links and shared links from PMs
+  // continue to land them on their Tasks / Notes / Media / Docs surface.
   useEffect(() => {
     if (!authLoading && !rolesLoading && user && isFieldWorker) {
-      // Redirect if they're on the dashboard or root
       if (location.pathname === '/' || location.pathname === '/dashboard') {
         navigate('/time-tracker', { replace: true });
+        return;
       }
-      // Block access to projects page (field workers use /field-media instead)
       if (location.pathname.startsWith('/projects')) {
-        navigate('/time-tracker', { replace: true });
+        const isPerProjectSchedule = /^\/projects\/[^/]+\/schedule(\/|$|\?)/.test(location.pathname);
+        if (!isPerProjectSchedule) {
+          navigate('/time-tracker', { replace: true });
+        }
       }
     }
   }, [user, authLoading, rolesLoading, isFieldWorker, location.pathname, navigate]);

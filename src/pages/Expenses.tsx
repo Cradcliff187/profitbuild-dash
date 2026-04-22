@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Plus, Upload, BarChart3, List, Clock, FileDown, Receipt, DollarSign, RefreshCw, History, Zap } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
@@ -33,13 +33,31 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type ViewMode = "overview" | "list" | "invoices" | "import-history";
 
+const VALID_VIEW_MODES: ReadonlyArray<ViewMode> = ["overview", "list", "invoices", "import-history"];
+
 const Expenses = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [estimates, setEstimates] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<ProjectRevenue[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>("overview");
+  // Tab state is URL-driven via ?tab=. F5, bookmarks, deep-links from
+  // notifications, and share-URL all work. Default (overview) is represented
+  // by the absence of the param so the URL bar stays clean on the front door.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const viewMode: ViewMode = (VALID_VIEW_MODES.includes(tabParam as ViewMode) ? tabParam : "overview") as ViewMode;
+  const setViewMode = (next: ViewMode) => {
+    setSearchParams(
+      (prev) => {
+        const nextParams = new URLSearchParams(prev);
+        if (next === "overview") nextParams.delete("tab");
+        else nextParams.set("tab", next);
+        return nextParams;
+      },
+      { replace: true }
+    );
+  };
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>();
   const [selectedRevenue, setSelectedRevenue] = useState<ProjectRevenue | undefined>();
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
@@ -419,7 +437,7 @@ const Expenses = () => {
   };
 
   const handleTabChange = (value: string) => {
-    if (value === "overview" || value === "list" || value === "invoices" || value === "import-history") {
+    if (VALID_VIEW_MODES.includes(value as ViewMode)) {
       setViewMode(value as ViewMode);
     }
   };

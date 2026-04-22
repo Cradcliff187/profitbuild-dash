@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import type { ProjectMedia } from '@/types/project';
 import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
+import { formatDeviceLabel } from '@/utils/formatDeviceLabel';
 import { toast } from 'sonner';
 import { QuickCaptionModal } from './QuickCaptionModal';
 import { MediaCommentsList } from './MediaCommentsList';
@@ -116,24 +117,28 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
             {currentIndex + 1} of {allPhotos.length}
           </div>
           <div className="flex gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCaptionModal(true)}
-              className="h-8 gap-1.5"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Caption</span>
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowDeleteDialog(true)}
-              className="h-8 gap-1.5"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Delete</span>
-            </Button>
+            {currentPhoto.source !== 'note' && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCaptionModal(true)}
+                  className="h-8 gap-1.5"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Caption</span>
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="h-8 gap-1.5"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Delete</span>
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -193,20 +198,33 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
               </div>
             )}
             
-            {currentPhoto.device_model && (
+            {formatDeviceLabel(currentPhoto.device_model) && (
               <div className="flex items-center gap-1.5">
                 <Smartphone className="h-3.5 w-3.5" />
-                <span>{currentPhoto.device_model}</span>
+                <span>{formatDeviceLabel(currentPhoto.device_model)}</span>
               </div>
             )}
           </div>
 
-          {/* Comments Section */}
-          <div className="border-t border-border pt-3 mt-3">
-            <div className="text-xs font-medium text-foreground mb-2">Comments</div>
-            <MediaCommentsList mediaId={currentPhoto.id} />
-            <MediaCommentForm mediaId={currentPhoto.id} />
-          </div>
+          {/* Source badge for note-attached media */}
+          {currentPhoto.source === 'note' && (
+            <div className="border-t border-border pt-3 mt-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Shared in a project note — edit or delete from the Notes tab.
+              </span>
+            </div>
+          )}
+
+          {/* Comments Section — hidden for note-sourced items because the note
+             itself is the conversation thread. */}
+          {currentPhoto.source !== 'note' && (
+            <div className="border-t border-border pt-3 mt-3">
+              <div className="text-xs font-medium text-foreground mb-2">Comments</div>
+              <MediaCommentsList mediaId={currentPhoto.id} />
+              <MediaCommentForm mediaId={currentPhoto.id} />
+            </div>
+          )}
         </div>
       </div>
 

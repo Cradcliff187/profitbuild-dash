@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import { FileText, Plus, BarChart3, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
@@ -24,15 +24,32 @@ import { Estimate } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contract } from "@/types/contract";
 import { toast } from "sonner";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { AppBreadcrumbs } from "@/components/layout/AppBreadcrumbs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+
+type QuoteView = 'list' | 'create' | 'edit' | 'view' | 'compare';
 
 const Quotes = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
-  const [view, setView] = useState<'list' | 'create' | 'edit' | 'view' | 'compare'>('list');
+  const params = useParams<{ id?: string }>();
+  const location = useLocation();
+
+  // View is derived from the URL (the page is mounted on 5 distinct routes —
+  // see App.tsx). State stays local only for the things that need it
+  // (selectedQuote, in-memory form data, optimistic status updates).
+  const view: QuoteView = !params.id
+    ? location.pathname === '/quotes/new'
+      ? 'create'
+      : 'list'
+    : location.pathname.endsWith('/edit')
+      ? 'edit'
+      : location.pathname.endsWith('/compare')
+        ? 'compare'
+        : 'view';
+
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -59,6 +76,19 @@ const Quotes = () => {
   useEffect(() => {
     currentViewedQuoteIdRef.current = selectedQuote?.id;
   }, [selectedQuote?.id]);
+
+  // Keep selectedQuote in sync with the URL id. On /quotes or /quotes/new we
+  // clear selection; on /quotes/:id/* we look up from the loaded quotes array.
+  useEffect(() => {
+    if (!params.id) {
+      setSelectedQuote(undefined);
+      return;
+    }
+    if (quotes.length > 0) {
+      const found = quotes.find((q) => q.id === params.id);
+      if (found) setSelectedQuote(found);
+    }
+  }, [params.id, quotes]);
 
   // Load data from Supabase on mount
   useEffect(() => {
@@ -203,35 +233,34 @@ const Quotes = () => {
     };
   }, [selectedQuote?.id, view, fetchQuoteContracts]);
 
-  // Auto-open quote creation form when navigating from project details
+  // Auto-open quote creation form when navigating from project details.
+  // Accepts ?projectId=X&estimateId=Y&returnUrl=Z on either /quotes or
+  // /quotes/new. On /quotes, we forward to /quotes/new (preserving estimateId +
+  // returnUrl) so the create form has a real URL. The returnUrl is stashed in
+  // state so cancel/post-save can hop back to the originating project page.
   useEffect(() => {
     const projectIdParam = searchParams.get('projectId');
     const estimateIdParam = searchParams.get('estimateId');
     const returnUrlParam = searchParams.get('returnUrl');
-    
-    // Store return URL if provided
+
     if (returnUrlParam) {
       setReturnUrl(decodeURIComponent(returnUrlParam));
     }
-    
+
     if (projectIdParam && estimateIdParam && view === 'list') {
-      // Find the matching estimate
-      const preSelectedEstimate = estimates.find(e => e.id === estimateIdParam);
-      
+      const preSelectedEstimate = estimates.find((e) => e.id === estimateIdParam);
       if (preSelectedEstimate) {
-        setView('create');
         setPreSelectedEstimateId(estimateIdParam);
-        
-        // Clear URL params after processing (will trigger on next render)
-        window.history.replaceState({}, '', '/quotes');
+        navigate(`/quotes/new?estimateId=${estimateIdParam}${returnUrlParam ? `&returnUrl=${encodeURIComponent(returnUrlParam)}` : ''}`, { replace: true });
       } else if (estimates.length > 0) {
-        // Estimates loaded but estimate not found
-        setView('create');
         toast.info("Estimate not found", { description: "Please select the estimate manually" });
-        window.history.replaceState({}, '', '/quotes');
+        navigate('/quotes/new', { replace: true });
       }
+    } else if (estimateIdParam && view === 'create' && !preSelectedEstimateId) {
+      // Direct landing on /quotes/new?estimateId=... — seed the pre-selection.
+      setPreSelectedEstimateId(estimateIdParam);
     }
-  }, [searchParams, estimates, view]);
+  }, [searchParams, estimates, view, navigate, preSelectedEstimateId]);
 
   const loadClients = async () => {
     const { data, error } = await supabase
@@ -706,17 +735,18 @@ const Quotes = () => {
       }
 
       await fetchData(); // Refresh the data
-      setView('list');
-      setSelectedQuote(undefined);
-      
+
       toast.success(selectedQuote ? "Quote Updated" : "Quote Created", { description: `Quote ${quote.quoteNumber} has been ${selectedQuote ? 'updated' : 'created'} successfully.` });
 
-      // Navigate back to originating page if returnUrl exists
+      // Navigate back to originating page if returnUrl exists, otherwise
+      // return to the quotes list.
       if (returnUrl) {
         setTimeout(() => {
           navigate(returnUrl);
-          setReturnUrl(null); // Clear after navigation
-        }, 500); // Small delay to let user see the success toast
+          setReturnUrl(null);
+        }, 500);
+      } else {
+        navigate('/quotes');
       }
     } catch (error) {
       console.error('Error saving quote:', error);
@@ -745,18 +775,15 @@ const Quotes = () => {
   };
 
   const handleEditQuote = (quote: Quote) => {
-    setSelectedQuote(quote);
-    setView('edit');
+    navigate(`/quotes/${quote.id}/edit`);
   };
 
   const handleViewQuote = (quote: Quote) => {
-    setSelectedQuote(quote);
-    setView('view');
+    navigate(`/quotes/${quote.id}`);
   };
 
   const handleCompareQuote = (quote: Quote) => {
-    setSelectedQuote(quote);
-    setView('compare');
+    navigate(`/quotes/${quote.id}/compare`);
   };
 
   const handleAcceptQuote = async (updatedQuote: Quote) => {
@@ -812,7 +839,7 @@ const Quotes = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={() => setView('create')} size="sm" className="hidden sm:flex">
+              <Button onClick={() => navigate('/quotes/new')} size="sm" className="hidden sm:flex">
                 <Plus className="h-4 w-4 mr-2" />
                 New Quote
               </Button>
@@ -839,7 +866,7 @@ const Quotes = () => {
             onDelete={handleDeleteQuote}
             onCompare={handleCompareQuote}
             onExpire={handleExpireQuotes}
-            onCreateNew={() => setView('create')}
+            onCreateNew={() => navigate('/quotes/new')}
             onRefresh={fetchData}
           />
         </div>
@@ -849,19 +876,15 @@ const Quotes = () => {
         <>
           {returnUrl && (
             <div className="mb-3">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink onClick={() => navigate(returnUrl)} className="cursor-pointer">
-                      {returnUrl.includes('/projects/') ? 'Project Estimates' : 'Estimates'}
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Create Quote</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+              <AppBreadcrumbs
+                items={[
+                  {
+                    label: returnUrl.includes('/projects/') ? 'Project Estimates' : 'Estimates',
+                    href: returnUrl,
+                  },
+                  { label: 'Create Quote' },
+                ]}
+              />
             </div>
           )}
           <QuoteForm
@@ -869,13 +892,12 @@ const Quotes = () => {
             preSelectedEstimateId={preSelectedEstimateId}
             onSave={handleSaveQuote}
             onCancel={() => {
-              setView('list');
               setPreSelectedEstimateId(undefined);
-              
-              // Navigate back if we have a return URL
               if (returnUrl) {
                 navigate(returnUrl);
                 setReturnUrl(null);
+              } else {
+                navigate('/quotes');
               }
             }}
           />
@@ -887,7 +909,7 @@ const Quotes = () => {
           estimates={estimates}
           initialQuote={selectedQuote}
           onSave={handleSaveQuote}
-          onCancel={() => { setView('list'); setSelectedQuote(undefined); }}
+          onCancel={() => navigate(`/quotes/${selectedQuote.id}`)}
         />
       )}
 
@@ -905,9 +927,9 @@ const Quotes = () => {
               setSelectedQuote((prev) => (prev ? { ...prev, status: newStatus } : undefined));
               fetchData();
             }}
-            onEdit={() => setView('edit')}
+            onEdit={() => navigate(`/quotes/${selectedQuote.id}/edit`)}
             onGenerateContract={() => setShowContractModal(true)}
-            onCompare={() => setView('compare')}
+            onCompare={() => navigate(`/quotes/${selectedQuote.id}/compare`)}
           />
           <QuoteCoverageCard quote={selectedQuote} estimates={estimates} />
           <QuoteDocumentsCard
@@ -955,14 +977,8 @@ const Quotes = () => {
           quote={selectedQuote}
           quotes={quotes}
           estimates={estimates}
-          onBack={() => setView('view')}
-          onOpenPeer={(peerId) => {
-            const peer = quotes.find((q) => q.id === peerId);
-            if (peer) {
-              setSelectedQuote(peer);
-              setView('view');
-            }
-          }}
+          onBack={() => navigate(`/quotes/${selectedQuote.id}`)}
+          onOpenPeer={(peerId) => navigate(`/quotes/${peerId}`)}
         />
       )}
 
@@ -976,7 +992,7 @@ const Quotes = () => {
       {isMobile && view === 'list' && (
         <Button
           variant="default"
-          onClick={() => setView('create')}
+          onClick={() => navigate('/quotes/new')}
           size="icon"
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
         >

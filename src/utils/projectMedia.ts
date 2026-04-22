@@ -284,7 +284,7 @@ export async function getProjectMediaList(
     }
 
     // Map signed URLs back to media items
-    const mediaWithUrls = (data || []).map((media) => {
+    const mediaWithUrls: ProjectMedia[] = (data || []).map((media) => {
       const signedUrl = signedUrlMap.get(media.file_url);
       let thumbnailUrl = media.thumbnail_url;
 
@@ -297,13 +297,55 @@ export async function getProjectMediaList(
         ...media,
         file_url: signedUrl || media.file_url,
         thumbnail_url: thumbnailUrl,
+        source: 'media',
       } as ProjectMedia;
     });
 
-    return {
-      data: mediaWithUrls,
-      error: null,
-    };
+    // Merge in image/video attachments from project_notes so photos/videos
+    // shared in the Notes tab also surface on the Media tab. The note row is
+    // synthesized into ProjectMedia shape with source='note'; lightboxes use
+    // that flag to hide delete + the media comment thread (the note is the
+    // conversation).
+    const typeFilter = options?.fileType ?? null;
+    const noteTypes =
+      typeFilter === 'image' ? ['image'] : typeFilter === 'video' ? ['video'] : ['image', 'video'];
+
+    const { data: noteRows, error: notesError } = await supabase
+      .from('project_notes')
+      .select('id, user_id, note_text, attachment_url, attachment_type, attachment_name, created_at, updated_at')
+      .eq('project_id', projectId)
+      .not('attachment_url', 'is', null)
+      .in('attachment_type', noteTypes)
+      .order('created_at', { ascending: false });
+
+    if (notesError) {
+      console.error('Failed to load note attachments for Media tab:', notesError);
+    }
+
+    const noteMedia: ProjectMedia[] = (noteRows || []).map((row) => ({
+      id: `note:${row.id}`,
+      project_id: projectId,
+      file_url: row.attachment_url as string,
+      file_name: row.attachment_name || row.note_text?.slice(0, 60) || 'Note attachment',
+      file_type: (row.attachment_type === 'video' ? 'video' : 'image') as 'image' | 'video',
+      mime_type: row.attachment_type === 'video' ? 'video/mp4' : 'image/jpeg',
+      file_size: 0,
+      caption: row.note_text || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      uploaded_by: row.user_id || undefined,
+      source: 'note',
+      note_id: row.id,
+      note_text: row.note_text || undefined,
+    }));
+
+    const merged = [...mediaWithUrls, ...noteMedia].sort((a, b) => {
+      const aTime = new Date(a.taken_at || a.created_at).getTime();
+      const bTime = new Date(b.taken_at || b.created_at).getTime();
+      return bTime - aTime;
+    });
+
+    return { data: merged, error: null };
   } catch (error) {
     return {
       data: [],

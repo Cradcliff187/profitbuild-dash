@@ -5,6 +5,11 @@ export interface NavItem {
   title: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
+  // When true, this section is reachable for field workers. AppLayout's
+  // role-guard currently only allows /projects/:id/schedule for that role, so
+  // any NavItem that points elsewhere would just bounce them back to
+  // /time-tracker. Keep this flag in sync with the guard.
+  fieldWorkerSafe?: boolean;
 }
 
 export interface NavGroup {
@@ -12,7 +17,11 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export const getNavigationGroups = (): NavGroup[] => {
+interface NavigationOptions {
+  isFieldWorker?: boolean;
+}
+
+export const getNavigationGroups = (options: NavigationOptions = {}): NavGroup[] => {
   const groups: NavGroup[] = [
     {
       label: "PROJECT INFO",
@@ -42,14 +51,21 @@ export const getNavigationGroups = (): NavGroup[] => {
     },
   ];
 
-  // Add Schedule if feature flag is enabled
+  // Add Schedule if feature flag is enabled. This is the one project-scoped
+  // route field workers can reach, so it gets fieldWorkerSafe.
   if (isFeatureEnabled("scheduleView")) {
-    groups[0].items.push({ title: "Schedule", url: "schedule", icon: Calendar });
+    groups[0].items.push({ title: "Schedule", url: "schedule", icon: Calendar, fieldWorkerSafe: true });
   }
 
   // Add AIA Billing if feature flag is enabled
   if (isFeatureEnabled("aiaBilling")) {
     groups[1].items.push({ title: "Billing (AIA)", url: "billing", icon: Receipt });
+  }
+
+  if (options.isFieldWorker) {
+    return groups
+      .map((group) => ({ ...group, items: group.items.filter((item) => item.fieldWorkerSafe) }))
+      .filter((group) => group.items.length > 0);
   }
 
   return groups;

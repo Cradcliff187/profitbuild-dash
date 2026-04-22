@@ -1,9 +1,11 @@
 import { useRef, useState, type ChangeEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { StickyNote, Camera, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NoteComposer } from '@/components/notes/NoteComposer';
-import { useCameraCapture } from '@/hooks/useCameraCapture';
-import { useProjectNotes } from '@/hooks/useProjectNotes';
+import { uploadProjectMedia } from '@/utils/projectMedia';
+import { uploadProjectDocument } from '@/utils/projectDocumentUpload';
+import { validateMediaFile } from '@/utils/mediaMetadata';
 import { toast } from 'sonner';
 
 interface FieldQuickActionBarProps {
@@ -14,75 +16,127 @@ interface FieldQuickActionBarProps {
 /**
  * Three-button quick-action row: Note · Camera · Attach.
  *
- * The Note button opens a shared NoteComposer in sheet presentation — full
- * text + mentions + voice + attach flow with Take Photo / Record Video /
- * Upload File labeled options inside. Camera and Attach stay as independent
- * quick-capture affordances for the "snap and forget" flow (no composition).
+ * Routing by button + file type (kept deliberate so the item lands where the
+ * user expects to find it later):
  *
- * Sticky-bottom-positioned by default. When used inline inside a card, callers
- * override with `[&>div:first-child]:!static` utilities.
+ *   Camera                → project_media  (Media tab) — with optional GPS
+ *   Attach, image/video   → project_media  (Media tab)
+ *   Attach, PDF/doc/etc.  → project_documents as 'other' (Documents tab)
+ *   NoteComposer internal → note-attachments (stays on the Notes timeline,
+ *                           inline with any message text the user wrote)
+ *
+ * The Note button opens a shared NoteComposer in sheet presentation — full
+ * text + mentions + voice + attach flow. The composer's internal attach menu
+ * is INTENTIONALLY separate from this bar: a photo captioned "north wall
+ * framing done" belongs on the Notes timeline with that text; a raw photo with
+ * no words belongs in Media.
  */
 export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActionBarProps) {
   const [noteSheetOpen, setNoteSheetOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
-  const { addNote, uploadAttachment } = useProjectNotes(projectId);
-  const { capturePhoto, isCapturing } = useCameraCapture();
+  // Ask for device GPS once per capture so the Media entry carries location.
+  // Fails silently on permission denial or unsupported devices — the photo
+  // still uploads, just without lat/lon.
+  const getGeolocation = async (): Promise<{ latitude: number; longitude: number; altitude?: number } | null> => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          altitude: pos.coords.altitude ?? undefined,
+        }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+    });
+  };
 
-  const handleQuickPhoto = async () => {
-    const result = await capturePhoto();
-    if (!result?.dataUrl) return;
+  const invalidateMediaAndDocs = () => {
+    queryClient.invalidateQueries({ queryKey: ['project-media', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-media-count', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-documents', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-docs-count', projectId] });
+  };
 
+  const uploadMediaFile = async (file: File, uploadSource: 'camera' | 'gallery' | 'web') => {
+    const validation = validateMediaFile(file);
+    if (!validation.isValid) {
+      toast.error(validation.error || 'Invalid file');
+      return false;
+    }
+    const loc = uploadSource === 'camera' ? await getGeolocation() : null;
+    const { error } = await uploadProjectMedia({
+      projectId,
+      file,
+      uploadSource,
+      latitude: loc?.latitude,
+      longitude: loc?.longitude,
+      altitude: loc?.altitude,
+      takenAt: new Date().toISOString(),
+      // Raw UA stored for forensics; display layer (formatDeviceLabel) renders
+      // a short human-readable label like "iPhone · Safari".
+      deviceModel: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+    });
+    if (error) {
+      toast.error('Failed to upload', { description: error.message });
+      return false;
+    }
+    return true;
+  };
+
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleCameraFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsUploading(true);
     toast.info('Uploading photo...');
-    const url = await uploadAttachment(result.dataUrl, 'image');
-    if (url) {
-      addNote({
-        text: '',
-        attachmentUrl: url,
-        attachmentType: 'image',
-      });
+    const ok = await uploadMediaFile(file, 'camera');
+    setIsUploading(false);
+    if (ok) {
+      toast.success('Photo added to Media');
+      invalidateMediaAndDocs();
       onNoteCreated?.();
     }
   };
 
   const handleAttachClick = () => {
-    fileInputRef.current?.click();
+    attachInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleAttachFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
 
-    const attachmentType: 'image' | 'video' | 'file' = file.type.startsWith('image/')
-      ? 'image'
-      : file.type.startsWith('video/')
-        ? 'video'
-        : 'file';
+    const isMedia = file.type.startsWith('image/') || file.type.startsWith('video/');
 
     setIsUploading(true);
-    toast.info('Uploading attachment...');
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-
-      const url = await uploadAttachment(dataUrl, attachmentType, file.name);
-      if (url) {
-        addNote({
-          text: '',
-          attachmentUrl: url,
-          attachmentType,
-        });
-        onNoteCreated?.();
+      if (isMedia) {
+        toast.info('Uploading to Media...');
+        const ok = await uploadMediaFile(file, 'gallery');
+        if (ok) toast.success('Added to Media');
+      } else {
+        toast.info('Uploading to Documents...');
+        const { error } = await uploadProjectDocument({ projectId, file });
+        if (error) {
+          toast.error('Failed to upload', { description: error.message });
+        } else {
+          toast.success('Added to Documents');
+        }
       }
-    } catch (err) {
-      console.error('Attachment upload failed', err);
-      toast.error('Failed to upload attachment');
+      invalidateMediaAndDocs();
+      onNoteCreated?.();
     } finally {
       setIsUploading(false);
     }
@@ -103,8 +157,8 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
 
           <Button
             variant="outline"
-            onClick={handleQuickPhoto}
-            disabled={isCapturing}
+            onClick={handleCameraClick}
+            disabled={isUploading}
             className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
           >
             <Camera className="h-5 w-5 text-primary" />
@@ -121,11 +175,23 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
             <span className="text-sm font-medium">Attach</span>
           </Button>
 
+          {/* Camera — accept image only. On mobile this opens the native
+             picker (camera + library). iOS/Android show a "Take Photo" option
+             alongside "Photo Library". */}
           <input
-            ref={fileInputRef}
+            ref={cameraInputRef}
             type="file"
             className="hidden"
-            onChange={handleFileChange}
+            onChange={handleCameraFile}
+            accept="image/*"
+          />
+          {/* Attach — any file. Images/videos route to Media; everything else
+             routes to Documents. */}
+          <input
+            ref={attachInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleAttachFile}
             accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
           />
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Building2, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -7,7 +7,6 @@ import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import { ProjectFormSimple } from "@/components/ProjectFormSimple";
 import { ProjectsList } from "@/components/ProjectsList";
 import { ProjectsTableView } from "@/components/ProjectsTableView";
 import { ProjectFilters, ProjectSearchFilters } from "@/components/ProjectFilters";
@@ -34,10 +33,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewMode = 'list' | 'create';
-
 const Projects = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -47,7 +45,6 @@ const Projects = () => {
   // Removed to avoid fetching up to 1,000 rows per page load and to eliminate
   // the silent row-drop risk from the PostgREST default cap.
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [filters, setFilters] = useState<ProjectSearchFilters>({
@@ -273,15 +270,8 @@ const Projects = () => {
     }
   };
 
-  const handleSaveProject = async (project: Project) => {
-    // Creating new project - editing is now handled by dedicated edit page
-    setProjects(prev => [project as ProjectWithFinancials, ...prev]);
-    setViewMode('list');
-    loadProjects(); // Refresh the list to get DB-calculated financials
-  };
-
   const handleCreateNew = () => {
-    setViewMode('create');
+    navigate("/projects/new");
   };
 
   const handleEdit = (project: Project) => {
@@ -373,10 +363,6 @@ const Projects = () => {
       console.error('Error deleting projects:', error);
       toast.error(error.message || "Failed to delete projects");
     }
-  };
-
-  const handleCancel = () => {
-    setViewMode('list');
   };
 
   // Filter and sort projects based on search criteria
@@ -474,28 +460,26 @@ const Projects = () => {
         title="Projects"
         description="Manage construction projects and track financials"
         actions={
-          viewMode === 'list' ? (
-            <>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowExportModal(true)}
-                className="hidden sm:flex"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex">
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </Button>
-            </>
-          ) : undefined
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+              className="hidden sm:flex"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={handleCreateNew} size="sm" className="hidden sm:flex">
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          </>
         }
       />
 
 
-      {viewMode === 'list' && (
+      {(
         <>
           {isLoading ? (
             <BrandedLoader message="Loading projects..." />
@@ -566,13 +550,6 @@ const Projects = () => {
             </div>
           )}
         </>
-      )}
-
-      {viewMode === 'create' && (
-        <ProjectFormSimple
-          onSave={handleSaveProject}
-          onCancel={handleCancel}
-        />
       )}
 
       {/* Bulk Delete Confirmation Dialog */}

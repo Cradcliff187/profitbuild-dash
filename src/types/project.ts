@@ -129,6 +129,13 @@ export interface ProjectMedia {
   thumbnail_url?: string; // Generated thumbnail URL for videos
   created_at: string;
   updated_at: string;
+  // Source of this row — 'media' is a real project_media record; 'note' is a
+  // synthetic row merged in from project_notes.attachment_url so images/videos
+  // shared as note attachments surface on the Media tab. The lightboxes hide
+  // destructive actions and comments for 'note' rows (owner is the note).
+  source?: 'media' | 'note';
+  note_id?: string;
+  note_text?: string;
 }
 
 // Utility function to generate project numbers using sequential hierarchy

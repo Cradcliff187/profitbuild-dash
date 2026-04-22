@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { ReportField } from "@/utils/reportExporter";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { AppBreadcrumbs } from "@/components/layout/AppBreadcrumbs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
@@ -151,21 +151,13 @@ const AllExpensesLineItemsReport = () => {
   return (
     <MobilePageWrapper className="w-full max-w-full overflow-x-hidden">
       <div className="px-3 py-4 sm:p-6 space-y-4 sm:space-y-6 w-full max-w-full">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/reports">Reports</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>All Expenses Line Items</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <AppBreadcrumbs
+        items={[
+          { label: "Dashboard", href: "/" },
+          { label: "Reports", href: "/reports" },
+          { label: "All Expenses Line Items" },
+        ]}
+      />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0 flex-1">
