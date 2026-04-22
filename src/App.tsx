@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
 import AppLayout from "@/components/AppLayout";
@@ -35,7 +35,6 @@ const BidPhotoCapture = lazy(() => import("./pages/BidPhotoCapture"));
 const BidVideoCapture = lazy(() => import("./pages/BidVideoCapture"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 const FieldMedia = lazy(() => import("./pages/FieldMedia"));
-const FieldSchedule = lazy(() => import("./pages/FieldSchedule"));
 const Mentions = lazy(() => import("./pages/Mentions"));
 const BranchBids = lazy(() => import("./pages/BranchBids"));
 const BranchBidDetail = lazy(() => import("./pages/BranchBidDetail"));
@@ -47,6 +46,7 @@ const Training = lazy(() => import("./pages/Training"));
 const TrainingAdmin = lazy(() => import("./pages/TrainingAdmin"));
 const TrainingViewer = lazy(() => import("./pages/TrainingViewer"));
 const DevMobileCards = lazy(() => import("./pages/DevMobileCards"));
+const ProjectNew = lazy(() => import("./pages/ProjectNew"));
 
 /**
  * Redirects legacy `/branch-bids/:id[/suffix]` URLs to `/leads/:id[/suffix]`.
@@ -55,6 +55,20 @@ const DevMobileCards = lazy(() => import("./pages/DevMobileCards"));
 const LegacyBidRedirect = ({ suffix }: { suffix: string }) => {
   const { id } = useParams<{ id: string }>();
   return <Navigate to={`/leads/${id}${suffix}`} replace />;
+};
+
+/**
+ * Redirects legacy `/field-schedule/:projectId[?tab=...]` URLs to the canonical
+ * `/projects/:projectId/schedule[?tab=...]`. The schedule route itself is now
+ * device-aware — mobile renders the Tasks/Notes/Media/Docs tab experience, desktop
+ * renders the Gantt — so existing deep-links (e.g. mention notifications with
+ * `?tab=notes`) survive the URL merge.
+ */
+const LegacyFieldScheduleRedirect = () => {
+  const { projectId } = useParams<{ projectId: string }>();
+  const location = useLocation();
+  const qs = location.search;
+  return <Navigate to={`/projects/${projectId}/schedule${qs}`} replace />;
 };
 
 // Project route components
@@ -101,10 +115,11 @@ const App = () => (
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
                   <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
                   <Route path="time-entries" element={<LazyRoute component={TimeEntries} />} />
-                  <Route path="field-schedule/:projectId" element={<LazyRoute component={FieldSchedule} />} />
+                  <Route path="field-schedule/:projectId" element={<LegacyFieldScheduleRedirect />} />
                   <Route path="mentions" element={<LazyRoute component={Mentions} />} />
                   {/* Admin/Manager Project Routes - use :id parameter for consistency with existing routes */}
                   <Route path="projects" element={<Projects />} />
+                  <Route path="projects/new" element={<LazyRoute component={ProjectNew} />} />
                   <Route path="projects/:id" element={<LazyRoute component={ProjectDetail} />}>
                     <Route index element={<LazyRoute component={ProjectOverviewRoute} />} />
                     <Route path="estimates" element={<LazyRoute component={ProjectEstimatesRoute} />} />
@@ -143,6 +158,10 @@ const App = () => (
                   
                   <Route path="estimates" element={<LazyRoute component={Estimates} />} />
                   <Route path="quotes" element={<LazyRoute component={Quotes} />} />
+                  <Route path="quotes/new" element={<LazyRoute component={Quotes} />} />
+                  <Route path="quotes/:id" element={<LazyRoute component={Quotes} />} />
+                  <Route path="quotes/:id/edit" element={<LazyRoute component={Quotes} />} />
+                  <Route path="quotes/:id/compare" element={<LazyRoute component={Quotes} />} />
                   <Route path="reports" element={<LazyRoute component={Reports} />} />
                   <Route path="reports/all-expenses-line-items" element={<LazyRoute component={AllExpensesLineItemsReport} />} />
                   <Route path="reports/all-revenues-line-items" element={<LazyRoute component={AllRevenuesLineItemsReport} />} />

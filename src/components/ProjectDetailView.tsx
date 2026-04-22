@@ -20,8 +20,11 @@ import { formatProjectLabel } from "@/components/projects/ProjectOption";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRoles } from "@/contexts/RoleContext";
 import { useProjectData } from "@/hooks/useProjectData";
 import { FieldQuickActionBar } from "@/components/schedule/FieldQuickActionBar";
+import { AppBreadcrumbs } from "@/components/layout/AppBreadcrumbs";
+import { useProjectBreadcrumbs } from "@/components/layout/useProjectBreadcrumbs";
 import { cn } from "@/lib/utils";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
@@ -65,7 +68,8 @@ export const ProjectDetailView = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  
+  const { isFieldWorker } = useRoles();
+
   const {
     project,
     estimates,
@@ -107,6 +111,10 @@ export const ProjectDetailView = () => {
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false);
 
   const [editingChangeOrder, setEditingChangeOrder] = useState<ChangeOrder | null>(null);
+
+  // Breadcrumbs for current project route. Returns [] when project hasn't
+  // loaded yet; the AppBreadcrumbs component renders null for <2 items.
+  const breadcrumbItems = useProjectBreadcrumbs(project, estimates, quotes);
 
   useEffect(() => {
     if (projectId) {
@@ -179,7 +187,7 @@ export const ProjectDetailView = () => {
 
   // Secondary panel navigation logic
   const currentSection = location.pathname.split("/").pop() || "";
-  const navigationGroups = getNavigationGroups();
+  const navigationGroups = getNavigationGroups({ isFieldWorker });
 
   const isActive = (sectionUrl: string) => {
     if (sectionUrl === "" && currentSection === projectId) return true;
@@ -331,11 +339,12 @@ export const ProjectDetailView = () => {
 
   // Mobile: Use Sheet for navigation
   if (isMobile) {
-    // Extract current section from URL
-    const pathSegments = location.pathname.split('/');
-    const currentSection = pathSegments[pathSegments.length - 1] === projectId 
-      ? '' 
-      : pathSegments[pathSegments.length - 1] || '';
+    // Read the SECTION segment (position [2] after "projects" / ":id"), not the
+    // last segment — deep routes like /estimates/new or /estimates/quotes/:id
+    // otherwise collapse to "new" / ":id" and fall through to the default
+    // "Overview" label in getSectionLabel.
+    const segmentsForSection = location.pathname.split('/').filter(Boolean);
+    const currentSection = segmentsForSection[2] || '';
 
     return (
       <div className="flex flex-col h-full bg-background">
@@ -343,12 +352,13 @@ export const ProjectDetailView = () => {
         <header className="border-b border-border/60 bg-background">
           {/* Project Identity Row */}
           <div className="flex items-start gap-3 px-4 py-3">
-            {/* Back Button - replaces hamburger */}
+            {/* Back Button - replaces hamburger. Field workers hop back to
+               the time tracker (they can't access the projects list). */}
             <Button
               variant="ghost"
               size="icon"
               className="h-10 w-10 shrink-0 -ml-2 -mt-0.5"
-              onClick={() => navigate("/projects")}
+              onClick={() => navigate(isFieldWorker ? "/time-tracker" : "/projects")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -496,6 +506,16 @@ export const ProjectDetailView = () => {
             </SheetContent>
           </Sheet>
         </header>
+
+        {/* Breadcrumbs — only shown on mobile when we're drilled in past the
+           section (4+ items: Projects › Project › Section › …). At 3 items the
+           section selector above is redundant with the terminal crumb, so we
+           suppress to keep the mobile header dense. */}
+        {breadcrumbItems.length >= 4 && (
+          <div className="px-4 py-2 border-b border-border/40 bg-background">
+            <AppBreadcrumbs items={breadcrumbItems} />
+          </div>
+        )}
 
         {/* Content — bottom padding matches FieldQuickActionBar height (h-14 +
            py-2.5 + border + safe-area ≈ 80px) so scrollable content never
@@ -765,6 +785,11 @@ export const ProjectDetailView = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto p-3 space-y-3">
+          {/* Breadcrumbs — always rendered on desktop when we're inside a
+             project (hidden by AppBreadcrumbs itself when fewer than 2 items). */}
+          {breadcrumbItems.length >= 2 && (
+            <AppBreadcrumbs items={breadcrumbItems} className="px-1" />
+          )}
           <Outlet context={{
             project,
             estimates,

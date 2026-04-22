@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -67,13 +68,20 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   const [selectedLineItem, setSelectedLineItem] = useState<LineItemControlData | null>(null);
   const isMobile = useIsMobile();
 
-  // Tab view state (Buckets vs Detail) with localStorage persistence.
-  // 'buckets' is the default front door — cleaner per-category rollup. Users who want the
-  // dense table + per-line correlation drilldown switch to 'detail'.
-  const [view, setView] = useState<string>(() => {
-    const saved = localStorage.getItem('cost-tracking-view');
-    return saved === 'detail' || saved === 'buckets' ? saved : 'buckets';
-  });
+  // Tab view state (Buckets vs Detail) — URL is source of truth via ?view=.
+  // Falls back to the user's last saved preference (localStorage) when the URL
+  // has no explicit ?view=, so returning users still land on their chosen tab
+  // without cluttering the URL bar.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlView = searchParams.get('view');
+  const view: 'buckets' | 'detail' =
+    urlView === 'detail'
+      ? 'detail'
+      : urlView === 'buckets'
+      ? 'buckets'
+      : localStorage.getItem('cost-tracking-view') === 'detail'
+      ? 'detail'
+      : 'buckets';
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -1057,7 +1065,16 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   ];
 
   const handleViewChange = (v: string) => {
-    setView(v);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        // Keep the URL bar clean when landing on the default view.
+        if (v === 'buckets') next.delete('view');
+        else next.set('view', v);
+        return next;
+      },
+      { replace: true }
+    );
     localStorage.setItem('cost-tracking-view', v);
   };
 
