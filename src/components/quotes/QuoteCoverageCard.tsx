@@ -102,43 +102,45 @@ export function QuoteCoverageCard({ quote, estimates }: QuoteCoverageCardProps) 
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                 Totals
               </div>
-              <div className="flex items-baseline gap-6 tabular-nums">
-                <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="flex items-baseline gap-4 tabular-nums">
+                <div className="text-right min-w-[7rem]">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Estimated
                   </div>
-                  <div className="text-sm font-medium">
+                  <div className="text-base font-medium">
                     {formatCurrency(totalEstimated)}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <div className="text-right min-w-[7rem]">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Quoted
                   </div>
-                  <div className="text-sm font-semibold">
+                  <div className="text-base font-semibold">
                     {formatCurrency(totalQuoted)}
                   </div>
                 </div>
-                {totalDelta !== null && (
-                  <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Δ
-                    </div>
-                    <div
-                      className={cn(
-                        "text-sm font-semibold",
-                        totalDelta < 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : totalDelta > 0
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      {totalDelta < 0 ? "−" : totalDelta > 0 ? "+" : ""}
-                      {formatCurrency(Math.abs(totalDelta))}
-                    </div>
-                  </div>
-                )}
+                <div className="text-right min-w-[5rem]">
+                  {totalDelta !== null ? (
+                    <>
+                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        Δ
+                      </div>
+                      <div
+                        className={cn(
+                          "text-base font-semibold",
+                          totalDelta < 0
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : totalDelta > 0
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {totalDelta < 0 ? "−" : totalDelta > 0 ? "+" : ""}
+                        {formatCurrency(Math.abs(totalDelta))}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -180,40 +182,44 @@ function CoverageRowItem({ row }: { row: CoverageRow }) {
             </Badge>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">
+        <p className="text-xs text-muted-foreground mt-0.5 capitalize">
           {row.category.replace(/_/g, " ")}
         </p>
       </div>
       <div className="flex items-baseline gap-4 tabular-nums shrink-0 text-right">
-        {row.estimatedCost !== null && (
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Est
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {formatCurrency(row.estimatedCost)}
-            </div>
-          </div>
-        )}
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="min-w-[7rem]">
+          {row.estimatedCost !== null ? (
+            <>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Est
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {formatCurrency(row.estimatedCost)}
+              </div>
+            </>
+          ) : null}
+        </div>
+        <div className="min-w-[7rem]">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
             Quoted
           </div>
           <div className="text-sm font-medium">
             {formatCurrency(row.quotedCost)}
           </div>
         </div>
-        {row.delta !== null && (
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Δ
-            </div>
-            <div className={cn("text-sm font-medium", deltaTone)}>
-              {row.delta < 0 ? "−" : row.delta > 0 ? "+" : ""}
-              {formatCurrency(Math.abs(row.delta))}
-            </div>
-          </div>
-        )}
+        <div className="min-w-[5rem]">
+          {row.delta !== null ? (
+            <>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Δ
+              </div>
+              <div className={cn("text-sm font-medium", deltaTone)}>
+                {row.delta < 0 ? "−" : row.delta > 0 ? "+" : ""}
+                {formatCurrency(Math.abs(row.delta))}
+              </div>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   );
