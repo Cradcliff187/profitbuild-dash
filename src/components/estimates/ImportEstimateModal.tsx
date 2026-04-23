@@ -204,9 +204,17 @@ export function ImportEstimateModal({ isOpen, onClose, onImport }: Props) {
                 <span className="text-sm text-muted-foreground">{file?.name}</span>
               </div>
 
-              <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-auto">
+              {/* Single scroll zone — the outer DialogContent body owns the
+                  scroll. A nested max-h-[50vh] overflow-auto here previously
+                  created a competing scroll container: users on mobile or
+                  with many line items could get stuck scrolling the table
+                  without being able to reach the totals block or Import
+                  button below. overflow-hidden retained for the rounded-corner
+                  clip. Sticky TableHeader now sticks to the outer scroll
+                  parent, which is what we want. */}
+              <div className="border rounded-lg overflow-hidden">
                 <Table>
-                  <TableHeader className="sticky top-0 bg-background">
+                  <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                       <TableHead className="w-12"></TableHead>
                       <TableHead>Name</TableHead>

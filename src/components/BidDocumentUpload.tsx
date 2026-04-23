@@ -87,33 +87,53 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
     return { valid: true };
   };
 
-  const handleFileSelect = async (file: File) => {
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      toast.error('Invalid file', {
-        description: validation.error,
-      });
-      return;
+  const handleFileSelect = async (files: File[]) => {
+    if (!files.length) return;
+
+    // Validate upfront so we don't start half a batch before discovering
+    // one is oversized or the wrong MIME.
+    const invalid: { name: string; error: string }[] = [];
+    const valid: File[] = [];
+    for (const file of files) {
+      const v = validateFile(file);
+      if (!v.valid) invalid.push({ name: file.name, error: v.error || 'Invalid' });
+      else valid.push(file);
+    }
+    if (invalid.length) {
+      toast.error(
+        `${invalid.length} file${invalid.length > 1 ? 's' : ''} rejected`,
+        { description: invalid.map((i) => `${i.name}: ${i.error}`).join('; ') }
+      );
+    }
+    if (!valid.length) return;
+
+    if (valid.length > 1) {
+      toast.info(`Uploading ${valid.length} documents...`);
     }
 
-    const result = await upload({
-      bid_id: bidId,
-      file,
-      upload_source: 'web',
-    });
+    let ok = 0;
+    for (const file of valid) {
+      const result = await upload({
+        bid_id: bidId,
+        file,
+        upload_source: 'web',
+      });
+      if (result) ok++;
+    }
 
-    if (result) {
+    if (ok) {
       queryClient.invalidateQueries({ queryKey: ['bid-media', bidId] });
+    }
+    if (valid.length > 1) {
+      toast.success(`Uploaded ${ok} of ${valid.length} documents`);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) handleFileSelect(files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -178,12 +198,12 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
         <div className="text-center">
           <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-4" />
           <div className="space-y-2">
-            <p className="text-sm font-medium">Upload Document</p>
+            <p className="text-sm font-medium">Upload Documents</p>
             <p className="text-xs text-muted-foreground">
-              Drag and drop a file here, or click to browse
+              Drag and drop files here, or click to browse. Multiple files supported.
             </p>
             <p className="text-xs text-muted-foreground">
-              Supported: PDF, Word, Excel, Text (Max 10MB)
+              Supported: PDF, Word, Excel, Text (Max 10MB each)
             </p>
           </div>
 
@@ -192,10 +212,12 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
             id="document-upload"
             className="hidden"
             accept={ALLOWED_DOCUMENT_TYPES.join(',')}
+            multiple
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                handleFileSelect(file);
+              const files = Array.from(e.target.files || []);
+              e.target.value = '';
+              if (files.length) {
+                handleFileSelect(files);
               }
             }}
             disabled={isUploading}

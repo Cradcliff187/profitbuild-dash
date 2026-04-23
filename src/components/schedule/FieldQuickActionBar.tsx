@@ -114,27 +114,56 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
   };
 
   const handleAttachFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-
-    const isMedia = file.type.startsWith('image/') || file.type.startsWith('video/');
+    if (!files.length) return;
 
     setIsUploading(true);
+    let mediaCount = 0;
+    let docCount = 0;
+    let failCount = 0;
+
     try {
-      if (isMedia) {
-        toast.info('Uploading to Media...');
-        const ok = await uploadMediaFile(file, 'gallery');
-        if (ok) toast.success('Added to Media');
-      } else {
-        toast.info('Uploading to Documents...');
-        const { error } = await uploadProjectDocument({ projectId, file });
-        if (error) {
-          toast.error('Failed to upload', { description: error.message });
+      if (files.length > 1) {
+        toast.info(`Uploading ${files.length} files...`);
+      }
+      // Sequential routing — each file goes to Media (image/video) or
+      // Documents (PDF/doc/etc) based on MIME. Mixed batches land in both.
+      for (const file of files) {
+        const isMedia = file.type.startsWith('image/') || file.type.startsWith('video/');
+        if (isMedia) {
+          const ok = await uploadMediaFile(file, 'gallery');
+          if (ok) mediaCount++;
+          else failCount++;
         } else {
-          toast.success('Added to Documents');
+          const { error } = await uploadProjectDocument({ projectId, file });
+          if (error) {
+            toast.error(`Failed: ${file.name}`, { description: error.message });
+            failCount++;
+          } else {
+            docCount++;
+          }
         }
       }
+
+      // Aggregate result toast — single file keeps pre-existing per-file
+      // success toast via uploadMediaFile / inline doc success below.
+      if (files.length > 1) {
+        const parts: string[] = [];
+        if (mediaCount) parts.push(`${mediaCount} to Media`);
+        if (docCount) parts.push(`${docCount} to Documents`);
+        if (parts.length) {
+          toast.success(`Uploaded ${parts.join(' · ')}`);
+        }
+        if (failCount) {
+          toast.warning(`${failCount} file${failCount > 1 ? 's' : ''} failed`);
+        }
+      } else if (files.length === 1 && docCount) {
+        toast.success('Added to Documents');
+      } else if (files.length === 1 && mediaCount) {
+        toast.success('Added to Media');
+      }
+
       invalidateMediaAndDocs();
       onNoteCreated?.();
     } finally {
@@ -185,13 +214,14 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
             onChange={handleCameraFile}
             accept="image/*"
           />
-          {/* Attach — any file. Images/videos route to Media; everything else
-             routes to Documents. */}
+          {/* Attach — any file(s). Images/videos route to Media; everything
+             else routes to Documents. Multi-select supported. */}
           <input
             ref={attachInputRef}
             type="file"
             className="hidden"
             onChange={handleAttachFile}
+            multiple
             accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
           />
         </div>

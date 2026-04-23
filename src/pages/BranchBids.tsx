@@ -518,7 +518,8 @@ export default function BranchBids() {
         />
       </div>
 
-      {/* Mobile FAB */}
+      {/* Mobile FAB — PageHeader hides actions on mobile so we surface the
+          primary action here. Matches canonical Expenses / Projects pattern. */}
       {isMobile && (
         <Button
           variant="default"

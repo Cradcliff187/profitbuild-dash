@@ -87,13 +87,16 @@ export const BidsTableView = ({
     { key: "actions", label: "Actions", required: true },
   ];
 
+  // min-w-[...] lets the browser distribute remaining space instead of forcing
+  // horizontal scroll at tablet widths. Pairs with `truncate` on name/client
+  // cells (below) so long strings ellipsize.
   const widths: Record<string, string> = {
-    name: "w-64",
-    client_name: "w-48",
-    created_at: "w-32",
-    project: "w-40",
-    created_by: "w-40",
-    actions: "w-20",
+    name: "min-w-[200px]",
+    client_name: "min-w-[160px]",
+    created_at: "min-w-[110px]",
+    project: "min-w-[120px]",
+    created_by: "min-w-[130px]",
+    actions: "w-12",
   };
   
   const alignments: Record<string, string> = {
@@ -321,8 +324,8 @@ export const BidsTableView = ({
                         case "name":
                           return (
                             <TableCell key={colKey} className="p-1.5 text-xs font-medium">
-                              <div>
-                                <div className="font-semibold">{bid.name}</div>
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">{bid.name}</div>
                                 {bid.description && (
                                   <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                                     {bid.description}
@@ -335,10 +338,10 @@ export const BidsTableView = ({
                           return (
                             <TableCell key={colKey} className="p-1.5 text-xs">
                               {bid.clients ? (
-                                <div>
-                                  <div className="font-medium">{bid.clients.client_name}</div>
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">{bid.clients.client_name}</div>
                                   {bid.clients.company_name && (
-                                    <div className="text-xs text-muted-foreground">{bid.clients.company_name}</div>
+                                    <div className="text-xs text-muted-foreground truncate">{bid.clients.company_name}</div>
                                   )}
                                 </div>
                               ) : (
