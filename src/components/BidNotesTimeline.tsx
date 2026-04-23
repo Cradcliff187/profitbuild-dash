@@ -18,9 +18,15 @@ import { useBidNotes } from '@/hooks/useBidNotes';
 
 interface BidNotesTimelineProps {
   bidId: string;
+  /**
+   * When true, the inline composer at the top is hidden. Mobile surfaces pass
+   * this so the BidQuickActionBar's Note button (sheet composer) is the sole
+   * entry point. Mirrors ProjectNotesTimeline's hideComposer pattern (Rule 15).
+   */
+  hideComposer?: boolean;
 }
 
-export function BidNotesTimeline({ bidId }: BidNotesTimelineProps) {
+export function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimelineProps) {
   const queryClient = useQueryClient();
   const [noteText, setNoteText] = useState('');
 
@@ -159,7 +165,8 @@ export function BidNotesTimeline({ bidId }: BidNotesTimelineProps) {
 
   return (
     <div className="space-y-4">
-      {/* Add Note Form */}
+      {/* Add Note Form (hidden on mobile when the bar's sheet composer owns entry) */}
+      {!hideComposer && (
       <div className="space-y-2">
         <Textarea
           placeholder="Add a note... (Ctrl+Enter to send)"
@@ -250,6 +257,7 @@ export function BidNotesTimeline({ bidId }: BidNotesTimelineProps) {
           </Button>
         </div>
       </div>
+      )}
 
       {/* Notes Timeline */}
       <div className="space-y-3">

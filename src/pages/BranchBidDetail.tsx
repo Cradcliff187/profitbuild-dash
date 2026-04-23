@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, Link as LinkIcon, Camera, Video, FileText, StickyNote, Image, Rocket } from 'lucide-react';
+import { ArrowLeft, Save, Link as LinkIcon, FileText, StickyNote, Image, Rocket, Package } from 'lucide-react';
 import { AppBreadcrumbs } from '@/components/layout/AppBreadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,15 +11,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
+import { Badge } from '@/components/ui/badge';
+import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
+import { PageHeader } from '@/components/ui/page-header';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { toast } from 'sonner';
 import { BidNotesTimeline } from '@/components/BidNotesTimeline';
 import { BidMediaGallery } from '@/components/BidMediaGallery';
 import { BidDocumentUpload } from '@/components/BidDocumentUpload';
 import { BidMediaBulkUpload } from '@/components/BidMediaBulkUpload';
+import { BidQuickActionBar } from '@/components/bids/BidQuickActionBar';
 import { ClientSelector } from '@/components/ClientSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useBidNotes } from '@/hooks/useBidNotes';
+import { useBidMedia } from '@/hooks/useBidMedia';
+import { cn } from '@/lib/utils';
 import type { BranchBid } from '@/types/bid';
 import { generateProjectNumber } from '@/types/project';
 
@@ -40,11 +46,18 @@ export default function BranchBidDetail() {
   const [jobType, setJobType] = useState('');
   const [documentUrl, setDocumentUrl] = useState('');
 
-  // Tab options
-  const tabOptions = [
-    { value: 'notes', label: 'Notes', icon: StickyNote },
-    { value: 'media', label: 'Media', icon: Image },
-    { value: 'documents', label: 'Documents', icon: FileText },
+  // Tab counts — fed into the mobile tab strip + desktop pills as badges
+  const { notes: bidNotes } = useBidNotes(id || '');
+  const { media: bidMediaAll } = useBidMedia(id || '');
+  const notesCount = bidNotes.length;
+  const mediaCount = bidMediaAll.filter(m => m.file_type === 'image' || m.file_type === 'video').length;
+  const documentsCount = bidMediaAll.filter(m => m.file_type === 'document').length;
+
+  type TabKey = 'notes' | 'media' | 'documents';
+  const tabOptions: { value: TabKey; label: string; icon: typeof StickyNote; count: number }[] = [
+    { value: 'notes', label: 'Notes', icon: StickyNote, count: notesCount },
+    { value: 'media', label: 'Media', icon: Image, count: mediaCount },
+    { value: 'documents', label: 'Docs', icon: FileText, count: documentsCount },
   ];
 
   // Fetch bid details
@@ -224,23 +237,74 @@ export default function BranchBidDetail() {
 
   if (!bid) {
     return (
-      <div className="p-4 md:p-6">
+      <MobilePageWrapper>
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <h3 className="text-lg font-semibold mb-2">Lead not found</h3>
             <Button onClick={() => navigate('/leads')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Bids
+              Back to Leads
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </MobilePageWrapper>
     );
   }
 
+  const headerActions = (
+    <>
+      {/* Convert to Project Button - only show if not already linked */}
+      {!bid.projects && (
+        <Button
+          onClick={handleConvertToProject}
+          disabled={convertToProjectMutation.isPending}
+          variant="default"
+          size="sm"
+          className="gap-2"
+        >
+          <Rocket className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {convertToProjectMutation.isPending ? 'Creating...' : 'Convert to Project'}
+          </span>
+          <span className="sm:hidden">
+            {convertToProjectMutation.isPending ? 'Creating...' : 'Convert'}
+          </span>
+        </Button>
+      )}
+
+      {!isEditing ? (
+        <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+          Edit Details
+        </Button>
+      ) : (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setIsEditing(false);
+              setName(bid.name);
+              setDescription(bid.description || '');
+              setClientId(bid.client_id || '');
+              setAddress(bid.address || '');
+              setProjectType(bid.project_type || 'construction_project');
+              setJobType(bid.job_type || '');
+            }}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={updateMutation.isPending} size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </>
+      )}
+    </>
+  );
+
   return (
-    <div className="space-y-4 p-4 md:p-6">
+    <MobilePageWrapper className={isMobile ? 'pb-20' : undefined}>
       {/* Breadcrumb */}
       <AppBreadcrumbs
         items={[
@@ -250,57 +314,21 @@ export default function BranchBidDetail() {
       />
 
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/leads')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">{bid.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Created by {bid.profiles?.full_name || 'Unknown'}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {/* Convert to Project Button - only show if not already linked */}
-          {!bid.projects && (
-            <Button 
-              onClick={handleConvertToProject} 
-              disabled={convertToProjectMutation.isPending}
-              variant="default"
-              className="gap-2"
-            >
-              <Rocket className="h-4 w-4" />
-              {convertToProjectMutation.isPending ? 'Creating...' : 'Convert to Project'}
-            </Button>
-          )}
-          
-          {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)} variant="outline">Edit Details</Button>
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => {
-                setIsEditing(false);
-                // Reset form state
-                setName(bid.name);
-                setDescription(bid.description || '');
-                setClientId(bid.client_id || '');
-                setAddress(bid.address || '');
-                setProjectType(bid.project_type || 'construction_project');
-                setJobType(bid.job_type || '');
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={updateMutation.isPending}>
-                <Save className="h-4 w-4 mr-2" />
-                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={Package}
+        title={bid.name}
+        description={`Created by ${bid.profiles?.full_name || 'Unknown'}`}
+        actions={headerActions}
+      />
 
+      {/* Mobile action strip — PageHeader hides actions on mobile, so surface
+          them here instead. Gated by the same useIsMobile hook PageHeader uses
+          so there's no gap at the 640-768px breakpoint. */}
+      {isMobile && (
+        <div className="mb-4 flex flex-wrap gap-2">{headerActions}</div>
+      )}
+
+      <div className="space-y-4">
       {/* Bid Info Card */}
       <Card>
         <CardHeader>
@@ -424,13 +452,37 @@ export default function BranchBidDetail() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="w-full sm:w-auto">
-            {/* Mobile Dropdown */}
-            <div className="sm:hidden">
-              <MobileTabSelector
-                value={activeTab}
-                onValueChange={setActiveTab}
-                options={tabOptions}
-              />
+            {/* Mobile horizontal tab strip with count badges — same pattern as
+                MobileScheduleView so Project and Lead detail pages share shape. */}
+            <div className="sm:hidden flex items-center gap-1 bg-muted/40 rounded-xl p-1">
+              {tabOptions.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all min-h-[44px]',
+                      isActive
+                        ? 'bg-background shadow-sm text-primary font-medium'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs">{tab.label}</span>
+                    {tab.count > 0 && (
+                      <Badge
+                        variant={isActive ? 'default' : 'secondary'}
+                        className="h-4 min-w-[16px] px-1 text-[9px] font-medium"
+                      >
+                        {tab.count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Desktop Tabs */}
@@ -445,37 +497,31 @@ export default function BranchBidDetail() {
                   >
                     <Icon className="h-4 w-4" />
                     <span>{tab.label}</span>
+                    {tab.count > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="h-4 min-w-[16px] px-1 text-[9px] font-medium data-[state=active]:bg-primary-foreground data-[state=active]:text-primary"
+                      >
+                        {tab.count}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 );
               })}
             </TabsList>
           </div>
 
-          {/* Action Buttons for Media Tab */}
+          {/* Bulk Upload action for Media Tab — single-file Camera/Video capture
+              live on the mobile BidQuickActionBar + dedicated capture pages, so
+              the tab row only needs the bulk affordance. */}
           {activeTab === 'media' && (
             <div className="flex flex-wrap gap-2">
-              <BidMediaBulkUpload 
-                bidId={id!} 
+              <BidMediaBulkUpload
+                bidId={id!}
                 onUploadComplete={() => {
                   // Gallery will auto-refresh via query invalidation
                 }}
               />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/leads/${id}/capture`)}
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Photo
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/leads/${id}/capture-video`)}
-              >
-                <Video className="h-4 w-4 mr-2" />
-                Video
-              </Button>
             </div>
           )}
         </div>
@@ -487,7 +533,9 @@ export default function BranchBidDetail() {
               <CardDescription>Add voice or text notes about this bid</CardDescription>
             </CardHeader>
             <CardContent>
-              <BidNotesTimeline bidId={id!} />
+              {/* On mobile, the BidQuickActionBar's Note button is the sole
+                  composer entry — hide the inline one so we don't show two. */}
+              <BidNotesTimeline bidId={id!} hideComposer={isMobile} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -517,28 +565,18 @@ export default function BranchBidDetail() {
         </TabsContent>
       </Tabs>
 
-      {/* Floating Action Buttons - Mobile Only */}
+      </div>
+
+      {/* Mobile Quick Action Bar — Note / Camera / Attach. Sibling of
+          FieldQuickActionBar; content above has pb-20 so the bar doesn't
+          cover the last card. */}
       {isMobile && id && (
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => navigate(`/leads/${id}/capture-video`)}
-            title="Capture Video"
-          >
-            <Video className="h-5 w-5" />
-          </Button>
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-lg"
-            onClick={() => navigate(`/leads/${id}/capture`)}
-            title="Capture Photo"
-          >
-            <Camera className="h-5 w-5" />
-          </Button>
-        </div>
+        <BidQuickActionBar
+          bidId={id}
+          onNavigateToTab={(tab) => setActiveTab(tab)}
+        />
       )}
-    </div>
+    </MobilePageWrapper>
   );
 }
 

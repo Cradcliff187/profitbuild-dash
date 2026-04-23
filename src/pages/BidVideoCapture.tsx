@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Video, Mic, MapPin, Check, Smartphone, X } from 'lucide-react';
+import { ArrowLeft, Video, Mic, MapPin, Check, Smartphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppBreadcrumbs } from '@/components/layout/AppBreadcrumbs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { QuickCaptionModal } from '@/components/QuickCaptionModal';
@@ -185,19 +186,26 @@ export default function BidVideoCapture() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGoBack}
-            className="gap-2"
-          >
-            <X className="h-4 w-4" />
-            Close
-          </Button>
-          <div className="text-sm font-medium">Lead Video Capture</div>
-          <div className="w-20" /> {/* Spacer for centering */}
+        {/* Header — canonical chrome: breadcrumbs + back arrow */}
+        <div className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleGoBack}
+              className="h-8 w-8"
+              aria-label="Back to lead"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <AppBreadcrumbs
+              items={[
+                { label: 'Leads', href: '/leads' },
+                { label: 'Lead', href: `/leads/${bidId}` },
+                { label: 'Capture Video' },
+              ]}
+            />
+          </div>
         </div>
 
         {/* Main Content */}
