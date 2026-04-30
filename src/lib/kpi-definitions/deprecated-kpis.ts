@@ -108,34 +108,6 @@ adjusted_est_costs clearly indicates our expected costs.`,
   },
 
   // ==========================================================================
-  // LEGACY ESTIMATE FIELDS
-  // ==========================================================================
-  {
-    id: 'deprecated_estimate_rate',
-    name: 'Estimate Rate (DEPRECATED)',
-    source: 'deprecated',
-    field: 'estimate_line_items.rate',
-    formula: 'Replaced by price_per_unit',
-    dataType: 'currency',
-    domain: 'deprecated',
-    whereUsed: 'N/A - no longer used',
-    notes: `DEPRECATED - Legacy field renamed for clarity.
-
-REPLACEMENT: Use price_per_unit instead.
-
-"Rate" was ambiguous. Could mean:
-- Hourly rate
-- Unit price
-- Cost rate
-
-New fields are explicit:
-- price_per_unit = what we charge client (revenue)
-- cost_per_unit = what we pay vendor (cost)`,
-    replacedBy: 'estimate_line_item_price_per_unit',
-    aliases: ['rate', 'old rate', 'line rate'],
-  },
-
-  // ==========================================================================
   // LEGACY REVENUE TRACKING
   // ==========================================================================
   {

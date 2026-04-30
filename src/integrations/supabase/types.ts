@@ -864,7 +864,6 @@ export type Database = {
           price_per_unit: number
           quantity: number | null
           quickbooks_item_id: string | null
-          rate: number | null
           schedule_notes: string | null
           scheduled_end_date: string | null
           scheduled_start_date: string | null
@@ -893,7 +892,6 @@ export type Database = {
           price_per_unit?: number
           quantity?: number | null
           quickbooks_item_id?: string | null
-          rate?: number | null
           schedule_notes?: string | null
           scheduled_end_date?: string | null
           scheduled_start_date?: string | null
@@ -922,7 +920,6 @@ export type Database = {
           price_per_unit?: number
           quantity?: number | null
           quickbooks_item_id?: string | null
-          rate?: number | null
           schedule_notes?: string | null
           scheduled_end_date?: string | null
           scheduled_start_date?: string | null

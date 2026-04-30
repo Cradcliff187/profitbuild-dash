@@ -390,7 +390,7 @@ const correlateExpenseWithLineItems = async (
       supabase
         .from('estimate_line_items')
         .select(`
-          id, category, description, total, rate,
+          id, category, total,
           estimate:estimates!inner(project_id, status)
         `)
         .eq('estimate.project_id', projectId)
