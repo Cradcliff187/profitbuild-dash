@@ -36,6 +36,13 @@ import { Info } from "lucide-react";
 import { MoreHorizontal } from "lucide-react";
 import { useInternalLaborRates } from "@/hooks/useCompanySettings";
 import { calculateTotalLaborCushion, createLaborLineItemDefaults } from "@/utils/laborCalculations";
+import {
+  calcSubtotal,
+  calcTotalCost,
+  calcTotalMarkup,
+  lineItemMarkup,
+  lineItemMarkupPercent,
+} from "@/utils/lineItemTotals";
 import { EstimateTotalsRow } from "@/components/estimates/EstimateTotalsRow";
 import { EstimateSummaryCard } from "@/components/estimates/EstimateSummaryCard";
 import { ImportEstimateModal } from "@/components/estimates/ImportEstimateModal";
@@ -210,16 +217,16 @@ useEffect(() => {
         id: item.id,
         category: item.category,
         description: item.description,
-        quantity: item.quantity,
-        pricePerUnit: item.price_per_unit || item.rate || 0,
-        total: item.total,
+        quantity: Number(item.quantity ?? 1),
+        pricePerUnit: Number(item.price_per_unit ?? 0),
+        total: Number(item.total ?? 0),
         unit: item.unit,
         sort_order: item.sort_order,
-        costPerUnit: item.cost_per_unit || 0,
+        costPerUnit: Number(item.cost_per_unit ?? 0),
         markupPercent: item.markup_percent,
         markupAmount: item.markup_amount,
-        totalCost: item.total_cost || 0,
-        totalMarkup: item.total_markup || 0,
+        totalCost: Number(item.total_cost ?? 0),
+        totalMarkup: Number(item.total_markup ?? 0),
         laborHours: item.labor_hours,
         billingRatePerHour: item.billing_rate_per_hour,
         actualCostRatePerHour: item.actual_cost_rate_per_hour,
@@ -272,16 +279,16 @@ useEffect(() => {
         id: `new-${Date.now()}-${Math.random()}`, // New IDs for copied items
         category: item.category,
         description: item.description,
-        quantity: item.quantity,
-        pricePerUnit: item.price_per_unit || item.rate || 0,
-        total: item.total,
+        quantity: Number(item.quantity ?? 1),
+        pricePerUnit: Number(item.price_per_unit ?? 0),
+        total: Number(item.total ?? 0),
         unit: item.unit,
         sort_order: item.sort_order,
-        costPerUnit: item.cost_per_unit || 0,
+        costPerUnit: Number(item.cost_per_unit ?? 0),
         markupPercent: item.markup_percent,
         markupAmount: item.markup_amount,
-        totalCost: item.total_cost || 0,
-        totalMarkup: item.total_markup || 0
+        totalCost: Number(item.total_cost ?? 0),
+        totalMarkup: Number(item.total_markup ?? 0)
       })) || [];
 
       setLineItems(items as LineItem[]);
@@ -462,17 +469,12 @@ useEffect(() => {
     setLineItems(prev => [...prev, duplicated]);
   };
 
-  const calculateTotal = () => {
-    return lineItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-  };
-
-  const calculateTotalCost = () => {
-    return lineItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-  };
-
-  const calculateGrossProfit = () => {
-    return calculateTotal() - calculateTotalCost();
-  };
+  // Single source of truth — see src/utils/lineItemTotals.ts.
+  // Subtotal, total cost, and gross profit are all derived the same way the
+  // LineItemTable totals row computes them so the two surfaces always agree.
+  const calculateTotal = () => calcSubtotal(lineItems);
+  const calculateTotalCost = () => calcTotalCost(lineItems);
+  const calculateGrossProfit = () => calcTotalMarkup(lineItems);
 
   const calculateGrossMarginPercent = () => {
     const total = calculateTotal();
@@ -494,16 +496,8 @@ useEffect(() => {
     }
   };
 
-  const calculateMarkupPercent = (lineItem: LineItem): number => {
-    const { costPerUnit, pricePerUnit } = lineItem;
-    if (costPerUnit <= 0) return 0;
-    return ((pricePerUnit - costPerUnit) / costPerUnit) * 100;
-  };
-
-  const calculateMarkupAmount = (lineItem: LineItem): number => {
-    const totalCost = lineItem.quantity * lineItem.costPerUnit;
-    return lineItem.total - totalCost;
-  };
+  const calculateMarkupPercent = lineItemMarkupPercent;
+  const calculateMarkupAmount = lineItemMarkup;
 
   const calculateContingencyAmount = () => {
     const total = calculateTotal();
@@ -679,7 +673,7 @@ useEffect(() => {
             category: item.category,
             description: item.description.trim(),
             quantity: item.quantity,
-            rate: item.pricePerUnit, // For backward compatibility
+            price_per_unit: item.pricePerUnit,
             unit: item.unit || null,
             sort_order: index,
             cost_per_unit: item.costPerUnit || 0,
@@ -693,7 +687,7 @@ useEffect(() => {
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
             .insert(lineItemsData)
-            .select('id, estimate_id, category, description, quantity, rate, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
+            .select('id, estimate_id, category, description, quantity, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) throw lineItemsError;
 
@@ -770,7 +764,7 @@ useEffect(() => {
                   description: item.description.trim(),
                   quantity: item.quantity,
                   unit: item.unit || null,
-                  rate: item.pricePerUnit,
+                  price_per_unit: item.pricePerUnit,
                   cost_per_unit: item.costPerUnit || 0,
                   markup_percent: item.markupPercent,
                   markup_amount: item.markupAmount,
@@ -795,7 +789,7 @@ useEffect(() => {
               category: item.category,
               description: item.description.trim(),
               quantity: item.quantity,
-              rate: item.pricePerUnit,
+              price_per_unit: item.pricePerUnit,
               unit: item.unit || null,
               sort_order: validLineItems.indexOf(item),
               cost_per_unit: item.costPerUnit || 0,
@@ -930,7 +924,7 @@ useEffect(() => {
             category: item.category,
             description: item.description.trim(),
             quantity: item.quantity,
-            rate: item.pricePerUnit,
+            price_per_unit: item.pricePerUnit,
             unit: item.unit || null,
             sort_order: index,
             cost_per_unit: item.costPerUnit || 0,
@@ -944,7 +938,7 @@ useEffect(() => {
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
             .insert(lineItemsData)
-            .select('id, estimate_id, category, description, quantity, rate, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
+            .select('id, estimate_id, category, description, quantity, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) throw lineItemsError;
 
@@ -1041,7 +1035,7 @@ useEffect(() => {
             category: item.category,
             description: item.description.trim(),
             quantity: item.quantity,
-            rate: item.pricePerUnit, // For backward compatibility
+            price_per_unit: item.pricePerUnit,
             unit: item.unit || null,
             sort_order: index,
             cost_per_unit: item.costPerUnit || 0,
@@ -1057,7 +1051,7 @@ useEffect(() => {
           const { error: lineItemsError } = await supabase
             .from('estimate_line_items')
             .insert(lineItemsData)
-            .select('id, estimate_id, category, description, quantity, rate, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
+            .select('id, estimate_id, category, description, quantity, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
 
           if (lineItemsError) {
             console.error('Database error creating line items:', lineItemsError);

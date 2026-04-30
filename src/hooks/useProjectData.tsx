@@ -204,7 +204,7 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
             category: item.category,
             description: item.description || "",
             quantity: safeNumber(item.quantity, 1),
-            pricePerUnit: safeNumber(item.price_per_unit || item.rate, 0),
+            pricePerUnit: safeNumber(item.price_per_unit, 0),
             total: safeNumber(item.total, 0),
             unit: item.unit || "",
             sort_order: item.sort_order || 0,
