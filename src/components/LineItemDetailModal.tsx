@@ -254,7 +254,7 @@ export const LineItemDetailModal: React.FC<LineItemDetailModalProps> = ({
               <Label>Cost per Unit</Label>
               <Input
                 type="number"
-                step="0.01"
+                step="any"
                 value={formData.costPerUnit}
                 onChange={(e) => handleFieldChange('costPerUnit', parseFloat(e.target.value) || 0)}
               />

@@ -63,8 +63,15 @@ const EditableCell: React.FC<{
   type?: 'text' | 'number';
   className?: string;
   currency?: boolean;
+  /**
+   * Use adaptive unit-price formatting (at least 2 decimals, up to 5,
+   * trailing zeros stripped). Use this for per-unit values like
+   * Cost/Unit or Price/Unit where sub-cent precision matters.
+   * Currency totals (e.g. Markup $) should keep currency=true.
+   */
+  unitPrice?: boolean;
   align?: 'left' | 'right';
-}> = ({ value, onChange, type = 'text', className = '', currency = false, align = 'left' }) => {
+}> = ({ value, onChange, type = 'text', className = '', currency = false, unitPrice = false, align = 'left' }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value));
 
@@ -85,10 +92,13 @@ const EditableCell: React.FC<{
   const formatValue = (val: string | number) => {
     if (type === 'number') {
       const numVal = typeof val === 'number' ? val : parseFloat(val) || 0;
+      if (unitPrice) {
+        return formatUnitPrice(numVal);
+      }
       if (currency) {
         return formatCurrency(numVal);
       }
-      return numVal.toLocaleString('en-US', { maximumFractionDigits: 2 });
+      return numVal.toLocaleString('en-US', { maximumFractionDigits: 5 });
     }
     return val || '';
   };
@@ -101,9 +111,10 @@ const EditableCell: React.FC<{
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         type={type}
+        step={type === 'number' ? 'any' : undefined}
         className={`h-input-dense ${type === 'number' ? 'font-mono' : ''} ${align === 'right' ? 'text-right' : ''} ${className}`}
         autoFocus
-        placeholder={currency ? "0.00" : ""}
+        placeholder={unitPrice ? "0.00000" : currency ? "0.00" : ""}
       />
     );
   }
@@ -393,13 +404,13 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
                   </TableCell>
                   <TableCell className="p-2 text-right">
                     {readOnly ? (
-                      <div className="text-xs font-mono px-2 py-1 text-right">{formatCurrency(lineItem.costPerUnit)}</div>
+                      <div className="text-xs font-mono px-2 py-1 text-right">{formatUnitPrice(lineItem.costPerUnit)}</div>
                     ) : (
                       <EditableCell
                         value={lineItem.costPerUnit}
                         onChange={(value) => onUpdateLineItem(lineItem.id, 'costPerUnit', parseFloat(value) || 0)}
                         type="number"
-                        currency={true}
+                        unitPrice={true}
                         align="right"
                       />
                     )}
