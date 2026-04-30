@@ -623,28 +623,31 @@ function processLineItemData(
   // Combine estimate line items with change order line items
   const allLineItems = [
     ...estimateLineItems.map(item => ({ ...item, source: 'estimate' as const })),
-    ...changeOrders.flatMap(co => 
+    ...changeOrders.flatMap(co =>
       (co.change_order_line_items || []).map((item: any) => ({
         ...item,
         source: 'change_order' as const,
         change_order_number: co.change_order_number,
         change_order_id: co.id,
-        // Map change order fields to estimate line item structure
-        rate: item.price_per_unit || 0,
-        total: item.total_price || 0,
-        cost_per_unit: item.cost_per_unit || 0,
+        // Normalize change_order_line_items shape onto the estimate_line_items shape:
+        // both surfaces now expose price_per_unit + total + cost_per_unit.
+        price_per_unit: item.price_per_unit ?? 0,
+        total: item.total_price ?? 0,
+        cost_per_unit: item.cost_per_unit ?? 0,
       }))
     )
   ];
 
   return allLineItems.map(lineItem => {
     const qty = Number(lineItem.quantity ?? 0);
-    const rate = Number(lineItem.rate ?? 0);
+    const pricePerUnit = Number(lineItem.price_per_unit ?? 0);
     const total = Number(lineItem.total ?? 0);
     const costPerUnit = Number(lineItem.cost_per_unit ?? 0);
 
-    // Pricing (client-facing)
-    const estimatedPrice = total || (qty * rate) || 0;
+    // Pricing (client-facing). Post-Phase-1 schema, total is generated from
+    // qty * price_per_unit so it's always authoritative; the (qty * pricePerUnit)
+    // fallback only fires for legacy rows where total is unset.
+    const estimatedPrice = total || (qty * pricePerUnit) || 0;
     // Cost (internal)
     const estimatedCost = qty * costPerUnit;
 

@@ -95,22 +95,20 @@ export const normalizeUnit = (unit: string | null | undefined): string | null =>
   return unitMappings[normalizedUnit] || unit.toUpperCase();
 };
 
-// Maps camelCase LineItem to snake_case database fields
+// Maps camelCase LineItem to snake_case database fields.
+// `total`, `total_cost`, `total_markup` are GENERATED columns — never write to them.
+// `rate` is auto-synced by the sync_estimate_line_item_price_trigger from price_per_unit.
 export const mapLineItemToDb = (item: LineItem) => ({
   id: item.id,
   category: item.category,
   description: item.description,
   quantity: item.quantity,
-  rate: item.pricePerUnit, // Map pricePerUnit to legacy rate field for DB compatibility
-  total: item.total,
   unit: item.unit,
   sort_order: item.sort_order,
   cost_per_unit: item.costPerUnit,
   markup_percent: item.markupPercent,
   markup_amount: item.markupAmount,
   price_per_unit: item.pricePerUnit,
-  total_cost: item.totalCost,
-  total_markup: item.totalMarkup,
 });
 
 // Maps snake_case database fields to camelCase LineItem
@@ -118,14 +116,14 @@ export const mapDbToLineItem = (dbItem: any): LineItem => ({
   id: dbItem.id,
   category: dbItem.category,
   description: dbItem.description,
-  quantity: dbItem.quantity || 1,
-  pricePerUnit: dbItem.price_per_unit || dbItem.rate || 0,
-  total: dbItem.total || 0,
+  quantity: Number(dbItem.quantity ?? 1),
+  pricePerUnit: Number(dbItem.price_per_unit ?? 0),
+  total: Number(dbItem.total ?? 0),
   unit: normalizeUnit(dbItem.unit),
   sort_order: dbItem.sort_order,
-  costPerUnit: dbItem.cost_per_unit || 0,
+  costPerUnit: Number(dbItem.cost_per_unit ?? 0),
   markupPercent: dbItem.markup_percent,
   markupAmount: dbItem.markup_amount,
-  totalCost: dbItem.total_cost || 0,
-  totalMarkup: dbItem.total_markup || 0,
+  totalCost: Number(dbItem.total_cost ?? 0),
+  totalMarkup: Number(dbItem.total_markup ?? 0),
 });

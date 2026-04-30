@@ -139,16 +139,16 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
         id: item.id,
         category: item.category,
         description: item.description,
-        quantity: Number(item.quantity) || 0,
-        pricePerUnit: Number(item.price_per_unit ?? item.rate ?? 0),
-        total: Number(item.total) || 0,
+        quantity: Number(item.quantity ?? 1),
+        pricePerUnit: Number(item.price_per_unit ?? 0),
+        total: Number(item.total ?? 0),
         unit: item.unit || '',
         sort_order: item.sort_order || 0,
-        costPerUnit: Number(item.cost_per_unit) || 0,
+        costPerUnit: Number(item.cost_per_unit ?? 0),
         markupPercent: item.markup_percent,
         markupAmount: item.markup_amount,
-        totalCost: Number(item.total_cost ?? (Number(item.quantity || 0) * Number(item.cost_per_unit || 0))) || 0,
-        totalMarkup: Number(item.total_markup ?? (Number(item.quantity || 0) * (Number(item.price_per_unit ?? item.rate ?? 0) - Number(item.cost_per_unit || 0)))) || 0,
+        totalCost: Number(item.total_cost ?? 0),
+        totalMarkup: Number(item.total_markup ?? 0),
       }));
 
       const newVersion: Estimate = {

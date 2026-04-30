@@ -15,6 +15,16 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getCategoryDotClasses } from '@/utils/categoryColors';
 import { useInternalLaborRates } from '@/hooks/useCompanySettings';
+import {
+  calcSubtotal,
+  calcTotalCost,
+  calcTotalMarkup,
+  calcAvgMarkupPercent,
+  lineItemCost,
+  lineItemMarkup,
+  lineItemMarkupPercent,
+  formatUnitPrice,
+} from '@/utils/lineItemTotals';
 import { EstimateTotalsRow } from '@/components/estimates/EstimateTotalsRow';
 
 interface LineItemTableProps {
@@ -197,20 +207,10 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
     return hours * (billingRate - actualRate);
   };
 
-  const calculateMarkupPercent = (lineItem: LineItem): number => {
-    const { costPerUnit, pricePerUnit } = lineItem;
-    if (costPerUnit <= 0) return 0;
-    return ((pricePerUnit - costPerUnit) / costPerUnit) * 100;
-  };
-
-  const calculateTotalCost = (lineItem: LineItem): number => {
-    return lineItem.quantity * lineItem.costPerUnit;
-  };
-
-  const calculateMarkupAmount = (lineItem: LineItem): number => {
-    const totalCost = calculateTotalCost(lineItem);
-    return lineItem.total - totalCost;
-  };
+  // Single source of truth — see src/utils/lineItemTotals.ts.
+  const calculateMarkupPercent = lineItemMarkupPercent;
+  const calculateTotalCost = lineItemCost;
+  const calculateMarkupAmount = lineItemMarkup;
 
   const handleTotalCostChange = (lineItemId: string, newTotalCost: number) => {
     const lineItem = lineItems.find(item => item.id === lineItemId);
@@ -252,15 +252,15 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
     }
   };
 
-  // Calculate totals for the totals row
-  const calculateTotals = () => {
-    const totalCost = lineItems.reduce((sum, item) => sum + calculateTotalCost(item), 0);
-    const totalMarkup = lineItems.reduce((sum, item) => sum + calculateMarkupAmount(item), 0);
-    const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
-    const avgMarkupPercent = totalCost > 0 ? (totalMarkup / totalCost) * 100 : 0;
-    
-    return { totalCost, totalMarkup, subtotal, avgMarkupPercent };
-  };
+  // Calculate totals for the totals row.
+  // Routed through calcSubtotal so the bottom row matches the EstimateSummaryCard
+  // Subtotal exactly (post-Phase-1 schema fix, both derive from price_per_unit).
+  const calculateTotals = () => ({
+    totalCost: calcTotalCost(lineItems),
+    totalMarkup: calcTotalMarkup(lineItems),
+    subtotal: calcSubtotal(lineItems),
+    avgMarkupPercent: calcAvgMarkupPercent(lineItems),
+  });
 
   return (
     <div className="space-y-4">
