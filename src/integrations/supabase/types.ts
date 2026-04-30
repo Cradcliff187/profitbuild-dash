@@ -861,7 +861,7 @@ export type Database = {
           labor_hours: number | null
           markup_amount: number | null
           markup_percent: number | null
-          price_per_unit: number | null
+          price_per_unit: number
           quantity: number | null
           quickbooks_item_id: string | null
           rate: number | null
@@ -890,7 +890,7 @@ export type Database = {
           labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
-          price_per_unit?: number | null
+          price_per_unit?: number
           quantity?: number | null
           quickbooks_item_id?: string | null
           rate?: number | null
@@ -919,7 +919,7 @@ export type Database = {
           labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
-          price_per_unit?: number | null
+          price_per_unit?: number
           quantity?: number | null
           quickbooks_item_id?: string | null
           rate?: number | null
