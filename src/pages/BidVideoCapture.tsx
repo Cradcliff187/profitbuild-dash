@@ -43,16 +43,8 @@ export default function BidVideoCapture() {
 
     const video = await capturePromise;
 
-    if (metadata.coordinates) {
-      const age = metadata.gpsAge ?? 0;
-      if (age < 10000) {
-        toast.success(`GPS refreshed (±${metadata.coordinates.accuracy.toFixed(0)}m)`);
-      } else {
-        toast.warning('GPS data is stale', {
-          description: 'Location may not be accurate',
-        });
-      }
-    }
+    // GPS state shown in page chrome (green pin + "GPS: ±Xm"). The previous
+    // GPS-refreshed/stale toasts duplicated info that's already visible.
 
     if (video) {
       setCapturedVideo(video);
@@ -153,12 +145,7 @@ export default function BidVideoCapture() {
         upload_source: meta.uploadSource,
       });
 
-      const wordCount = captions.pendingCaption ? captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
-      toast.success(
-        captions.pendingCaption
-          ? `Video uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
-          : 'Video uploaded without caption'
-      );
+      toast.success('Video uploaded');
 
       setCapturedVideo(null);
       captions.setPendingCaption('');

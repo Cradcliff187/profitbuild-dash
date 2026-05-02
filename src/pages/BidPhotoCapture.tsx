@@ -31,17 +31,10 @@ export default function BidPhotoCapture() {
 
     if (photo) {
       setCapturedPhotoUri(photo.webPath || '');
-
-      const hasGps = !!metadata.coordinates;
-      if (hasGps) {
-        toast.success(`Photo captured with GPS accuracy ±${metadata.coordinates!.accuracy.toFixed(0)}m`);
-      } else {
-        toast.warning('GPS unavailable', {
-          description: 'Photo captured without location data',
-        });
-      }
-
-      captions.onCaptureSuccess(hasGps);
+      // GPS state is already shown visually in the page chrome (green pin +
+      // "GPS: ±Xm" label above the preview). The earlier success/warning
+      // toasts on capture duplicated info that's already on screen.
+      captions.onCaptureSuccess(!!metadata.coordinates);
     } else if (window.top !== window.self) {
       toast.error('Camera blocked in embedded view', {
         description: 'Open app in a new tab to use camera',
@@ -84,12 +77,7 @@ export default function BidPhotoCapture() {
         upload_source: meta.uploadSource,
       });
 
-      const wordCount = captions.pendingCaption ? captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
-      toast.success(
-        captions.pendingCaption
-          ? `Photo uploaded with caption (${wordCount} word${wordCount !== 1 ? 's' : ''})`
-          : 'Photo uploaded without caption'
-      );
+      toast.success('Photo uploaded');
 
       setCapturedPhotoUri(null);
       captions.setPendingCaption('');

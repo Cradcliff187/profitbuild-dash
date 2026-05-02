@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { StickyNote, Camera, Paperclip } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
 import { BidNoteComposer } from './BidNoteComposer';
@@ -31,8 +32,14 @@ export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQui
     if (!files.length) return;
 
     // Sequential upload — parallel would race the useBidMediaUpload hook's
-    // single-slot progress/state. Per-file toasts come from the hook itself.
+    // single-slot progress/state. The hook used to fire its own per-file
+    // toast; that produced one toast per file plus one aggregate toast here,
+    // so the hook is now silent and we own the user-facing notifications.
+    if (files.length > 1) {
+      toast.info(`Uploading ${files.length} files...`);
+    }
     const results = [];
+    let failures = 0;
     for (const file of files) {
       const result = await upload({
         bid_id: bidId,
@@ -40,16 +47,26 @@ export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQui
         upload_source: 'web',
       });
       if (result) results.push(result);
+      else failures++;
     }
 
-    if (!results.length) return;
-
-    queryClient.invalidateQueries({ queryKey: ['bid-media', bidId] });
-    onUploaded?.();
-    // Land on the tab that matches the upload batch. Mixed batches prefer
-    // Media (images/video outnumber docs in most mobile-capture sessions).
-    const allDocs = results.every((r) => r.file_type === 'document');
-    onNavigateToTab?.(allDocs ? 'documents' : 'media');
+    if (results.length) {
+      queryClient.invalidateQueries({ queryKey: ['bid-media', bidId] });
+      onUploaded?.();
+      const allDocs = results.every((r) => r.file_type === 'document');
+      const target = allDocs ? 'Documents' : 'Media';
+      toast.success(
+        files.length > 1
+          ? `Uploaded ${results.length} to ${target}`
+          : `Added to ${target}`
+      );
+      // Land on the tab that matches the upload batch. Mixed batches prefer
+      // Media (images/video outnumber docs in most mobile-capture sessions).
+      onNavigateToTab?.(allDocs ? 'documents' : 'media');
+    }
+    if (failures) {
+      toast.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
+    }
   };
 
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Upload, X, Download, Trash2 } from 'lucide-react';
+import { FileText, Upload, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -257,17 +257,17 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{doc.file_name}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <Badge variant="outline" className="text-xs">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                    <Badge variant="outline" className="text-xs shrink-0">
                       {doc.mime_type.split('/')[1].toUpperCase()}
                     </Badge>
-                    <span>{formatFileSize(doc.file_size)}</span>
+                    <span className="whitespace-nowrap">{formatFileSize(doc.file_size)}</span>
                     {doc.profiles?.full_name && (
-                      <span>Uploaded by {doc.profiles.full_name}</span>
+                      <span className="truncate max-w-full">Uploaded by {doc.profiles.full_name}</span>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <Button
                     size="icon"
                     variant="outline"

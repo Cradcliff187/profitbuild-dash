@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
-import packageJson from "./package.json";
 import { execSync } from 'child_process';
 
 // Auto-generate version from Git — format: YYYY.MM.DD (build {sha})
@@ -141,7 +140,7 @@ export default defineConfig(({ mode }) => ({
         ]
       }
     })
-  ].filter(Boolean) as any,
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
