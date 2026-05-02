@@ -92,11 +92,11 @@ src/
 
 ## Backend: Supabase
 
-**29 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
+**30 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
 
 | Group | Functions |
 |-------|-----------|
-| Auth | `send-auth-email`, `forgot-password`, `admin-create-user`, `admin-reset-password`, `admin-delete-user`, `admin-disable-user` |
+| Auth | `send-auth-email`, `forgot-password`, `admin-create-user`, `admin-reset-password`, `admin-delete-user`, `admin-disable-user`, `admin-enable-user` |
 | Notifications | `send-receipt-notification`, `send-training-notification` |
 | SMS | `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key` |
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
@@ -121,11 +121,12 @@ These four functions MUST be deployed together with the shared file via Supabase
 | `send-training-notification` | false | 46 |
 | `generate-media-report` | true | 115 |
 
-### Critical: `admin-disable-user` Pinned Version
+### Critical: `admin-disable-user` / `admin-enable-user` Pinned Versions
 
 | Function | verify_jwt | Pinned version | Notes |
 |----------|------------|----------------|-------|
 | `admin-disable-user` | true | 102 | Cascades `payees.is_active=false` for the linked internal payee (best-effort; payee failure does NOT roll back the auth disable). See Architectural Rule 11. |
+| `admin-enable-user` | true | 1 | Inverse of `admin-disable-user` (May 2 2026). Unbans auth → flips `profiles.is_active=true` + clears `deactivated_at`/`deactivated_by` → best-effort flips `payees.is_active=true`. Rolls back the unban on profile failure. Invoked from the **Reactivate User** menu item. See Architectural Rule 11. |
 
 ### Critical: AI Report Assistant Version
 
@@ -527,6 +528,7 @@ The quote detail surfaces (project-scoped `/projects/:id/estimates/quotes/:quote
 | `@mention` autocomplete | Lists every active role-holder for any authenticated caller | `get_mentionable_employees()` RPC (SECURITY DEFINER bypasses cross-user RLS on profiles/auth.users) |
 | `CreateUserModal` | Creates auth user → role. Auto-creates a linked internal payee **only when role is `field_worker`** (they log labor → expenses need `payee_id`). Admins/managers don't get an auto-payee — they don't need one unless they become project owners or receive expense allocations, and the admin can add one on demand from Role Management via the "Set up" ghost button in the Employee record column. | client-side after `admin-create-user` succeeds |
 | `admin-disable-user` edge function (v102) | Bans auth → flips `profiles.is_active` → best-effort flips `payees.is_active=false` for the linked internal payee. Payee step is non-blocking; auth disable is the source of truth. Invoked from the **Deactivate User** menu item. | edge function |
+| `admin-enable-user` edge function (v1, May 2 2026) | Inverse: unbans auth → flips `profiles.is_active=true` + clears `deactivated_at`/`deactivated_by` → best-effort flips `payees.is_active=true`. Rolls back the unban if the profile update fails so state stays internally consistent. Invoked from the **Reactivate User** menu item, which appears in the 3-dot menu only when `user.is_active === false`. | edge function |
 | `PayeeForm` for `is_internal=true` payees | Banner + locked fieldset; only Notes editable. Redirects to Role Management. | UI lock |
 | `/payees` page | Defaults to **excluding** internal employees. Selecting **Internal Labor** in the Type filter reveals them read-only (locked by `PayeeForm`). No separate toggle — the type filter is the single control. | `PayeesList` filter |
 
@@ -545,6 +547,7 @@ The quote detail surfaces (project-scoped `/projects/:id/estimates/quotes/:quote
 4. **Don't query `payees` directly for "who can be @mentioned".** The view of truth is the RPC. Querying payees misses role-holders whose payee row is missing or unlinked.
 5. **Don't edit internal payees from `PayeeForm`.** They're locked. Use Role Management. The lock prevents drift between the auth side and the accounting side.
 6. **Retire is the default soft-delete; hard Delete is reference-gated.** Role Management exposes two destructive actions on an Unattached employee record: **Retire** (flips `is_active=false`, always safe) and **Delete permanently** (hard `DELETE FROM payees`, which Postgres blocks via the 7 FK constraints if anything references it). The UI doesn't pre-check — the DB is the source of truth. On FK violation (`23503`) the hook translates the error into plain language and tells the admin to use Retire instead. The unique partial index on `(user_id) WHERE is_internal AND user_id IS NOT NULL` keeps "one active internal payee per user" invariant; inactive/retired ones are fine.
+7. **Reactivation must flip all three flags — never reach into the Supabase dashboard** (added May 2 2026 after a real incident). Disabling a user via `admin-disable-user` writes three places: `auth.users.banned_until`, `profiles.is_active=false` (+ `deactivated_at`/`deactivated_by`), and (best-effort) `payees.is_active=false`. The Supabase auth dashboard's "Unban user" button only clears the first — the user remains stuck inactive in the app because `/role-management` reads `profiles.is_active` (via `get_user_auth_status`). Always reactivate via the **Reactivate User** menu item in the 3-dot menu (which calls `admin-enable-user` — see edge-function table above) so all three flags flip together. If you find yourself reaching for the Supabase dashboard's Unban button, stop — use the app UI instead. If a user is already in the half-unbanned state from a past dashboard click, the in-app Reactivate button is idempotent and will reconcile them.
 
 #### Verifying linkage health (admin SQL)
 
