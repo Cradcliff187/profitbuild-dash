@@ -8,7 +8,7 @@ import { BidPhotoLightbox } from './BidPhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { toast } from 'sonner';
@@ -21,10 +21,9 @@ type MediaTab = 'all' | 'photos' | 'videos';
 
 interface BidMediaGalleryProps {
   bidId: string;
-  bidName: string;
 }
 
-export function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps) {
+export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
   const queryClient = useQueryClient();
   const { media: allMedia, isLoading } = useBidMedia(bidId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');

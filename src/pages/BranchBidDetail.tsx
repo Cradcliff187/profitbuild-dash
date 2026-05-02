@@ -44,7 +44,6 @@ export default function BranchBidDetail() {
   const [address, setAddress] = useState('');
   const [projectType, setProjectType] = useState<'construction_project' | 'work_order'>('construction_project');
   const [jobType, setJobType] = useState('');
-  const [documentUrl, setDocumentUrl] = useState('');
 
   // Tab counts — fed into the mobile tab strip + desktop pills as badges
   const { notes: bidNotes } = useBidNotes(id || '');
@@ -224,11 +223,6 @@ export default function BranchBidDetail() {
       return;
     }
     convertToProjectMutation.mutate();
-  };
-
-  const handleDocumentUpload = (url: string, fileName: string) => {
-    setDocumentUrl(url);
-    toast.success('Document uploaded successfully');
   };
 
   if (isLoading) {
@@ -548,7 +542,7 @@ export default function BranchBidDetail() {
               <CardDescription>Capture site photos and videos</CardDescription>
             </CardHeader>
             <CardContent>
-              <BidMediaGallery bidId={id!} bidName={bid.name} />
+              <BidMediaGallery bidId={id!} />
             </CardContent>
           </Card>
         </TabsContent>
