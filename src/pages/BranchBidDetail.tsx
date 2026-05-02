@@ -304,7 +304,8 @@ export default function BranchBidDetail() {
   );
 
   return (
-    <MobilePageWrapper className={isMobile ? 'pb-20' : undefined}>
+    <>
+      <MobilePageWrapper className={isMobile ? 'pb-20' : undefined}>
       {/* Breadcrumb */}
       <AppBreadcrumbs
         items={[
@@ -464,18 +465,18 @@ export default function BranchBidDetail() {
                     type="button"
                     onClick={() => setActiveTab(tab.value)}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all min-h-[44px]',
+                      'flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2.5 px-1 rounded-lg transition-all min-h-[44px]',
                       isActive
                         ? 'bg-background shadow-sm text-primary font-medium'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-xs">{tab.label}</span>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="text-xs whitespace-nowrap">{tab.label}</span>
                     {tab.count > 0 && (
                       <Badge
                         variant={isActive ? 'default' : 'secondary'}
-                        className="h-4 min-w-[16px] px-1 text-[9px] font-medium"
+                        className="h-4 min-w-[16px] px-1 text-[9px] font-medium shrink-0"
                       >
                         {tab.count}
                       </Badge>
@@ -567,16 +568,20 @@ export default function BranchBidDetail() {
 
       </div>
 
-      {/* Mobile Quick Action Bar — Note / Camera / Attach. Sibling of
-          FieldQuickActionBar; content above has pb-20 so the bar doesn't
-          cover the last card. */}
-      {isMobile && id && (
-        <BidQuickActionBar
-          bidId={id}
-          onNavigateToTab={(tab) => setActiveTab(tab)}
-        />
-      )}
     </MobilePageWrapper>
+
+    {/* Mobile Quick Action Bar — Note / Camera / Attach. Rendered as a sibling
+        of MobilePageWrapper (not inside) so position:fixed anchors to the
+        viewport — mirrors how FieldQuickActionBar is mounted in
+        ProjectDetailView. Content above has pb-20 so the bar doesn't cover
+        the last card. */}
+    {isMobile && id && (
+      <BidQuickActionBar
+        bidId={id}
+        onNavigateToTab={(tab) => setActiveTab(tab)}
+      />
+    )}
+    </>
   );
 }
 

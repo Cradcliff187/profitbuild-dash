@@ -1,7 +1,4 @@
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { showCaptionPrompt, CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
-import { getCaptionPreferences } from '@/utils/userPreferences';
 
 interface CaptionFlowState {
   pendingCaption: string;
@@ -12,8 +9,10 @@ interface CaptionFlowState {
   setShowVoiceCaptionModal: (show: boolean) => void;
   skipCount: number;
   captureCount: number;
-  /** Call after successful capture to trigger caption prompt logic */
-  onCaptureSuccess: (hasGps: boolean) => void;
+  /** Call after successful capture — increments captureCount. Kept as a
+   *  no-arg callable so existing call sites (which pass a hasGps boolean)
+   *  remain compatible at the JS layer. */
+  onCaptureSuccess: (hasGps?: boolean) => void;
   /** Call when user saves a caption (resets skip count) */
   onCaptionSaved: (caption: string) => void;
   /** Call when user skips caption (increments skip counter) */
@@ -33,62 +32,28 @@ export function useCaptionFlow(): CaptionFlowState {
   const [skipCount, setSkipCount] = useState(0);
   const [captureCount, setCaptureCount] = useState(0);
 
-  const onCaptureSuccess = useCallback(
-    (hasGps: boolean) => {
-      const newCaptureCount = captureCount + 1;
-      setCaptureCount(newCaptureCount);
-
-      // Show caption prompt for first 3 captures when user has prompts enabled
-      const shouldPrompt = newCaptureCount <= 3 && hasGps;
-      if (shouldPrompt) {
-        setTimeout(() => {
-          void (async () => {
-            const prefs = await getCaptionPreferences();
-            if (!prefs.showCaptionPrompts) return;
-
-            const message =
-              newCaptureCount === 1
-                ? CAPTION_PROMPTS.firstCapture
-                : CAPTION_PROMPTS.gpsAvailable;
-
-            showCaptionPrompt({
-              onVoiceClick: () => setShowVoiceCaptionModal(true),
-              onTypeClick: () => setShowCaptionModal(true),
-              message,
-              duration: 5000,
-            });
-          })();
-        }, 3000);
-      }
-    },
-    [captureCount]
-  );
+  // The auto-prompt sheet was removed (Apr 2026) — it fired 3s after capture
+  // and blocked the next action for 5s while showing voice/type buttons that
+  // already exist on the preview screen. We keep capture-count tracking in
+  // case future analytics need it, but no UI side-effects.
+  const onCaptureSuccess = useCallback(() => {
+    setCaptureCount((c) => c + 1);
+  }, []);
 
   const onCaptionSkipped = useCallback(() => {
-    const newSkipCount = skipCount + 1;
-    setSkipCount(newSkipCount);
-
-    if (newSkipCount >= 3 && newSkipCount % 3 === 0) {
-      toast.info(CAPTION_PROMPTS.multipleSkips, { duration: 4000 });
-    }
-  }, [skipCount]);
+    setSkipCount((c) => c + 1);
+  }, []);
 
   const onCaptionSaved = useCallback((caption: string) => {
     setPendingCaption(caption);
     setShowCaptionModal(false);
     setSkipCount(0);
-    const wordCount = caption.split(/\s+/).filter((w) => w.length > 0).length;
-    toast.success(`Caption saved (${wordCount} word${wordCount !== 1 ? 's' : ''})`);
   }, []);
 
   const onVoiceCaptionReady = useCallback((caption: string) => {
     setPendingCaption(caption);
     setShowVoiceCaptionModal(false);
     setSkipCount(0);
-    const wordCount = caption.split(/\s+/).filter((w) => w.length > 0).length;
-    toast.success(
-      `Voice caption added (${wordCount} word${wordCount !== 1 ? 's' : ''})`
-    );
   }, []);
 
   return {

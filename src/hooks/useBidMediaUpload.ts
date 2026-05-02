@@ -152,15 +152,15 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
       const mediaWithProfile = { ...mediaData, profiles: profile };
 
       setProgress(100);
-      toast.success('Media uploaded successfully');
-
+      // Success toast is owned by the caller (page or quick-action bar) — the
+      // hook used to also fire one, which produced two stacked success toasts
+      // per upload.
       return mediaWithProfile as BidMedia;
     } catch (err) {
       const error = err as Error;
       setError(error);
-      toast.error('Upload failed', {
-        description: error.message,
-      });
+      // Error toast is also caller-owned now. We surface the error via the
+      // returned `error` state so callers can decide how to render it.
       return null;
     } finally {
       setIsUploading(false);

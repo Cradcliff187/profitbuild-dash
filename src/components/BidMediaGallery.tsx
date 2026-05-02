@@ -124,25 +124,26 @@ export function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header Controls */}
-      <div className="flex items-center justify-between">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MediaTab)}>
-          <TabsList>
-            <TabsTrigger value="all">
+      {/* Header Controls — stack tabs and view-mode toggle on narrow viewports
+          so "Videos (N)" is not clipped by the right-aligned icon buttons. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MediaTab)} className="w-full sm:w-auto min-w-0">
+          <TabsList className="w-full sm:w-auto overflow-x-auto">
+            <TabsTrigger value="all" className="whitespace-nowrap">
               All ({allMedia.length})
             </TabsTrigger>
-            <TabsTrigger value="photos">
+            <TabsTrigger value="photos" className="whitespace-nowrap">
               <ImageIcon className="h-4 w-4 mr-1" />
               Photos ({photoCount})
             </TabsTrigger>
-            <TabsTrigger value="videos">
+            <TabsTrigger value="videos" className="whitespace-nowrap">
               <VideoIcon className="h-4 w-4 mr-1" />
               Videos ({videoCount})
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 self-end sm:self-auto shrink-0">
           <Button
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="icon"
@@ -255,17 +256,17 @@ export function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{media.caption || media.file_name}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <Badge variant="outline" className="text-xs">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                    <Badge variant="outline" className="text-xs shrink-0">
                       {media.file_type === 'image' ? <ImageIcon className="h-3 w-3 mr-1" /> : <VideoIcon className="h-3 w-3 mr-1" />}
                       {media.file_type}
                     </Badge>
-                    <span>{formatFileSize(media.file_size)}</span>
-                    {media.duration && <span>{formatDuration(media.duration)}</span>}
-                    <span>{format(new Date(media.created_at), 'MMM d, yyyy')}</span>
+                    <span className="whitespace-nowrap">{formatFileSize(media.file_size)}</span>
+                    {media.duration && <span className="whitespace-nowrap">{formatDuration(media.duration)}</span>}
+                    <span className="whitespace-nowrap">{format(new Date(media.created_at), 'MMM d, yyyy')}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <Button
                     size="icon"
                     variant="outline"
