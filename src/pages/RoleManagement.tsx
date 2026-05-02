@@ -33,7 +33,7 @@ import {
   useToggleMentionable,
   type EmployeeAuditRow,
 } from '@/hooks/useEmployeesAudit';
-import { AlertTriangle, CheckCircle2, Link2, Plus, Archive, UserX, RotateCcw, MessageSquare } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Link2, Plus, Archive, UserX, UserCheck, RotateCcw, MessageSquare } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +82,8 @@ export default function RoleManagement() {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [deactivateUserTarget, setDeactivateUserTarget] = useState<UserWithRoles | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState(false);
+  const [reactivateUserTarget, setReactivateUserTarget] = useState<UserWithRoles | null>(null);
+  const [reactivatingUser, setReactivatingUser] = useState(false);
 
   // Employee record (payee) data — keyed by user_id so each row in the Users table
   // can show its own payee status + actions without a separate section.
@@ -501,6 +503,27 @@ export default function RoleManagement() {
     }
   };
 
+  const handleReactivateUser = async (target: UserWithRoles) => {
+    setReactivatingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-enable-user', {
+        body: { userId: target.id },
+      });
+      if (error) throw error;
+      if (data && data.success === false) {
+        throw new Error(data.error || 'Failed to reactivate user');
+      }
+      toast.success(`${target.full_name || target.email} reactivated`);
+      setReactivateUserTarget(null);
+      await loadUsers();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast.error(`Failed to reactivate: ${msg}`);
+    } finally {
+      setReactivatingUser(false);
+    }
+  };
+
   if (rolesLoading || loading) {
     return (
       <div className="w-full overflow-x-hidden px-2 sm:px-3 py-2 sm:py-4 max-w-7xl mx-auto">
@@ -873,13 +896,21 @@ export default function RoleManagement() {
                                       Reset Password
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    {user.is_active !== false && (
+                                    {user.is_active !== false ? (
                                       <DropdownMenuItem
                                         onClick={() => setDeactivateUserTarget(user)}
                                         className="text-xs text-amber-700 focus:text-amber-700"
                                       >
                                         <UserX className="h-3 w-3 mr-2" />
                                         Deactivate User
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onClick={() => setReactivateUserTarget(user)}
+                                        className="text-xs text-emerald-700 focus:text-emerald-700"
+                                      >
+                                        <UserCheck className="h-3 w-3 mr-2" />
+                                        Reactivate User
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
@@ -1088,13 +1119,21 @@ export default function RoleManagement() {
                                       Reset Password
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    {user.is_active !== false && (
+                                    {user.is_active !== false ? (
                                       <DropdownMenuItem
                                         onClick={() => setDeactivateUserTarget(user)}
                                         className="text-xs text-amber-700 focus:text-amber-700"
                                       >
                                         <UserX className="h-3 w-3 mr-2" />
                                         Deactivate User
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onClick={() => setReactivateUserTarget(user)}
+                                        className="text-xs text-emerald-700 focus:text-emerald-700"
+                                      >
+                                        <UserCheck className="h-3 w-3 mr-2" />
+                                        Reactivate User
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
@@ -1171,6 +1210,33 @@ export default function RoleManagement() {
               }}
             >
               {deactivatingUser ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reactivate User confirmation */}
+      <AlertDialog
+        open={reactivateUserTarget !== null}
+        onOpenChange={(open) => !open && setReactivateUserTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reactivate this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium">{reactivateUserTarget?.full_name || reactivateUserTarget?.email}</span> will be unbanned and able to sign in again. Their employee record is restored too — they'll reappear in @mentions and the time tracker. All historical data (expenses, time entries, notes) was preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reactivatingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={reactivatingUser}
+              onClick={(e) => {
+                e.preventDefault();
+                if (reactivateUserTarget) handleReactivateUser(reactivateUserTarget);
+              }}
+            >
+              {reactivatingUser ? 'Reactivating...' : 'Reactivate'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
