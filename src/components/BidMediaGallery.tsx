@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { BrandedLoader } from './ui/branded-loader';
 import { formatFileSize, formatDuration } from '@/utils/videoUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { BidMedia } from '@/types/bid';
 
 type ViewMode = 'grid' | 'list';
@@ -25,10 +26,16 @@ interface BidMediaGalleryProps {
 
 export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const { media: allMedia, isLoading } = useBidMedia(bidId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');
   const [selectedMedia, setSelectedMedia] = useState<BidMedia | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  // Mobile locks to grid (Google Photos / Apple Photos pattern). The list
+  // toggle and its companion icon button compete with the filter pills for
+  // horizontal space on a 393px viewport — hiding it lets "Videos (N)"
+  // breathe regardless of count length, and grid is the better mobile default.
+  const [viewModeState, setViewModeState] = useState<ViewMode>('grid');
+  const viewMode: ViewMode = isMobile ? 'grid' : viewModeState;
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [mediaToDelete, setMediaToDelete] = useState<BidMedia | null>(null);
 
@@ -142,22 +149,24 @@ export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
           </TabsList>
         </Tabs>
 
-        <div className="flex gap-2 self-end sm:self-auto shrink-0">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
+        {!isMobile && (
+          <div className="flex gap-2 self-end sm:self-auto shrink-0">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewModeState('grid')}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewModeState('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Media Display */}

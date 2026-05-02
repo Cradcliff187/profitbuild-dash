@@ -506,10 +506,13 @@ export default function BranchBidDetail() {
             </TabsList>
           </div>
 
-          {/* Bulk Upload action for Media Tab — single-file Camera/Video capture
-              live on the mobile BidQuickActionBar + dedicated capture pages, so
-              the tab row only needs the bulk affordance. */}
-          {activeTab === 'media' && (
+          {/* Bulk Upload — desktop only. On mobile the BidQuickActionBar's
+              Attach button (input multiple, accept image+video+docs) is the
+              single capture/attach affordance; surfacing this card alongside
+              it would duplicate the same action with worse ergonomics
+              (smaller hit target, less reachable). Hide on mobile so the
+              Media tab has one clean header row. */}
+          {activeTab === 'media' && !isMobile && (
             <div className="flex flex-wrap gap-2">
               <BidMediaBulkUpload
                 bidId={id!}
