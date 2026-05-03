@@ -649,26 +649,19 @@ const Settings = () => {
         </Card>
 
         <div className="flex justify-end space-x-2">
-          <Button 
+          <Button
             variant="outline"
             onClick={handleCancel}
             disabled={!hasProfileChanges || loading}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSaveProfile}
             disabled={!hasProfileChanges || loading}
           >
             Save Changes
           </Button>
-        </div>
-
-        {/* App Version - Subtle footer */}
-        <div className="flex items-center justify-center pt-6 pb-2 border-t mt-6">
-          <p className="text-xs text-muted-foreground/60">
-            App Version: v{__APP_VERSION__}
-          </p>
         </div>
       </div>
     </MobilePageWrapper>
