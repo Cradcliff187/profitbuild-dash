@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, useMatch, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderModal } from "@/components/project-detail/ChangeOrderModal";
 import { getNavigationGroups, getSectionLabel, getSectionIcon } from "@/components/project-detail/projectNavigation";
@@ -398,27 +392,19 @@ export const ProjectDetailView = () => {
               )}
             </div>
 
-            {/* Project Actions Menu - mobile */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 shrink-0"
-                >
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={() => navigate(`/projects/${project.id}/edit`)}
-                  className="min-h-[44px]"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Edit Project — direct icon button. Used to be wrapped in a
+                DropdownMenu with a single item, which cost an extra tap and
+                added visual noise. If a second action ever ships here, swap
+                back to a menu. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              onClick={() => navigate(`/projects/${project.id}/edit`)}
+              aria-label="Edit project"
+            >
+              <Edit className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Section Selector - Opens navigation sheet */}
@@ -743,27 +729,18 @@ export const ProjectDetailView = () => {
                 )}
               </div>
 
-              {/* Project Actions Menu - desktop */}
+              {/* Edit Project — direct icon button (was a single-item dropdown
+                  menu; one click instead of two). */}
               {!isMobile && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/projects/${project.id}/edit`)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Project
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate(`/projects/${project.id}/edit`)}
+                  aria-label="Edit project"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
               )}
 
               {/* Divider (Desktop only) */}
