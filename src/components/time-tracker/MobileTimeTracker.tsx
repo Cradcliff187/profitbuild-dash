@@ -1067,66 +1067,80 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Sync Status Banner */}
       <SyncStatusBanner />
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-2">
-            <div>
-              <p className="text-lg font-semibold leading-tight">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              <p className="text-xs opacity-90 mt-0.5">Today's Date</p>
-            </div>
-            {!isOnline && (
-              <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">
-                OFFLINE
-              </div>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-mono font-bold leading-tight">
-              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <p className="text-xs opacity-90 mt-0.5">Current Time</p>
-          </div>
+      {/* Status row — thin, single line. Replaces the previous orange-gradient
+          header that had ~80px of filler labels ("Today's Date" / "Current
+          Time") above the actual data. Now: one row, semantic typography,
+          OFFLINE pill when applicable. Keeps a subtle orange accent dot to
+          reinforce brand without dominating the chrome. */}
+      <div className="px-4 py-2 bg-card border-b border-border flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden />
+          <span className="text-sm font-medium truncate">
+            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">·</span>
+          <span className="text-sm font-mono tabular-nums text-muted-foreground">
+            {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </span>
         </div>
+        {!isOnline && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning-bg text-warning-fg border border-warning-border text-[10px] font-semibold uppercase tracking-wide">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning shrink-0" aria-hidden />
+            Offline
+          </span>
+        )}
       </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-card shadow-sm border-b sticky top-0 z-10">
-        <div className="flex">
+      {/* Tab Navigation — canonical pill strip pattern (matches R2 unification
+          across the app). All tabs visible inline, active tab gets the
+          background+shadow treatment, badge counts can be added later. ~44px
+          tall vs the previous ~80px stacked-icon style. */}
+      <div className="px-3 py-2 bg-card border-b border-border sticky top-0 z-10">
+        <div role="tablist" className="flex items-center gap-1 bg-muted/40 rounded-xl p-1">
           <button
+            role="tab"
+            aria-selected={view === 'timer'}
+            type="button"
             onClick={() => setView('timer')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'timer' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
+              view === 'timer'
+                ? "bg-background shadow-sm text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Clock className="w-5 h-5 mx-auto mb-1" />
-            Timer
+            <Clock className="h-4 w-4 shrink-0" />
+            <span className="text-sm">Timer</span>
           </button>
           <button
+            role="tab"
+            aria-selected={view === 'entries'}
+            type="button"
             onClick={() => setView('entries')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'entries' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
+              view === 'entries'
+                ? "bg-background shadow-sm text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Calendar className="w-5 h-5 mx-auto mb-1" />
-            Entries
+            <Calendar className="h-4 w-4 shrink-0" />
+            <span className="text-sm">Entries</span>
           </button>
           <button
+            role="tab"
+            aria-selected={view === 'receipts'}
+            type="button"
             onClick={() => setView('receipts')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'receipts' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
+              view === 'receipts'
+                ? "bg-background shadow-sm text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Camera className="w-5 h-5 mx-auto mb-1" />
-            Receipts
+            <Camera className="h-4 w-4 shrink-0" />
+            <span className="text-sm">Receipts</span>
           </button>
         </div>
       </div>
