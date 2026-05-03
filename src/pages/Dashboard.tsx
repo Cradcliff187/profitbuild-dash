@@ -434,6 +434,14 @@ const Dashboard = () => {
             Refresh
           </Button>
         }
+        mobileActions={[
+          {
+            label: isRefreshing ? "Refreshing..." : "Refresh",
+            icon: RefreshCw,
+            onClick: handleRefresh,
+            disabled: isRefreshing,
+          },
+        ]}
       />
 
       {/* Main Content: 2-Column Layout (Activity Feed 60%, Right Column 40%) */}
