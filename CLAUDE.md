@@ -22,7 +22,7 @@ This file is the canonical reference for Claude Code when working in this reposi
 ## Essential Commands
 
 ```bash
-npm run dev            # Dev server → http://localhost:8080
+npm run dev            # Dev server → http://localhost:5225 (pinned, strictPort)
 npm run build          # Production build → dist/
 npm run lint           # ESLint on all TS files
 npm run type-check     # tsc --noEmit (no build output)
