@@ -13,6 +13,7 @@ import { ProjectFilters, ProjectSearchFilters } from "@/components/ProjectFilter
 import { ProjectExportModal } from "@/components/ProjectExportModal";
 import { ProjectBulkActions } from "@/components/ProjectBulkActions";
 import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
+import { useRoles } from "@/contexts/RoleContext";
 import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ const Projects = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isFieldWorker } = useRoles();
   const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -47,9 +49,13 @@ const Projects = () => {
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  // Field workers default to "active" statuses (in_progress + approved) — these
+  // are jobs currently in flight, the only ones they're likely to clock time on
+  // or photograph. They can clear/widen the filter manually. Admins/managers
+  // get an unfiltered list as before.
   const [filters, setFilters] = useState<ProjectSearchFilters>({
     searchText: "",
-    status: [],
+    status: isFieldWorker ? ['in_progress', 'approved'] : [],
     jobType: [],
     clientName: [],
     dateRange: { start: null, end: null },
@@ -279,6 +285,18 @@ const Projects = () => {
     window.location.href = `/projects/${project.id}/edit`;
   };
 
+  // Field workers tapping a project card land directly on /schedule (their
+  // safe sub-route per Rule 18). Admins/managers preserve the legacy
+  // click-through to /edit. R3 — gives field workers a path to a project
+  // without going through @mention deep-links.
+  const handleViewDetails = (project: Project) => {
+    if (isFieldWorker) {
+      navigate(`/projects/${project.id}/schedule`);
+    } else {
+      handleEdit(project);
+    }
+  };
+
   const handleDelete = async (projectId: string) => {
     try {
       console.log('Deleting project:', projectId);
@@ -506,7 +524,7 @@ const Projects = () => {
                 <ProjectsList
                   projects={filteredAndSortedProjects}
                   estimates={estimates}
-                  onEdit={handleEdit}
+                  onEdit={handleViewDetails}
                   onDelete={handleDelete}
                   onCreateNew={handleCreateNew}
                   onRefresh={loadProjects}
@@ -516,7 +534,7 @@ const Projects = () => {
                   projects={paginatedProjects}
                   estimates={estimates}
                   onEdit={handleEdit}
-                  onView={handleEdit}
+                  onView={handleViewDetails}
                   onDelete={handleDelete}
                   onCreateNew={handleCreateNew}
                   isLoading={isLoading}
@@ -535,9 +553,10 @@ const Projects = () => {
                   onRefresh={loadProjects}
                 />
               )}
-              
-              {/* Mobile FAB */}
-              {isMobile && (
+
+              {/* Mobile FAB — admins/managers only. Field workers don't create
+                  projects; their primary actions live on /time-tracker. */}
+              {isMobile && !isFieldWorker && (
                 <Button
                   variant="default"
                   onClick={handleCreateNew}

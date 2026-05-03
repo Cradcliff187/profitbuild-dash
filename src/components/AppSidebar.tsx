@@ -159,7 +159,11 @@ export function AppSidebar() {
       label: "OPERATIONS",
       abbrev: "O",
       items: [
-        { title: "Projects", url: "/projects", icon: Building2, show: hasFinancialAccess },
+        // Projects is visible to every role (R3). Field workers see the list
+        // filtered to active statuses by default and tap into /schedule (their
+        // safe sub-route per Rule 18); admins/managers see the full list with
+        // the existing financial sub-routes available on drill-in.
+        { title: "Projects", url: "/projects", icon: Building2, show: true },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
         { title: "Field Media", url: "/field-media", icon: Camera, show: true },

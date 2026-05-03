@@ -142,12 +142,23 @@ export default function AppLayout() {
     checkPasswordChange();
   }, [user, authLoading, location.pathname, navigate]);
 
-  // Redirect field workers from dashboard/projects to time tracker.
+  // Redirect field workers off most /projects/* routes to the time tracker.
   //
-  // Exemption: /projects/:id/schedule is the canonical URL for the mobile
-  // schedule view (formerly /field-schedule/:projectId) — field workers need
-  // this route so mention-notification deep-links and shared links from PMs
-  // continue to land them on their Tasks / Notes / Media / Docs surface.
+  // Allowed for field workers:
+  //   /projects                          — the list page itself (R3 May 2026).
+  //                                        Field workers can browse all
+  //                                        construction projects and tap into
+  //                                        the schedule view from there.
+  //   /projects/:id/schedule[?tab=...]   — the canonical mobile schedule URL
+  //                                        (formerly /field-schedule/:id).
+  //                                        Field workers reach Tasks / Notes /
+  //                                        Media / Docs via this surface.
+  //
+  // Blocked for field workers (hits navigate('/time-tracker', replace)):
+  //   /projects/:id (overview)
+  //   /projects/:id/expenses, /control, /documents, /estimates, /billing,
+  //   /changes, /edit, etc. — these are admin/manager surfaces with finance
+  //   data field workers shouldn't see.
   useEffect(() => {
     if (!authLoading && !rolesLoading && user && isFieldWorker) {
       if (location.pathname === '/' || location.pathname === '/dashboard') {
@@ -155,8 +166,9 @@ export default function AppLayout() {
         return;
       }
       if (location.pathname.startsWith('/projects')) {
+        const isProjectsList = location.pathname === '/projects';
         const isPerProjectSchedule = /^\/projects\/[^/]+\/schedule(\/|$|\?)/.test(location.pathname);
-        if (!isPerProjectSchedule) {
+        if (!isProjectsList && !isPerProjectSchedule) {
           navigate('/time-tracker', { replace: true });
         }
       }
