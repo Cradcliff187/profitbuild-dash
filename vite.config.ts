@@ -35,7 +35,14 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     host: "::",
-    port: 8080,
+    // Pinned to 5225 (5xxx Vite range + RCG project-number prefix 225) so this
+    // dev server has a stable, unique port. strictPort: true means Vite fails
+    // loudly if 5225 is busy instead of silently falling through to a random
+    // port — that silent fallthrough used to break Claude Preview / launch.json
+    // when another local Vite project (e.g. radcliff-builders-portal) was on
+    // 8080. If you change this, update .claude/launch.json to match.
+    port: 5225,
+    strictPort: true,
   },
   build: {
     rollupOptions: {
