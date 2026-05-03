@@ -18,12 +18,19 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 17%;
 
-    /* PRIMARY = Orange (construction accent) */
-    --primary: 25 76% 46%;               /* #cf791d - Radcliff Orange */
+    /* PRIMARY = Orange (construction accent)
+       R6 (May 2026): Darkened from L=46% (#cf791d, 3.4:1 vs white — fails
+       WCAG AA for body text) to L=38% (#a85f10, ~5.0:1 vs white — passes
+       AA). Same hue (25) and saturation (76%), so it still reads as
+       Radcliff orange, just richer/more burnt — closer to construction-
+       safety orange. White-on-orange (the tab-pill active state and
+       button text) also passes AA at this shade. If you ever need to
+       revert, the previous value was `25 76% 46%`. */
+    --primary: 25 76% 38%;               /* #a85f10 - Radcliff Orange (AA-compliant) */
     --primary-foreground: 0 0% 98%;      /* White text on orange */
-    
+
     /* CONSTRUCTION = Same orange for consistency */
-    --construction: 25 76% 46%;          /* #cf791d */
+    --construction: 25 76% 38%;          /* #a85f10 */
     --construction-foreground: 0 0% 98%;
 
     /* SECONDARY = Navy Blue (professional) */
@@ -33,7 +40,7 @@ All colors MUST be HSL.
     --muted: 210 17% 95%;                /* Light gray */
     --muted-foreground: 0 0% 35%;        /* #585858 - Medium gray */
 
-    --accent: 25 76% 46%;                /* Orange accent */
+    --accent: 25 76% 38%;                /* Orange accent (AA-aligned with --primary) */
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84% 60%;            /* Keep red */
@@ -69,7 +76,7 @@ All colors MUST be HSL.
 
     --border: 210 15% 85%;               /* Light border */
     --input: 210 15% 85%;                /* Light input border */
-    --ring: 25 76% 46%;                  /* Orange focus ring */
+    --ring: 25 76% 38%;                  /* Orange focus ring (AA-aligned with --primary) */
 
     --radius: 0.75rem;
 
