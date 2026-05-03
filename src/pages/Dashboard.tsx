@@ -444,10 +444,25 @@ const Dashboard = () => {
         ]}
       />
 
-      {/* Main Content: 2-Column Layout (Activity Feed 60%, Right Column 40%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Activity Feed - 60% width on desktop */}
-        <div className="lg:col-span-3 order-2 lg:order-1">
+      {/* Main Content
+       *
+       * Mobile: NeedsAttention → Activity Feed → ProjectStatus → WorkOrderStatus
+       *   (NeedsAttention first, then live activity, THEN heavier financial
+       *   status cards. Activity Feed used to be buried 3 screens down on
+       *   phones; this puts it where users actually scan.)
+       *
+       * Desktop: 60/40 split, Activity Feed on the left column with the three
+       *   status cards stacked in the right column.
+       *
+       * Implementation uses `display: contents` on the right-column wrapper at
+       * mobile so its children become direct children of the flex container,
+       * where individual `order-*` classes can interleave them with Activity
+       * Feed. On lg+, `lg:flex lg:flex-col` overrides `contents` to restore
+       * the wrapper, returning the layout to a 2-column grid.
+       */}
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-5">
+        {/* Activity Feed — mobile #2, desktop main column (60%) */}
+        <div className="order-2 lg:order-none lg:col-span-3">
           <Card>
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm font-semibold">Activity Feed</CardTitle>
@@ -458,39 +473,50 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Right Column - 40% width on desktop */}
-        <div className="lg:col-span-2 space-y-3 order-1 lg:order-2">
-          <NeedsAttentionCard
-            pendingTimeEntries={pendingApprovals.timeEntries}
-            pendingReceipts={pendingApprovals.receipts}
-            pendingChangeOrders={pendingChangeOrders}
-            expiringQuotes={expiringQuotes}
-            draftEstimates={draftEstimates}
-            workOrdersWithoutEstimates={workOrdersWithoutEstimates}
-            overdueWorkOrders={overdueWorkOrders}
-            workOrdersOnHold={workOrdersOnHold}
-            workOrdersOverBudget={workOrdersOverBudget}
-          />
-          
-          <ProjectStatusCard 
-            statusCounts={projectStatusCounts}
-            activeContractValue={activeContractValue}
-            activeEstimatedCosts={activeEstimatedCosts}
-            completedContractValue={completedContractValue}
-            activeProjectedMargin={activeProjectedMargin}
-            activeProjectedMarginPercent={activeProjectedMarginPercent}
-            totalInvoiced={totalInvoiced}
-          />
+        {/* Right column wrapper — `contents` on mobile so children flow into
+         *  the parent flex container individually for explicit ordering.
+         *  Restored as a vertical flex column at lg+. */}
+        <div className="contents lg:flex lg:flex-col lg:gap-3 lg:col-span-2">
+          {/* Needs Attention — mobile #1, desktop top of right column */}
+          <div className="order-1 lg:order-none">
+            <NeedsAttentionCard
+              pendingTimeEntries={pendingApprovals.timeEntries}
+              pendingReceipts={pendingApprovals.receipts}
+              pendingChangeOrders={pendingChangeOrders}
+              expiringQuotes={expiringQuotes}
+              draftEstimates={draftEstimates}
+              workOrdersWithoutEstimates={workOrdersWithoutEstimates}
+              overdueWorkOrders={overdueWorkOrders}
+              workOrdersOnHold={workOrdersOnHold}
+              workOrdersOverBudget={workOrdersOverBudget}
+            />
+          </div>
 
-          <WorkOrderStatusCard
-            statusCounts={workOrderStatusCounts}
-            activeContractValue={workOrderContractValue}
-            activeEstimatedCosts={workOrderEstimatedCosts}
-            completedContractValue={workOrderCompletedValue}
-            activeProjectedMargin={workOrderProjectedMargin}
-            activeProjectedMarginPercent={workOrderProjectedMarginPercent}
-            totalInvoiced={workOrderTotalInvoiced}
-          />
+          {/* Project Status — mobile #3, desktop middle of right column */}
+          <div className="order-3 lg:order-none">
+            <ProjectStatusCard
+              statusCounts={projectStatusCounts}
+              activeContractValue={activeContractValue}
+              activeEstimatedCosts={activeEstimatedCosts}
+              completedContractValue={completedContractValue}
+              activeProjectedMargin={activeProjectedMargin}
+              activeProjectedMarginPercent={activeProjectedMarginPercent}
+              totalInvoiced={totalInvoiced}
+            />
+          </div>
+
+          {/* Work Order Status — mobile #4, desktop bottom of right column */}
+          <div className="order-4 lg:order-none">
+            <WorkOrderStatusCard
+              statusCounts={workOrderStatusCounts}
+              activeContractValue={workOrderContractValue}
+              activeEstimatedCosts={workOrderEstimatedCosts}
+              completedContractValue={workOrderCompletedValue}
+              activeProjectedMargin={workOrderProjectedMargin}
+              activeProjectedMarginPercent={workOrderProjectedMarginPercent}
+              totalInvoiced={workOrderTotalInvoiced}
+            />
+          </div>
         </div>
       </div>
     </MobilePageWrapper>
