@@ -68,14 +68,14 @@ export default function Training() {
     switch (status) {
       case 'completed':
         return (
-          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+          <Badge variant="default" className="bg-success hover:bg-success/90 text-success-foreground">
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Completed
           </Badge>
         );
       case 'pending':
         return (
-          <Badge variant="outline" className="border-yellow-500 text-yellow-700 dark:text-yellow-500">
+          <Badge variant="outline" className="border-warning text-warning-fg bg-warning-bg">
             <Clock className="h-3 w-3 mr-1" />
             Pending
             {daysRemaining !== null && daysRemaining > 0 && (
@@ -165,30 +165,30 @@ export default function Training() {
           <span className="text-sm font-medium text-muted-foreground">Training Progress</span>
           <span className={cn(
             "text-lg font-bold",
-            stats.completionRate === 100 ? "text-green-600" : 
-            stats.overdue > 0 ? "text-red-600" : "text-primary"
+            stats.completionRate === 100 ? "text-success" :
+            stats.overdue > 0 ? "text-destructive" : "text-primary"
           )}>
             {stats.completionRate}% Complete
           </span>
         </div>
-        <Progress 
-          value={stats.completionRate} 
+        <Progress
+          value={stats.completionRate}
           className={cn(
             "h-3",
-            stats.completionRate === 100 ? "[&>div]:bg-green-600" :
-            stats.overdue > 0 ? "[&>div]:bg-red-500" :
+            stats.completionRate === 100 ? "[&>div]:bg-success" :
+            stats.overdue > 0 ? "[&>div]:bg-destructive" :
             "[&>div]:bg-primary"
           )}
         />
         {stats.completionRate === 100 && (
-          <div className="flex items-center gap-1 mt-2 text-green-600 text-sm font-medium">
+          <div className="flex items-center gap-1 mt-2 text-success text-sm font-medium">
             <CheckCircle2 className="h-4 w-4" />
             All training complete!
           </div>
         )}
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards — semantic tokens (R8) instead of raw Tailwind shades. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <Card>
           <CardContent className="p-4">
@@ -199,19 +199,19 @@ export default function Training() {
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground mb-1">Completed</div>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-2xl font-bold text-success">{stats.completed}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground mb-1">Pending</div>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-warning">{stats.pending}</div>
           </CardContent>
         </Card>
-        <Card className="border-red-200">
+        <Card className="border-destructive/30">
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground mb-1">Overdue</div>
-            <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
+            <div className="text-2xl font-bold text-destructive">{stats.overdue}</div>
           </CardContent>
         </Card>
       </div>

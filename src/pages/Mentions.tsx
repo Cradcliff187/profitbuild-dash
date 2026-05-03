@@ -32,6 +32,11 @@ export default function Mentions() {
             </Button>
           ) : undefined
         }
+        mobileActions={
+          unreadCount > 0
+            ? [{ label: "Mark all read", icon: CheckCheck, onClick: markAllAsRead }]
+            : undefined
+        }
       />
 
       <div className="space-y-2 mt-4">
@@ -40,11 +45,15 @@ export default function Mentions() {
             <p className="text-sm text-muted-foreground">Loading...</p>
           </Card>
         ) : notifications.length === 0 ? (
-          <Card className="p-8 text-center">
-            <Bell className="h-10 w-10 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground font-medium">No unread mentions</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              When someone tags you in a project note, it'll appear here
+          // Empty state — generous breathing room, larger glyph, two-line
+          // helper hierarchy (primary message + sub-explainer).
+          <Card className="p-10 text-center border-dashed">
+            <div className="mx-auto mb-4 h-14 w-14 rounded-full bg-muted/40 flex items-center justify-center">
+              <Bell className="h-7 w-7 text-muted-foreground/60" />
+            </div>
+            <p className="text-base font-semibold text-foreground mb-1">All caught up</p>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              When a teammate tags you in a project note, it'll appear here.
             </p>
           </Card>
         ) : (
