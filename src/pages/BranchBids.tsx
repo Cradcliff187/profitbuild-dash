@@ -426,9 +426,11 @@ export default function BranchBids() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <ExternalLink className="h-4 w-4 text-yellow-600" />
+                <ExternalLink className="h-4 w-4 text-warning" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="text-xs text-muted-foreground" title="Leads not yet converted to a project">
+                    Unconverted
+                  </p>
                   <p className="text-xl font-bold">{statistics.pendingBids}</p>
                 </div>
               </div>
@@ -437,7 +439,7 @@ export default function BranchBids() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <Users className="h-4 w-4 text-blue-600" />
+                <Users className="h-4 w-4 text-info" />
                 <div>
                   <p className="text-xs text-muted-foreground">With Clients</p>
                   <p className="text-xl font-bold">{statistics.withClients}</p>
@@ -448,7 +450,7 @@ export default function BranchBids() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-green-600" />
+                <FileText className="h-4 w-4 text-success" />
                 <div>
                   <p className="text-xs text-muted-foreground">This Month</p>
                   <p className="text-xl font-bold">{statistics.thisMonth}</p>
