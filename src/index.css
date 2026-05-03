@@ -47,6 +47,26 @@ All colors MUST be HSL.
     --warning: 43 96% 56%;               /* Keep yellow */
     --warning-foreground: 0 0% 17%;
 
+    /* Warning surface variants — for tinted callouts (alerts, banners,
+       inline warnings) where bare --warning / --warning-foreground is too
+       saturated for body text. Mirrors how shadcn handles bg-destructive
+       vs bg-destructive/10. Pages were previously reaching for raw
+       Tailwind shades like bg-yellow-50 / border-yellow-200 / text-yellow-800
+       to achieve this — now centralized as tokens. */
+    --warning-bg: 43 96% 95%;            /* yellow-50 — soft tinted background */
+    --warning-fg: 28 78% 28%;            /* yellow-800 — high-contrast text on warning-bg */
+    --warning-border: 43 96% 80%;        /* yellow-200 — subdued border */
+
+    /* Info — semantic blue, parallel to success/warning/destructive.
+       The token system had no blue surface; pages reached for
+       text-blue-600 directly. Sized to read at body text against
+       white background (4.7:1 contrast). */
+    --info: 217 91% 45%;                 /* blue-600-ish, AA on white */
+    --info-foreground: 0 0% 98%;
+    --info-bg: 213 100% 96%;             /* blue-50 */
+    --info-fg: 213 80% 28%;              /* blue-800 */
+    --info-border: 213 95% 85%;          /* blue-200 */
+
     --border: 210 15% 85%;               /* Light border */
     --input: 210 15% 85%;                /* Light input border */
     --ring: 25 76% 46%;                  /* Orange focus ring */
@@ -142,6 +162,19 @@ All colors MUST be HSL.
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
+    /* Dark-mode warning + info surfaces — mirrors light-mode tokens.
+       Backgrounds get muted dark slate; foregrounds get raised lightness
+       so text reads clearly on the dark surface. */
+    --warning-bg: 28 50% 15%;
+    --warning-fg: 43 96% 80%;
+    --warning-border: 28 50% 30%;
+
+    --info: 213 80% 60%;
+    --info-foreground: 0 0% 98%;
+    --info-bg: 213 60% 15%;
+    --info-fg: 213 95% 80%;
+    --info-border: 213 60% 30%;
 
     --border: 217.2 32.6% 25%;
     --input: 217.2 32.6% 25%;
