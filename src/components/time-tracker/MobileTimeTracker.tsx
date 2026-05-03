@@ -1204,165 +1204,182 @@ export const MobileTimeTracker: React.FC = () => {
             </div>
           )}
 
-          {/* Team Member Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4 relative">
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              <User className="w-4 h-4 inline mr-1" />
+          {/* Team Member Selection — picker tile (TT-B). Removed the outer
+              card wrapper that nested the trigger inside another card; the
+              trigger button itself is now the elevated white surface. Label
+              is small uppercase muted, sits above the tile (industry-standard
+              field-label pattern). Active-indicator pill uses --success token
+              instead of raw green-500/green-600. */}
+          <div className="space-y-1.5 relative">
+            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <User className="w-3.5 h-3.5" />
               Team Member
             </label>
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowProjectSelect(false);
-                  setShowWorkerSelect(!showWorkerSelect);
-                }}
-                disabled={activeTimer !== null}
-                className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-              >
-                {selectedTeamMember ? (
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-foreground">{selectedTeamMember.payee_name}</div>
-                    {activeTimerPayeeIds.has(selectedTeamMember.id) && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                        Active
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">Select team member...</div>
-                )}
-              </button>
-              
-              {showWorkerSelect && !activeTimer && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowWorkerSelect(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
-                    {teamMembers.map(member => (
-                      <button
-                        key={member.id}
-                        onClick={() => {
-                          setSelectedTeamMember(member);
-                          setShowWorkerSelect(false);
-                        }}
-                        className={cn(
-                          "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                          selectedTeamMember?.id === member.id
-                            ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-semibold">{member.payee_name}</div>
-                          <div className="flex items-center gap-2">
-                            {activeTimerPayeeIds.has(member.id) && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                Active
-                              </span>
-                            )}
-                            {selectedTeamMember?.id === member.id && (
-                              <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </>
+            <button
+              onClick={() => {
+                setShowProjectSelect(false);
+                setShowWorkerSelect(!showWorkerSelect);
+              }}
+              disabled={activeTimer !== null}
+              className="w-full p-4 text-left bg-card rounded-xl border-2 border-border hover:border-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px]"
+            >
+              {selectedTeamMember ? (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold text-foreground truncate">{selectedTeamMember.payee_name}</div>
+                  {activeTimerPayeeIds.has(selectedTeamMember.id) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-success/10 text-success rounded-full shrink-0">
+                      <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+                      Active
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">Select team member...</div>
               )}
-            </div>
-          </div>
+            </button>
 
-          {/* Project Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4 relative">
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              Project
-            </label>
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowWorkerSelect(false);
-                  setShowProjectSelect(!showProjectSelect);
-                }}
-                disabled={activeTimer !== null}
-                className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-              >
-                {selectedProject ? (
-                  <div>
-                    <div className="font-semibold text-foreground">
-                      {selectedProject.project_number} - {selectedProject.project_name}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
-                    {selectedProject.address && (
-                      <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">Select project...</div>
-                )}
-              </button>
-              
-              {showProjectSelect && !activeTimer && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowProjectSelect(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
-                    {projects.map(project => (
-                      <button
-                        key={project.id}
-                        onClick={() => {
-                          setSelectedProject(project);
-                          setShowProjectSelect(false);
-                        }}
-                        className={cn(
-                          "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                          selectedProject?.id === project.id
-                            ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold truncate">
-                              {project.project_number} - {project.project_name}
-                            </div>
-                            <div className="text-sm text-muted-foreground truncate">{project.client_name}</div>
-                            {project.address && (
-                              <div className="text-sm text-muted-foreground truncate">{project.address}</div>
-                            )}
-                          </div>
-                          {selectedProject?.id === project.id && (
+            {showWorkerSelect && !activeTimer && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowWorkerSelect(false)}
+                />
+                <div className="absolute left-0 right-0 top-full mt-2 border rounded-xl bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {teamMembers.map(member => (
+                    <button
+                      key={member.id}
+                      onClick={() => {
+                        setSelectedTeamMember(member);
+                        setShowWorkerSelect(false);
+                      }}
+                      className={cn(
+                        "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                        selectedTeamMember?.id === member.id
+                          ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-semibold truncate">{member.payee_name}</div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {activeTimerPayeeIds.has(member.id) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-success/10 text-success rounded-full">
+                              <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+                              Active
+                            </span>
+                          )}
+                          {selectedTeamMember?.id === member.id && (
                             <Check className="w-5 h-5 text-primary flex-shrink-0" />
                           )}
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Clock In/Out Button */}
+          {/* Project Selection — same picker tile pattern as Team Member.
+              Single elevated trigger button (no nested card). When a project
+              is selected, project# stays mono+muted (matches the slim list
+              card pattern from R3) while project_name is the focal element. */}
+          <div className="space-y-1.5 relative">
+            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <MapPin className="w-3.5 h-3.5" />
+              Project
+            </label>
+            <button
+              onClick={() => {
+                setShowWorkerSelect(false);
+                setShowProjectSelect(!showProjectSelect);
+              }}
+              disabled={activeTimer !== null}
+              className="w-full p-4 text-left bg-card rounded-xl border-2 border-border hover:border-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px]"
+            >
+              {selectedProject ? (
+                <div className="space-y-0.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-mono text-muted-foreground shrink-0">
+                      {selectedProject.project_number}
+                    </span>
+                    <span className="text-sm font-semibold text-foreground truncate">
+                      {selectedProject.project_name}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">{selectedProject.client_name}</div>
+                  {selectedProject.address && (
+                    <div className="text-xs text-muted-foreground/70 truncate">{selectedProject.address}</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">Select project...</div>
+              )}
+            </button>
+
+            {showProjectSelect && !activeTimer && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProjectSelect(false)}
+                />
+                <div className="absolute left-0 right-0 top-full mt-2 border rounded-xl bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {projects.map(project => (
+                    <button
+                      key={project.id}
+                      onClick={() => {
+                        setSelectedProject(project);
+                        setShowProjectSelect(false);
+                      }}
+                      className={cn(
+                        "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                        selectedProject?.id === project.id
+                          ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs font-mono text-muted-foreground shrink-0">
+                              {project.project_number}
+                            </span>
+                            <span className="text-sm font-semibold truncate">
+                              {project.project_name}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">{project.client_name}</div>
+                          {project.address && (
+                            <div className="text-xs text-muted-foreground/70 truncate">{project.address}</div>
+                          )}
+                        </div>
+                        {selectedProject?.id === project.id && (
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Clock In/Out + Manual Entry — primary CTA gets a tighter gradient
+              with the design-system green. Manual entry secondary action
+              swapped from a dashed border (read as placeholder UI) to a solid
+              outline so it looks intentional rather than provisional. */}
           <div className="pt-4 space-y-3">
             {!activeTimer ? (
               <button
                 onClick={handleClockIn}
                 disabled={!selectedTeamMember || !selectedProject || loading}
-                className="w-full bg-gradient-to-r from-green-500 via-green-600 to-teal-500 hover:from-green-600 hover:via-green-700 hover:to-teal-600 text-white py-6 rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-5 rounded-2xl font-bold text-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide"
               >
                 {loading ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <Play className="w-8 h-8" />
+                    <Play className="w-6 h-6 fill-current" />
                     CLOCK IN
                   </>
                 )}
@@ -1371,25 +1388,27 @@ export const MobileTimeTracker: React.FC = () => {
               <button
                 onClick={handleClockOut}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-6 rounded-2xl font-bold text-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-5 rounded-2xl font-bold text-lg shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide"
               >
                 {loading ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <Square className="w-8 h-8" />
+                    <Square className="w-6 h-6 fill-current" />
                     CLOCK OUT
                   </>
                 )}
               </button>
             )}
-            
-            {/* Manual Entry Button */}
+
+            {/* Manual Entry Button — secondary action. Solid outline (not
+                dashed) so it reads as intentional rather than placeholder UI.
+                Lower visual weight than the primary CTA above. */}
             <button
               onClick={() => setShowManualEntry(true)}
-              className="w-full bg-card border-2 border-dashed border-primary/50 hover:border-primary hover:bg-primary/5 text-primary py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+              className="w-full bg-card border border-border hover:border-primary hover:bg-primary/5 text-foreground py-3.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
             >
-              <Edit2 className="w-5 h-5" />
+              <Edit2 className="w-4 h-4 text-primary" />
               Add Time Entry
             </button>
           </div>
