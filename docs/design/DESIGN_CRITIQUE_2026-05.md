@@ -423,15 +423,11 @@ Tracked on branch [`claude/design-critique-updates`](https://github.com/Cradclif
 | TT-C | Active timer card refinement | `a28748d` | Pill-shaped status indicators with ping-and-fill pulse, harmonized project info layout, tabular-nums on the timer. |
 | FW-A | Mentions title fix + empty state polish + Training tokens | `068bdb5` | `/mentions` and `/sms` route titles fixed in AppLayout. Mentions empty state and Training stats both use semantic tokens. |
 | FW-B | Field Media empty state + mobile capture actions | `9ac900a` | Capture Photo + Capture Video reachable via PageHeader kebab on mobile. |
-
-### ⏳ Pending
-
-| # | Item | Effort | Notes |
-|---|---|---|---|
-| R4 | Settings anchor nav | S | Long monolithic settings page still needs in-page nav. Next on the list. |
-| R13 | Reports AI Chat first-load suggestion grid | S | Onboarding hint for the LLM-first interface. |
-| R14 | RoleManagement mobile cards | M | Admin table is still horizontal-scroll on phones. |
-| R6 | Brand orange contrast | S | Needs a brand decision before applying — current orange fails WCAG AA on white at body sizes. Asks user before changing. |
+| Docs | Implementation status + Architectural Rules 23/24 + Gotcha 43 | `29094da` | This file's "Implementation Status" section + CLAUDE.md updates documenting the new patterns. |
+| R4 | Settings anchor nav | `9053e7d` | Sticky pill strip below the page header with role-filtered sections (8-11 pills depending on role). Smooth-scroll to anchored sections. Bonus: warning callout migrated to `--warning-bg/border/fg` tokens. |
+| R13 | Reports AI Chat first-load suggestion grid | `16b42db` | Replaced 6 inline Badge pills with a category-grouped (Pipeline / Time / Money / Customers) card grid. 1-col mobile / 2-col desktop. Matches Notion AI / Linear Ask / ChatGPT first-load conventions. |
+| R14 | RoleManagement token migration | `1d99510` | Audit was wrong about needing a mobile card variant — it already had one (Apr 2026 Rule 11 rebuild). What was actually missing: 11 raw Tailwind colors swapped to semantic tokens. `grep -c text-(green\|red\|orange\|blue\|yellow)-[0-9]+` → 0. |
+| R6 | Brand orange contrast — darkened to L=38% | `ea1ec32` | `--primary` shifted from `hsl(25 76% 46%)` (#cf791d, 3.4:1 vs white — fails AA) to `hsl(25 76% 38%)` (#a85f10, 5.0:1 vs white — passes AA). Same hue + saturation; richer/burnt-orange feel, closer to construction-safety orange. White-on-orange tab pills also pass AA at this shade. `--construction`/`--accent`/`--ring` shifted together. |
 
 ### ⏸ Deferred
 
@@ -439,6 +435,10 @@ Tracked on branch [`claude/design-critique-updates`](https://github.com/Cradclif
 |---|---|---|
 | TT-D | Custom worker/project dropdowns → shadcn `Select` | Risk of behavioral regression in the Active-pill rendering and the body-scroll lock; visual gain marginal vs. current. Worth its own focused session. |
 | R5 | Time Tracker rebuild (1,783-line file split + chrome unification) | Too large to combine with other polish. TT-A/TT-B/TT-C already captured the highest-impact visuals; remainder is structural. Belongs in its own session with a regression test plan. |
+
+### Branch summary
+
+All 16 critique items + 1 bonus + 3 Time Tracker polish phases + 2 field-worker polish phases + dev env fix shipped in **~22 commits** on `claude/design-critique-updates`. Net: every priority item from the original critique either landed or is documented as deferred-with-reason. Branch ready for review/merge.
 
 ---
 
