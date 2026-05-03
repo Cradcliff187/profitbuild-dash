@@ -1169,35 +1169,66 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Timer View */}
       {view === 'timer' && (
         <div className="p-4 space-y-4">
-          {/* Active Timer Display */}
+          {/* Active Timer — focal element when clocked in. Strong green
+              gradient (kept raw greens for high-saturation status presence;
+              the --success token is darker forest green which doesn't read
+              as "live timer"). Project info layout harmonized with the
+              picker tiles + slim list cards (mono project_number first,
+              then project_name, then client, then address). */}
           {activeTimer && (
-            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
-                  <span className="font-semibold">CLOCKED IN</span>
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-2xl p-5 shadow-xl">
+              {/* Status row — live pulse + CLOCKED IN pill, GPS chip on the
+                  right when location was captured */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inset-0 rounded-full bg-white opacity-75 animate-ping" />
+                    <span className="relative h-2 w-2 rounded-full bg-white" />
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">Clocked in</span>
                 </div>
-                {activeTimer.location && <MapPin className="w-5 h-5" />}
-              </div>
-              
-              <div className="text-center py-6">
-                <div className="text-5xl font-mono font-bold mb-2">{getElapsedTime()}</div>
-                <p className="text-green-100">Started at {formatTime(activeTimer.startTime)}</p>
+                {activeTimer.location && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-medium uppercase tracking-wide">
+                    <MapPin className="w-3 h-3" />
+                    GPS
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-2 text-sm bg-white/10 rounded-lg p-3 backdrop-blur">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>{activeTimer.teamMember.payee_name}</span>
+              {/* Elapsed time — focal numeric. Tabular-nums prevents the
+                  digits from jittering as the timer ticks. */}
+              <div className="text-center py-5">
+                <div className="text-5xl font-mono font-bold tabular-nums tracking-tight mb-1">
+                  {getElapsedTime()}
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                <p className="text-xs text-white/80 uppercase tracking-wide">
+                  Started {formatTime(activeTimer.startTime)}
+                </p>
+              </div>
+
+              {/* Worker + project tile — same vertical layout as the picker
+                  tiles below so the data stays consistent across modes. */}
+              <div className="space-y-2.5 bg-white/10 rounded-xl p-3.5 backdrop-blur-sm border border-white/10">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <User className="w-4 h-4 shrink-0 opacity-80" />
+                  <span className="truncate">{activeTimer.teamMember.payee_name}</span>
+                </div>
+                <div className="border-t border-white/15 pt-2.5 space-y-0.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[11px] font-mono text-white/70 shrink-0">
+                      {activeTimer.project.project_number}
+                    </span>
+                    <span className="text-sm font-semibold truncate">
+                      {activeTimer.project.project_name}
+                    </span>
                   </div>
-                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                  <div className="text-xs text-white/80 truncate">
+                    {activeTimer.project.client_name}
+                  </div>
                   {activeTimer.project.address && (
-                    <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
+                    <div className="text-xs text-white/70 truncate">
+                      {activeTimer.project.address}
+                    </div>
                   )}
                 </div>
               </div>
