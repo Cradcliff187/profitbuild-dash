@@ -397,6 +397,51 @@ But on mobile users see, in order: NeedsAttention → ProjectStatusCard → Work
 
 ---
 
+## Implementation Status (May 2026)
+
+Tracked on branch [`claude/design-critique-updates`](https://github.com/Cradcliff187/profitbuild-dash/tree/claude/design-critique-updates). Status as of 2026-05-03.
+
+### ✅ Shipped
+
+| # | Item | Commits | Notes |
+|---|---|---|---|
+| Dev | Pin Vite to 5225 + strictPort | `ee6489d`, `207884d` | Fixed silent port collision with sibling project. CLAUDE.md dev URL updated. |
+| R1 | `PageHeader.mobileActions` overflow menu + Dashboard | `42c0ade` | Adds dev-mode warn for pages that drop actions on mobile. See new Architectural Rule 23. |
+| Bonus | Mobile sidebar category labels + separators | `5e01799` | Mobile sheet now mirrors desktop nav hierarchy. |
+| R8 | Semantic `--warning-bg/fg/border` + `--info` tokens | `06a4bdb` | Pure additive; later commits migrated consumers. |
+| R10 | Dashboard mobile column order | `4fabaae` | Activity Feed moves up to position 2 on mobile via `display: contents`. |
+| R16 | Remove duplicate Settings app version | `12bc956` | App Updates card now the single source. |
+| R15 | Leads "Pending" → "Unconverted" + token swaps | `3e48ab3` | Stat icons migrated to `--success`/`--warning`/`--info`. |
+| R9 | Single-item dropdowns → direct icon button | `4da533e` | ProjectDetailView mobile + desktop. Removed dead DropdownMenu imports. |
+| R7 | Drop redundant CardHeader on tab content | `1d868d2` | BranchBidDetail Notes/Media/Docs tabs + Reports custom builder. |
+| R2 | Standardize mobile tabs on pill strip | `30f2cb8` | `MobileTabSelector` rewritten as a pill strip; 10 callers benefit; Reports `<Select>` migrated. |
+| R11 | Project Detail mobile header collapse | `da07713` | Client + address combine into one row with `·` separator. Saves ~25px. |
+| R12 | Leads `LINKED` badge → `--success` token | `e1d4b11` | Existing mobile card view was found in BidsTableView; only token swap needed. |
+| R3 | Field-worker Projects sidebar + slim card + filter polish | `f8bfb4c`, `092a318` | Projects visible to all roles; field workers get slim cards with status pill, default filter to active statuses, FAB hidden. New `isFieldWorkerOnly` in RoleContext (Architectural Rule 24). Receipts deep-link sidebar entry for field workers. |
+| TT-A | Time Tracker slim status row + pill-strip tabs | `6e086a2` | ~80px of chrome removed. CLOCK IN reachable on first paint. |
+| TT-B | Time Tracker picker tiles + CLOCK IN + Add Time Entry polish | `ed1dc72` | Single elevated tiles (no nested cards), refined gradient, solid outline on Add Time Entry. |
+| TT-C | Active timer card refinement | `a28748d` | Pill-shaped status indicators with ping-and-fill pulse, harmonized project info layout, tabular-nums on the timer. |
+| FW-A | Mentions title fix + empty state polish + Training tokens | `068bdb5` | `/mentions` and `/sms` route titles fixed in AppLayout. Mentions empty state and Training stats both use semantic tokens. |
+| FW-B | Field Media empty state + mobile capture actions | `9ac900a` | Capture Photo + Capture Video reachable via PageHeader kebab on mobile. |
+
+### ⏳ Pending
+
+| # | Item | Effort | Notes |
+|---|---|---|---|
+| R4 | Settings anchor nav | S | Long monolithic settings page still needs in-page nav. Next on the list. |
+| R13 | Reports AI Chat first-load suggestion grid | S | Onboarding hint for the LLM-first interface. |
+| R14 | RoleManagement mobile cards | M | Admin table is still horizontal-scroll on phones. |
+| R6 | Brand orange contrast | S | Needs a brand decision before applying — current orange fails WCAG AA on white at body sizes. Asks user before changing. |
+
+### ⏸ Deferred
+
+| # | Item | Reason |
+|---|---|---|
+| TT-D | Custom worker/project dropdowns → shadcn `Select` | Risk of behavioral regression in the Active-pill rendering and the body-scroll lock; visual gain marginal vs. current. Worth its own focused session. |
+| R5 | Time Tracker rebuild (1,783-line file split + chrome unification) | Too large to combine with other polish. TT-A/TT-B/TT-C already captured the highest-impact visuals; remainder is structural. Belongs in its own session with a regression test plan. |
+
+---
+
 ## Appendix: What's strong (deliberate callouts)
 
 - **HSL token system** in [src/index.css:9–158](../../src/index.css). Semantic, dark-mode-ready, with a B2B-dense scale variant (12px / 13px / 14px / 15px) that makes the app feel like Excel-density when needed.
