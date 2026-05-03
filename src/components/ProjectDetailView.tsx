@@ -357,7 +357,12 @@ export const ProjectDetailView = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
 
-            {/* Project Info - restructured layout */}
+            {/* Project Info — three rows on mobile (was four). Client name
+                and address now share a single row with a "·" separator
+                (R11). The address link is still a discrete tappable area
+                for the map deep-link; clicking the client name does
+                nothing (it's not a link). Saves ~25px of vertical chrome
+                on portrait phones without losing any information. */}
             <div className="flex-1 min-w-0">
               {/* Row 1: Number + Status */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -367,29 +372,33 @@ export const ProjectDetailView = () => {
                 <ProjectStatusBadge status={project.status} size="sm" />
               </div>
 
-              {/* Row 2: Project Name - prominent, allows wrapping */}
+              {/* Row 2: Project Name — prominent, allows wrapping */}
               <h1 className="text-base font-semibold text-foreground leading-tight mt-1 line-clamp-2">
                 {project.project_name}
               </h1>
 
-              {/* Row 3: Client Name */}
-              <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                {project.client_name}
-              </p>
-
-              {/* Row 4: Address - enhanced touch target */}
-              {project.address && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground active:text-foreground transition-colors"
-                >
-                  <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate max-w-[200px]">{project.address}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
-                </a>
-              )}
+              {/* Row 3: Client Name [ · Address (map link) ] */}
+              <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                <span className="text-sm text-muted-foreground truncate min-w-0">
+                  {project.client_name}
+                </span>
+                {project.address && (
+                  <>
+                    <span className="text-muted-foreground/50 shrink-0">·</span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground active:text-foreground transition-colors min-w-0"
+                      title={project.address}
+                    >
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      <span className="truncate max-w-[120px]">{project.address}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
+                    </a>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Edit Project — direct icon button. Used to be wrapped in a
