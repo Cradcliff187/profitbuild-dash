@@ -213,8 +213,8 @@ export function AppSidebar() {
 
     return (
       <div key={group.label}>
-        <SidebarGroup className={cn(collapsed && "p-1")}>
-          {!collapsed && (
+        <SidebarGroup className={cn(collapsed && !isMobile && "p-1")}>
+          {(!collapsed || isMobile) && (
             <SidebarGroupLabel className="text-xs uppercase text-sidebar-foreground/60 mb-1">
               {group.label}
             </SidebarGroupLabel>
@@ -260,7 +260,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />}
+        {showSeparator && (!collapsed || isMobile) && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />}
       </div>
     );
   };
@@ -347,7 +347,7 @@ export function AppSidebar() {
         {/* Admin section - only shows if user has admin items visible */}
         {adminGroup.items.some(item => item.show) && (
           <>
-            {!collapsed && <SidebarSeparator className="my-2" />}
+            {(!collapsed || isMobile) && <SidebarSeparator className="my-2" />}
             {renderNavGroup(adminGroup, false)}
           </>
         )}
