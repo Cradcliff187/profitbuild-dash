@@ -94,7 +94,7 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
       activeFilterCount={getActiveFilterCount()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
-      defaultExpanded={hasActiveFilters()}
+      defaultExpanded={false}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
         {/* Status Multi-Select Dropdown */}

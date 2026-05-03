@@ -49,10 +49,9 @@ const Projects = () => {
   const [clients, setClients] = useState<Array<{ id: string; client_name: string; }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
-  // Field workers default to "active" statuses (in_progress + approved) — these
-  // are jobs currently in flight, the only ones they're likely to clock time on
-  // or photograph. They can clear/widen the filter manually. Admins/managers
-  // get an unfiltered list as before.
+  // Field workers default to active statuses (in_progress + approved) — jobs
+  // currently in flight, the only ones they're likely to be working on. They
+  // can clear/widen the filter manually. Admins/managers get unfiltered.
   const [filters, setFilters] = useState<ProjectSearchFilters>({
     searchText: "",
     status: isFieldWorker ? ['in_progress', 'approved'] : [],
@@ -285,10 +284,10 @@ const Projects = () => {
     window.location.href = `/projects/${project.id}/edit`;
   };
 
-  // Field workers tapping a project card land directly on /schedule (their
-  // safe sub-route per Rule 18). Admins/managers preserve the legacy
-  // click-through to /edit. R3 — gives field workers a path to a project
-  // without going through @mention deep-links.
+  // Click-through routing is role-aware. Field workers land on /schedule
+  // (their safe sub-route per Rule 18) — admins/managers preserve the
+  // legacy click-through to /edit. Tapping a card always works the same
+  // way as the explicit "View" action in the row menu.
   const handleViewDetails = (project: Project) => {
     if (isFieldWorker) {
       navigate(`/projects/${project.id}/schedule`);

@@ -46,7 +46,7 @@ export const PayeeFilters = ({
       hasActiveFilters={hasActiveFilters}
       onClearFilters={onClearFilters}
       resultCount={resultCount}
-      defaultExpanded={hasActiveFilters}
+      defaultExpanded={false}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Search */}

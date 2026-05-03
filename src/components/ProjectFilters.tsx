@@ -104,7 +104,7 @@ export const ProjectFilters = ({
       activeFilterCount={getActiveFilterCount()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
-      defaultExpanded={hasActiveFilters()}
+      defaultExpanded={false}
       leftActions={leftActions}
       actions={actions}
     >

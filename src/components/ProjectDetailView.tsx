@@ -403,20 +403,26 @@ export const ProjectDetailView = () => {
 
             {/* Edit Project — direct icon button. Used to be wrapped in a
                 DropdownMenu with a single item, which cost an extra tap and
-                added visual noise. If a second action ever ships here, swap
-                back to a menu. */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-              onClick={() => navigate(`/projects/${project.id}/edit`)}
-              aria-label="Edit project"
-            >
-              <Edit className="h-5 w-5" />
-            </Button>
+                added visual noise. Hidden for field workers (R3) — they
+                can't reach /edit anyway, so the button would be dead UI. */}
+            {!isFieldWorker && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0"
+                onClick={() => navigate(`/projects/${project.id}/edit`)}
+                aria-label="Edit project"
+              >
+                <Edit className="h-5 w-5" />
+              </Button>
+            )}
           </div>
 
-          {/* Section Selector - Opens navigation sheet */}
+          {/* Section Selector — opens the navigation sheet. Hidden for field
+              workers (R3): the only fieldWorkerSafe item is Schedule, so the
+              dropdown would show a single entry — empty UI. Field workers
+              already land on Schedule by default; no nav decision needed. */}
+          {!isFieldWorker && (
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <button
@@ -500,6 +506,7 @@ export const ProjectDetailView = () => {
               <div className="h-6" />
             </SheetContent>
           </Sheet>
+          )}
         </header>
 
         {/* Breadcrumbs — only shown on mobile when we're drilled in past the

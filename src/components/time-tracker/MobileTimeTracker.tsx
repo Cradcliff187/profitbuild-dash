@@ -128,11 +128,24 @@ export const MobileTimeTracker: React.FC = () => {
   // Apply URL parameters to set initial view
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    
+
     if (tabParam === 'receipts') {
       setView('receipts');
     } else if (tabParam === 'entries') {
       setView('entries');
+    }
+
+    // When deep-linked via ?tab=, blur whatever element React focused on
+    // mount so the lingering :focus-visible outline (orange ring around the
+    // active tab) doesn't render. Keyboard users still get full focus rings
+    // on subsequent tab navigation; mouse/touch users from the sidebar see
+    // the tab in its clean active state without the extra outline.
+    if (tabParam === 'receipts' || tabParam === 'entries') {
+      requestAnimationFrame(() => {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      });
     }
     // Note: status filtering for receipts is handled by ReceiptsList component
   }, [searchParams]);

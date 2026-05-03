@@ -144,21 +144,18 @@ export default function AppLayout() {
 
   // Redirect field workers off most /projects/* routes to the time tracker.
   //
-  // Allowed for field workers:
-  //   /projects                          — the list page itself (R3 May 2026).
-  //                                        Field workers can browse all
-  //                                        construction projects and tap into
-  //                                        the schedule view from there.
-  //   /projects/:id/schedule[?tab=...]   — the canonical mobile schedule URL
-  //                                        (formerly /field-schedule/:id).
-  //                                        Field workers reach Tasks / Notes /
-  //                                        Media / Docs via this surface.
+  // Allowed for field workers (R3 May 2026):
+  //   /projects                          — the list page (renders a slim
+  //                                        role-aware card variant: project
+  //                                        number + name + client + address,
+  //                                        no financials).
+  //   /projects/:id/schedule[?tab=...]   — canonical mobile schedule URL.
+  //                                        Tasks / Notes / Media / Docs.
   //
-  // Blocked for field workers (hits navigate('/time-tracker', replace)):
-  //   /projects/:id (overview)
-  //   /projects/:id/expenses, /control, /documents, /estimates, /billing,
-  //   /changes, /edit, etc. — these are admin/manager surfaces with finance
-  //   data field workers shouldn't see.
+  // Blocked for field workers:
+  //   /projects/:id (overview), /projects/:id/expenses, /control,
+  //   /documents, /estimates, /billing, /changes, /edit — admin/manager
+  //   surfaces with finance data.
   useEffect(() => {
     if (!authLoading && !rolesLoading && user && isFieldWorker) {
       if (location.pathname === '/' || location.pathname === '/dashboard') {

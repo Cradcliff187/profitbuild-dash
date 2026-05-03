@@ -37,7 +37,7 @@ export const ClientFilters = ({
       hasActiveFilters={hasActiveFilters}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
-      defaultExpanded={hasActiveFilters}
+      defaultExpanded={false}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Input
