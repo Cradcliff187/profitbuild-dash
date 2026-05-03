@@ -62,7 +62,7 @@ export const ProjectDetailView = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { isFieldWorker } = useRoles();
+  const { isFieldWorker, isFieldWorkerOnly } = useRoles();
 
   const {
     project,
@@ -403,9 +403,9 @@ export const ProjectDetailView = () => {
 
             {/* Edit Project — direct icon button. Used to be wrapped in a
                 DropdownMenu with a single item, which cost an extra tap and
-                added visual noise. Hidden for field workers (R3) — they
-                can't reach /edit anyway, so the button would be dead UI. */}
-            {!isFieldWorker && (
+                added visual noise. Hidden for pure field workers (R3) — they
+                can't reach /edit. Admins-who-also-clock-time still see it. */}
+            {!isFieldWorkerOnly && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -418,11 +418,12 @@ export const ProjectDetailView = () => {
             )}
           </div>
 
-          {/* Section Selector — opens the navigation sheet. Hidden for field
-              workers (R3): the only fieldWorkerSafe item is Schedule, so the
-              dropdown would show a single entry — empty UI. Field workers
-              already land on Schedule by default; no nav decision needed. */}
-          {!isFieldWorker && (
+          {/* Section Selector — opens the navigation sheet. Hidden for pure
+              field workers (R3): the only fieldWorkerSafe item is Schedule, so
+              the dropdown would show a single entry — empty UI. Admins-who-
+              also-clock-time keep the section selector and can navigate the
+              full project. */}
+          {!isFieldWorkerOnly && (
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <button

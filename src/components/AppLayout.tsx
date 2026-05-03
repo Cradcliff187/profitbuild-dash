@@ -92,7 +92,11 @@ const getPageTitle = (pathname: string): string => {
 
 export default function AppLayout() {
   const { user, loading: authLoading } = useAuth();
-  const { isFieldWorker, loading: rolesLoading } = useRoles();
+  // Use isFieldWorkerOnly for redirects: an admin who happens to also have
+  // the field_worker role attached (rare but possible) should not be bounced
+  // to /time-tracker — they're an admin first. Only pure field workers get
+  // role-based redirects.
+  const { isFieldWorkerOnly, loading: rolesLoading } = useRoles();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -157,7 +161,7 @@ export default function AppLayout() {
   //   /documents, /estimates, /billing, /changes, /edit — admin/manager
   //   surfaces with finance data.
   useEffect(() => {
-    if (!authLoading && !rolesLoading && user && isFieldWorker) {
+    if (!authLoading && !rolesLoading && user && isFieldWorkerOnly) {
       if (location.pathname === '/' || location.pathname === '/dashboard') {
         navigate('/time-tracker', { replace: true });
         return;
@@ -170,7 +174,7 @@ export default function AppLayout() {
         }
       }
     }
-  }, [user, authLoading, rolesLoading, isFieldWorker, location.pathname, navigate]);
+  }, [user, authLoading, rolesLoading, isFieldWorkerOnly, location.pathname, navigate]);
 
   if (authLoading || rolesLoading) {
     return <BrandedLoader message="Loading..." />;

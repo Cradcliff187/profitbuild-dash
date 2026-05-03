@@ -84,7 +84,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { state, setOpenMobile, isMobile } = useSidebar();
   const { user, signOut } = useAuth();
-  const { isAdmin, isManager, isFieldWorker, roles } = useRoles();
+  const { isAdmin, isManager, isFieldWorker, isFieldWorkerOnly, roles } = useRoles();
   const { total: pendingCount } = usePendingCounts();
   const { unreadCount: mentionCount } = useUnreadMentions();
 
@@ -168,9 +168,11 @@ export function AppSidebar() {
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
         // Receipts deep-links into Time Tracker's existing Receipts tab.
-        // Top-level sidebar entry for field workers so their personal receipts
-        // list isn't buried two taps deep inside the Time Tracker tab strip.
-        { title: "Receipts", url: "/time-tracker?tab=receipts", icon: Receipt, show: isFieldWorker },
+        // Top-level sidebar entry for pure field workers so their personal
+        // receipts list isn't buried two taps deep inside the Time Tracker
+        // tab strip. Admins/managers reach receipts via the Time Tracker tab
+        // strip directly — they don't need a sidebar shortcut.
+        { title: "Receipts", url: "/time-tracker?tab=receipts", icon: Receipt, show: isFieldWorkerOnly },
         { title: "Field Media", url: "/field-media", icon: Camera, show: true },
       ],
     },

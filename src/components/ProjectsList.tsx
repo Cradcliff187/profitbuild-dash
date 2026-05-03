@@ -261,7 +261,7 @@ export const ProjectsList = ({
   pageSize = 12 
 }: ProjectsListProps) => {
   const isMobile = useIsMobile();
-  const { isFieldWorker } = useRoles();
+  const { isFieldWorkerOnly } = useRoles();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'status' | 'number' | 'value'>('status');
@@ -501,15 +501,6 @@ export const ProjectsList = ({
                   className="h-btn-compact text-label"
                 >
                   Number {sortBy === 'number' && <ArrowUpDown className="ml-1 h-3 w-3" />}
-                </Button>
-                <Button
-                  variant={sortBy === 'value' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleSort('value')}
-                  className="h-btn-compact text-label"
-                  title="Sort by contracted dollar value"
-                >
-                  Value {sortBy === 'value' && <ArrowUpDown className="ml-1 h-3 w-3" />}
                 </Button>
               </div>
             </div>
@@ -781,7 +772,7 @@ export const ProjectsList = ({
           // (no financials, no status badges, no metric grids). Mirrors the
           // ProjectScheduleSelector sheet inside Time Tracker so field workers
           // see the same shape everywhere they pick a project. Tap → /schedule.
-          if (isFieldWorker) {
+          if (isFieldWorkerOnly) {
             return (
               <button
                 key={project.id}
@@ -795,13 +786,18 @@ export const ProjectsList = ({
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="text-xs font-mono text-muted-foreground shrink-0">
                       {project.project_number}
                     </span>
-                    <span className="text-sm font-semibold truncate">
-                      {project.project_name}
-                    </span>
+                    {/* Status pill — small, inline with the project number so
+                        field workers can see at-a-glance whether the job is
+                        active, on hold, or being closed without burying it
+                        in financial chrome. */}
+                    <ProjectStatusBadge status={project.status} size="sm" />
+                  </div>
+                  <div className="text-sm font-semibold truncate mb-0.5">
+                    {project.project_name}
                   </div>
                   {project.client_name && (
                     <p className="text-xs text-muted-foreground truncate">

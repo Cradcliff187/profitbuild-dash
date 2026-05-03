@@ -38,7 +38,7 @@ const Projects = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isFieldWorker } = useRoles();
+  const { isFieldWorkerOnly } = useRoles();
   const [projects, setProjects] = useState<ProjectWithFinancials[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -54,7 +54,7 @@ const Projects = () => {
   // can clear/widen the filter manually. Admins/managers get unfiltered.
   const [filters, setFilters] = useState<ProjectSearchFilters>({
     searchText: "",
-    status: isFieldWorker ? ['in_progress', 'approved'] : [],
+    status: isFieldWorkerOnly ? ['in_progress', 'approved'] : [],
     jobType: [],
     clientName: [],
     dateRange: { start: null, end: null },
@@ -289,7 +289,7 @@ const Projects = () => {
   // legacy click-through to /edit. Tapping a card always works the same
   // way as the explicit "View" action in the row menu.
   const handleViewDetails = (project: Project) => {
-    if (isFieldWorker) {
+    if (isFieldWorkerOnly) {
       navigate(`/projects/${project.id}/schedule`);
     } else {
       handleEdit(project);
@@ -555,7 +555,7 @@ const Projects = () => {
 
               {/* Mobile FAB — admins/managers only. Field workers don't create
                   projects; their primary actions live on /time-tracker. */}
-              {isMobile && !isFieldWorker && (
+              {isMobile && !isFieldWorkerOnly && (
                 <Button
                   variant="default"
                   onClick={handleCreateNew}
