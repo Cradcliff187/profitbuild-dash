@@ -259,78 +259,69 @@ const Settings = () => {
     return `225-${lastThreeDigits.toString().padStart(3, '0')}`;
   };
 
+  // Bypasses the SW byte-comparison heuristic by fetching /version.json with
+  // cache: 'no-store' and string-comparing to the version baked into the
+  // running JS. When versions differ the user gets a Force Update CTA that
+  // unregisters every SW, deletes every cache, and hard-reloads — guaranteed
+  // to land on the new version even if iOS has the old SW stuck in waiting
+  // or the SW lifecycle is otherwise unhealthy.
+  const forceUpdate = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((r) => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (error) {
+      console.error('Force update cleanup failed:', error);
+    }
+    // Hard reload — bypasses any remaining in-memory caches.
+    window.location.reload();
+  };
+
   const handleCheckForUpdates = async () => {
     setCheckingUpdates(true);
     try {
-      if (!('serviceWorker' in navigator)) {
-        toast.error('Service workers not supported in this browser');
-        return;
-      }
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        toast.info('Service worker not registered', {
-          description: 'Updates will be applied on next app refresh.',
+      const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
+      setLastUpdateCheck(new Date());
+
+      if (!response.ok) {
+        toast.error('Could not check for updates', {
+          description: `Server returned ${response.status}.`,
         });
         return;
       }
 
-      // Install an `updatefound` listener BEFORE triggering the check — the
-      // previous implementation polled `registration.waiting` post-hoc, but
-      // under the old `skipWaiting: true` config the new SW transitioned
-      // through installing→activated without ever parking in `waiting`, so
-      // the poll always read `null` even when an update had just landed.
-      let newSW: ServiceWorker | null = null;
-      let settled = false;
-      const fireUpdateToast = (sw: ServiceWorker) => {
-        if (settled) return;
-        settled = true;
-        toast('Update Available!', {
-          description: 'A new version is ready. Reload to apply it.',
-          action: {
-            label: 'Reload Now',
-            onClick: () => {
-              sw.postMessage({ type: 'SKIP_WAITING' });
-              // controllerchange in main.tsx triggers the reload
-            },
-          },
+      const { version: deployedVersion } = await response.json();
+      const currentVersion = __APP_VERSION__;
+
+      if (deployedVersion && deployedVersion !== currentVersion) {
+        toast('Update Available', {
+          description: `${currentVersion} → ${deployedVersion}`,
+          action: { label: 'Update Now', onClick: forceUpdate },
           duration: Infinity,
           dismissible: true,
         });
-      };
 
-      // If a SW is already waiting (user dismissed the prior prompt), surface
-      // it immediately.
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        fireUpdateToast(registration.waiting);
-      }
-
-      const onUpdateFound = () => {
-        newSW = registration.installing;
-        if (!newSW) return;
-        newSW.addEventListener('statechange', () => {
-          if (newSW?.state === 'installed' && navigator.serviceWorker.controller) {
-            fireUpdateToast(newSW);
-          }
-        });
-      };
-      registration.addEventListener('updatefound', onUpdateFound);
-
-      await registration.update();
-      setLastUpdateCheck(new Date());
-
-      // Give the browser a few seconds to finish `updatefound` + install
-      // transitions, then report final state.
-      setTimeout(() => {
-        registration.removeEventListener('updatefound', onUpdateFound);
-        if (!settled) {
-          toast.success('You\'re up to date', {
-            description: 'No new updates available.',
-          });
+        // Also kick the normal SW flow so the in-app "Update Available" toast
+        // from main.tsx can fire on its own once the new SW finishes installing.
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          registration?.update().catch(() => {});
         }
-      }, 3000);
+      } else {
+        toast.success("You're up to date", {
+          description: `Running ${currentVersion}`,
+        });
+      }
     } catch (error) {
       console.error('Update check failed:', error);
-      toast.error('Failed to check for updates');
+      toast.error('Failed to check for updates', {
+        description: 'Network error. Check your connection and try again.',
+      });
     } finally {
       setCheckingUpdates(false);
     }
