@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     // Resolve recipient phone number
     let phone = recipientPhone;
     let recipientName = 'Unknown';
-    let recipientId = recipientUserId;
+    const recipientId = recipientUserId;
 
     if (recipientUserId && !recipientPhone) {
       const { data: profile } = await supabase

@@ -172,7 +172,7 @@ const WorkOrders = () => {
       setIsLoading(true);
       
       // First, try to fetch with is_auto_generated field
-      let query = supabase
+      const query = supabase
         .from('projects')
         .select(`
           *,

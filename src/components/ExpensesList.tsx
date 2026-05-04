@@ -93,7 +93,7 @@ const EXPENSE_COLUMNS: ColumnDefinition[] = [
   { key: 'invoice_number', label: 'Invoice #', required: false, width: 'w-28', sortable: true, defaultVisible: false },
   { key: 'status_assigned', label: 'Assigned', required: false, width: 'w-20', align: 'center', sortable: true, defaultVisible: true },
   { key: 'status_allocated', label: 'Allocated', required: false, width: 'w-20', align: 'center', sortable: true, defaultVisible: true },
-  { key: 'approval_status', label: 'Approval', required: false, width: 'w-24', align: 'center', sortable: true, defaultVisible: false },
+  { key: 'approval_status', label: 'Approval', required: true, width: 'w-24', align: 'center', sortable: true, defaultVisible: true },
   { key: 'receipt', label: 'Receipt', required: false, width: 'w-20', align: 'center', sortable: false, defaultVisible: true },
   { key: 'actions', label: 'Actions', required: true, width: 'w-16', align: 'center', defaultVisible: true },
 ];

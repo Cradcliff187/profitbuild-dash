@@ -1451,6 +1451,120 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_revenues: {
+        Row: {
+          invoice_id: string
+          revenue_id: string
+        }
+        Insert: {
+          invoice_id: string
+          revenue_id: string
+        }
+        Update: {
+          invoice_id?: string
+          revenue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_revenues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_revenues_revenue_id_fkey"
+            columns: ["revenue_id"]
+            isOneToOne: false
+            referencedRelation: "project_revenues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          docx_storage_path: string | null
+          docx_url: string | null
+          due_date: string | null
+          field_values: Json
+          id: string
+          internal_reference: string
+          invoice_date: string
+          invoice_number: string | null
+          notes: string | null
+          pdf_storage_path: string | null
+          pdf_url: string | null
+          project_id: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          docx_storage_path?: string | null
+          docx_url?: string | null
+          due_date?: string | null
+          field_values: Json
+          id?: string
+          internal_reference: string
+          invoice_date: string
+          invoice_number?: string | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
+          project_id: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          docx_storage_path?: string | null
+          docx_url?: string | null
+          due_date?: string | null
+          field_values?: Json
+          id?: string
+          internal_reference?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_comments: {
         Row: {
           comment_text: string

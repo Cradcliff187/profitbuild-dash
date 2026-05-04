@@ -81,7 +81,19 @@ export interface ProjectRevenue {
   project_name?: string;
   project_number?: string;
   customer_po_number?: string;
-  
+
+  // Latest generated invoice document, if any (loaded via invoice_revenues
+  // junction by Expenses.tsx). When `latest_invoice` is null/undefined no
+  // invoice has been generated for this revenue yet.
+  latest_invoice?: {
+    id: string;
+    internal_reference: string;
+    docx_url: string | null;
+    pdf_url: string | null;
+    version: number;
+  } | null;
+  invoice_count?: number;
+
   // Optional: Loaded splits for display
   splits?: RevenueSplit[];
 }

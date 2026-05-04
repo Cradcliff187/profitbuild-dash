@@ -23,7 +23,7 @@ export const exportScheduleToCSV = (
   }
 
   // Sort tasks based on option
-  let sortedTasks = [...tasks];
+  const sortedTasks = [...tasks];
   switch (options.sortBy) {
     case 'start_date':
       sortedTasks.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -248,7 +248,7 @@ export const exportScheduleByDay = (
 
   // Generate all dates in range
   const dateRange: Date[] = [];
-  let currentDate = new Date(minDate);
+  const currentDate = new Date(minDate);
   while (currentDate <= maxDate) {
     dateRange.push(new Date(currentDate));
     currentDate.setDate(currentDate.getDate() + 1);
@@ -576,7 +576,7 @@ function exportMultiProjectDailyActivity(tasks: (ScheduleTask & { projectName: s
   const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
 
   const dateRange: Date[] = [];
-  let currentDate = new Date(minDate);
+  const currentDate = new Date(minDate);
   while (currentDate <= maxDate) {
     dateRange.push(new Date(currentDate));
     currentDate.setDate(currentDate.getDate() + 1);

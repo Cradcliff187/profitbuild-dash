@@ -83,7 +83,7 @@ function parseCurrency(value: string): number | null {
 function parsePercent(value: string): number | null {
   if (!value || typeof value !== 'string') return null;
   
-  let cleaned = value.trim().replace('%', '').replace(/\s/g, '');
+  const cleaned = value.trim().replace('%', '').replace(/\s/g, '');
   if (cleaned === '') return null;
   
   const num = parseFloat(cleaned);

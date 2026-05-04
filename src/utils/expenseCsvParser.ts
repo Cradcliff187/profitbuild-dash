@@ -31,7 +31,7 @@ export const parseExpenseCSVFile = (file: File): Promise<ParsedExpenseCSV> => {
       transform: (value: string) => value.trim(),
       complete: (results) => {
         let data = results.data as ExpenseCSVRow[];
-        let errors: string[] = [];
+        const errors: string[] = [];
         
         console.log('Raw expense CSV parse results:', { dataLength: data.length, firstRow: data[0] });
         

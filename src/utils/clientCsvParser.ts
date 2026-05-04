@@ -31,7 +31,7 @@ export const parseClientCSVFile = (file: File): Promise<ParsedClientCSV> => {
       transform: (value: string) => value.trim(),
       complete: (results) => {
         let data = results.data as ClientCSVRow[];
-        let errors: string[] = [];
+        const errors: string[] = [];
         
         console.log('Raw CSV parse results:', { dataLength: data.length, firstRow: data[0] });
         

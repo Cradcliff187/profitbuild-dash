@@ -88,7 +88,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
     const saved = localStorage.getItem('cost-tracking-visible-columns');
     if (saved) {
       const savedVisible = JSON.parse(saved) as string[];
-      let validVisible = savedVisible.filter((key: string) =>
+      const validVisible = savedVisible.filter((key: string) =>
         columnDefinitions.some(col => col.key === key)
       );
       // Ensure required columns are included
@@ -106,7 +106,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
     const saved = localStorage.getItem('cost-tracking-column-order');
     if (saved) {
       const savedOrder = JSON.parse(saved) as string[];
-      let validOrder = savedOrder.filter((key: string) =>
+      const validOrder = savedOrder.filter((key: string) =>
         columnDefinitions.some(col => col.key === key)
       );
       const newColumns = columnDefinitions

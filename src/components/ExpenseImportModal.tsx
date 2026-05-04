@@ -737,7 +737,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       })
       .filter((d): d is Date => d !== null);
     
-    let existingExpenses = new Map<string, { id: string; description: string }>();
+    const existingExpenses = new Map<string, { id: string; description: string }>();
     const databaseDuplicates: Array<{
       transaction: TransactionCSVRow;
       existingExpenseId: string;
@@ -1087,7 +1087,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
     // === END revenue in-file duplicate detection ===
     
     // === Revenue database duplicate detection ===
-    let existingRevenues = new Map<string, { id: string; description: string }>();
+    const existingRevenues = new Map<string, { id: string; description: string }>();
     const revenueDatabaseDuplicates: Array<{
       transaction: TransactionCSVRow;
       existingRevenueId: string;

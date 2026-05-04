@@ -107,7 +107,7 @@ export function PageHeader({
       !hasMobileActions &&
       !children
     ) {
-      // eslint-disable-next-line no-console
+       
       console.warn(
         `[PageHeader] "${title}" has \`actions\` but no \`mobileActions\` — actions are not surfaced on mobile. ` +
           `Pass mobileActions={[{ label, icon, onClick }, ...]} to surface them in the overflow menu, or use a FAB pattern. ` +

@@ -306,7 +306,7 @@ export const processTransactionImport = async (
   }> = [];
   const unmappedAccountsTracker = new Map<string, { count: number; totalAmount: number }>();
   
-  let mappingStats = {
+  const mappingStats = {
     databaseMapped: 0,
     staticMapped: 0,
     descriptionMapped: 0,
