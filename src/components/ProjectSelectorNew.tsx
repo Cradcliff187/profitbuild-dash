@@ -8,9 +8,10 @@
  * **Key Features**:
  * - Works with generic Project objects (not estimate-specific)
  * - Inline project creation form (no modal, stays in context)
- * - Searchable dropdown with command palette UI
- * - Displays project number, name, and client
+ * - Searchable dropdown with command palette UI (matches both project_number and project_name)
+ * - Single-line row format: `{project_number} - {project_name}`, sorted descending by project_number
  * - Optional ability to hide "Create New" button
+ * - Optional `disabled` prop to lock selection (e.g. split expenses)
  * 
  * **When to Use**:
  * - Time entry forms
@@ -54,6 +55,7 @@ interface ProjectSelectorNewProps {
   onCreateNew?: (project: Project) => void;
   placeholder?: string;
   hideCreateButton?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -66,7 +68,8 @@ export const ProjectSelectorNew = ({
   onSelect,
   onCreateNew,
   placeholder = "Select a project...",
-  hideCreateButton = false
+  hideCreateButton = false,
+  disabled = false,
 }: ProjectSelectorNewProps) => {
   const [open, setOpen] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -85,12 +88,13 @@ export const ProjectSelectorNew = ({
 
   return (
     <>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            disabled={disabled}
             className="w-full justify-between"
           >
             <div className="flex items-center">
@@ -150,7 +154,7 @@ export const ProjectSelectorNew = ({
               }).map((project) => (
                 <CommandItem
                   key={project.id}
-                  value={`${project.project_name} ${project.project_number}`}
+                  value={`${project.project_number} ${project.project_name}`}
                   onSelect={() => {
                     onSelect(project);
                     setOpen(false);
@@ -162,12 +166,9 @@ export const ProjectSelectorNew = ({
                       selectedProject?.id === project.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{project.project_name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {project.client_name}
-                    </span>
-                  </div>
+                  <span className="font-medium">
+                    {project.project_number} - {project.project_name}
+                  </span>
                 </CommandItem>
               ))}
               {projects.length > 0 && !hideCreateButton && (
