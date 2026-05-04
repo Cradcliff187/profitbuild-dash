@@ -438,7 +438,15 @@ Tracked on branch [`claude/design-critique-updates`](https://github.com/Cradclif
 
 ### Branch summary
 
-All 16 critique items + 1 bonus + 3 Time Tracker polish phases + 2 field-worker polish phases + dev env fix shipped in **~22 commits** on `claude/design-critique-updates`. Net: every priority item from the original critique either landed or is documented as deferred-with-reason. Branch ready for review/merge.
+All 16 critique items + 1 bonus + 3 Time Tracker polish phases + 2 field-worker polish phases + dev env fix + 2 QA-discovered bug fixes (F1, F2) shipped in **29 commits** on `claude/design-critique-updates`. Merged to `main` as [PR #40](https://github.com/Cradcliff187/profitbuild-dash/pull/40) (merge commit `8d0f437`).
+
+### Post-merge findings + fixes (also shipped in PR #40)
+
+| # | Finding | Severity | Resolution |
+|---|---|---|---|
+| F1 | `useProjectNotes` mutations didn't invalidate `['project-notes-count', projectId]` cache. Notes badge stuck at old count until page reload. | 🟡 Moderate | Fixed (`6492d4b`). `invalidateAll()` helper added to invalidate both timeline + count query keys. Documented as new Gotcha #45. |
+| F2 | Field workers could reach `/quotes` and see ~52 quotes of financial data. AppLayout was a denylist that didn't enumerate every admin route. | 🔴 Critical (data exposure) | Fixed (`0e12ede`). Switched to an **allowlist** so any future admin route is auto-blocked. Documented as new Architectural Rule / Gotcha #44. |
+| F2 part B | RLS on `quotes` (and likely other admin tables) too permissive — DevTools-curious user could still pull data despite app-layer block. | 🔴 Critical | **Queued as separate hardening session.** Needs admin/manager/field-worker test matrix and ideally a Supabase preview branch (per Gotcha #21). The app-layer allowlist (F2) covers realistic exposure paths (deep-link, autocomplete, URL typing) but is NOT a security boundary on its own. |
 
 ---
 
