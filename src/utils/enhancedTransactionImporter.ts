@@ -192,6 +192,25 @@ export interface TransactionImportResult {
   };
 }
 
+/**
+ * Fallback mapping from a known payee_type to an expense category.
+ * Applied AFTER `categorizeExpense` (QB account + description) and AFTER
+ * the project-default-category override (Rule 6a). Only consulted when
+ * category is still OTHER and the importer matched the row to a payee
+ * with a known type.
+ *
+ * `OTHER` is intentionally absent — leaves category as-is rather than
+ * recursively forcing OTHER.
+ */
+const PAYEE_TYPE_TO_CATEGORY: Partial<Record<PayeeType, ExpenseCategory>> = {
+  [PayeeType.SUBCONTRACTOR]: ExpenseCategory.SUBCONTRACTOR,
+  [PayeeType.MATERIAL_SUPPLIER]: ExpenseCategory.MATERIALS,
+  [PayeeType.EQUIPMENT_RENTAL]: ExpenseCategory.EQUIPMENT,
+  [PayeeType.PERMIT_AUTHORITY]: ExpenseCategory.PERMITS,
+  [PayeeType.INTERNAL_LABOR]: ExpenseCategory.LABOR,
+  [PayeeType.MANAGEMENT]: ExpenseCategory.MANAGEMENT,
+};
+
 export const parseTransactionCSV = (file: File): Promise<ParsedTransactionData> => {
   return new Promise((resolve) => {
     Papa.parse(file, {
@@ -387,11 +406,14 @@ export const processTransactionImport = async (
     company_name: c.company_name || undefined
   }));
 
-  // Convert payees to PartialPayee format for fuzzy matching
+  // Convert payees to PartialPayee format for fuzzy matching.
+  // payee_type is carried through so the categorization fallback below can use it
+  // when the QB account path + description didn't yield a category.
   const partialPayees: PartialPayee[] = payees.map(p => ({
     id: p.id,
     payee_name: p.payee_name,
-    full_name: p.full_name
+    full_name: p.full_name,
+    payee_type: p.payee_type as PayeeType | undefined,
   }));
 
   let unassociated_expenses = 0;
@@ -522,6 +544,31 @@ export const processTransactionImport = async (
           decision: 'auto_matched',
           algorithm: 'project_default_category'
         });
+      }
+
+      // === Payee Type → Category fallback ===
+      // Lower precedence than QB account mapping (categorizeExpense) and the
+      // project-default override above. Only kicks in when category is still OTHER
+      // and a payee was matched with a known type. Catches the common case of a
+      // construction-project bill from a known subcontractor / material supplier
+      // / equipment rental whose QB account path doesn't appear in the mapping
+      // and whose description has no trigger keyword.
+      if (category === ExpenseCategory.OTHER && payee_id) {
+        const matchedPayee = partialPayees.find(p => p.id === payee_id);
+        const fallback = matchedPayee?.payee_type
+          ? PAYEE_TYPE_TO_CATEGORY[matchedPayee.payee_type]
+          : undefined;
+        if (fallback) {
+          category = fallback;
+          matchLog.push({
+            qbName: matchedPayee!.payee_name,
+            matchedEntity: `other → ${category}`,
+            entityType: 'category',
+            confidence: 80,
+            decision: 'auto_matched',
+            algorithm: 'payee_type_fallback'
+          });
+        }
       }
 
       // Track mapping statistics
