@@ -1,9 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar as DatePicker } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar, ChevronDown } from "lucide-react";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
+import { ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -174,42 +174,28 @@ export const BidFilters = ({
 
         {/* Date Range */}
         <div className="flex gap-2 md:col-span-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
-                <Calendar className="h-3 w-3 mr-1" />
-                {filters.dateRange.start ? format(filters.dateRange.start, "MMM dd") : "Start"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <DatePicker
-                mode="single"
-                selected={filters.dateRange.start || undefined}
-                onSelect={(date) => updateFilters({ 
-                  dateRange: { ...filters.dateRange, start: date || null }
-                })}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
-                <Calendar className="h-3 w-3 mr-1" />
-                {filters.dateRange.end ? format(filters.dateRange.end, "MMM dd") : "End"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <DatePicker
-                mode="single"
-                selected={filters.dateRange.end || undefined}
-                onSelect={(date) => updateFilters({ 
-                  dateRange: { ...filters.dateRange, end: date || null }
-                })}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <DatePickerPopover
+            value={filters.dateRange.start || undefined}
+            onSelect={(date) => updateFilters({
+              dateRange: { ...filters.dateRange, start: date || null }
+            })}
+            placeholder="Start"
+            dateFormat="MMM dd"
+            size="sm"
+            triggerClassName="flex-1 text-xs"
+            iconClassName="h-3 w-3 mr-1"
+          />
+          <DatePickerPopover
+            value={filters.dateRange.end || undefined}
+            onSelect={(date) => updateFilters({
+              dateRange: { ...filters.dateRange, end: date || null }
+            })}
+            placeholder="End"
+            dateFormat="MMM dd"
+            size="sm"
+            triggerClassName="flex-1 text-xs"
+            iconClassName="h-3 w-3 mr-1"
+          />
         </div>
       </div>
     </CollapsibleFilterSection>

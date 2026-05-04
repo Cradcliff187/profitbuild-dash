@@ -35,7 +35,6 @@ import {
   FileText, 
   Video, 
   Link as LinkIcon,
-  Calendar,
   Loader2,
   GraduationCap,
 } from 'lucide-react';
@@ -52,10 +51,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TrainingContent, TrainingStatus, TrainingContentType, AppRole } from '@/types/training';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { DatePickerPopover } from '@/components/ui/date-picker-popover';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { uploadTrainingFile, deleteTrainingFile } from '@/utils/trainingStorage';
 import { Upload } from 'lucide-react';
 
@@ -1014,28 +1011,13 @@ export default function TrainingAdmin() {
             {/* Due Date */}
             <div className="space-y-2">
               <Label>Due Date (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal h-11 sm:h-9",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, 'PPP') : 'Select date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarComponent
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePickerPopover
+                value={dueDate}
+                onSelect={setDueDate}
+                placeholder="Select date"
+                triggerClassName="h-11 sm:h-9"
+                align="center"
+              />
             </div>
 
             {/* Priority */}

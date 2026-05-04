@@ -8,11 +8,9 @@ import { RequiredLabel } from "@/components/ui/required-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { EditableField, CalculatedField, ReadOnlyField } from "@/components/ui/field-types";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP, EstimateStatus } from "@/types/estimate";
@@ -1311,28 +1309,11 @@ useEffect(() => {
                 ) : (
                   <>
                     <RequiredLabel className="text-xs">Estimate Date</RequiredLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-9",
-                            !date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {date ? format(date, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={(date) => date && setDate(date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DatePickerPopover
+                      value={date}
+                      onSelect={(d) => d && setDate(d)}
+                      triggerClassName="h-9"
+                    />
                   </>
                 )}
               </div>
@@ -1346,28 +1327,11 @@ useEffect(() => {
                 ) : (
                   <>
                     <Label className="text-xs">Valid Until (Optional)</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-9",
-                            !validUntil && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {validUntil ? format(validUntil, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={validUntil}
-                          onSelect={setValidUntil}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DatePickerPopover
+                      value={validUntil}
+                      onSelect={setValidUntil}
+                      triggerClassName="h-9"
+                    />
                   </>
                 )}
               </div>
@@ -1917,28 +1881,10 @@ useEffect(() => {
               ) : (
                 <>
                   <RequiredLabel>Estimate Date</RequiredLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={(date) => date && setDate(date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePickerPopover
+                    value={date}
+                    onSelect={(d) => d && setDate(d)}
+                  />
                 </>
               )}
             </div>
@@ -1952,28 +1898,10 @@ useEffect(() => {
               ) : (
                 <>
                   <Label>Valid Until (Optional)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !validUntil && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {validUntil ? format(validUntil, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={validUntil}
-                        onSelect={setValidUntil}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePickerPopover
+                    value={validUntil}
+                    onSelect={setValidUntil}
+                  />
                 </>
               )}
             </div>
