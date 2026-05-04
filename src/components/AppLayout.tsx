@@ -147,32 +147,51 @@ export default function AppLayout() {
     checkPasswordChange();
   }, [user, authLoading, location.pathname, navigate]);
 
-  // Redirect field workers off most /projects/* routes to the time tracker.
+  // Field-worker route allowlist (F2 May 2026).
   //
-  // Allowed for field workers (R3 May 2026):
-  //   /projects                          — the list page (renders a slim
-  //                                        role-aware card variant: project
-  //                                        number + name + client + address,
-  //                                        no financials).
-  //   /projects/:id/schedule[?tab=...]   — canonical mobile schedule URL.
-  //                                        Tasks / Notes / Media / Docs.
+  // Switched from a denylist ("block /dashboard and /projects/...") to an
+  // allowlist ("allow ONLY these routes; bounce everything else to
+  // /time-tracker"). Future-proof: any new admin/manager route added later
+  // is automatically blocked for field workers without touching this file.
   //
-  // Blocked for field workers:
-  //   /projects/:id (overview), /projects/:id/expenses, /control,
-  //   /documents, /estimates, /billing, /changes, /edit — admin/manager
-  //   surfaces with finance data.
+  // Allowed for field workers:
+  //   /time-tracker[?tab=...]            — primary daily surface
+  //   /training, /training/:id           — My Training + viewer
+  //   /mentions                          — @mention notifications
+  //   /field-media[/:id]                 — photo gallery + capture flows
+  //   /projects                          — list (slim card variant)
+  //   /projects/:id/schedule[?tab=...]   — canonical mobile schedule
+  //   /projects/:id/capture(-video)?     — photo/video capture flows
+  //   /settings                          — profile + preferences
+  //   /change-password, /reset-password  — auth flows
+  //
+  // Everything else (/, /dashboard, /quotes, /expenses, /leads,
+  // /profit-analysis, /reports, /clients, /payees, /estimates,
+  // /work-orders, /role-management, /sms, /kpi-guide, /time-entries,
+  // /projects/:id (overview), /projects/:id/expenses, /control, etc.)
+  // → bounces to /time-tracker. App-layer enforcement only; the
+  // canonical security boundary is database RLS, which is queued as a
+  // separate hardening session per F2 finding.
+  const isFieldWorkerAllowed = (path: string): boolean => {
+    if (path === '/time-tracker') return true;
+    if (path === '/mentions') return true;
+    if (path === '/training') return true;
+    if (path.startsWith('/training/')) return true;
+    if (path === '/field-media') return true;
+    if (path.startsWith('/field-media/')) return true;
+    if (path === '/projects') return true;
+    if (/^\/projects\/[^/]+\/schedule(\/|$)/.test(path)) return true;
+    if (/^\/projects\/[^/]+\/capture(-video)?(\/|$)/.test(path)) return true;
+    if (path === '/settings') return true;
+    if (path === '/change-password') return true;
+    if (path === '/reset-password') return true;
+    return false;
+  };
+
   useEffect(() => {
     if (!authLoading && !rolesLoading && user && isFieldWorkerOnly) {
-      if (location.pathname === '/' || location.pathname === '/dashboard') {
+      if (!isFieldWorkerAllowed(location.pathname)) {
         navigate('/time-tracker', { replace: true });
-        return;
-      }
-      if (location.pathname.startsWith('/projects')) {
-        const isProjectsList = location.pathname === '/projects';
-        const isPerProjectSchedule = /^\/projects\/[^/]+\/schedule(\/|$|\?)/.test(location.pathname);
-        if (!isProjectsList && !isPerProjectSchedule) {
-          navigate('/time-tracker', { replace: true });
-        }
       }
     }
   }, [user, authLoading, rolesLoading, isFieldWorkerOnly, location.pathname, navigate]);
