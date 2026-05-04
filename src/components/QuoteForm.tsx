@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { Save, Calendar as CalendarIcon, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer, MoreHorizontal, Trash2, Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
+import { Save, Plus, TrendingUp, TrendingDown, FileText, Download, Eye, Printer, MoreHorizontal, Trash2, Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -858,29 +858,13 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
             
             <div className="space-y-2">
               <Label className="text-sm font-medium">Date Received</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    disabled={isViewMode}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dateReceived && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateReceived ? format(dateReceived, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateReceived}
-                    onSelect={(date) => date && setDateReceived(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePickerPopover
+                value={dateReceived}
+                onSelect={(d) => d && setDateReceived(d)}
+                placeholder="Select date"
+                disabled={isViewMode}
+                align="center"
+              />
             </div>
 
             <div className="space-y-2">

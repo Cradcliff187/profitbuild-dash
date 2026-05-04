@@ -5,14 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { DatePickerPopover } from '@/components/ui/date-picker-popover';
 import { useTrainingAssignments } from '@/hooks/useTrainingAssignments';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Loader2, Users, UserCheck } from 'lucide-react';
+import { Loader2, Users, UserCheck } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { AppRole } from '@/types/training';
 
@@ -323,28 +321,13 @@ export const TrainingAssignmentDialog = ({
           {/* Due Date */}
           <div className="space-y-2">
             <Label>Due Date (Optional)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal h-9",
-                    !dueDate && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, 'PPP') : 'Select date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <CalendarComponent
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <DatePickerPopover
+              value={dueDate}
+              onSelect={setDueDate}
+              placeholder="Select date"
+              triggerClassName="h-9"
+              align="center"
+            />
           </div>
 
           {/* Priority */}

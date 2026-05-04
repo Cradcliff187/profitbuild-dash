@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as DatePicker } from "@/components/ui/calendar";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { toast } from "sonner";
 import { Download, Table, Calendar, CalendarDays, Building2, FileText, Eye, X } from "lucide-react";
 import { format } from "date-fns";
@@ -274,48 +274,30 @@ export const ScheduleExportModal: React.FC<ScheduleExportModalProps> = ({
                     Select a date range to filter tasks. Only tasks in this period will be included. Leave empty to export all tasks.
                   </p>
                   <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {exportOptions.pdfDateRange.start 
-                            ? format(exportOptions.pdfDateRange.start, "MMM dd, yyyy")
-                            : "Start Date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <DatePicker
-                          mode="single"
-                          selected={exportOptions.pdfDateRange.start || undefined}
-                          onSelect={(date) => setExportOptions({
-                            ...exportOptions,
-                            pdfDateRange: { ...exportOptions.pdfDateRange, start: date || null }
-                          })}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-9 flex-1 justify-start text-xs">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {exportOptions.pdfDateRange.end 
-                            ? format(exportOptions.pdfDateRange.end, "MMM dd, yyyy")
-                            : "End Date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <DatePicker
-                          mode="single"
-                          selected={exportOptions.pdfDateRange.end || undefined}
-                          onSelect={(date) => setExportOptions({
-                            ...exportOptions,
-                            pdfDateRange: { ...exportOptions.pdfDateRange, end: date || null }
-                          })}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DatePickerPopover
+                      value={exportOptions.pdfDateRange.start || undefined}
+                      onSelect={(date) => setExportOptions({
+                        ...exportOptions,
+                        pdfDateRange: { ...exportOptions.pdfDateRange, start: date || null }
+                      })}
+                      placeholder="Start Date"
+                      dateFormat="MMM dd, yyyy"
+                      size="sm"
+                      triggerClassName="flex-1 text-xs"
+                      iconClassName="h-3 w-3 mr-1"
+                    />
+                    <DatePickerPopover
+                      value={exportOptions.pdfDateRange.end || undefined}
+                      onSelect={(date) => setExportOptions({
+                        ...exportOptions,
+                        pdfDateRange: { ...exportOptions.pdfDateRange, end: date || null }
+                      })}
+                      placeholder="End Date"
+                      dateFormat="MMM dd, yyyy"
+                      size="sm"
+                      triggerClassName="flex-1 text-xs"
+                      iconClassName="h-3 w-3 mr-1"
+                    />
                   </div>
                   {(exportOptions.pdfDateRange.start || exportOptions.pdfDateRange.end) && (
                     <Button

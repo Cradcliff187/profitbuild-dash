@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -233,97 +233,43 @@ export function SimpleFilterPanel({ filters, onFiltersChange, availableFields, d
         const dateRange = Array.isArray(filter.value) ? filter.value : [null, null];
         return (
           <div className="flex flex-col sm:flex-row gap-2 w-full">
-            <Popover>
-              <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal min-h-[44px]",
-                  !dateRange[0] && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange[0] ? format(new Date(dateRange[0]), "MMM dd, yyyy") : "Start date"}
-              </Button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-auto p-0" 
-                align={isMobile ? "end" : "start"}
-                side={isMobile ? "bottom" : "bottom"}
-              >
-                <Calendar
-                  mode="single"
-                  selected={dateRange[0] ? new Date(dateRange[0]) : undefined}
-                  onSelect={(date) => {
-                    const newRange = [date ? format(date, 'yyyy-MM-dd') : null, dateRange[1]];
-                    updateFilter(index, { value: newRange }, filter);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal min-h-[44px]",
-                    !dateRange[1] && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange[1] ? format(new Date(dateRange[1]), "MMM dd, yyyy") : "End date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-auto p-0" 
-                align={isMobile ? "end" : "start"}
-                side={isMobile ? "bottom" : "bottom"}
-              >
-                <Calendar
-                  mode="single"
-                  selected={dateRange[1] ? new Date(dateRange[1]) : undefined}
-                  onSelect={(date) => {
-                    const newRange = [dateRange[0], date ? format(date, 'yyyy-MM-dd') : null];
-                    updateFilter(index, { value: newRange }, filter);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <DatePickerPopover
+              value={dateRange[0] ? new Date(dateRange[0]) : undefined}
+              onSelect={(date) => {
+                const newRange = [date ? format(date, 'yyyy-MM-dd') : null, dateRange[1]];
+                updateFilter(index, { value: newRange }, filter);
+              }}
+              placeholder="Start date"
+              dateFormat="MMM dd, yyyy"
+              triggerClassName="min-h-[44px]"
+              align={isMobile ? "end" : "start"}
+            />
+            <DatePickerPopover
+              value={dateRange[1] ? new Date(dateRange[1]) : undefined}
+              onSelect={(date) => {
+                const newRange = [dateRange[0], date ? format(date, 'yyyy-MM-dd') : null];
+                updateFilter(index, { value: newRange }, filter);
+              }}
+              placeholder="End date"
+              dateFormat="MMM dd, yyyy"
+              triggerClassName="min-h-[44px]"
+              align={isMobile ? "end" : "start"}
+            />
           </div>
         );
       } else {
         const dateValue = filter.value ? (typeof filter.value === 'string' ? filter.value : format(new Date(filter.value), 'yyyy-MM-dd')) : '';
         return (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal min-h-[44px]",
-                  !dateValue && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateValue ? format(new Date(dateValue), "MMM dd, yyyy") : "Select date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-auto p-0" 
-              align={isMobile ? "end" : "start"}
-              side={isMobile ? "bottom" : "bottom"}
-            >
-              <Calendar
-                mode="single"
-                selected={dateValue ? new Date(dateValue) : undefined}
-                onSelect={(date) => {
-                  updateFilter(index, { value: date ? format(date, 'yyyy-MM-dd') : '' }, filter);
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <DatePickerPopover
+            value={dateValue ? new Date(dateValue) : undefined}
+            onSelect={(date) => {
+              updateFilter(index, { value: date ? format(date, 'yyyy-MM-dd') : '' }, filter);
+            }}
+            placeholder="Select date"
+            dateFormat="MMM dd, yyyy"
+            triggerClassName="min-h-[44px]"
+            align={isMobile ? "end" : "start"}
+          />
         );
       }
     }
