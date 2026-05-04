@@ -6,7 +6,11 @@ import { VitePWA } from "vite-plugin-pwa";
 import { execSync } from 'child_process';
 
 // Auto-generate version from Git — format: YYYY.MM.DD (build {sha})
-// Falls back to build date when git isn't available (e.g., Lovable's build env)
+// Falls back to build timestamp (HHMMSS) when git isn't available — Lovable's
+// build env doesn't expose git, so the fallback path is the one that runs in
+// production. The HHMMSS suffix keeps each build's version string unique even
+// when multiple deploys land on the same calendar day; without it, the
+// /version.json update-check in Settings can't tell two same-day builds apart.
 const getVersion = () => {
   try {
     const commitDate = execSync('git log -1 --format=%ci HEAD').toString().trim();
@@ -17,12 +21,12 @@ const getVersion = () => {
     const commitSha = execSync('git rev-parse --short HEAD').toString().trim();
     return `${yyyy}.${mm}.${dd} (build ${commitSha})`;
   } catch {
-    // Git unavailable — use build timestamp instead of static package.json version
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
-    return `${yyyy}.${mm}.${dd} (build latest)`;
+    const hhmmss = now.toISOString().slice(11, 19).replace(/:/g, '');
+    return `${yyyy}.${mm}.${dd} (build ${hhmmss})`;
   }
 };
 
