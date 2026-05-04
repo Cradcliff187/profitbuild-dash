@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePickerPopover } from '@/components/ui/date-picker-popover';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { PayeeSelector } from '@/components/PayeeSelector';
+import { ProjectSelectorNew } from '@/components/ProjectSelectorNew';
 import { Expense, ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from '@/types/expense';
 import { Project } from '@/types/project';
 import { Payee, PayeeType } from '@/types/payee';
@@ -276,50 +277,45 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
             <FormField
               control={form.control}
               name="project_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project *</FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value}
-                            disabled={expense?.is_split}
-                          >
+              render={({ field }) => {
+                const selectedProject = projects.find(p => p.id === field.value);
+                return (
+                  <FormItem>
+                    <FormLabel>Project *</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a project" />
-                              </SelectTrigger>
+                              <ProjectSelectorNew
+                                projects={projects}
+                                selectedProject={selectedProject}
+                                onSelect={(project) => field.onChange(project.id)}
+                                placeholder="Select a project"
+                                hideCreateButton
+                                disabled={expense?.is_split}
+                              />
                             </FormControl>
-                            <SelectContent>
-                              {projects.map((project) => (
-                                <SelectItem key={project.id} value={project.id}>
-                                  {project.project_number} - {project.project_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </TooltipTrigger>
-                      {expense?.is_split && (
-                        <TooltipContent side="right" className="max-w-xs">
-                          <p className="text-xs">
-                            This expense is split across multiple projects. Use the "Manage Splits" button below to update project allocation.
-                          </p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                  {expense?.is_split && (
-                    <p className="text-xs text-warning">
-                      ⚠️ Cannot change project for split expenses. Manage splits to update project allocation.
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
+                          </div>
+                        </TooltipTrigger>
+                        {expense?.is_split && (
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-xs">
+                              This expense is split across multiple projects. Use the "Manage Splits" button below to update project allocation.
+                            </p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                    {expense?.is_split && (
+                      <p className="text-xs text-warning">
+                        ⚠️ Cannot change project for split expenses. Manage splits to update project allocation.
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <div className="grid grid-cols-2 gap-2">
