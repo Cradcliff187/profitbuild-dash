@@ -326,6 +326,46 @@ WHERE p.default_expense_category IS NOT NULL
 GROUP BY p.project_number;
 ```
 
+### 6b. CSV Import Categorization Precedence (May 2026)
+
+`enhancedTransactionImporter.ts` decides an imported expense's `category` in this fixed precedence chain. Earlier wins:
+
+1. **QB account → user DB mapping** (`quickbooks_account_mappings` table — admin-managed via `AccountMappingsManager`)
+2. **QB account → static map** (`ACCOUNT_CATEGORY_MAP` in [importCore.ts](src/utils/importCore.ts))
+3. **QB account → `resolveQBAccountCategory`** (additional static rules)
+4. **Description keyword match** (text scan for `labor`, `subcontractor`, `material`, `lumber`, etc.)
+5. **Project-default-category override** — Rule 6a. Forces overhead-project categories regardless of the above. Net effect: overhead projects always win even if the QB account or description suggested something else.
+6. **Payee-type fallback** — NEW. Only fires when `category === OTHER` AND a payee was matched with a known `payee_type`. Mapping lives in `PAYEE_TYPE_TO_CATEGORY` at the top of `enhancedTransactionImporter.ts`:
+   - `subcontractor` → `subcontractors`
+   - `material_supplier` → `materials`
+   - `equipment_rental` → `equipment`
+   - `permit_authority` → `permits`
+   - `internal_labor` → `labor_internal`
+   - `management` → `management`
+   - `other` → no override (leaves OTHER)
+7. **Default OTHER** — last resort.
+
+**Why payee-type sits at #6, not earlier**: QB account mappings are more specific than payee type (a subcontractor billing materials should categorize as MATERIALS via the QB account, not SUBCONTRACTOR via payee type). The fallback exists for the common case where the QB account path is generic (`Job Expenses`, `Cost of Goods Sold`) and the description has no trigger keyword — without the fallback, every such row falls to OTHER even though the matched payee tells us exactly what it is.
+
+**Match log entry**: `algorithm: 'payee_type_fallback'`, `decision: 'auto_matched'`, `confidence: 80`. Surfaces in the post-import "Match log" debug view alongside `project_default_category`.
+
+**Common pitfall**: do NOT add the payee-type fallback to the manual `ExpenseForm` or as a DB trigger. The user explicitly chooses category in the form and may have accounting reasons to mark a subcontractor's row as `other` (or any non-default). Auto-rewriting in those paths would silently override their intent. The override only runs in the CSV importer where the user is confirming bulk machine-suggested categories, not at point-of-data-entry.
+
+**Verification**: after import, expenses imported under construction projects with known payee types should NOT be `other` unless the QB account mapping explicitly said so. Spot-check:
+```sql
+-- Construction-project expenses categorized as 'other' that have a known payee type:
+-- ideally zero rows post-rule-6b, except where the QB account mapping legitimately said 'other'
+SELECT e.id, e.expense_date, p.project_number, py.payee_name, py.payee_type, e.account_full_name
+FROM expenses e
+JOIN projects p ON p.id = e.project_id
+JOIN payees py ON py.id = e.payee_id
+WHERE p.category = 'construction'
+  AND e.category = 'other'
+  AND py.payee_type IN ('subcontractor', 'material_supplier', 'equipment_rental', 'permit_authority')
+  AND e.transaction_type IN ('bill', 'expense', 'check')
+ORDER BY e.expense_date DESC;
+```
+
 ### 7. Receipts vs. Expenses
 Receipts are **documentation only** — they do NOT feed financial calculations. Financial data comes from direct expense entry or QuickBooks CSV import.
 
