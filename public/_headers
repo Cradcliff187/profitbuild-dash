@@ -17,3 +17,6 @@
 
 /workbox-*.js
   Cache-Control: public, max-age=0, must-revalidate
+
+/version.json
+  Cache-Control: public, max-age=0, must-revalidate

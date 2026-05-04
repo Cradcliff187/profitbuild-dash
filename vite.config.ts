@@ -28,6 +28,24 @@ const getVersion = () => {
 
 const appVersion = getVersion();
 
+// Emits dist/version.json at build time. The Settings "Check for Updates"
+// button fetches this with cache: 'no-store' and compares to __APP_VERSION__
+// baked into the running JS — a string-compare on a no-cache fetch is
+// trustworthy in a way the SW byte-comparison heuristic isn't (especially on
+// iOS PWAs where the SW lifecycle is sticky). When versions differ the user
+// gets a Force Update path that nukes the SW + caches + hard reloads.
+const versionJsonPlugin = () => ({
+  name: 'emit-version-json',
+  apply: 'build' as const,
+  generateBundle() {
+    this.emitFile({
+      type: 'asset',
+      fileName: 'version.json',
+      source: JSON.stringify({ version: appVersion, buildTime: new Date().toISOString() }),
+    });
+  },
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
@@ -76,6 +94,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    versionJsonPlugin(),
     VitePWA({
       devOptions: { enabled: false },
       // 'prompt' (not 'autoUpdate') because we manually register the SW in
