@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntryFilters } from "@/types/timeEntry";
@@ -176,8 +176,9 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
           >
             <Command>
               <CommandInput placeholder="Search workers..." className="h-9" />
-              <CommandEmpty>No worker found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No worker found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -212,7 +213,8 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
@@ -242,8 +244,9 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
           >
             <Command>
               <CommandInput placeholder="Search projects..." className="h-9" />
-              <CommandEmpty>No project found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No project found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -278,7 +281,8 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

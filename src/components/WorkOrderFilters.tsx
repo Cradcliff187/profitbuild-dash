@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { ProjectStatus, PROJECT_STATUSES, JOB_TYPES } from "@/types/project";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export interface WorkOrderSearchFilters {
   searchText: string;
@@ -258,8 +258,9 @@ export const WorkOrderFilters = ({
           <PopoverContent className="w-64 p-0" align="start">
             <Command>
               <CommandInput placeholder="Search clients..." className="h-9" />
-              <CommandEmpty>No client found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No client found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -294,7 +295,8 @@ export const WorkOrderFilters = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

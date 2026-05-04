@@ -11,7 +11,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -694,8 +694,9 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
             <PopoverContent className="w-64 p-0" align="start">
               <Command>
                 <CommandInput placeholder="Search projects..." className="h-9" />
-                <CommandEmpty>No project found.</CommandEmpty>
-                <CommandGroup className="max-h-64 overflow-auto">
+                <CommandList>
+                  <CommandEmpty>No project found.</CommandEmpty>
+                  <CommandGroup>
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
                       variant="ghost"
@@ -732,7 +733,8 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                       </div>
                     </CommandItem>
                   ))}
-                </CommandGroup>
+                  </CommandGroup>
+                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
@@ -756,8 +758,9 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
             <PopoverContent className="w-64 p-0" align="start">
               <Command>
                 <CommandInput placeholder="Search clients..." className="h-9" />
-                <CommandEmpty>No client found.</CommandEmpty>
-                <CommandGroup className="max-h-64 overflow-auto">
+                <CommandList>
+                  <CommandEmpty>No client found.</CommandEmpty>
+                  <CommandGroup>
                   <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                     <Button
                       variant="ghost"
@@ -794,7 +797,8 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                       </div>
                     </CommandItem>
                   ))}
-                </CommandGroup>
+                  </CommandGroup>
+                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>

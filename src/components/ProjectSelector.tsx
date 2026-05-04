@@ -30,6 +30,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -88,7 +89,8 @@ export const ProjectSelector = ({
       <PopoverContent className="w-full p-0" align="start">
         <Command>
           <CommandInput placeholder="Search projects..." />
-          <CommandEmpty>
+          <CommandList>
+            <CommandEmpty>
             {estimates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-center">
                 <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
@@ -112,7 +114,7 @@ export const ProjectSelector = ({
               "No projects found."
             )}
           </CommandEmpty>
-          <CommandGroup className="max-h-64 overflow-auto">
+          <CommandGroup>
             {estimates.map((estimate) => (
               <CommandItem
                 key={estimate.id}
@@ -148,6 +150,7 @@ export const ProjectSelector = ({
               </CommandItem>
             )}
           </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>

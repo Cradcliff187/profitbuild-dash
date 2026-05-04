@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -1810,45 +1810,47 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 <PopoverContent className="w-full sm:w-64 p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search projects..." className="h-9" />
-                    <CommandEmpty>No project found.</CommandEmpty>
-                    <CommandGroup className="max-h-64 overflow-auto">
-                      <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-2"
-                          onClick={() => setFilterProjects(projects.map(p => p.id))}
-                        >
-                          Select All
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-2"
-                          onClick={() => setFilterProjects([])}
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                      {projects.map((project) => (
-                        <CommandItem
-                          key={project.id}
-                          value={`${project.project_number} ${project.project_name}`}
-                          onSelect={() => toggleProject(project.id)}
-                          className="text-sm"
-                        >
-                  <div className="flex items-center gap-2 w-full">
-                    <Checkbox
-                      checked={filterProjects.includes(project.id)}
-                      className="h-4 w-4 pointer-events-none"
-                    />
-                    <span className="text-sm truncate">
-                      {project.project_number} - {project.project_name}
-                    </span>
-                  </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>No project found.</CommandEmpty>
+                      <CommandGroup>
+                        <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => setFilterProjects(projects.map(p => p.id))}
+                          >
+                            Select All
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => setFilterProjects([])}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                        {projects.map((project) => (
+                          <CommandItem
+                            key={project.id}
+                            value={`${project.project_number} ${project.project_name}`}
+                            onSelect={() => toggleProject(project.id)}
+                            className="text-sm"
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              <Checkbox
+                                checked={filterProjects.includes(project.id)}
+                                className="h-4 w-4 pointer-events-none"
+                              />
+                              <span className="text-sm truncate">
+                                {project.project_number} - {project.project_name}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>
@@ -2181,45 +2183,47 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
               <PopoverContent className="w-full sm:w-64 p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search payees..." className="h-9" />
-                  <CommandEmpty>No payee found.</CommandEmpty>
-                  <CommandGroup className="max-h-64 overflow-auto">
-                    <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs px-2"
-                        onClick={() => setFilterPayees(payees.map(p => p.id))}
-                      >
-                        Select All
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs px-2"
-                        onClick={() => setFilterPayees([])}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                    {payees.map((payee) => (
-                      <CommandItem
-                        key={payee.id}
-                        value={payee.payee_name}
-                        onSelect={() => togglePayee(payee.id)}
-                        className="text-sm"
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          <Checkbox
-                            checked={filterPayees.includes(payee.id)}
-                            className="h-4 w-4 pointer-events-none"
-                          />
-                          <span className="text-sm truncate">
-                            {payee.payee_name}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+                  <CommandList>
+                    <CommandEmpty>No payee found.</CommandEmpty>
+                    <CommandGroup>
+                      <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs px-2"
+                          onClick={() => setFilterPayees(payees.map(p => p.id))}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs px-2"
+                          onClick={() => setFilterPayees([])}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                      {payees.map((payee) => (
+                        <CommandItem
+                          key={payee.id}
+                          value={payee.payee_name}
+                          onSelect={() => togglePayee(payee.id)}
+                          className="text-sm"
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <Checkbox
+                              checked={filterPayees.includes(payee.id)}
+                              className="h-4 w-4 pointer-events-none"
+                            />
+                            <span className="text-sm truncate">
+                              {payee.payee_name}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
