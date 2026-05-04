@@ -10,6 +10,15 @@ interface RoleContextType {
   isAdmin: boolean;
   isManager: boolean;
   isFieldWorker: boolean;
+  /**
+   * True only when the user has the field_worker role AND has neither admin
+   * nor manager. Use this for UI gates that should restrict an admin from
+   * seeing the field-worker-only experience even if they happen to also have
+   * the field_worker role attached (e.g. an admin who clocks time
+   * occasionally). The bare `isFieldWorker` check is the wrong gate for those
+   * cases — it would hide admin tools from someone who is in fact an admin.
+   */
+  isFieldWorkerOnly: boolean;
   loading: boolean;
   refreshRoles: () => Promise<void>;
 }
@@ -54,14 +63,19 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
   const hasRole = (role: AppRole) => roles.includes(role);
 
+  const isAdmin = hasRole('admin');
+  const isManager = hasRole('manager');
+  const isFieldWorker = hasRole('field_worker');
+
   return (
     <RoleContext.Provider
       value={{
         roles,
         hasRole,
-        isAdmin: hasRole('admin'),
-        isManager: hasRole('manager'),
-        isFieldWorker: hasRole('field_worker'),
+        isAdmin,
+        isManager,
+        isFieldWorker,
+        isFieldWorkerOnly: isFieldWorker && !isAdmin && !isManager,
         loading,
         refreshRoles: loadRoles,
       }}

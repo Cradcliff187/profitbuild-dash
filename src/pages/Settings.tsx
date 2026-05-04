@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2 } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2, Building2, Palette, DollarSign, Wallet, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { AccountMappingsManager } from "@/components/AccountMappingsManager";
@@ -335,6 +336,30 @@ const Settings = () => {
     }
   };
 
+  // R4 — Section nav. Settings is 11 cards on a single scroll; this lets
+  // admins jump directly to the section they came for instead of scrolling
+  // through a 4-screen-tall page. Pill-strip pattern (matches R2 across the
+  // app), sticky under the page header, horizontal scroll on overflow.
+  type SettingsSection = { id: string; label: string; icon: LucideIcon; show: boolean };
+  const sections: SettingsSection[] = [
+    { id: 'profile', label: 'Profile', icon: User, show: true },
+    { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
+    { id: 'data-sync', label: 'Data & Sync', icon: Database, show: true },
+    { id: 'project-numbers', label: 'Project Numbers', icon: Hash, show: isAdmin },
+    { id: 'quickbooks', label: 'QuickBooks', icon: Wallet, show: true },
+    { id: 'account-mappings', label: 'Account Mappings', icon: DollarSign, show: true },
+    { id: 'branding', label: 'Branding', icon: Palette, show: true },
+    { id: 'labor-rates', label: 'Labor Rates', icon: Building2, show: isAdmin },
+    { id: 'developer', label: 'Developer', icon: Code2, show: isAdmin },
+    { id: 'app-updates', label: 'Updates', icon: RefreshCw, show: true },
+    { id: 'security', label: 'Security', icon: Shield, show: true },
+  ];
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <MobilePageWrapper>
       <PageHeader
@@ -343,7 +368,38 @@ const Settings = () => {
         description="Manage your account and application preferences"
       />
 
+      {/* Section nav — sticky pill strip. Horizontal scroll on overflow so
+          all 8-11 sections (depending on role) stay reachable on a phone. */}
+      <nav
+        aria-label="Settings sections"
+        className="sticky top-0 z-20 -mx-3 sm:mx-0 mb-4 px-3 sm:px-0 py-2 bg-background/95 backdrop-blur-sm border-b border-border"
+      >
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+          {sections.filter(s => s.show).map((section) => {
+            const Icon = section.icon;
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => scrollToSection(section.id)}
+                className={cn(
+                  "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                  "text-xs font-medium whitespace-nowrap",
+                  "border border-border bg-card text-muted-foreground",
+                  "hover:border-primary hover:text-foreground hover:bg-primary/5",
+                  "active:bg-primary/10 transition-colors min-h-[36px]"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {section.label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
       <div className="grid gap-6">
+        <section id="profile" className="scroll-mt-24">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -413,7 +469,9 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+        </section>
 
+        <section id="notifications" className="scroll-mt-24">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -442,7 +500,9 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+        </section>
 
+        <section id="data-sync" className="scroll-mt-24">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -454,9 +514,9 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="budgetThreshold">Budget Alert Threshold (%)</Label>
-              <Input 
+              <Input
                 id="budgetThreshold"
-                type="number" 
+                type="number"
                 min="1"
                 max="100"
                 step="0.1"
@@ -470,8 +530,10 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+        </section>
 
         {isAdmin && (
+          <section id="project-numbers" className="scroll-mt-24">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -546,25 +608,37 @@ const Settings = () => {
                 </p>
               </div>
 
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 rounded-md">
-                <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                  <strong>Warning:</strong> Changing the counter manually may result in duplicate project numbers 
+              <div className="p-3 bg-warning-bg border border-warning-border rounded-md">
+                <p className="text-xs text-warning-fg">
+                  <strong>Warning:</strong> Changing the counter manually may result in duplicate project numbers
                   if set to a value already used. The auto-sync feature is recommended for safety.
                 </p>
               </div>
             </CardContent>
           </Card>
+          </section>
         )}
 
-        <QuickBooksSettings />
+        <section id="quickbooks" className="scroll-mt-24">
+          <QuickBooksSettings />
+        </section>
 
-        <AccountMappingsManager />
+        <section id="account-mappings" className="scroll-mt-24">
+          <AccountMappingsManager />
+        </section>
 
-        <CompanyBrandingSettings />
-
-        {isAdmin && <LaborRateSettings />}
+        <section id="branding" className="scroll-mt-24">
+          <CompanyBrandingSettings />
+        </section>
 
         {isAdmin && (
+          <section id="labor-rates" className="scroll-mt-24">
+            <LaborRateSettings />
+          </section>
+        )}
+
+        {isAdmin && (
+          <section id="developer" className="scroll-mt-24">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -594,8 +668,10 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+          </section>
         )}
 
+        <section id="app-updates" className="scroll-mt-24">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -628,7 +704,9 @@ const Settings = () => {
             )}
           </CardContent>
         </Card>
+        </section>
 
+        <section id="security" className="scroll-mt-24">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -638,8 +716,8 @@ const Settings = () => {
             <CardDescription>Manage your account security settings</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full"
               onClick={() => navigate('/change-password')}
             >
@@ -647,28 +725,22 @@ const Settings = () => {
             </Button>
           </CardContent>
         </Card>
+        </section>
 
         <div className="flex justify-end space-x-2">
-          <Button 
+          <Button
             variant="outline"
             onClick={handleCancel}
             disabled={!hasProfileChanges || loading}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSaveProfile}
             disabled={!hasProfileChanges || loading}
           >
             Save Changes
           </Button>
-        </div>
-
-        {/* App Version - Subtle footer */}
-        <div className="flex items-center justify-center pt-6 pb-2 border-t mt-6">
-          <p className="text-xs text-muted-foreground/60">
-            App Version: v{__APP_VERSION__}
-          </p>
         </div>
       </div>
     </MobilePageWrapper>

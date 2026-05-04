@@ -14,6 +14,16 @@ interface AddNoteParams {
 export function useProjectNotes(projectId: string) {
   const queryClient = useQueryClient();
   const queryKey = ['project-notes', projectId];
+  // The Notes tab badge in MobileScheduleView uses a separate query key
+  // (`project-notes-count`) — invalidate both whenever the underlying notes
+  // change so the badge stays in sync without a page reload. Caught during
+  // QA: posting a note left the badge stuck on the old count until reload
+  // (Gotcha #27 — direct cache-key fanout miss).
+  const countQueryKey = ['project-notes-count', projectId];
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: countQueryKey });
+  };
 
   const { data: notes, isLoading } = useQuery({
     queryKey,
@@ -98,7 +108,7 @@ export function useProjectNotes(projectId: string) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+      invalidateAll();
       toast.success('Note added');
     },
     onError: (error) => {
@@ -117,7 +127,10 @@ export function useProjectNotes(projectId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+      // Update doesn't change count, but timeline content does — invalidate
+      // the notes list. (Count key is fine to leave alone but harmless to
+      // include via invalidateAll for symmetry.)
+      invalidateAll();
       toast.success('Note updated');
     },
     onError: (error) => {
@@ -136,7 +149,7 @@ export function useProjectNotes(projectId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+      invalidateAll();
       toast.success('Note deleted');
     },
     onError: (error) => {

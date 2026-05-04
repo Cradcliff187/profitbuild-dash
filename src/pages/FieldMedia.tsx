@@ -70,8 +70,8 @@ export default function FieldMedia() {
         description="View and manage field photos and videos"
         actions={
           <div className="hidden sm:flex items-center gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => selectedProjectId && navigate(`/field-media/${selectedProjectId}/capture`)}
               disabled={!selectedProjectId}
@@ -79,7 +79,7 @@ export default function FieldMedia() {
               <Camera className="h-4 w-4 mr-2" />
               Capture Photo
             </Button>
-            <Button 
+            <Button
               variant="outline"
               size="sm"
               onClick={() => selectedProjectId && navigate(`/field-media/${selectedProjectId}/capture-video`)}
@@ -89,6 +89,22 @@ export default function FieldMedia() {
               Capture Video
             </Button>
           </div>
+        }
+        mobileActions={
+          selectedProjectId
+            ? [
+                {
+                  label: "Capture Photo",
+                  icon: Camera,
+                  onClick: () => navigate(`/field-media/${selectedProjectId}/capture`),
+                },
+                {
+                  label: "Capture Video",
+                  icon: Video,
+                  onClick: () => navigate(`/field-media/${selectedProjectId}/capture-video`),
+                },
+              ]
+            : undefined
         }
       />
 
@@ -185,11 +201,14 @@ export default function FieldMedia() {
             </>
           ) : null
         ) : (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Camera className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">
-                Select a project above to view and capture media
+          <Card className="border-dashed">
+            <CardContent className="p-10 text-center">
+              <div className="mx-auto mb-4 h-14 w-14 rounded-full bg-muted/40 flex items-center justify-center">
+                <Camera className="h-7 w-7 text-muted-foreground/60" />
+              </div>
+              <p className="text-base font-semibold text-foreground mb-1">Pick a project to start</p>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Choose a project above to view photos, videos, and documents from the field.
               </p>
             </CardContent>
           </Card>

@@ -84,7 +84,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { state, setOpenMobile, isMobile } = useSidebar();
   const { user, signOut } = useAuth();
-  const { isAdmin, isManager, isFieldWorker, roles } = useRoles();
+  const { isAdmin, isManager, isFieldWorker, isFieldWorkerOnly, roles } = useRoles();
   const { total: pendingCount } = usePendingCounts();
   const { unreadCount: mentionCount } = useUnreadMentions();
 
@@ -159,9 +159,20 @@ export function AppSidebar() {
       label: "OPERATIONS",
       abbrev: "O",
       items: [
-        { title: "Projects", url: "/projects", icon: Building2, show: hasFinancialAccess },
+        // Projects is visible to every role (R3). Field workers see a
+        // simplified card variant (project number + name + client + address
+        // with a directions tap target) and tap into /schedule directly —
+        // their safe sub-route per Rule 18. Admins/managers see the full
+        // financial card variant with margin/cost KPIs as before.
+        { title: "Projects", url: "/projects", icon: Building2, show: true },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
+        // Receipts deep-links into Time Tracker's existing Receipts tab.
+        // Top-level sidebar entry for pure field workers so their personal
+        // receipts list isn't buried two taps deep inside the Time Tracker
+        // tab strip. Admins/managers reach receipts via the Time Tracker tab
+        // strip directly — they don't need a sidebar shortcut.
+        { title: "Receipts", url: "/time-tracker?tab=receipts", icon: Receipt, show: isFieldWorkerOnly },
         { title: "Field Media", url: "/field-media", icon: Camera, show: true },
       ],
     },
@@ -204,6 +215,13 @@ export function AppSidebar() {
 
   const isActive = (url: string) => {
     if (url === "/") return location.pathname === "/";
+    // Handle URLs with query strings (e.g. /time-tracker?tab=receipts) so the
+    // entry only highlights when the user is on that exact deep-link, not
+    // whenever they're on the base path.
+    if (url.includes("?")) {
+      const fullUrl = location.pathname + location.search;
+      return fullUrl === url;
+    }
     return location.pathname.startsWith(url);
   };
 
@@ -213,8 +231,8 @@ export function AppSidebar() {
 
     return (
       <div key={group.label}>
-        <SidebarGroup className={cn(collapsed && "p-1")}>
-          {!collapsed && (
+        <SidebarGroup className={cn(collapsed && !isMobile && "p-1")}>
+          {(!collapsed || isMobile) && (
             <SidebarGroupLabel className="text-xs uppercase text-sidebar-foreground/60 mb-1">
               {group.label}
             </SidebarGroupLabel>
@@ -260,7 +278,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {showSeparator && !collapsed && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />}
+        {showSeparator && (!collapsed || isMobile) && <SidebarSeparator className="my-2 bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />}
       </div>
     );
   };
@@ -347,7 +365,7 @@ export function AppSidebar() {
         {/* Admin section - only shows if user has admin items visible */}
         {adminGroup.items.some(item => item.show) && (
           <>
-            {!collapsed && <SidebarSeparator className="my-2" />}
+            {(!collapsed || isMobile) && <SidebarSeparator className="my-2" />}
             {renderNavGroup(adminGroup, false)}
           </>
         )}

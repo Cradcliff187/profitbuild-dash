@@ -524,13 +524,13 @@ export default function BranchBidDetail() {
           )}
         </div>
 
+        {/* Tab pills above already name the section ("Notes" / "Media" / "Docs") —
+            don't double up with a CardHeader. Bare Card with content-only padding
+            so the surface still gets the elevated white treatment. */}
+
         <TabsContent value="notes" className="mt-0">
           <Card>
-            <CardHeader>
-              <CardTitle>Notes</CardTitle>
-              <CardDescription>Add voice or text notes about this bid</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               {/* On mobile, the BidQuickActionBar's Note button is the sole
                   composer entry — hide the inline one so we don't show two. */}
               <BidNotesTimeline bidId={id!} hideComposer={isMobile} />
@@ -540,11 +540,7 @@ export default function BranchBidDetail() {
 
         <TabsContent value="media" className="mt-0">
           <Card>
-            <CardHeader>
-              <CardTitle>Photos & Videos</CardTitle>
-              <CardDescription>Capture site photos and videos</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               <BidMediaGallery bidId={id!} />
             </CardContent>
           </Card>
@@ -552,11 +548,7 @@ export default function BranchBidDetail() {
 
         <TabsContent value="documents" className="mt-0">
           <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-              <CardDescription>Upload PDFs, Word docs, Excel files, and other documents</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               <BidDocumentUpload bidId={id!} />
             </CardContent>
           </Card>

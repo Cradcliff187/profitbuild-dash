@@ -24,7 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { ReportCategory } from "@/types/reports";
 
 const ReportsPage = () => {
@@ -282,29 +282,18 @@ const ReportsPage = () => {
       <Tabs value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)}>
         <div className="mb-4 px-3 sm:px-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full sm:w-auto">
-            {/* Mobile Dropdown */}
+            {/* Mobile pill-strip (R2 — canonical pattern) */}
             <div className="sm:hidden">
-              <Select value={selectedCategory} onValueChange={(value) => handleCategoryChange(value as ReportCategory)}>
-                <SelectTrigger className="h-10 w-full rounded-lg border-border text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-[100]">
-                  {tabOptions.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <SelectItem key={tab.value} value={tab.value}>
-                        <div className="flex items-center gap-2">
-                          {Icon && <Icon className="h-4 w-4" />}
-                          <span>{tab.label}</span>
-                          {tab.badgeCount > 0 && (
-                            <span className="ml-auto text-xs text-muted-foreground">({tab.badgeCount})</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <MobileTabSelector
+                value={selectedCategory}
+                onValueChange={(value) => handleCategoryChange(value as ReportCategory)}
+                options={tabOptions.map((tab) => ({
+                  value: tab.value,
+                  label: tab.label,
+                  icon: tab.icon,
+                  count: tab.badgeCount,
+                }))}
+              />
             </div>
 
             {/* Desktop Tabs */}
@@ -334,14 +323,9 @@ const ReportsPage = () => {
 
             {showBuilder ? (
               <Card className="w-full max-w-full overflow-hidden">
-                <CardHeader className="px-3 sm:px-6 py-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="truncate">Create Custom Report</CardTitle>
-                      <CardDescription>
-                        Build your own report step by step
-                      </CardDescription>
-                    </div>
+                <CardHeader className="px-3 sm:px-6 py-3">
+                  <div className="flex items-center justify-between gap-3 min-w-0">
+                    <CardTitle className="text-base truncate">Create Custom Report</CardTitle>
                     <Button variant="outline" size="sm" onClick={() => setShowBuilder(false)} className="flex-shrink-0">
                       <FileText className="h-4 w-4 mr-2" />
                       Back to Templates

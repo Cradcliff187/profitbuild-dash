@@ -128,7 +128,7 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
       activeFilterCount={getActiveFilterCount()}
       onClearFilters={handleClearFilters}
       resultCount={resultCount}
-      defaultExpanded={hasActiveFilters()}
+      defaultExpanded={false}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2 w-full max-w-full overflow-hidden">
         {/* Quick Search - Full Width */}

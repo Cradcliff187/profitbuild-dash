@@ -22,7 +22,7 @@ This file is the canonical reference for Claude Code when working in this reposi
 ## Essential Commands
 
 ```bash
-npm run dev            # Dev server → http://localhost:8080
+npm run dev            # Dev server → http://localhost:5225 (pinned, strictPort)
 npm run build          # Production build → dist/
 npm run lint           # ESLint on all TS files
 npm run type-check     # tsc --noEmit (no build output)
@@ -678,6 +678,70 @@ Leads was the last area still using pre-April-2026 mobile patterns (raw page hea
 
 **Camera divergence is intentional.** `FieldQuickActionBar` Camera = native picker → upload (~2 toasts, no dedicated page). `BidQuickActionBar` Camera = `navigate('/leads/:id/capture')` → dedicated GPS-aware preview/caption page. The dedicated page is heavier but fits the lead-documentation workflow where explicit GPS capture has business value (you're photographing a physical site for a quote). Field captures already happen on a known project site, so the lighter pattern wins there. Don't try to collapse them — the divergence is by design.
 
+### 23. `PageHeader.mobileActions` Contract (May 2026)
+
+`PageHeader` was historically a desktop-first component: `actions` (a ReactNode of buttons in the right-rail) was silently dropped on mobile. Pages that needed actions on phones invented per-page workarounds — fixed FABs, inline action strips, or just lost the action. Audit found Dashboard's "Refresh" and Reports' "+ New Report" disappeared on mobile entirely with no fallback.
+
+The contract is now explicit: pages pass two slots.
+
+```tsx
+<PageHeader
+  icon={LayoutDashboard}
+  title="Dashboard"
+  description="Overview of projects and activities"
+  actions={
+    <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+      <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+      Refresh
+    </Button>
+  }
+  mobileActions={[
+    { label: isRefreshing ? "Refreshing..." : "Refresh", icon: RefreshCw, onClick: handleRefresh, disabled: isRefreshing },
+  ]}
+/>
+```
+
+**Rendering:**
+- Desktop (≥768px): `actions` ReactNode renders unchanged in the right-rail (legacy behavior preserved).
+- Mobile + no `mobileActions`: AppLayout's mobile header already shows the page title; PageHeader renders only the orange accent line (legacy mobile behavior preserved).
+- Mobile + `mobileActions` provided: a slim right-aligned row with a `MoreVertical` (`⋮`) button renders above the accent line. Tapping opens a Radix `DropdownMenu` with each action as a `min-h-[44px]` item (touch target compliant).
+
+**Dev-mode warn:** If `actions` is set but `mobileActions` is undefined on mobile, PageHeader logs once per mount via `useEffect`:
+```
+[PageHeader] "Dashboard" has `actions` but no `mobileActions` — actions are not surfaced on mobile.
+```
+This is intentional friction so future page authors don't silently lose mobile actions. To opt out, either provide `mobileActions=[]` (empty array suppresses the warn) or use a FAB pattern outside the header.
+
+**`PageHeaderMobileAction` type:** `{ label, icon?, onClick, disabled?, variant?, divider? }`. `divider: true` renders a `DropdownMenuSeparator` BEFORE the item — use to group destructive actions or grouped sub-actions away from the primary list.
+
+**Common pitfall:** wrapping the desktop `actions` content in `<div className="hidden sm:flex">…</div>` doesn't help — the wrapper is still present so the dev-warn doesn't fire, but no actions render on mobile. Use `mobileActions` instead. Existing FAB patterns (Projects, Expenses, Leads) are still valid for primary "+ Create" actions; the kebab is for secondary actions.
+
+### 24. `isFieldWorkerOnly` vs `isFieldWorker` (May 2026)
+
+`RoleContext` exposes both `isFieldWorker` (the user has the `field_worker` role at all) and `isFieldWorkerOnly` (the user has `field_worker` AND NOT `admin` AND NOT `manager`). They look interchangeable but they are NOT — picking the wrong one causes admin users with the field_worker role attached (a real configuration: an admin who occasionally clocks time) to see the field-worker-only UX instead of admin tools.
+
+| Use case | Gate |
+|---|---|
+| "Hide admin tools from this user because they're a field worker" | `isFieldWorkerOnly` |
+| "Show field-worker-aware UI affordances even to admins who happen to clock time" | `isFieldWorker` |
+
+**Concrete examples:**
+
+`isFieldWorkerOnly` (defensive — restrict admin tools):
+- Slim project card variant (admins want the rich KPI card even if they have field_worker too)
+- "Receipts" sidebar deep-link entry (admins reach receipts via Time Tracker tab strip)
+- Hide "Edit Project" pencil button on `ProjectDetailView` (admins still need to edit)
+- Hide section selector dropdown on `ProjectDetailView` (admins navigate the full project)
+- AppLayout role-based redirects (admin should not be bounced to `/time-tracker`)
+- Default status filter on `/projects` (admins want unfiltered)
+- Hide "+ New Project" FAB (admins still create projects)
+
+`isFieldWorker` (informational — adapt UI for any user with the role):
+- The back-arrow on mobile project header routes to `/time-tracker` if `isFieldWorker` is true (more useful than `/projects` for them, even if they're an admin)
+- `getNavigationGroups({ isFieldWorker })` filters to `fieldWorkerSafe` items in the mobile section sheet — admins-who-clock would still want to see Schedule prioritized
+
+**Symptom of getting it wrong:** an admin loads `/projects` on mobile and sees the field-worker slim cards (no financials) instead of the rich KPI cards. Or an admin gets bounced from `/` to `/time-tracker`. Both happened during R3 development before `isFieldWorkerOnly` was introduced. If you see either symptom, grep for `isFieldWorker` in the file and consider whether the gate should be `isFieldWorkerOnly`.
+
 ---
 
 ## TypeScript Configuration
@@ -901,6 +965,8 @@ Use this list when doing periodic documentation reviews:
 41. **Mobile fixed-position bars must mount as siblings of `MobilePageWrapper`, not children (PR #37, May 2026)** — [`MobilePageWrapper`](src/components/ui/mobile-page-wrapper.tsx) is `min-h-screen w-full max-w-full overflow-x-hidden mx-auto px-0 sm:px-4 ... py-4 sm:py-6`. On iOS Safari, a `position: fixed bottom-0` element rendered as a CHILD of this wrapper anchors to the wrapper's bottom edge instead of the viewport bottom on tall pages — the bar appears mid-screen with content visible both ABOVE and BELOW it (smoking gun: media-grid items render in a 2-col grid that the bar interrupts horizontally). Caught live on `BranchBidDetail.tsx`; fixed by wrapping the return in `<>...</>` and moving `<BidQuickActionBar>` outside `<MobilePageWrapper>` as a sibling. Mirrors the [`ProjectDetailView`](src/components/ProjectDetailView.tsx) mobile pattern where `FieldQuickActionBar` is a direct child of the page-level `<div className="flex flex-col h-full bg-background">`, sitting alongside (not inside) the inner `overflow-auto` scroll container. Rule for future work: any new mobile bottom bar (Note/Camera/Attach style) on a page that uses `MobilePageWrapper` MUST be a sibling. Don't try to chase the precise CSS culprit — the structural fix is reliable, the CSS-level diagnostic ("which ancestor has transform/contain/will-change?") is not. Pair this with content padding (`pb-20`) on the wrapper so the last card isn't hidden behind the bar.
 
 42. **`useBidMediaUpload` is silent — callers own success/error toasts (PR #37, May 2026)** — When the hook still owned its own `toast.success('Media uploaded successfully')` and `toast.error('Upload failed', ...)` at [`useBidMediaUpload.ts`](src/hooks/useBidMediaUpload.ts), every consumer that ALSO toasted on the same flow produced double toasts on a single upload. The hook fed `BidPhotoCapture`'s GPS+caption chain, `BidVideoCapture`, `BidQuickActionBar`'s Attach button, `BidMediaBulkUpload`, and `BidDocumentUpload` — all five had their own toasts too, so users routinely saw two stacked success notifications per upload (and the photo capture flow saw three plus a blocking sheet — see PR #37 description). The hook is now silent on success and error. The single info toast it still fires is `toast.info('Queued for upload')` when offline — that one is unique to the hook (no caller has visibility into the offline-queue path). Contract for future work: do NOT add `toast.success`/`toast.error` inside `useBidMediaUpload.upload`. The hook returns the created `BidMedia` row on success and `null` on failure, with the underlying `Error` exposed via the returned `error` state — that's the API. Same principle when extracting future upload hooks: pick one layer to own user-facing toasts (typically the page or the bar), and keep the hook silent.
+
+43. **Vite dev port pinned to 5225 with `strictPort` (May 2026)** — `vite.config.ts` previously had `server.port: 8080` with no `strictPort`. When another local Vite project (e.g. `radcliff-builders-portal` at `E:\RCG External Website\`) was already on 8080, Vite silently slid through to 8081 / 8082 / etc. The `.claude/launch.json` configured for port 8080 then couldn't bridge, and the Claude Preview MCP's reverse proxy broke — the preview window opened to `chrome-error://chromewebdata/` with no clear failure mode. Fixed by pinning to `port: 5225` ("5K" + RCG project-number prefix `225` so the port is mnemonic and unique-to-this-project) plus `strictPort: true`. With `strictPort`, future port collisions fail loudly with `EADDRINUSE 5225` at startup instead of silently degrading. **Diagnostic if it ever recurs:** `netstat -ano | findstr :5225` (Windows) or `lsof -i :5225` (mac/linux) finds the squatter. If you change the port, also update `.claude/launch.json` (gitignored) and the dev URL line in this file's "Essential Commands" section. The dev URL is `http://localhost:5225/`.
 
 ---
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye, ArrowUpDown } from "lucide-react";
+import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye, ArrowUpDown, ChevronRight, Navigation } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRoles } from "@/contexts/RoleContext";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -260,10 +261,24 @@ export const ProjectsList = ({
   pageSize = 12 
 }: ProjectsListProps) => {
   const isMobile = useIsMobile();
+  const { isFieldWorkerOnly } = useRoles();
   const { navigateToProjectDetail } = useSmartNavigation();
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'status' | 'number' | 'value'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Build directions URL for the address tap target. iOS opens Apple Maps,
+  // Android opens Google Maps native, fallback to web Google Maps. Mirrors
+  // the helper inside ProjectScheduleSelector (Time Tracker) so the slim
+  // field-worker card behaves identically to that sheet.
+  const getDirectionsUrl = (address: string): string => {
+    const encoded = encodeURIComponent(address);
+    if (typeof navigator === "undefined") return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+    const ua = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(ua)) return `maps://maps.apple.com/?daddr=${encoded}`;
+    if (/Android/.test(ua)) return `google.navigation:q=${encoded}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+  };
 
   const handleSort = (newSortBy: typeof sortBy) => {
     if (sortBy === newSortBy) {
@@ -486,14 +501,6 @@ export const ProjectsList = ({
                   className="h-btn-compact text-label"
                 >
                   Number {sortBy === 'number' && <ArrowUpDown className="ml-1 h-3 w-3" />}
-                </Button>
-                <Button
-                  variant={sortBy === 'value' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleSort('value')}
-                  className="h-btn-compact text-label"
-                >
-                  Contract {sortBy === 'value' && <ArrowUpDown className="ml-1 h-3 w-3" />}
                 </Button>
               </div>
             </div>
@@ -758,6 +765,70 @@ export const ProjectsList = ({
                   </div>
                 </CardContent>
               </Card>
+            );
+          }
+
+          // FIELD WORKER MOBILE: slim row — project# / name / client / address
+          // (no financials, no status badges, no metric grids). Mirrors the
+          // ProjectScheduleSelector sheet inside Time Tracker so field workers
+          // see the same shape everywhere they pick a project. Tap → /schedule.
+          if (isFieldWorkerOnly) {
+            return (
+              <button
+                key={project.id}
+                type="button"
+                onClick={() => onEdit(project)}
+                className={cn(
+                  "w-full text-left bg-card border border-border rounded-lg",
+                  "px-4 py-3 flex items-center gap-3",
+                  "hover:bg-accent/50 active:bg-accent transition-colors",
+                  "min-h-[44px]"
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <span className="text-xs font-mono text-muted-foreground shrink-0">
+                      {project.project_number}
+                    </span>
+                    {/* Status pill — small, inline with the project number so
+                        field workers can see at-a-glance whether the job is
+                        active, on hold, or being closed without burying it
+                        in financial chrome. */}
+                    <ProjectStatusBadge status={project.status} size="sm" />
+                  </div>
+                  <div className="text-sm font-semibold truncate mb-0.5">
+                    {project.project_name}
+                  </div>
+                  {project.client_name && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {project.client_name}
+                    </p>
+                  )}
+                  {project.address && (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <a
+                        href={getDirectionsUrl(project.address)}
+                        target={
+                          typeof navigator !== "undefined" &&
+                          /iPad|iPhone|iPod|Android/.test(navigator.userAgent)
+                            ? undefined
+                            : "_blank"
+                        }
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-shrink-0 p-2 -m-2 -ml-1 text-info hover:text-info/80 active:bg-info/10 rounded-full transition-all"
+                        aria-label="Get directions"
+                      >
+                        <Navigation className="w-4 h-4" />
+                      </a>
+                      <p className="text-xs text-muted-foreground/70 truncate flex-1">
+                        {project.address}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              </button>
             );
           }
 

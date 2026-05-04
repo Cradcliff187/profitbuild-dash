@@ -261,10 +261,10 @@ export default function RoleManagement() {
       return { label: 'No Password', variant: 'destructive' };
     }
     if (!user.confirmed_at) {
-      return { label: 'Not Confirmed', variant: 'outline', className: 'border-yellow-500 text-yellow-700' };
+      return { label: 'Not Confirmed', variant: 'outline', className: 'border-warning text-warning-fg' };
     }
     if (user.must_change_password) {
-      return { label: 'Must Change', variant: 'outline', className: 'border-orange-500 text-orange-700' };
+      return { label: 'Must Change', variant: 'outline', className: 'border-primary text-primary' };
     }
     return { label: 'Active', variant: 'secondary' };
   };
@@ -307,17 +307,17 @@ export default function RoleManagement() {
       const diffMinutes = differenceInMinutes(now, activeDate);
       
       if (diffMinutes < 5) {
-        return { text: 'Active now', color: 'text-green-600', tooltip: formatFullTimestamp(lastActive) };
+        return { text: 'Active now', color: 'text-success', tooltip: formatFullTimestamp(lastActive) };
       } else if (diffMinutes < 60) {
-        return { text: `${diffMinutes}m ago`, color: 'text-green-600', tooltip: formatFullTimestamp(lastActive) };
+        return { text: `${diffMinutes}m ago`, color: 'text-success', tooltip: formatFullTimestamp(lastActive) };
       } else if (diffMinutes < 1440) {
         const hours = Math.floor(diffMinutes / 60);
-        return { text: `${hours}h ago`, color: 'text-blue-600', tooltip: formatFullTimestamp(lastActive) };
+        return { text: `${hours}h ago`, color: 'text-info', tooltip: formatFullTimestamp(lastActive) };
       } else {
         const days = Math.floor(diffMinutes / 1440);
         return { 
           text: `${days}d ago`, 
-          color: days > 7 ? 'text-red-600' : 'text-orange-600',
+          color: days > 7 ? 'text-destructive' : 'text-warning',
           tooltip: formatFullTimestamp(lastActive)
         };
       }
@@ -377,7 +377,7 @@ export default function RoleManagement() {
         return (
           <div className="flex items-center gap-2 text-xs">
             <Badge variant="secondary" className="h-5 px-1.5 text-[10px] gap-1">
-              <CheckCircle2 className="h-3 w-3 text-green-600" /> Enabled
+              <CheckCircle2 className="h-3 w-3 text-success" /> Enabled
             </Badge>
             {audit.provides_labor === true && (
               <span className="text-[10px] text-muted-foreground">logs time</span>
@@ -691,7 +691,7 @@ export default function RoleManagement() {
                                   </CardTitle>
                                   <div className="flex items-center gap-1 shrink-0">
                                     {isInactive && (
-                                      <Badge variant="outline" className="h-4 px-1.5 text-[10px] border-orange-500 text-orange-700 dark:text-orange-500">
+                                      <Badge variant="outline" className="h-4 px-1.5 text-[10px] border-warning text-warning-fg bg-warning-bg/50">
                                         Inactive
                                       </Badge>
                                     )}
@@ -736,7 +736,7 @@ export default function RoleManagement() {
                                   if (audit.linkage_status === 'OK') {
                                     return (
                                       <Badge variant="secondary" className="h-5 px-1.5 text-[10px] gap-1">
-                                        <CheckCircle2 className="h-3 w-3 text-green-600" /> Employee
+                                        <CheckCircle2 className="h-3 w-3 text-success" /> Employee
                                       </Badge>
                                     );
                                   }
@@ -815,7 +815,7 @@ export default function RoleManagement() {
                                           toggleMentionable.mutate({ userId: user.id, canBeMentioned: !mentionOn })
                                         }
                                       >
-                                        <MessageSquare className={`h-3 w-3 ${mentionOn ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                                        <MessageSquare className={`h-3 w-3 ${mentionOn ? 'text-info' : 'text-muted-foreground'}`} />
                                         {mentionOn ? 'On · can be @mentioned' : 'Off · hidden from @mentions'}
                                       </Button>
                                       <span className="text-[10px] text-muted-foreground">
@@ -972,7 +972,7 @@ export default function RoleManagement() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium text-sm">{user.full_name || 'No name'}</span>
                                   {isInactive && (
-                                    <Badge variant="outline" className="h-4 px-1 text-[10px] border-orange-500 text-orange-700 dark:text-orange-500">
+                                    <Badge variant="outline" className="h-4 px-1 text-[10px] border-warning text-warning-fg bg-warning-bg/50">
                                       Inactive
                                     </Badge>
                                   )}
@@ -1025,7 +1025,7 @@ export default function RoleManagement() {
                                         : 'Click to include this user in @mentions'
                                     }
                                   >
-                                    <MessageSquare className={`h-3 w-3 ${mentionOn ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                                    <MessageSquare className={`h-3 w-3 ${mentionOn ? 'text-info' : 'text-muted-foreground'}`} />
                                     {mentionOn ? 'On' : 'Off'}
                                   </Button>
                                 );

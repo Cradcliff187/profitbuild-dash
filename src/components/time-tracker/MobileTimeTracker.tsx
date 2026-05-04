@@ -128,11 +128,24 @@ export const MobileTimeTracker: React.FC = () => {
   // Apply URL parameters to set initial view
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    
+
     if (tabParam === 'receipts') {
       setView('receipts');
     } else if (tabParam === 'entries') {
       setView('entries');
+    }
+
+    // When deep-linked via ?tab=, blur whatever element React focused on
+    // mount so the lingering :focus-visible outline (orange ring around the
+    // active tab) doesn't render. Keyboard users still get full focus rings
+    // on subsequent tab navigation; mouse/touch users from the sidebar see
+    // the tab in its clean active state without the extra outline.
+    if (tabParam === 'receipts' || tabParam === 'entries') {
+      requestAnimationFrame(() => {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      });
     }
     // Note: status filtering for receipts is handled by ReceiptsList component
   }, [searchParams]);
@@ -1054,66 +1067,80 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Sync Status Banner */}
       <SyncStatusBanner />
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-4 shadow-lg">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-2">
-            <div>
-              <p className="text-lg font-semibold leading-tight">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              <p className="text-xs opacity-90 mt-0.5">Today's Date</p>
-            </div>
-            {!isOnline && (
-              <div className="bg-yellow-500 text-yellow-950 px-2 py-1 text-xs rounded font-medium">
-                OFFLINE
-              </div>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-mono font-bold leading-tight">
-              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <p className="text-xs opacity-90 mt-0.5">Current Time</p>
-          </div>
+      {/* Status row — thin, single line. Replaces the previous orange-gradient
+          header that had ~80px of filler labels ("Today's Date" / "Current
+          Time") above the actual data. Now: one row, semantic typography,
+          OFFLINE pill when applicable. Keeps a subtle orange accent dot to
+          reinforce brand without dominating the chrome. */}
+      <div className="px-4 py-2 bg-card border-b border-border flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden />
+          <span className="text-sm font-medium truncate">
+            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">·</span>
+          <span className="text-sm font-mono tabular-nums text-muted-foreground">
+            {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </span>
         </div>
+        {!isOnline && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning-bg text-warning-fg border border-warning-border text-[10px] font-semibold uppercase tracking-wide">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning shrink-0" aria-hidden />
+            Offline
+          </span>
+        )}
       </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-card shadow-sm border-b sticky top-0 z-10">
-        <div className="flex">
+      {/* Tab Navigation — canonical pill strip pattern (matches R2 unification
+          across the app). All tabs visible inline, active tab gets the
+          background+shadow treatment, badge counts can be added later. ~44px
+          tall vs the previous ~80px stacked-icon style. */}
+      <div className="px-3 py-2 bg-card border-b border-border sticky top-0 z-10">
+        <div role="tablist" className="flex items-center gap-1 bg-muted/40 rounded-xl p-1">
           <button
+            role="tab"
+            aria-selected={view === 'timer'}
+            type="button"
             onClick={() => setView('timer')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'timer' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
+              view === 'timer'
+                ? "bg-background shadow-sm text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Clock className="w-5 h-5 mx-auto mb-1" />
-            Timer
+            <Clock className="h-4 w-4 shrink-0" />
+            <span className="text-sm">Timer</span>
           </button>
           <button
+            role="tab"
+            aria-selected={view === 'entries'}
+            type="button"
             onClick={() => setView('entries')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'entries' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
+              view === 'entries'
+                ? "bg-background shadow-sm text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Calendar className="w-5 h-5 mx-auto mb-1" />
-            Entries
+            <Calendar className="h-4 w-4 shrink-0" />
+            <span className="text-sm">Entries</span>
           </button>
           <button
+            role="tab"
+            aria-selected={view === 'receipts'}
+            type="button"
             onClick={() => setView('receipts')}
-            className={`flex-1 py-3 text-center font-medium text-xs transition-all ${
-              view === 'receipts' 
-                ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
+              view === 'receipts'
+                ? "bg-background shadow-sm text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Camera className="w-5 h-5 mx-auto mb-1" />
-            Receipts
+            <Camera className="h-4 w-4 shrink-0" />
+            <span className="text-sm">Receipts</span>
           </button>
         </div>
       </div>
@@ -1142,200 +1169,248 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Timer View */}
       {view === 'timer' && (
         <div className="p-4 space-y-4">
-          {/* Active Timer Display */}
+          {/* Active Timer — focal element when clocked in. Strong green
+              gradient (kept raw greens for high-saturation status presence;
+              the --success token is darker forest green which doesn't read
+              as "live timer"). Project info layout harmonized with the
+              picker tiles + slim list cards (mono project_number first,
+              then project_name, then client, then address). */}
           {activeTimer && (
-            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
-                  <span className="font-semibold">CLOCKED IN</span>
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-2xl p-5 shadow-xl">
+              {/* Status row — live pulse + CLOCKED IN pill, GPS chip on the
+                  right when location was captured */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inset-0 rounded-full bg-white opacity-75 animate-ping" />
+                    <span className="relative h-2 w-2 rounded-full bg-white" />
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">Clocked in</span>
                 </div>
-                {activeTimer.location && <MapPin className="w-5 h-5" />}
-              </div>
-              
-              <div className="text-center py-6">
-                <div className="text-5xl font-mono font-bold mb-2">{getElapsedTime()}</div>
-                <p className="text-green-100">Started at {formatTime(activeTimer.startTime)}</p>
+                {activeTimer.location && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-medium uppercase tracking-wide">
+                    <MapPin className="w-3 h-3" />
+                    GPS
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-2 text-sm bg-white/10 rounded-lg p-3 backdrop-blur">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>{activeTimer.teamMember.payee_name}</span>
+              {/* Elapsed time — focal numeric. Tabular-nums prevents the
+                  digits from jittering as the timer ticks. */}
+              <div className="text-center py-5">
+                <div className="text-5xl font-mono font-bold tabular-nums tracking-tight mb-1">
+                  {getElapsedTime()}
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{activeTimer.project.project_number} - {activeTimer.project.client_name}</span>
+                <p className="text-xs text-white/80 uppercase tracking-wide">
+                  Started {formatTime(activeTimer.startTime)}
+                </p>
+              </div>
+
+              {/* Worker + project tile — same vertical layout as the picker
+                  tiles below so the data stays consistent across modes. */}
+              <div className="space-y-2.5 bg-white/10 rounded-xl p-3.5 backdrop-blur-sm border border-white/10">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <User className="w-4 h-4 shrink-0 opacity-80" />
+                  <span className="truncate">{activeTimer.teamMember.payee_name}</span>
+                </div>
+                <div className="border-t border-white/15 pt-2.5 space-y-0.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[11px] font-mono text-white/70 shrink-0">
+                      {activeTimer.project.project_number}
+                    </span>
+                    <span className="text-sm font-semibold truncate">
+                      {activeTimer.project.project_name}
+                    </span>
                   </div>
-                  <span className="text-xs opacity-90 ml-6">{activeTimer.project.project_name}</span>
+                  <div className="text-xs text-white/80 truncate">
+                    {activeTimer.project.client_name}
+                  </div>
                   {activeTimer.project.address && (
-                    <span className="text-xs opacity-90 ml-6">{activeTimer.project.address}</span>
+                    <div className="text-xs text-white/70 truncate">
+                      {activeTimer.project.address}
+                    </div>
                   )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Team Member Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4 relative">
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              <User className="w-4 h-4 inline mr-1" />
+          {/* Team Member Selection — picker tile (TT-B). Removed the outer
+              card wrapper that nested the trigger inside another card; the
+              trigger button itself is now the elevated white surface. Label
+              is small uppercase muted, sits above the tile (industry-standard
+              field-label pattern). Active-indicator pill uses --success token
+              instead of raw green-500/green-600. */}
+          <div className="space-y-1.5 relative">
+            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <User className="w-3.5 h-3.5" />
               Team Member
             </label>
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowProjectSelect(false);
-                  setShowWorkerSelect(!showWorkerSelect);
-                }}
-                disabled={activeTimer !== null}
-                className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-              >
-                {selectedTeamMember ? (
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-foreground">{selectedTeamMember.payee_name}</div>
-                    {activeTimerPayeeIds.has(selectedTeamMember.id) && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                        Active
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">Select team member...</div>
-                )}
-              </button>
-              
-              {showWorkerSelect && !activeTimer && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowWorkerSelect(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
-                    {teamMembers.map(member => (
-                      <button
-                        key={member.id}
-                        onClick={() => {
-                          setSelectedTeamMember(member);
-                          setShowWorkerSelect(false);
-                        }}
-                        className={cn(
-                          "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                          selectedTeamMember?.id === member.id
-                            ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-semibold">{member.payee_name}</div>
-                          <div className="flex items-center gap-2">
-                            {activeTimerPayeeIds.has(member.id) && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                Active
-                              </span>
-                            )}
-                            {selectedTeamMember?.id === member.id && (
-                              <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </>
+            <button
+              onClick={() => {
+                setShowProjectSelect(false);
+                setShowWorkerSelect(!showWorkerSelect);
+              }}
+              disabled={activeTimer !== null}
+              className="w-full p-4 text-left bg-card rounded-xl border-2 border-border hover:border-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px]"
+            >
+              {selectedTeamMember ? (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold text-foreground truncate">{selectedTeamMember.payee_name}</div>
+                  {activeTimerPayeeIds.has(selectedTeamMember.id) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-success/10 text-success rounded-full shrink-0">
+                      <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+                      Active
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">Select team member...</div>
               )}
-            </div>
-          </div>
+            </button>
 
-          {/* Project Selection */}
-          <div className="bg-card rounded-xl shadow-sm p-4 relative">
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              Project
-            </label>
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowWorkerSelect(false);
-                  setShowProjectSelect(!showProjectSelect);
-                }}
-                disabled={activeTimer !== null}
-                className="w-full p-4 text-left rounded-lg border-2 border-border hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-              >
-                {selectedProject ? (
-                  <div>
-                    <div className="font-semibold text-foreground">
-                      {selectedProject.project_number} - {selectedProject.project_name}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{selectedProject.client_name}</div>
-                    {selectedProject.address && (
-                      <div className="text-sm text-muted-foreground">{selectedProject.address}</div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">Select project...</div>
-                )}
-              </button>
-              
-              {showProjectSelect && !activeTimer && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowProjectSelect(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full mt-2 border rounded-lg bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
-                    {projects.map(project => (
-                      <button
-                        key={project.id}
-                        onClick={() => {
-                          setSelectedProject(project);
-                          setShowProjectSelect(false);
-                        }}
-                        className={cn(
-                          "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                          selectedProject?.id === project.id
-                            ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold truncate">
-                              {project.project_number} - {project.project_name}
-                            </div>
-                            <div className="text-sm text-muted-foreground truncate">{project.client_name}</div>
-                            {project.address && (
-                              <div className="text-sm text-muted-foreground truncate">{project.address}</div>
-                            )}
-                          </div>
-                          {selectedProject?.id === project.id && (
+            {showWorkerSelect && !activeTimer && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowWorkerSelect(false)}
+                />
+                <div className="absolute left-0 right-0 top-full mt-2 border rounded-xl bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {teamMembers.map(member => (
+                    <button
+                      key={member.id}
+                      onClick={() => {
+                        setSelectedTeamMember(member);
+                        setShowWorkerSelect(false);
+                      }}
+                      className={cn(
+                        "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                        selectedTeamMember?.id === member.id
+                          ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-semibold truncate">{member.payee_name}</div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {activeTimerPayeeIds.has(member.id) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-success/10 text-success rounded-full">
+                              <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+                              Active
+                            </span>
+                          )}
+                          {selectedTeamMember?.id === member.id && (
                             <Check className="w-5 h-5 text-primary flex-shrink-0" />
                           )}
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Clock In/Out Button */}
+          {/* Project Selection — same picker tile pattern as Team Member.
+              Single elevated trigger button (no nested card). When a project
+              is selected, project# stays mono+muted (matches the slim list
+              card pattern from R3) while project_name is the focal element. */}
+          <div className="space-y-1.5 relative">
+            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <MapPin className="w-3.5 h-3.5" />
+              Project
+            </label>
+            <button
+              onClick={() => {
+                setShowWorkerSelect(false);
+                setShowProjectSelect(!showProjectSelect);
+              }}
+              disabled={activeTimer !== null}
+              className="w-full p-4 text-left bg-card rounded-xl border-2 border-border hover:border-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px]"
+            >
+              {selectedProject ? (
+                <div className="space-y-0.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-mono text-muted-foreground shrink-0">
+                      {selectedProject.project_number}
+                    </span>
+                    <span className="text-sm font-semibold text-foreground truncate">
+                      {selectedProject.project_name}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">{selectedProject.client_name}</div>
+                  {selectedProject.address && (
+                    <div className="text-xs text-muted-foreground/70 truncate">{selectedProject.address}</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">Select project...</div>
+              )}
+            </button>
+
+            {showProjectSelect && !activeTimer && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProjectSelect(false)}
+                />
+                <div className="absolute left-0 right-0 top-full mt-2 border rounded-xl bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {projects.map(project => (
+                    <button
+                      key={project.id}
+                      onClick={() => {
+                        setSelectedProject(project);
+                        setShowProjectSelect(false);
+                      }}
+                      className={cn(
+                        "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
+                        selectedProject?.id === project.id
+                          ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs font-mono text-muted-foreground shrink-0">
+                              {project.project_number}
+                            </span>
+                            <span className="text-sm font-semibold truncate">
+                              {project.project_name}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">{project.client_name}</div>
+                          {project.address && (
+                            <div className="text-xs text-muted-foreground/70 truncate">{project.address}</div>
+                          )}
+                        </div>
+                        {selectedProject?.id === project.id && (
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Clock In/Out + Manual Entry — primary CTA gets a tighter gradient
+              with the design-system green. Manual entry secondary action
+              swapped from a dashed border (read as placeholder UI) to a solid
+              outline so it looks intentional rather than provisional. */}
           <div className="pt-4 space-y-3">
             {!activeTimer ? (
               <button
                 onClick={handleClockIn}
                 disabled={!selectedTeamMember || !selectedProject || loading}
-                className="w-full bg-gradient-to-r from-green-500 via-green-600 to-teal-500 hover:from-green-600 hover:via-green-700 hover:to-teal-600 text-white py-6 rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-5 rounded-2xl font-bold text-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide"
               >
                 {loading ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <Play className="w-8 h-8" />
+                    <Play className="w-6 h-6 fill-current" />
                     CLOCK IN
                   </>
                 )}
@@ -1344,25 +1419,27 @@ export const MobileTimeTracker: React.FC = () => {
               <button
                 onClick={handleClockOut}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-6 rounded-2xl font-bold text-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-5 rounded-2xl font-bold text-lg shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide"
               >
                 {loading ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <Square className="w-8 h-8" />
+                    <Square className="w-6 h-6 fill-current" />
                     CLOCK OUT
                   </>
                 )}
               </button>
             )}
-            
-            {/* Manual Entry Button */}
+
+            {/* Manual Entry Button — secondary action. Solid outline (not
+                dashed) so it reads as intentional rather than placeholder UI.
+                Lower visual weight than the primary CTA above. */}
             <button
               onClick={() => setShowManualEntry(true)}
-              className="w-full bg-card border-2 border-dashed border-primary/50 hover:border-primary hover:bg-primary/5 text-primary py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+              className="w-full bg-card border border-border hover:border-primary hover:bg-primary/5 text-foreground py-3.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
             >
-              <Edit2 className="w-5 h-5" />
+              <Edit2 className="w-4 h-4 text-primary" />
               Add Time Entry
             </button>
           </div>

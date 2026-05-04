@@ -66,6 +66,16 @@ export default {
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          bg: "hsl(var(--warning-bg))",
+          fg: "hsl(var(--warning-fg))",
+          border: "hsl(var(--warning-border))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+          bg: "hsl(var(--info-bg))",
+          fg: "hsl(var(--info-fg))",
+          border: "hsl(var(--info-border))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",

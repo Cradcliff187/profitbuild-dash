@@ -198,7 +198,10 @@ export const BidsTableView = ({
               subtitle={(bid as BranchBid & { client_name?: string }).client_name || bid.clients?.client_name || 'No client'}
               badge={bid.project_id ? {
                 label: 'LINKED',
-                className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+                // Uses semantic --success token (via Tailwind alpha) so the
+                // badge follows the design system + dark-mode automatically
+                // instead of hard-coded green-100/green-700/green-900.
+                className: 'bg-success/15 text-success border border-success/30',
               } : undefined}
               metrics={[
                 {

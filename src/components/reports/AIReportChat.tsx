@@ -14,14 +14,42 @@ import { ExportControls } from './ExportControls';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const EXAMPLE_PROMPTS = [
-  "How many projects are over budget?",
-  "Who worked the most hours this week?",
-  "What's our total revenue this month?",
-  "Which client owes us the most?",
-  "Show me all expenses over $5,000",
-  "What's the average project margin?",
+// Suggestion cards on first load — paired (icon + prompt) so users
+// understand what KIND of question to ask, not just example phrasing.
+// Grouping echoes the report categories admins/managers use most:
+// pipeline, time, money, customers.
+const SUGGESTION_GROUPS: { label: string; prompts: string[] }[] = [
+  {
+    label: "Pipeline",
+    prompts: [
+      "How many projects are over budget?",
+      "What's the average project margin?",
+    ],
+  },
+  {
+    label: "Time",
+    prompts: [
+      "Who worked the most hours this week?",
+      "Show me all entries pending approval",
+    ],
+  },
+  {
+    label: "Money",
+    prompts: [
+      "What's our total revenue this month?",
+      "Show me all expenses over $5,000",
+    ],
+  },
+  {
+    label: "Customers",
+    prompts: [
+      "Which client owes us the most?",
+      "List clients with no active projects",
+    ],
+  },
 ];
+
+const EXAMPLE_PROMPTS = SUGGESTION_GROUPS.flatMap(g => g.prompts);
 
 export function AIReportChat() {
   const [inputValue, setInputValue] = useState('');
@@ -341,23 +369,47 @@ export function AIReportChat() {
 
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <Sparkles className="h-10 w-10 text-primary/40 mb-3" />
-            <h3 className="text-base font-medium mb-1.5">Ask me anything</h3>
-            <p className="text-xs text-muted-foreground mb-4 max-w-md">
-              Ask questions in plain English. I'll find the answer and can show you detailed data if needed.
-            </p>
-            
-            <div className="flex flex-wrap gap-1.5 justify-center max-w-lg">
-              {EXAMPLE_PROMPTS.map((prompt, index) => (
-                <Badge
-                  key={index}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-2 py-1 text-xs"
-                  onClick={() => handleExampleClick(prompt)}
-                >
-                  {prompt}
-                </Badge>
+          // First-load suggestion view (R13). Grouped suggestion cards in a
+          // 1-col mobile / 2-col desktop grid replace the previous tiny
+          // Badge pills. Matches modern LLM-first UI patterns (Notion AI,
+          // Linear Ask, ChatGPT) — users see WHAT KIND of question they
+          // can ask, not just one-off example phrasing.
+          <div className="flex flex-col items-center justify-center h-full px-3 sm:px-6 py-6">
+            <div className="text-center mb-6 max-w-md">
+              <div className="mx-auto mb-3 h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-7 w-7 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-1">Ask me anything</h3>
+              <p className="text-sm text-muted-foreground">
+                Ask questions in plain English. I'll find the answer in your data.
+              </p>
+            </div>
+
+            <div className="w-full max-w-2xl space-y-4">
+              {SUGGESTION_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
+                    {group.label}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {group.prompts.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => handleExampleClick(prompt)}
+                        className={cn(
+                          "text-left bg-card border border-border rounded-lg p-3",
+                          "text-sm text-foreground",
+                          "hover:border-primary hover:bg-primary/5 active:bg-primary/10",
+                          "transition-colors min-h-[44px] flex items-center gap-2"
+                        )}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="truncate">{prompt}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
