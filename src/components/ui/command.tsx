@@ -57,10 +57,17 @@ CommandInput.displayName = CommandPrimitive.Input.displayName;
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
+>(({ className, onWheel, ...props }, ref) => (
+  // Stop wheel-event propagation so Radix Dialog/Sheet's body-scroll-lock
+  // (registered on document) doesn't preventDefault() and kill native
+  // mouse-wheel scrolling inside cmdk popovers nested in dialogs.
   <CommandPrimitive.List
     ref={ref}
     className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden pt-2 pr-2", className)}
+    onWheel={(e) => {
+      e.stopPropagation();
+      onWheel?.(e);
+    }}
     {...props}
   />
 ));

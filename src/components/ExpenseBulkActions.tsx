@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Trash2, Users, X, Building2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
 import { cn } from "@/lib/utils";
 
@@ -405,27 +405,29 @@ export const ExpenseBulkActions = ({
           <div className="py-4">
             <Command className="rounded-md border">
               <CommandInput placeholder="Search projects..." className="h-9" />
-              <CommandEmpty>No project found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
-                {projects.map((project) => (
-                  <CommandItem
-                    key={project.id}
-                    value={`${project.project_number} ${project.project_name}`}
-                    onSelect={() => setSelectedProject(project)}
-                    className="text-sm"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 shrink-0",
-                        selectedProject?.id === project.id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span className="text-sm truncate">
-                      {project.project_number} - {project.project_name}
-                    </span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              <CommandList>
+                <CommandEmpty>No project found.</CommandEmpty>
+                <CommandGroup>
+                  {projects.map((project) => (
+                    <CommandItem
+                      key={project.id}
+                      value={`${project.project_number} ${project.project_name}`}
+                      onSelect={() => setSelectedProject(project)}
+                      className="text-sm"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4 shrink-0",
+                          selectedProject?.id === project.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span className="text-sm truncate">
+                        {project.project_number} - {project.project_name}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </div>
           

@@ -7,7 +7,7 @@ import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Search, ChevronDown, Check } from "lucide-react";
 import { format } from "date-fns";
 
@@ -224,8 +224,9 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
           <PopoverContent className="w-64 p-0" align="start">
             <Command>
               <CommandInput placeholder="Search clients..." className="h-9" />
-              <CommandEmpty>No client found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No client found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -260,7 +261,8 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
@@ -287,8 +289,9 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
           <PopoverContent className="w-64 p-0" align="start">
             <Command>
               <CommandInput placeholder="Search projects..." className="h-9" />
-              <CommandEmpty>No project found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No project found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -323,7 +326,8 @@ export const EstimateSearchFilters: React.FC<EstimateSearchFiltersProps> = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

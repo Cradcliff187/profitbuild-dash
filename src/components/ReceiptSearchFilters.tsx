@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -186,8 +186,9 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
           >
             <Command>
               <CommandInput placeholder="Search payees..." className="h-9" />
-              <CommandEmpty>No payee found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No payee found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -222,7 +223,8 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
@@ -252,8 +254,9 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
           >
             <Command>
               <CommandInput placeholder="Search projects..." className="h-9" />
-              <CommandEmpty>No project found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandList>
+                <CommandEmpty>No project found.</CommandEmpty>
+                <CommandGroup>
                 <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
                   <Button
                     variant="ghost"
@@ -288,7 +291,8 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
                     </div>
                   </CommandItem>
                 ))}
-              </CommandGroup>
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

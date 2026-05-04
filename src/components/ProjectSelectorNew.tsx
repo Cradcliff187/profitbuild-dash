@@ -38,6 +38,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -127,27 +128,28 @@ export const ProjectSelectorNew = ({
         <PopoverContent className="z-[100] w-full p-0 bg-background border shadow-md" align="start">
           <Command>
             <CommandInput placeholder="Search projects..." />
-            <CommandEmpty>
-              {projects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-4">No projects found.</p>
-                  <div className="w-full px-2">
-                    <div
-                      className="flex items-center justify-center px-2 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm"
-                      onClick={handleCreateNewClick}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create New Project
+            <CommandList>
+              <CommandEmpty>
+                {projects.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-4">No projects found.</p>
+                    <div className="w-full px-2">
+                      <div
+                        className="flex items-center justify-center px-2 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm"
+                        onClick={handleCreateNewClick}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create New Project
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                "No projects found."
-              )}
-            </CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
-              {[...projects].sort((a, b) => {
+                ) : (
+                  "No projects found."
+                )}
+              </CommandEmpty>
+              <CommandGroup>
+                {[...projects].sort((a, b) => {
                 // Sort by project_number descending (highest to lowest)
                 // Compare as strings for alphanumeric project numbers
                 return b.project_number.localeCompare(a.project_number, undefined, { numeric: true, sensitivity: 'base' });
@@ -177,7 +179,8 @@ export const ProjectSelectorNew = ({
                   <span>Create New Project</span>
                 </CommandItem>
               )}
-            </CommandGroup>
+              </CommandGroup>
+            </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
