@@ -85,8 +85,8 @@ const Expenses = () => {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('expenses-visible-columns');
     const defaultColumns = [
-      'checkbox', 'date', 'project', 'payee', 'description', 
-      'category', 'amount', 'status_assigned', 'status_allocated', 'receipt', 'actions'
+      'checkbox', 'date', 'project', 'payee', 'description',
+      'category', 'amount', 'status_assigned', 'status_allocated', 'approval_status', 'receipt', 'actions'
     ];
     
     if (saved) {
@@ -158,7 +158,7 @@ const Expenses = () => {
   const [revenueVisibleColumns, setRevenueVisibleColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem('revenues-visible-columns');
     const defaultColumns = [
-      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'invoice_doc', 'actions'
     ];
     
     if (saved) {
@@ -185,7 +185,7 @@ const Expenses = () => {
   const [revenueColumnOrder, setRevenueColumnOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('revenues-column-order');
     const allColumns = [
-      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'actions'
+      'checkbox', 'date', 'invoice_number', 'project', 'client', 'description', 'amount', 'account', 'quickbooks_id', 'invoice_doc', 'actions'
     ];
     
     if (saved) {
@@ -246,6 +246,7 @@ const Expenses = () => {
     { key: 'amount', label: 'Amount', required: false },
     { key: 'account', label: 'Account', required: false },
     { key: 'quickbooks_id', label: 'QB ID', required: false },
+    { key: 'invoice_doc', label: 'Doc', required: true },
     { key: 'actions', label: 'Actions', required: true },
   ];
 
@@ -392,10 +393,39 @@ const Expenses = () => {
         }
       }
 
+      // Fetch invoice junction rows for the visible revenues so each revenue
+      // can show whether it has a generated invoice document. We pull the
+      // latest invoice per revenue (by version DESC) for the View action.
+      const revenueIds = (revenuesData || []).map(r => r.id);
+      const latestInvoiceMap = new Map<
+        string,
+        { id: string; internal_reference: string; docx_url: string | null; pdf_url: string | null; version: number }
+      >();
+      const invoiceCountMap = new Map<string, number>();
+      if (revenueIds.length > 0) {
+        const { data: junctionData, error: junctionError } = await supabase
+          .from("invoice_revenues")
+          .select("revenue_id, invoices(id, internal_reference, docx_url, pdf_url, version)")
+          .in('revenue_id', revenueIds);
+        if (!junctionError && junctionData) {
+          for (const row of junctionData as Array<{
+            revenue_id: string;
+            invoices: { id: string; internal_reference: string; docx_url: string | null; pdf_url: string | null; version: number } | null;
+          }>) {
+            if (!row.invoices) continue;
+            invoiceCountMap.set(row.revenue_id, (invoiceCountMap.get(row.revenue_id) ?? 0) + 1);
+            const existing = latestInvoiceMap.get(row.revenue_id);
+            if (!existing || row.invoices.version > existing.version) {
+              latestInvoiceMap.set(row.revenue_id, row.invoices);
+            }
+          }
+        }
+      }
+
       // Transform and merge data
       const transformedRevenues: ProjectRevenue[] = (revenuesData || []).map((revenue: any) => {
         const project = projectsMap.get(revenue.project_id);
-        
+
         return {
           ...revenue,
           invoice_date: parseDateOnly(revenue.invoice_date),
@@ -405,6 +435,8 @@ const Expenses = () => {
           project_name: project?.project_name || 'Unassigned',
           client_name: clientsMap.get(revenue.client_id) || project?.client_name || null,
           customer_po_number: project?.customer_po_number || null,
+          latest_invoice: latestInvoiceMap.get(revenue.id) ?? null,
+          invoice_count: invoiceCountMap.get(revenue.id) ?? 0,
         } as ProjectRevenue;
       });
 

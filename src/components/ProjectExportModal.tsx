@@ -169,7 +169,7 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
     }
 
     // Sort projects if grouping is enabled
-    let sortedProjects = [...projects];
+    const sortedProjects = [...projects];
     if (exportOptions.groupBy !== 'none') {
       const sortKey = exportOptions.groupBy === 'client' ? 'client_name' 
         : exportOptions.groupBy === 'status' ? 'status' 

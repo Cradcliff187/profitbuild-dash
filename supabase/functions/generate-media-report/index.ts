@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
     const mediaWithBase64 = await convertMediaToBase64(mediaWithUrls, delivery);
 
     // ── Fetch comments (skip query if comments hidden) ──────
-    let commentsByMedia = new Map<string, MediaComment[]>();
+    const commentsByMedia = new Map<string, MediaComment[]>();
 
     if (opts.showComments) {
       const { data: comments } = await supabase

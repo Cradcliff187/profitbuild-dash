@@ -140,7 +140,7 @@ export const ProjectsTableView = ({
     if (saved) {
       const savedVisible = JSON.parse(saved);
       // Filter out invalid column keys
-      let validVisible = savedVisible.filter((key: string) => 
+      const validVisible = savedVisible.filter((key: string) => 
         columnDefinitions.some(col => col.key === key)
       );
       // Ensure project_name is included (it's required)

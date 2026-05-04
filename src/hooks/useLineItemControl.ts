@@ -434,7 +434,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
       
       if (correlationData) {
         for (const corr of correlationData) {
-          let targetLineItemIds: string[] = [];
+          const targetLineItemIds: string[] = [];
           
           // Direct estimate line item allocation
           if (corr.estimate_line_item_id) {

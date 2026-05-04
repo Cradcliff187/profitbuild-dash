@@ -221,7 +221,7 @@ serve(async (req) => {
     const baseUrl = getQuickBooksApiBaseUrl(config.environment);
 
     // Check if parent customer exists (and sync if needed)
-    let parentCustomerId = project.clients?.quickbooks_customer_id;
+    const parentCustomerId = project.clients?.quickbooks_customer_id;
 
     if (!parentCustomerId && project.client_id) {
       // Parent customer not synced yet - need to sync it first

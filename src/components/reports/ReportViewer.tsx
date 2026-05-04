@@ -131,8 +131,8 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
     if (!field) return data;
 
     return [...data].sort((a, b) => {
-      let aValue = a[sortColumn];
-      let bValue = b[sortColumn];
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
 
       // Handle null/undefined values - place at end
       if (aValue == null && bValue == null) return 0;

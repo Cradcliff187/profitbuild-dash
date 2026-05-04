@@ -384,7 +384,7 @@ const Projects = () => {
 
   // Filter and sort projects based on search criteria
   const filteredAndSortedProjects = useMemo(() => {
-    let filtered = projects.filter(project => {
+    const filtered = projects.filter(project => {
       // Search text filter
       if (filters.searchText) {
         const searchLower = filters.searchText.toLowerCase();

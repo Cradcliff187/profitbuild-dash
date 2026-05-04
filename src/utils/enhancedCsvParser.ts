@@ -128,7 +128,7 @@ export const parseEnhancedQuickBooksCSV = (file: File): Promise<{
       transform: (value: string) => value.trim(),
       complete: (results) => {
         let data = results.data as QBTransaction[];
-        let errors: string[] = [];
+        const errors: string[] = [];
         
         // Handle QuickBooks format - skip metadata rows
         if (data.length > 0) {

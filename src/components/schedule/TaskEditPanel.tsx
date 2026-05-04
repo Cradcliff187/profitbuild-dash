@@ -141,7 +141,7 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
 
   const handleSave = () => {
     try {
-      let finalTask = { ...editedTask };
+      const finalTask = { ...editedTask };
       
       if (phases.length > 0) {
         // Multi-phase: Calculate overall dates and serialize phases with notes

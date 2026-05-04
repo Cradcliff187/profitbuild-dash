@@ -337,7 +337,7 @@ function processLineItemData(
   const seenExpenses = new Map<string, Set<string>>();
   
   for (const corr of correlations) {
-    let targetLineItemIds: string[] = [];
+    const targetLineItemIds: string[] = [];
     
     // Direct estimate line item allocation
     if (corr.estimate_line_item_id) {
@@ -640,7 +640,7 @@ function buildAllocationSummary(
   const seenExpenses = new Map<string, Set<string>>();
   
   for (const corr of correlations) {
-    let targetLineItemIds: string[] = [];
+    const targetLineItemIds: string[] = [];
     
     // Direct estimate line item allocation
     if (corr.estimate_line_item_id) {

@@ -83,7 +83,7 @@ export const useReceiptsData = () => {
         .filter((r: any) => r.user_id)
         .map((r: any) => r.user_id))];
 
-      let profilesMap = new Map<string, string>();
+      const profilesMap = new Map<string, string>();
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')

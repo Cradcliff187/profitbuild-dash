@@ -184,7 +184,7 @@ const ReportsPage = () => {
       }
       
       // Ensure project_number always comes before project_name in the final field list
-      let fields: ReportField[] = templateFields.map((f: any) => {
+      const fields: ReportField[] = templateFields.map((f: any) => {
         // Handle both string field names and field objects
         if (typeof f === 'string') {
           // Find field metadata from AVAILABLE_FIELDS

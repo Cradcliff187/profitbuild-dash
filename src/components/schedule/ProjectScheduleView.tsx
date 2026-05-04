@@ -415,7 +415,7 @@ export default function ProjectScheduleView({
       console.log('💾 Saving to database:', { newStart, newEnd, duration });
 
       // Prepare update data
-      let updateData: any = {};
+      const updateData: any = {};
 
       if (isPhase && phaseNumber !== null && scheduleTask.phases) {
         // Multi-phase task: Update specific phase in phases array

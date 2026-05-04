@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Split, ChevronRight } from "lucide-react";
+import { Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Split, ChevronRight, FileText, FileCheck2, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
 import { usePagination } from '@/hooks/usePagination';
 import { RevenueBulkActions } from "./RevenueBulkActions";
 import { RevenueSplitDialog } from "./RevenueSplitDialog";
+import { InvoiceGenerationModal } from "./invoices/InvoiceGenerationModal";
 import { getRevenueSplits } from "@/utils/revenueSplits";
 import { RevenueSplit } from "@/types/revenue";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -55,6 +56,7 @@ const REVENUE_COLUMNS: ColumnDefinition[] = [
   { key: 'amount', label: 'Amount', required: false, width: 'w-24', align: 'right', sortable: true, defaultVisible: true },
   { key: 'account', label: 'Account', required: false, width: 'w-32', sortable: false, defaultVisible: true },
   { key: 'quickbooks_id', label: 'QB ID', required: false, width: 'w-32', sortable: false, defaultVisible: true },
+  { key: 'invoice_doc', label: 'Doc', required: true, width: 'w-12', align: 'center', sortable: false, defaultVisible: true },
   { key: 'actions', label: 'Actions', required: true, width: 'w-16', align: 'center', defaultVisible: true },
 ];
 
@@ -85,6 +87,26 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
 }) => {
 
   const isMobile = useIsMobile();
+
+  // Shared open-in-Google-Docs-viewer / download helpers — these mirror the
+  // pattern in InvoiceGenerationSuccess so the row actions and the post-generate
+  // success card behave identically.
+  const openInvoicePreview = (url: string | null | undefined) => {
+    if (!url) return;
+    const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}`;
+    window.open(previewUrl, '_blank', 'noopener');
+    toast.info('Use Ctrl+P (or Cmd+P) to print, then select "Save as PDF"');
+  };
+  const downloadInvoiceDocx = (url: string | null | undefined, internalRef: string | null | undefined) => {
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${internalRef ?? 'invoice'}.docx`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.click();
+  };
+
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterProjects, setFilterProjects] = useState<string[]>([]);
@@ -98,6 +120,8 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   const [selectedRevenues, setSelectedRevenues] = useState<string[]>([]);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [revenueToSplit, setRevenueToSplit] = useState<ProjectRevenue | null>(null);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [revenueForInvoice, setRevenueForInvoice] = useState<ProjectRevenue | null>(null);
   const [expandedRevenues, setExpandedRevenues] = useState<Set<string>>(new Set());
   const [expandedMobileCards, setExpandedMobileCards] = useState<Set<string>>(new Set());
   const [revenueSplits, setRevenueSplits] = useState<Record<string, RevenueSplit[]>>({});
@@ -596,7 +620,44 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
             {revenue.quickbooks_transaction_id || '-'}
           </span>
         );
-      
+
+      case 'invoice_doc':
+        if (isSplitRow) return null;
+        return revenue.latest_invoice ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Mobile: download (Google Drive viewer renders poorly on mobile);
+                  // desktop: open preview (matches InvoiceGenerationSuccess pattern).
+                  if (isMobile) {
+                    downloadInvoiceDocx(
+                      revenue.latest_invoice?.docx_url,
+                      revenue.latest_invoice?.internal_reference
+                    );
+                  } else {
+                    openInvoicePreview(revenue.latest_invoice?.docx_url);
+                  }
+                }}
+                className="inline-flex items-center justify-center text-green-600 hover:text-green-700"
+                aria-label={isMobile ? 'Download generated invoice' : 'Preview generated invoice'}
+              >
+                <FileCheck2 className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className="text-xs">
+                {revenue.latest_invoice.internal_reference}
+                {(revenue.invoice_count ?? 1) > 1 ? ` (v${revenue.latest_invoice.version} of ${revenue.invoice_count})` : ''}
+              </span>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <span className="text-muted-foreground/40" aria-label="No invoice generated">—</span>
+        );
+
       case 'actions':
         // Don't show actions on split rows
         if (isSplitRow) return null;
@@ -612,6 +673,40 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                 <Edit className="h-3 w-3 mr-2" />
                 Edit Invoice
               </DropdownMenuItem>
+              {revenue.latest_invoice?.docx_url && !isMobile && (
+                <DropdownMenuItem
+                  onClick={() =>
+                    openInvoicePreview(revenue.latest_invoice?.docx_url)
+                  }
+                >
+                  <Printer className="h-3 w-3 mr-2 text-green-600" />
+                  Print / Save as PDF
+                </DropdownMenuItem>
+              )}
+              {revenue.latest_invoice?.docx_url && (
+                <DropdownMenuItem
+                  onClick={() =>
+                    downloadInvoiceDocx(
+                      revenue.latest_invoice?.docx_url,
+                      revenue.latest_invoice?.internal_reference
+                    )
+                  }
+                >
+                  <Download className="h-3 w-3 mr-2 text-green-600" />
+                  Download DOCX
+                </DropdownMenuItem>
+              )}
+              {!revenue.is_split && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setRevenueForInvoice(revenue);
+                    setInvoiceModalOpen(true);
+                  }}
+                >
+                  <FileText className="h-3 w-3 mr-2" />
+                  {revenue.latest_invoice ? 'Re-generate Invoice' : 'Generate Invoice'}
+                </DropdownMenuItem>
+              )}
               {!revenue.is_split && (
                 <DropdownMenuItem
                   onClick={() => {
@@ -850,6 +945,15 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                             SPLIT
                           </Badge>
                         )}
+                        {revenue.latest_invoice && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] h-4 px-1.5 border-green-600 text-green-700 inline-flex items-center gap-0.5"
+                          >
+                            <FileCheck2 className="h-3 w-3" />
+                            DOC
+                          </Badge>
+                        )}
                       </div>
                       {revenue.invoice_number && revenue.project_number && (
                         <div className="text-xs text-muted-foreground truncate">{revenue.project_number}</div>
@@ -883,6 +987,30 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                             <Edit className="h-3 w-3 mr-2" />
                             Edit Invoice
                           </DropdownMenuItem>
+                          {revenue.latest_invoice?.docx_url && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                downloadInvoiceDocx(
+                                  revenue.latest_invoice?.docx_url,
+                                  revenue.latest_invoice?.internal_reference
+                                )
+                              }
+                            >
+                              <Download className="h-3 w-3 mr-2 text-green-600" />
+                              Download DOCX
+                            </DropdownMenuItem>
+                          )}
+                          {!revenue.is_split && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setRevenueForInvoice(revenue);
+                                setInvoiceModalOpen(true);
+                              }}
+                            >
+                              <FileText className="h-3 w-3 mr-2" />
+                              {revenue.latest_invoice ? 'Re-generate Invoice' : 'Generate Invoice'}
+                            </DropdownMenuItem>
+                          )}
                           {!revenue.is_split && (
                             <DropdownMenuItem
                               onClick={() => {
@@ -1276,6 +1404,23 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
             onRefresh();
             setSplitDialogOpen(false);
             setRevenueToSplit(null);
+          }}
+        />
+      )}
+
+      {/* Generate Invoice Modal */}
+      {revenueForInvoice && (
+        <InvoiceGenerationModal
+          open={invoiceModalOpen}
+          onOpenChange={(open) => {
+            setInvoiceModalOpen(open);
+            if (!open) setRevenueForInvoice(null);
+          }}
+          projectId={revenueForInvoice.project_id}
+          revenueId={revenueForInvoice.id}
+          clientId={revenueForInvoice.client_id ?? null}
+          onSuccess={() => {
+            onRefresh();
           }}
         />
       )}

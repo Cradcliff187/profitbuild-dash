@@ -549,12 +549,12 @@ async function generate() {
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
   await fs.writeFile(OUTPUT_PATH, lines.join("\n"), "utf8");
 
-  // eslint-disable-next-line no-console
+   
   console.log(`API reference generated at ${toPosix(path.relative(PROJECT_ROOT, OUTPUT_PATH))}`);
 }
 
 generate().catch((error) => {
-  // eslint-disable-next-line no-console
+   
   console.error("Failed to generate API reference:", error);
   process.exitCode = 1;
 });
