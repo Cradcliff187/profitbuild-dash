@@ -855,17 +855,21 @@ Path alias `@/*` → `src/*` — use it for all internal imports.
 ## Git & Deployment
 
 - **Default branch**: `main`
-- **Deployment**: Lovable auto-deploys on push to GitHub
-- **Pre-deploy check**: `npm run pre-deploy` (lint + type-check)
-- **Never force-push** to `main`
+- **Frontend deployment**: **Manual via Lovable's Publish dialog.** This project does NOT have auto-deploy enabled (verified May 4 2026 — Lovable account has no auto-deploy toggle, and a 6-hour gap was observed between merging four PRs to main and clicking Publish, during which production stayed on the prior build). Every release requires opening Lovable and clicking Publish. The Settings → App Updates card now shows a "Publish pending" amber indicator when `main` has commits newer than the deployed `buildTime` from `/version.json`. See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the canonical end-to-end flow.
+- **Pre-deploy check**: `npm run pre-deploy` (lint + type-check + custom safety checks). Now also runs in CI on every PR via `.github/workflows/pr-checks.yml` and gates merge via the `main-protection` ruleset.
+- **Branch protection**: a Repository Ruleset is active on `main`. Humans must PR; only the `lovable-dev` GitHub App (commits as `gpt-engineer-app[bot]`) can push directly. See [docs/WORKFLOW.md](docs/WORKFLOW.md).
+- **Never force-push** to `main` (blocked by the ruleset for humans).
 - **Commit format**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
 
 ### Edge Function Change Workflow
 
+Note: edge functions DO ship via push when Lovable picks them up — but this is unreliable (especially for `ai-report-assistant` per the deployment note above). Always verify via `npx supabase functions list` after a push.
+
 ```
-Normal:  local edit → commit → push → Lovable deploys → verify
-Emergency: edit locally → MCP direct deploy → verify → push to sync
-Major:  feature branch → test in Lovable preview → merge to main
+Normal:  local edit → PR (gated by CI) → squash-merge → Lovable picks up edge fn changes
+                                          → CLICK PUBLISH IN LOVABLE for frontend to go live
+Emergency: edit locally → MCP direct deploy edge fn → verify → push to sync
+Major:    feature branch → test on Sandbox SYS-TEST project → merge to main → publish
 ```
 
 ---
