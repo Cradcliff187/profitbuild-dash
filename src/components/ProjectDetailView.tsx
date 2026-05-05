@@ -24,6 +24,7 @@ import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
+import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
 import { ProjectWithFinancials } from "@/types/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -147,7 +148,7 @@ export const ProjectDetailView = () => {
       const { data, error } = await supabase
         .from('projects')
         .select('id, project_number, project_name, client_name, category')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('project_number', { ascending: true });
 
       if (error) throw error;

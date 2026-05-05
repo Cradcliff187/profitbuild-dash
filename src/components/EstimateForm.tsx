@@ -34,6 +34,7 @@ import { Info } from "lucide-react";
 import { MoreHorizontal } from "lucide-react";
 import { useInternalLaborRates } from "@/hooks/useCompanySettings";
 import { calculateTotalLaborCushion, createLaborLineItemDefaults } from "@/utils/laborCalculations";
+import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
 import {
   calcSubtotal,
   calcTotalCost,
@@ -132,7 +133,7 @@ useEffect(() => {
       const { data: projects, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('created_at', { ascending: false });
 
       if (error) throw error;

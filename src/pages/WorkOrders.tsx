@@ -19,6 +19,7 @@ import { Project, ProjectStatus, PROJECT_STATUSES } from "@/types/project";
 import { toast } from "sonner";
 import { ExpenseFormSheet } from "@/components/ExpenseFormSheet";
 import { Expense } from "@/types/expense";
+import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
 import { WorkOrderEditSheet } from "@/components/WorkOrderEditSheet";
 import { WorkOrderBulkActions } from "@/components/WorkOrderBulkActions";
 import { format } from "date-fns";
@@ -190,7 +191,7 @@ const WorkOrders = () => {
           )
         `)
         .eq('project_type', 'work_order')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('created_at', { ascending: false });
 
       let { data, error } = await query;
@@ -216,7 +217,7 @@ const WorkOrders = () => {
             )
           `)
           .eq('project_type', 'work_order')
-          .eq('category', 'construction')
+          .or(getProjectCategoryOrFilter())
           .order('created_at', { ascending: false });
         
         const fallbackResult = await fallbackQuery;

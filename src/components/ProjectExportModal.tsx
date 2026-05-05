@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ProjectSearchFilters } from "@/components/ProjectFilters";
+import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
 
 interface ProjectExportModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportMo
           expenses(id, amount),
           change_orders(id, client_amount, cost_impact, status)
         `)
-        .eq('category', 'construction');
+        .or(getProjectCategoryOrFilter());
 
       // Apply filters
       if (filters.searchText) {

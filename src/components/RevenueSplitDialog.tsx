@@ -29,6 +29,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { formatCurrency } from '@/lib/utils';
 import { Project } from '@/types/project';
 import { ProjectRevenue, RevenueSplitFormInput } from '@/types/revenue';
@@ -83,7 +84,7 @@ export const RevenueSplitDialog: React.FC<RevenueSplitDialogProps> = ({
         const { data, error } = await supabase
           .from('projects')
           .select('*')
-          .eq('category', 'construction')
+          .or(getProjectCategoryOrFilter())
           .order('project_number');
 
         if (error) throw error;

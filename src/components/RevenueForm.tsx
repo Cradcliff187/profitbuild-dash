@@ -50,6 +50,7 @@ import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { RevenueSplitDialog } from '@/components/RevenueSplitDialog';
 import { parseDateOnly } from '@/utils/dateUtils';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 // ============================================================================
 // SCHEMA
@@ -126,7 +127,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select('*')
-          .eq('category', 'construction')
+          .or(getProjectCategoryOrFilter())
           .order('created_at', { ascending: false });
 
         if (projectsError) throw projectsError;

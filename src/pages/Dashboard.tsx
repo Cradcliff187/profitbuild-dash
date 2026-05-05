@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 interface ProjectStatusCount {
   status: string;
@@ -107,7 +108,7 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from('projects')
       .select('id, status, category')
-      .eq('category', 'construction');
+      .or(getProjectCategoryOrFilter());
 
     if (error) {
       console.error('Error loading active projects:', error);
@@ -127,7 +128,7 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from('projects')
       .select('status, category')
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .neq('project_type', 'work_order');
 
     if (error) {
@@ -165,7 +166,7 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from('projects')
       .select('id, status, category, contracted_amount, adjusted_est_costs, adjusted_est_margin, margin_percentage, estimates!left(id, is_auto_generated)')
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .eq('project_type', 'work_order');
 
     if (error) {
@@ -349,7 +350,7 @@ const Dashboard = () => {
       .from('projects')
       .select('id, contracted_amount, adjusted_est_costs, adjusted_est_margin, margin_percentage, category')
       .in('status', ['approved', 'in_progress'])
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .neq('project_type', 'work_order');
 
     if (activeError) {
@@ -376,7 +377,7 @@ const Dashboard = () => {
       .from('projects')
       .select('id, contracted_amount, category')
       .eq('status', 'complete')
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .neq('project_type', 'work_order');
 
     if (completedError) {

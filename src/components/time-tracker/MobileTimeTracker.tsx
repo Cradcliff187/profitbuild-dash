@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/AuthContext';
+import { getProjectCategoryOrFilter, isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { useRoles } from '@/contexts/RoleContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
@@ -331,11 +332,10 @@ export const MobileTimeTracker: React.FC = () => {
       try {
         const parsed = JSON.parse(savedTimer);
         
-        // Sanitize: clear non-construction projects if cached
-        const isNonConstructionProject = (project: { category?: string }) => 
-          project.category !== 'construction';
-        
-        if (parsed.project && isNonConstructionProject(parsed.project)) {
+        // Sanitize: clear projects that no longer pass the visibility predicate
+        // (e.g. category changed to system, or sandbox toggle was flipped off
+        // while a SYS-TEST timer was cached).
+        if (parsed.project && !isProjectVisibleByCategory(parsed.project)) {
           parsed.project = null;
         }
         
@@ -375,15 +375,17 @@ export const MobileTimeTracker: React.FC = () => {
         .from('projects')
         .select('id, project_number, project_name, client_name, address, category')
         .in('status', ['approved', 'in_progress'])
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('project_number', { ascending: true })
         .range(0, 499);
 
       if (projectsError) throw projectsError;
-      
-      // Defense-in-depth: filter to construction projects only
-      const cleanedProjects = (projectsData || []).filter(
-        p => p.category === 'construction'
+
+      // Defense-in-depth: re-apply the visibility predicate client-side so a
+      // stale cached row can't slip through if the toggle flipped between fetch
+      // and render.
+      const cleanedProjects = (projectsData || []).filter(p =>
+        isProjectVisibleByCategory(p)
       );
       setProjects(cleanedProjects);
 

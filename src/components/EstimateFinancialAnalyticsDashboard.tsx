@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, Target, AlertTriangle, DollarSign } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 interface EstimateData {
   id: string;
@@ -106,7 +107,7 @@ export default function EstimateFinancialAnalyticsDashboard({ timeframe = 'all' 
           )
         `)
         .in('status', ['draft', 'sent', 'approved'])
-        .eq('projects.category', 'construction')
+        .or(getProjectCategoryOrFilter(), { foreignTable: 'projects' })
         .order('date_created', { ascending: false });
 
       if (timeframe !== 'all') {

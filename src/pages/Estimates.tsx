@@ -19,6 +19,7 @@ import { Plus, BarChart3, Download, Calculator } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
 
 type ViewMode = "list" | "create" | "edit" | "view";
 
@@ -104,7 +105,7 @@ const EstimatesPage = () => {
     const { data, error } = await supabase
       .from("projects")
       .select("id, project_name, project_number")
-      .eq("category", "construction")
+      .or(getProjectCategoryOrFilter())
       .order("project_number", { ascending: true });
 
     if (error) {
@@ -266,7 +267,7 @@ const EstimatesPage = () => {
           )
         `,
         )
-        .eq("projects.category", "construction")
+        .or(getProjectCategoryOrFilter(), { foreignTable: "projects" })
         .order("created_at", { ascending: false });
 
       if (estimatesError) throw estimatesError;

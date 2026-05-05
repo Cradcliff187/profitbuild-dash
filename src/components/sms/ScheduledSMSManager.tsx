@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { buildCronExpression, type ScheduleConfig } from '@/utils/cronBuilder';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScheduledSMSLogs } from '@/components/sms/ScheduledSMSLogs';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -125,7 +126,7 @@ export function ScheduledSMSManager() {
     const { data, error } = await supabase
       .from('projects')
       .select('id, project_number, project_name')
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .order('project_number', { ascending: false });
 
     if (!error && data) {

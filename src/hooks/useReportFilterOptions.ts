@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 export interface FilterOption {
   id: string;
@@ -23,7 +24,7 @@ export function useReportFilterOptions() {
           .from('projects')
           .select('client_name, category')
           .not('client_name', 'is', null)
-          .eq('category', 'construction');
+          .or(getProjectCategoryOrFilter());
 
         if (clientsData) {
           const uniqueClients = Array.from(
@@ -60,7 +61,7 @@ export function useReportFilterOptions() {
         const { data: projectsData } = await supabase
           .from('projects')
           .select('id, project_number, project_name, category')
-          .eq('category', 'construction')
+          .or(getProjectCategoryOrFilter())
           .order('project_number', { ascending: false });
 
         if (projectsData) {

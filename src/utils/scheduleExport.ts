@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { ScheduleTask } from '@/types/schedule';
 import { supabase } from '@/integrations/supabase/client';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 interface ScheduleExportOptions {
   includeProgress: boolean;
@@ -460,7 +461,7 @@ export const exportAllProjectsSchedule = async (format: 'csv' | 'daily-activity'
     const { data: projects, error } = await supabase
       .from('projects')
       .select('id, project_name, project_number, category')
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .in('status', ['approved', 'in_progress', 'complete'])
       .order('project_number', { ascending: false });
 

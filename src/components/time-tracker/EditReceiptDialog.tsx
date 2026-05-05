@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRoles } from '@/contexts/RoleContext';
 import { cn } from '@/lib/utils';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { isIOSPWA } from '@/utils/platform';
 
 interface Project {
@@ -124,7 +125,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
         .from('projects')
         .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
-        .in('category', ['construction', 'overhead'])
+        .or(getProjectCategoryOrFilter({ includeOverhead: true }))
         .order('project_name');
 
       if (error) throw error;

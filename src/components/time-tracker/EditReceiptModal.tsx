@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Camera } from 'lucide-react';
 import { isIOSPWA } from '@/utils/platform';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 interface Project {
   id: string;
@@ -96,12 +97,12 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
         setSystemProjectId(systemProjects.id);
       }
 
-      // Load active projects (construction and overhead)
+      // Load active projects (construction + overhead, plus SYS-TEST when sandbox toggle is on)
       const { data, error } = await supabase
         .from('projects')
         .select('id, project_name, project_number, category')
         .in('status', ['approved', 'in_progress'])
-        .in('category', ['construction', 'overhead'])
+        .or(getProjectCategoryOrFilter({ includeOverhead: true }))
         .order('project_name');
 
       if (error) throw error;

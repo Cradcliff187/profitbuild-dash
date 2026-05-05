@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
 import { createExpenseSplits, updateExpenseSplits, getExpenseSplits, validateSplitTotal } from '@/utils/expenseSplits';
 import { Expense } from '@/types/expense';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 interface SplitInput {
   project_id: string;
@@ -54,7 +55,7 @@ export const ExpenseSplitDialog: React.FC<ExpenseSplitDialogProps> = ({
       const { data, error } = await supabase
         .from('projects')
         .select('id, project_name, project_number, category')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('project_name');
 
       if (error) throw error;

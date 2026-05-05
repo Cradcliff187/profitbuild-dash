@@ -13,6 +13,7 @@ import { BucketEmptyState } from './BucketEmptyState';
 import { CostBucketTotalsRow } from './CostBucketTotalsRow';
 import { RecategorizeOtherBucketSheet } from './RecategorizeOtherBucketSheet';
 import { Loader2, FileText } from 'lucide-react';
+import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 
 interface CostBucketViewProps {
   projectId: string;
@@ -36,8 +37,10 @@ export function CostBucketView({ projectId, project }: CostBucketViewProps) {
   // projects either have `default_expense_category` set (Rule 6a trigger
   // silently rewrites any update to something else — confusing UX) or are
   // 002-GA where "other" is a legitimate catch-all. System projects are
-  // internal tracking with their own rules.
-  const canRecategorize = project.category === 'construction';
+  // internal tracking with their own rules — except SYS-TEST when the
+  // sandbox toggle is on (it should mirror construction behavior for
+  // testing UI flows like this CTA).
+  const canRecategorize = isProjectVisibleByCategory(project);
 
   const [recategorizeBucket, setRecategorizeBucket] = useState<ExpenseCategory | null>(null);
 

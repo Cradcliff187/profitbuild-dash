@@ -45,6 +45,7 @@ import { useTimeEntrySelection } from "@/hooks/useTimeEntrySelection";
 import { useTimeEntrySorting } from "@/hooks/useTimeEntrySorting";
 import { useTimeEntryActions } from "@/hooks/useTimeEntryActions";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
 
 const TimeEntriesPage = () => {
   const isMobile = useIsMobile();
@@ -327,7 +328,7 @@ const TimeEntriesPage = () => {
       const { data } = (await supabase
         .from("projects")
         .select("id, project_number, project_name, category")
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('project_number')) as any;
 
       if (data) {
