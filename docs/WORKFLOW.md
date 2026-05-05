@@ -88,33 +88,49 @@ Hit the actual deployed flow. For PWA users, check that `Settings → App Update
 
 ## Branch protection settings (for reference / re-applying)
 
-These are configured on the `main` branch via GitHub API (and re-applicable via `gh api`). The script that applies them is in this repo's git history (search for `claude/workflow-hardening` PR).
+Configured as a GitHub **Repository Ruleset** on the `main` branch (NOT the legacy branch-protection endpoint — that endpoint's `restrictions` field is organization-only and is rejected on personal repos with HTTP 422). The ruleset is named `main-protection` and is reproducible from [main-ruleset.json](main-ruleset.json).
 
 **Active rules:**
 
-| Setting | Value | Why |
+| Rule | Effect | Why |
 |---|---|---|
-| Require pull request before merging | ✅ | Forces all human changes through PR + review path |
-| Required approving reviews | 0 | Solo dev — gate is CI, not human review |
-| Require status checks to pass | ✅ | Specifically `pre-deploy / pre-deploy` from [pr-checks.yml](../.github/workflows/pr-checks.yml) |
-| Require branches to be up to date | ✅ | Prevents merging stale PRs |
-| Require conversation resolution | ✅ | Forces unresolved review comments to be handled |
-| Restrict who can push to matching branches | ✅ | Only `gpt-engineer-app` (Lovable bot) — humans must PR |
-| Allow force pushes | `gpt-engineer-app` only | Lovable's Publish dialog force-pushes (Gotcha #31). Humans cannot force-push. |
-| Require signed commits | ❌ | Lovable doesn't sign; would brick its bot |
-| Require linear history | ❌ | Lovable's commit chains aren't linear |
-| Lock branch | ❌ | Would brick Lovable entirely |
+| `pull_request` (review count 0) | All non-bypass actors must merge via PR | Forces all human changes through PR. Review count is 0 because solo dev — gate is CI. |
+| `required_status_checks` (`pre-deploy`, strict) | PR can't merge until [pr-checks.yml](../.github/workflows/pr-checks.yml) passes AND PR is up-to-date with main | Single gate to enforce |
+| `required_review_thread_resolution` | Unresolved review comments block merge | Catches "I'll address that later" drift |
+| `deletion` | `main` cannot be deleted | Idiot-proofing |
+| `non_fast_forward` | No force-pushes to `main` | Preserves history |
+| `current_user_can_bypass: never` | Even repo admin (you, Cradcliff187) is subject to all rules | The discipline you asked for — no "I'll just push this hotfix" temptation |
 
-**Why `gpt-engineer-app` is exempt:** Lovable's editor and Publish dialog write directly to `main` as `gpt-engineer-app[bot]`. Blocking direct pushes would brick the Lovable workflow. The bypass is scoped to that one App slug — humans (you, Claude, future contributors) must PR.
+**Bypass actor — the Lovable bot:**
 
-**Re-applying via `gh`** if branch protection ever drifts, run:
+| Field | Value |
+|---|---|
+| `actor_id` | `818760` |
+| `actor_type` | `Integration` (GitHub App) |
+| `bypass_mode` | `always` |
+| App slug | `lovable-dev` |
+| Commit display name | `gpt-engineer-app[bot]` (cosmetic — the App was renamed at some point but commit metadata still shows the old name) |
+
+This is the only actor exempt. Lovable's editor + Publish dialog continue to push directly to main as before.
+
+**Re-applying via `gh`** if the ruleset is ever deleted or drifts:
 
 ```bash
-gh api -X PUT repos/Cradcliff187/profitbuild-dash/branches/main/protection \
-  --input docs/branch-protection.json
+# Create new ruleset from the canonical JSON
+gh api -X POST repos/Cradcliff187/profitbuild-dash/rulesets \
+  --input docs/main-ruleset.json
+
+# OR update existing ruleset (find ID first via `gh api repos/.../rulesets`)
+gh api -X PUT repos/Cradcliff187/profitbuild-dash/rulesets/<id> \
+  --input docs/main-ruleset.json
 ```
 
-The exact JSON payload is at [branch-protection.json](branch-protection.json).
+Inspect what's currently active:
+
+```bash
+gh api repos/Cradcliff187/profitbuild-dash/rulesets
+gh api repos/Cradcliff187/profitbuild-dash/rulesets/<id>
+```
 
 ---
 
@@ -141,7 +157,7 @@ The repo does NOT use the Supabase **service role key** in CI — the access tok
 
 These come up often enough that they're called out here in addition to [CLAUDE.md](../CLAUDE.md):
 
-1. **`gpt-engineer-app[bot]` commits go straight to `main`** without PR. This is by design — branch protection exempts the bot. Don't try to "fix" this.
+1. **Lovable's bot (`lovable-dev`, displayed as `gpt-engineer-app[bot]`) commits go straight to `main`** without PR. This is by design — the Ruleset exempts the bot's GitHub App ID. Don't try to "fix" this.
 2. **The Publish dialog rewrites `index.html`** (Gotcha #31). It DELETES `<head>` tags it doesn't recognize. Edit `index.html` only for tags Lovable ignores (apple-touch-icon, manifest, theme-color). Title / OG / Twitter / favicon `<link rel="icon">` belong in the Publish dialog, not in code.
 3. **Lovable sometimes fails to deploy `ai-report-assistant`** (CLAUDE.md). After changes to that function, deploy via CLI directly: `npx supabase functions deploy ai-report-assistant --project-ref clsjdxwbsjbhjibvlqbz`. There is no GitHub Action for this yet (see "Future tier-2 items").
 4. **Lovable's build env doesn't expose git** (Gotcha #18). Production `__APP_VERSION__` falls through to `(build HHMMSS)`, not `(build {sha})`. CI builds would produce a real SHA — don't have CI deploy the app artifact, only Lovable.
