@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 import { parseDateOnly } from "@/utils/dateUtils";
+import { isProjectVisibleByCategory } from "@/utils/sandboxPreferences";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
 import { useUnapprovedExpensesCount } from '@/hooks/useUnapprovedExpensesCount';
@@ -363,16 +364,21 @@ const Expenses = () => {
       const projectIds = [...new Set((revenuesData || []).map(r => r.project_id).filter(Boolean))];
       const clientIds = [...new Set((revenuesData || []).map(r => r.client_id).filter(Boolean))];
 
-      // Fetch projects separately
+      // Fetch projects separately. Include `category` so we can apply the
+      // sandbox-toggle filter — without it, the SYS-TEST sandbox project's
+      // revenues (and any generated test invoices) would appear in the
+      // global Invoices tab even when the Settings → Developer toggle is
+      // off. `isProjectVisibleByCategory` mirrors the server-side filter
+      // used on /projects.
       const projectsMap = new Map();
       if (projectIds.length > 0) {
         const { data: projectsData, error: projectsError } = await supabase
           .from("projects")
-          .select("id, project_number, project_name, client_name, customer_po_number")
+          .select("id, project_number, project_name, client_name, customer_po_number, category")
           .in('id', projectIds);
 
         if (projectsError) throw projectsError;
-        
+
         (projectsData || []).forEach(p => {
           projectsMap.set(p.id, p);
         });
@@ -422,23 +428,35 @@ const Expenses = () => {
         }
       }
 
-      // Transform and merge data
-      const transformedRevenues: ProjectRevenue[] = (revenuesData || []).map((revenue: any) => {
-        const project = projectsMap.get(revenue.project_id);
+      // Transform and merge data. Filter out revenues whose project is
+      // hidden by the sandbox toggle — invoices for the SYS-TEST project
+      // (category='system') should NOT appear on /expenses?tab=invoices
+      // when the Settings → Developer toggle is off. Revenues whose
+      // project_id is null/unmatched are kept (they show "Unassigned"
+      // and are unrelated to the sandbox project).
+      const transformedRevenues: ProjectRevenue[] = (revenuesData || [])
+        .filter((revenue: any) => {
+          if (!revenue.project_id) return true;
+          const project = projectsMap.get(revenue.project_id);
+          if (!project) return true;
+          return isProjectVisibleByCategory(project, { includeOverhead: true });
+        })
+        .map((revenue: any) => {
+          const project = projectsMap.get(revenue.project_id);
 
-        return {
-          ...revenue,
-          invoice_date: parseDateOnly(revenue.invoice_date),
-          created_at: new Date(revenue.created_at),
-          updated_at: new Date(revenue.updated_at),
-          project_number: project?.project_number || 'Unassigned',
-          project_name: project?.project_name || 'Unassigned',
-          client_name: clientsMap.get(revenue.client_id) || project?.client_name || null,
-          customer_po_number: project?.customer_po_number || null,
-          latest_invoice: latestInvoiceMap.get(revenue.id) ?? null,
-          invoice_count: invoiceCountMap.get(revenue.id) ?? 0,
-        } as ProjectRevenue;
-      });
+          return {
+            ...revenue,
+            invoice_date: parseDateOnly(revenue.invoice_date),
+            created_at: new Date(revenue.created_at),
+            updated_at: new Date(revenue.updated_at),
+            project_number: project?.project_number || 'Unassigned',
+            project_name: project?.project_name || 'Unassigned',
+            client_name: clientsMap.get(revenue.client_id) || project?.client_name || null,
+            customer_po_number: project?.customer_po_number || null,
+            latest_invoice: latestInvoiceMap.get(revenue.id) ?? null,
+            invoice_count: invoiceCountMap.get(revenue.id) ?? 0,
+          } as ProjectRevenue;
+        });
 
       setRevenues(transformedRevenues);
     } catch (error: any) {
