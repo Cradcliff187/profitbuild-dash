@@ -409,32 +409,23 @@ export function AppSidebar() {
               }
             }}
           >
-            <DropdownMenuItem 
-              onSelect={(e) => {
-                e.preventDefault();
-                handleNavigation("/settings");
-              }}
+            <DropdownMenuItem
+              onSelect={() => handleNavigation("/settings")}
               className="cursor-pointer min-h-[44px]"
             >
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onSelect={(e) => {
-                e.preventDefault();
-                handleNavigation("/kpi-guide");
-              }}
+            <DropdownMenuItem
+              onSelect={() => handleNavigation("/kpi-guide")}
               className="cursor-pointer min-h-[44px]"
             >
               <BookOpen className="mr-2 h-4 w-4" />
               KPI Guide
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onSelect={(e) => {
-                e.preventDefault();
-                signOut();
-              }}
+            <DropdownMenuItem
+              onSelect={() => signOut()}
               className="cursor-pointer min-h-[44px]"
             >
               <LogOut className="mr-2 h-4 w-4" />
