@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -40,7 +41,7 @@ export function ReassignReceiptDialog({
     const { data, error } = await supabase
       .from('projects')
       .select('id, project_number, project_name, category')
-      .eq('category', 'construction')
+      .or(getProjectCategoryOrFilter())
       .order('project_number', { ascending: false });
 
     if (error) {

@@ -17,6 +17,7 @@ import { Project } from '@/types/project';
 import { Payee, PayeeType } from '@/types/payee';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -86,11 +87,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, onSave, onCan
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load projects (construction and overhead - expenses can be assigned to both)
+        // Load projects (construction + overhead, plus SYS-TEST when sandbox toggle is on)
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select('*')
-          .in('category', ['construction', 'overhead'])
+          .or(getProjectCategoryOrFilter({ includeOverhead: true }))
           .order('created_at', { ascending: false });
 
         const transformedProjects = (projectsData || []).map(project => ({

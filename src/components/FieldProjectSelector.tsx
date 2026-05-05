@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from './ui/input';
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { AlertCircle, Search } from 'lucide-react';
+import { getProjectCategoryOrFilter, getShowSandboxProject } from '@/utils/sandboxPreferences';
 
 interface FieldProjectSelectorProps {
   selectedProjectId?: string;
@@ -54,15 +55,15 @@ export function FieldProjectSelector({ selectedProjectId, onProjectSelect }: Fie
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ['field-accessible-projects'],
+    queryKey: ['field-accessible-projects', getShowSandboxProject()],
     queryFn: async () => {
-      // Filter to construction projects only (excludes system and overhead categories)
+      // Filter to construction projects (and SYS-TEST when the Settings sandbox toggle is on).
       const { data, error } = await supabase
         .from('projects')
         .select('id, project_number, project_name, client_name, status, category')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('project_number', { ascending: false });
-      
+
       if (error) throw error;
       return data as Project[];
     },

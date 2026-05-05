@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 export interface UnifiedReceipt {
   id: string;
@@ -144,7 +145,7 @@ export const useReceiptsData = () => {
       const { data, error } = await supabase
         .from('projects')
         .select('id, project_number, project_name, category')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .order('project_number');
       if (error) throw error;
       return (data || []).map((p: any) => ({

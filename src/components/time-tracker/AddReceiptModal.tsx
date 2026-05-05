@@ -13,6 +13,7 @@ import { PayeeType } from '@/types/payee';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 
 const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
@@ -82,11 +83,11 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       
       if (overheadError) throw overheadError;
       
-      // Get construction projects
+      // Get construction projects (and SYS-TEST when sandbox toggle is on)
       const { data: constructionProjects, error: constructionError } = await supabase
         .from('projects')
         .select('id, project_number, project_name, status, category')
-        .eq('category', 'construction')
+        .or(getProjectCategoryOrFilter())
         .in('status', ['approved', 'in_progress'])
         .order('project_number', { ascending: false });
       
