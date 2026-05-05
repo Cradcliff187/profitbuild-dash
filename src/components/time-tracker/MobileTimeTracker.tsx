@@ -1850,8 +1850,12 @@ export const MobileTimeTracker: React.FC = () => {
         open={showScheduleSelector}
         projects={projects}
         onSelectProject={(projectId) => {
-          // Navigate to field schedule
-          navigate(`/field-schedule/${projectId}`);
+          // Navigate to canonical mobile schedule (Rule 18). The legacy
+          // `/field-schedule/:projectId` URL still redirects, but field
+          // workers can't reach the redirect — AppLayout's role allowlist
+          // (Gotcha #44) bounces them to /time-tracker before the
+          // LegacyFieldScheduleRedirect component mounts.
+          navigate(`/projects/${projectId}/schedule`);
           // Close modal
           setShowScheduleSelector(false);
         }}

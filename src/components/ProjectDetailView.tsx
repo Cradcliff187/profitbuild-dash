@@ -24,7 +24,12 @@ import { Estimate } from "@/types/estimate";
 import { Quote } from "@/types/quote";
 import { Expense } from "@/types/expense";
 import { supabase } from "@/integrations/supabase/client";
-import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
+import {
+  getProjectCategoryOrFilter,
+  getShowSandboxProject,
+  SANDBOX_PROJECT_NUMBER,
+} from "@/utils/sandboxPreferences";
+import { toast } from "sonner";
 import { ProjectWithFinancials } from "@/types/projectFinancials";
 import type { Database } from "@/integrations/supabase/types";
 import { BrandedLoader } from "@/components/ui/branded-loader";
@@ -117,6 +122,22 @@ export const ProjectDetailView = () => {
     }
   }, [projectId]);
 
+  // Sandbox-toggle gate. When the Settings → Developer toggle is OFF and the
+  // user navigates to the SYS-TEST project (via direct URL, browser history,
+  // a stale tab, or any cross-link surface that didn't filter), bounce them
+  // back to /projects. This is the same intent as the global filters on
+  // /projects, /quotes, and /expenses?tab=invoices — turning the sandbox
+  // toggle off should hide everything associated with the test project, not
+  // just the listings.
+  const isSandboxProject = project?.project_number === SANDBOX_PROJECT_NUMBER;
+  const sandboxBlocked = isSandboxProject && !getShowSandboxProject();
+  useEffect(() => {
+    if (sandboxBlocked) {
+      toast.info("Sandbox project is hidden. Enable it in Settings → Developer.");
+      navigate('/projects', { replace: true });
+    }
+  }, [sandboxBlocked, navigate]);
+
   // Invalidate media queries when returning from capture pages
   useEffect(() => {
     if (location.state?.activeTab === 'photos' || location.state?.activeTab === 'videos') {
@@ -166,6 +187,13 @@ export const ProjectDetailView = () => {
   };
 
   if (isLoading) {
+    return <BrandedLoader message="Loading project details..." />;
+  }
+
+  // Render a loader (not the project content) while the sandbox-blocked
+  // redirect effect runs. Without this guard, the user briefly sees the
+  // SYS-TEST project's UI before the bounce kicks in.
+  if (sandboxBlocked) {
     return <BrandedLoader message="Loading project details..." />;
   }
 

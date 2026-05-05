@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { StickyNote } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ResizablePanelGroup,
@@ -114,9 +116,13 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
             />
           ))
         ) : (
-          <p className={`text-center py-8 ${variant === 'compact' ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
-            No notes yet
-          </p>
+          <Card className="p-8 text-center">
+            <StickyNote className="h-10 w-10 mx-auto mb-2 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground font-medium">No notes yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Notes captured for this project will appear here
+            </p>
+          </Card>
         )}
       </div>
     </ScrollArea>

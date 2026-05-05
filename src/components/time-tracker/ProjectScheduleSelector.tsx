@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { X, Calendar, ChevronRight, Navigation } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
   onSelectProject,
   onClose,
 }) => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   const getDirectionsUrl = (address: string): string => {
@@ -44,7 +42,14 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
   };
 
   const handleSelectProject = (projectId: string) => {
-    navigate(`/field-schedule/${projectId}`);
+    // Navigation is owned by the parent's onSelectProject callback so that
+    // a single source of truth controls the URL. The selector should not
+    // navigate on its own — that previously caused a double-navigate where
+    // this component fired the legacy `/field-schedule/:id` URL before
+    // the parent's canonical `/projects/:id/schedule` navigate ran. The
+    // legacy URL is blocked for field workers by AppLayout's allowlist
+    // (Gotcha #44), so the bounce-to-/time-tracker effect ran first and
+    // canceled the parent's navigate.
     onSelectProject(projectId);
     onClose();
   };
