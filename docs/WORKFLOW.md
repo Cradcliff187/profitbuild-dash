@@ -10,13 +10,14 @@ This is the canonical end-to-end flow from a code change to production. Follow i
 Diagnose → Edit → Live-verify in dev → Type-check → Pre-deploy gate
         → Commit on feature branch (NOT main) → Push → PR
         → CI runs pre-deploy gate (must be green) → Squash-merge
-        → Lovable auto-deploys main → Smoke-verify on rcgwork.com
+        → CLICK PUBLISH IN LOVABLE → Smoke-verify on rcgwork.com
 ```
 
-Three things are non-negotiable:
+Four things are non-negotiable:
 1. **No direct pushes to `main`** by humans (branch protection enforces this).
 2. **PR must pass CI** (the `pre-deploy / pre-deploy` status check) before merge (branch protection enforces).
 3. **UI changes get live-verified in a running browser** before commit — type-check is structural, not behavioral.
+4. **Merging is NOT deploying.** Lovable does not auto-deploy on push for this project — it's a manual Publish click. Settings → App Updates shows a "Publish pending" amber indicator when `main` is ahead of the deployed `buildTime`. Whoever merges is responsible for publishing, or notifying the person who will.
 
 ---
 
@@ -76,9 +77,18 @@ gh pr merge --squash
 
 The repo enforces squash-merge only (no merge commits, no rebase). One PR = one commit on `main` with `(#XX)` suffix.
 
-### 9. Lovable auto-deploys
+### 9. Click Publish in Lovable
 
-Within ~2 minutes of `main` push, Lovable rebuilds and deploys to rcgwork.com. The Lovable dashboard shows deploy status if you need to confirm. There is no automatic post-deploy verification — you smoke-test the relevant flow manually after the deploy lands.
+**Lovable does NOT auto-deploy on push for this project.** A successful merge to `main` puts the code into the repo but it does not go live until you manually open Lovable's editor and click Publish. Lovable's build runs in ~2 minutes after that click, then `rcgwork.com` reflects the new code.
+
+Why we know this is manual: verified May 4 2026 — four merged PRs sat on `main` for 6 hours while production stayed on the previous build. Lovable's account-level setting does not appear to expose an auto-deploy toggle.
+
+To make the "merged but not published" state visible, the in-app **Settings → App Updates** card now shows a deploy-status indicator:
+
+- **Green checkmark + "In sync"**: deployed `buildTime` is within 5 minutes of (or after) the latest commit on `main`. Nothing to do.
+- **Amber warning + "Publish pending"**: `main` has a commit newer than 5 minutes after the deployed `buildTime`. Open Lovable and click Publish.
+
+The 5-minute buffer absorbs the natural Lovable build window without false-positive alarms.
 
 ### 10. Manual smoke on rcgwork.com
 
@@ -182,14 +192,14 @@ If any of these become real problems, file an issue and add to the workflow.
 If a Lovable deploy goes wrong:
 
 1. **Identify the bad commit** on `main`. Usually the most recent.
-2. **Revert it** locally:
+2. **Revert it** via PR:
    ```bash
    git revert <sha>
-   git push origin main  # ← yes, branch protection allows revert PRs through normal flow
+   gh pr create
    ```
-   In practice: open a one-line revert PR via `gh pr create`. CI will run, then squash-merge.
-3. **Wait ~2 min** for Lovable to redeploy from the revert commit.
-4. **Smoke-verify** the previously-broken flow.
+   The branch protection ruleset requires PR + passing CI even for reverts. Squash-merge after CI is green.
+3. **Click Publish in Lovable** to actually push the revert live. The Settings → App Updates "Publish pending" indicator should clear within ~2 minutes after the build completes.
+4. **Smoke-verify** the previously-broken flow on `rcgwork.com`.
 
 For DB migrations or storage objects that were part of the bad change, code revert alone isn't enough — see CLAUDE.md "Critical Migration Rules" for the migration revert procedure, and re-run the `sync-storage.yml` workflow if the storage state needs reverting.
 
@@ -197,4 +207,4 @@ For DB migrations or storage objects that were part of the bad change, code reve
 
 ## Last updated
 
-2026-05-04 (concurrent with `claude/workflow-hardening` PR). Update this doc when the workflow changes.
+2026-05-05 — added the deploy-status indicator section + corrected the "Lovable auto-deploys on push" claim throughout. Update this doc when the workflow changes.

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2, Building2, Palette, DollarSign, Wallet, type LucideIcon } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2, Building2, Palette, DollarSign, Wallet, AlertTriangle, CheckCircle2, GitCommit, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
@@ -52,6 +52,19 @@ const Settings = () => {
   // App updates state
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [lastUpdateCheck, setLastUpdateCheck] = useState<Date | null>(null);
+  // Deploy-status indicator. The version chain is: vite.config.ts emits a
+  // string into both __APP_VERSION__ (baked into JS) and /version.json (file
+  // on disk). The deployedBuildTime here comes from /version.json — when it's
+  // significantly older than the latest commit on main, a publish is pending
+  // (Lovable does NOT auto-deploy on push for this project — every release
+  // requires a manual Publish click in the Lovable editor).
+  const [deployedBuildTime, setDeployedBuildTime] = useState<string | null>(null);
+  const [deployedVersion, setDeployedVersion] = useState<string | null>(null);
+  const [latestCommit, setLatestCommit] = useState<{
+    sha: string;
+    date: string;
+    message: string;
+  } | null>(null);
 
   // Track if profile has changes
   const hasProfileChanges = 
@@ -67,6 +80,11 @@ const Settings = () => {
     if (isAdmin) {
       fetchProjectCounter();
     }
+    // Surface deploy state so users can see at a glance whether the latest
+    // merge has actually been published. Failures degrade silently — the
+    // indicator just doesn't render. No blocking toasts; the existing
+    // "Check for Updates" button is still the explicit user-driven path.
+    fetchDeployStatus();
   }, [user, isAdmin]);
 
   const fetchProfileData = async () => {
@@ -259,6 +277,74 @@ const Settings = () => {
     return `225-${lastThreeDigits.toString().padStart(3, '0')}`;
   };
 
+  // Pulls the deploy-status info shown in the App Updates card:
+  //   - /version.json from production (what's deployed right now)
+  //   - latest commit on main from GitHub's public commits API (what should be deployed)
+  // No auth needed — repo is public. CORS is allowed by GitHub for this endpoint.
+  // Both fetches degrade silently on failure; the indicator just doesn't render.
+  const fetchDeployStatus = async () => {
+    try {
+      const versionRes = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
+      if (versionRes.ok) {
+        const { version, buildTime } = await versionRes.json();
+        setDeployedVersion(version ?? null);
+        setDeployedBuildTime(buildTime ?? null);
+      }
+    } catch {
+      // Network or parse error — leave indicator hidden
+    }
+    try {
+      const commitRes = await fetch(
+        "https://api.github.com/repos/Cradcliff187/profitbuild-dash/commits/main",
+        { headers: { Accept: "application/vnd.github+json" } }
+      );
+      if (commitRes.ok) {
+        const data = await commitRes.json();
+        setLatestCommit({
+          sha: data.sha?.slice(0, 7) ?? "",
+          date: data.commit?.committer?.date ?? data.commit?.author?.date ?? "",
+          message: (data.commit?.message ?? "").split("\n")[0],
+        });
+      }
+    } catch {
+      // GitHub API rate-limited or offline — leave indicator partial
+    }
+  };
+
+  // Format an ISO timestamp as "5 minutes ago" / "2 hours ago" / "3 days ago"
+  // — falls back to a locale string for anything older than a week.
+  const formatRelativeTime = (iso: string | null): string => {
+    if (!iso) return "unknown";
+    const then = new Date(iso).getTime();
+    if (Number.isNaN(then)) return "unknown";
+    const diffMs = Date.now() - then;
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return "just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)} min ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} hr ago`;
+    if (diffSec < 7 * 86400) return `${Math.floor(diffSec / 86400)} days ago`;
+    return new Date(iso).toLocaleDateString();
+  };
+
+  // Publish-pending heuristic: latest commit on main is newer than the
+  // deployed buildTime by more than 5 minutes. The 5-min buffer absorbs
+  // the natural lag between merge and Lovable build completion (~2 min in
+  // practice) without flagging healthy deploys as stale.
+  //
+  // Returns one of:
+  //   'pending'  — main has a commit newer than deploy + 5min buffer
+  //   'in-sync'  — both timestamps known and aligned
+  //   'unknown'  — at least one fetch failed (dev mode, network blip, etc.)
+  // We render different copy for each so the user never sees a misleading
+  // "In sync" when we couldn't actually verify it.
+  const getDeployStatus = (): "pending" | "in-sync" | "unknown" => {
+    if (!deployedBuildTime || !latestCommit?.date) return "unknown";
+    const deployTs = new Date(deployedBuildTime).getTime();
+    const commitTs = new Date(latestCommit.date).getTime();
+    if (Number.isNaN(deployTs) || Number.isNaN(commitTs)) return "unknown";
+    return commitTs - deployTs > 5 * 60 * 1000 ? "pending" : "in-sync";
+  };
+
   // Bypasses the SW byte-comparison heuristic by fetching /version.json with
   // cache: 'no-store' and string-comparing to the version baked into the
   // running JS. When versions differ the user gets a Force Update CTA that
@@ -295,8 +381,13 @@ const Settings = () => {
         return;
       }
 
-      const { version: deployedVersion } = await response.json();
+      const { version: deployedVersion, buildTime } = await response.json();
       const currentVersion = __APP_VERSION__;
+      setDeployedVersion(deployedVersion ?? null);
+      setDeployedBuildTime(buildTime ?? null);
+      // Also refresh the latest-commit pointer so the publish-pending dot is
+      // accurate after a manual check.
+      fetchDeployStatus();
 
       if (deployedVersion && deployedVersion !== currentVersion) {
         toast('Update Available', {
@@ -688,6 +779,81 @@ const Settings = () => {
                 {checkingUpdates ? 'Checking...' : 'Check for Updates'}
               </Button>
             </div>
+
+            {/*
+              Deploy status: shows what's deployed vs what's on main. Lovable
+              does NOT auto-deploy on push for this project — every release
+              requires a manual Publish click. The amber indicator makes the
+              "merged but not published" state visible instead of invisible.
+              In dev (no /version.json) or on network failure, status falls
+              back to "Unknown" rather than misleading "In sync".
+            */}
+            {(deployedBuildTime || latestCommit) && (() => {
+              const status = getDeployStatus();
+              return (
+                <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Deploy status
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {status === "pending" && (
+                          <>
+                            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                            <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                              Publish pending
+                            </span>
+                          </>
+                        )}
+                        {status === "in-sync" && (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                              In sync
+                            </span>
+                          </>
+                        )}
+                        {status === "unknown" && (
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Status unknown
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs space-y-1 text-muted-foreground">
+                    {deployedVersion && deployedBuildTime && (
+                      <p>
+                        <span className="font-medium text-foreground">Deployed:</span>{" "}
+                        {deployedVersion} · {formatRelativeTime(deployedBuildTime)}
+                      </p>
+                    )}
+                    {latestCommit && (
+                      <p className="flex items-start gap-1.5">
+                        <GitCommit className="h-3 w-3 mt-0.5 shrink-0" />
+                        <span className="min-w-0 flex-1">
+                          <span className="font-medium text-foreground">main:</span>{" "}
+                          <span className="font-mono">{latestCommit.sha}</span> ·{" "}
+                          {formatRelativeTime(latestCommit.date)}
+                          <br />
+                          <span className="text-muted-foreground/80 italic">
+                            {latestCommit.message}
+                          </span>
+                        </span>
+                      </p>
+                    )}
+                    {status === "pending" && (
+                      <p className="text-amber-700 dark:text-amber-400 pt-1 border-t border-amber-500/20">
+                        Code is on <code className="text-xs">main</code> but not yet live.
+                        Open Lovable and click <strong>Publish</strong> to deploy.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
             {lastUpdateCheck && (
               <p className="text-xs text-muted-foreground">
                 Last checked: {lastUpdateCheck.toLocaleTimeString()}

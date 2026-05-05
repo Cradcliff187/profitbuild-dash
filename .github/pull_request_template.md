@@ -23,11 +23,19 @@ constraint that prompted this. Future-you will thank present-you. -->
 - [ ] Manual smoke after deploy: <!-- name the specific flow to re-test on
       rcgwork.com once Lovable rolls this out -->
 
+## Publish
+
+<!-- Lovable does NOT auto-deploy on push for this project.
+     Tick when you've actually clicked Publish in Lovable's editor and
+     verified `Settings → App Updates` shows green "In sync".
+     If someone else will publish, name them here. -->
+- [ ] Will publish in Lovable after this merges (and verify the
+      Settings → App Updates indicator turns green)
+
 ## Rollback
 
-<!-- One sentence. Usually: "Revert commit on main, push, Lovable redeploys
-within ~2 minutes." If a DB migration or storage object is involved, name
-the extra step. -->
+<!-- One sentence. Usually: "Revert PR, click Publish in Lovable, smoke-test."
+     If a DB migration or storage object is involved, name the extra step. -->
 
 ---
 
