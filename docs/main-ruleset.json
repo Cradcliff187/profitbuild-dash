@@ -1,0 +1,48 @@
+{
+  "_comment_1": "Branch protection ruleset for `main`. Applied via Rulesets API (NOT legacy branch-protection — that endpoint's `restrictions` field is org-only and rejects this on a personal repo).",
+  "_comment_2": "Re-apply: gh api -X POST repos/Cradcliff187/profitbuild-dash/rulesets --input docs/main-ruleset.json",
+  "_comment_3": "Update existing: gh api -X PUT repos/Cradcliff187/profitbuild-dash/rulesets/<id> --input docs/main-ruleset.json",
+  "_comment_4": "List existing: gh api repos/Cradcliff187/profitbuild-dash/rulesets",
+  "name": "main-protection",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "_comment_bypass": "actor_id 818760 = lovable-dev GitHub App (commits as `gpt-engineer-app[bot]` for cosmetic reasons; the App's actual slug is `lovable-dev`). bypass_mode `always` exempts Lovable from ALL rules so the editor + Publish dialog continue to push directly to main.",
+  "bypass_actors": [
+    {
+      "actor_id": 818760,
+      "actor_type": "Integration",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          {
+            "context": "pre-deploy"
+          }
+        ]
+      }
+    }
+  ]
+}
