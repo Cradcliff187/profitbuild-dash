@@ -1,0 +1,70 @@
+# Sync Supabase Storage objects on push to main.
+#
+# Closes the gap caught on May 4 2026: docx templates checked into the repo
+# (e.g. docs/rcg-invoice-template.docx) are NOT auto-pushed by Lovable when
+# the file changes — they live in the `invoice-templates` storage bucket and
+# the only path was someone running `npm run upload:invoice-template` locally.
+# That gap meant a patched template sat dormant in the repo while production
+# kept rendering the old version.
+#
+# This workflow uploads the relevant docx via the Supabase CLI on every main
+# push that touches the file. Uses SUPABASE_ACCESS_TOKEN (PAT) — does NOT
+# require the service role key.
+#
+# Lovable safety: Lovable does not touch storage objects, so there's no race
+# with Lovable's auto-deploy.
+name: Sync storage objects
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/rcg-invoice-template.docx'
+
+concurrency:
+  group: sync-storage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invoice-template:
+    name: Upload invoice template
+    runs-on: ubuntu-latest
+    # Only run on the actual paths above (push event filters apply per workflow,
+    # not per job — this guards against future paths being added)
+    if: contains(toJson(github.event.commits.*.modified), 'docs/rcg-invoice-template.docx') || contains(toJson(github.event.commits.*.added), 'docs/rcg-invoice-template.docx')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase project
+        run: supabase link --project-ref clsjdxwbsjbhjibvlqbz
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Replace template in storage
+        run: |
+          set -euxo pipefail
+          # The CLI's `storage cp` does NOT upsert — must rm first.
+          # `--yes` bypasses the destroy confirmation; required because the
+          # `storage.protect_delete()` trigger blocks DB-layer deletes but
+          # the CLI's API path handles this when confirmed.
+          supabase storage rm \
+            ss:///invoice-templates/rcg-invoice-template.docx \
+            --linked --experimental --yes
+          supabase storage cp \
+            docs/rcg-invoice-template.docx \
+            ss:///invoice-templates/rcg-invoice-template.docx \
+            --linked --experimental
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify upload
+        run: |
+          supabase storage ls ss:///invoice-templates/ --linked --experimental
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
