@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, DollarSign, AlertTriangle, FileText, Info } from 'lucide-react';
+import { DollarSign, AlertTriangle, FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,6 @@ export const ExpenseDashboard: React.FC = () => {
   const {
     total_amount: totalExpenses,
     total_count: totalCount,
-    this_month_amount: thisMonthExpenses,
     unassigned_amount: unassignedAmount,
     unassigned_count: unassignedCount,
     unallocated_amount: unallocatedExpenses,
@@ -96,7 +95,7 @@ export const ExpenseDashboard: React.FC = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
@@ -106,19 +105,6 @@ export const ExpenseDashboard: React.FC = () => {
             <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
               {totalCount} total transactions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(thisMonthExpenses)}</div>
-            <p className="text-xs text-muted-foreground">
-              Current month expenses
             </p>
           </CardContent>
         </Card>
