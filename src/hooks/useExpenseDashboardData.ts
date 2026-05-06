@@ -68,13 +68,12 @@ export function useExpenseDashboardData(
   const dateTo = range.dateTo ?? null;
 
   const statsQuery = useQuery({
-    // Stats RPC does not support date params today — keep its key independent of
-    // the date range so summary cards stay all-time and the cache survives across
-    // period changes. The "This Month" card already provides time context.
-    queryKey: ["expense-dashboard-stats", projectCategory ?? null],
+    queryKey: ["expense-dashboard-stats", projectCategory ?? null, dateFrom, dateTo],
     queryFn: async (): Promise<DashboardStats> => {
       const { data, error } = await supabase.rpc("get_expense_dashboard_stats", {
         p_project_category: projectCategory ?? null,
+        p_date_from: dateFrom ?? undefined,
+        p_date_to: dateTo ?? undefined,
       });
       if (error) throw error;
       const row = (data as DashboardStats[] | null)?.[0];
