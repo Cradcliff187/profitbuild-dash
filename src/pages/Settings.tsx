@@ -904,6 +904,44 @@ const Settings = () => {
                 Last checked: {lastUpdateCheck.toLocaleTimeString()}
               </p>
             )}
+
+            {/*
+              Always-visible escape hatch. The version-check above can falsely
+              report "up to date" when the PWA's service worker is serving a
+              stale /version.json (iOS PWA stuck-cache class — see Gotcha #46).
+              In that state both __APP_VERSION__ and the fetched version match,
+              the "Update Available" toast never fires, and the user has no way
+              to escape from inside the app. This button bypasses the version
+              check entirely: unregisters every SW, deletes every Cache Storage
+              cache, and hard-reloads. Behind a confirm() so it's not tapped
+              accidentally — clears in-progress form state on reload.
+            */}
+            <div className="rounded-md border border-dashed p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Stuck on an old version?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use this if the version above doesn't match what's been deployed.
+                Unregisters the service worker, clears all caches, and reloads.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'This will clear the cached app and reload. Any unsaved work will be lost. Continue?'
+                    )
+                  ) {
+                    forceUpdate();
+                  }
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Force update (clear cache &amp; reload)
+              </Button>
+            </div>
           </CardContent>
         </Card>
         </section>
