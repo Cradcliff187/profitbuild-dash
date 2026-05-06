@@ -45,6 +45,8 @@ import { ReceiptLinkModal } from "./expenses/ReceiptLinkModal";
 import { ReceiptPreviewModal } from "./ReceiptPreviewModal";
 import { unlinkReceiptFromExpense, fetchLinkedReceipt } from "@/utils/receiptLinking";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
+import { TimePeriodFilter } from "./ui/time-period-filter";
+import { ALL_TIME_PERIOD, TimePeriodValue } from "@/utils/timePeriodPresets";
 import { usePagination } from '@/hooks/usePagination';
 import { useExpensesQuery, ExpensesQueryFilters } from '@/hooks/useExpensesQuery';
 import { Loader2 } from 'lucide-react';
@@ -138,6 +140,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [filterSplitStatuses, setFilterSplitStatuses] = useState<string[]>([]);
     const [filterPayees, setFilterPayees] = useState<string[]>([]);
     const [filterPayeeTypes, setFilterPayeeTypes] = useState<string[]>([]);
+    const [filterPeriod, setFilterPeriod] = useState<TimePeriodValue>(ALL_TIME_PERIOD);
     const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [payees, setPayees] = useState<any[]>([]);
@@ -171,6 +174,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       approvalStatuses: filterApprovalStatuses.length > 0 ? filterApprovalStatuses : undefined,
       payeeIds: filterPayees.length > 0 ? filterPayees : undefined,
       payeeTypes: filterPayeeTypes.length > 0 ? filterPayeeTypes : undefined,
+      dateFrom: filterPeriod.dateFrom ?? undefined,
+      dateTo: filterPeriod.dateTo ?? undefined,
     }), [
       searchTerm,
       filterCategories,
@@ -179,6 +184,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       filterApprovalStatuses,
       filterPayees,
       filterPayeeTypes,
+      filterPeriod,
     ]);
 
     const expensesQuery = useExpensesQuery(hookFilters, { enabled: isGlobalMode });
@@ -290,6 +296,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       if (filterSplitStatuses.length > 0) count++;
       if (filterPayees.length > 0) count++;
       if (filterPayeeTypes.length > 0) count++;
+      if (filterPeriod.preset !== "all") count++;
       return count;
     };
 
@@ -307,6 +314,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       setFilterSplitStatuses([]);
       setFilterPayees([]);
       setFilterPayeeTypes([]);
+      setFilterPeriod(ALL_TIME_PERIOD);
     };
 
     // Toggle helper functions for multi-select
@@ -593,6 +601,13 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           });
         }
 
+        let matchesPeriod = true;
+        if (filterPeriod.dateFrom || filterPeriod.dateTo) {
+          const expenseDateStr = format(new Date(expense.expense_date), "yyyy-MM-dd");
+          if (filterPeriod.dateFrom && expenseDateStr < filterPeriod.dateFrom) matchesPeriod = false;
+          if (filterPeriod.dateTo && expenseDateStr > filterPeriod.dateTo) matchesPeriod = false;
+        }
+
         let matchesSplitStatus = true;
         if (filterSplitStatuses.length > 0) {
           matchesSplitStatus = filterSplitStatuses.some(status => {
@@ -614,7 +629,8 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           matchesPayeeType &&
           matchesMatchStatus &&
           matchesApprovalStatus &&
-          matchesSplitStatus
+          matchesSplitStatus &&
+          matchesPeriod
         );
       });
     }, [
@@ -628,6 +644,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       filterMatchStatuses,
       filterApprovalStatuses,
       filterSplitStatuses,
+      filterPeriod,
       expenseMatches,
     ]);
 
@@ -1788,6 +1805,10 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-9"
               />
+            </div>
+
+            <div className="md:col-span-4">
+              <TimePeriodFilter value={filterPeriod} onChange={setFilterPeriod} />
             </div>
 
             {!projectId && (

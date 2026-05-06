@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, DollarSign, AlertTriangle, FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TimePeriodFilter } from '@/components/ui/time-period-filter';
+import { ALL_TIME_PERIOD, TimePeriodValue } from '@/utils/timePeriodPresets';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { useExpenseDashboardData, type RecentExpenseRow } from '@/hooks/useExpenseDashboardData';
 import { isOperationalProject, isOverheadProject, ProjectCategory } from '@/types/project';
@@ -18,7 +20,11 @@ import { EXPENSE_CATEGORY_DISPLAY, type ExpenseCategory } from '@/types/expense'
  * gone. See [useExpenseDashboardData](src/hooks/useExpenseDashboardData.ts).
  */
 export const ExpenseDashboard: React.FC = () => {
-  const { stats, categories, recent, isLoading, error } = useExpenseDashboardData();
+  const [period, setPeriod] = useState<TimePeriodValue>(ALL_TIME_PERIOD);
+  const { stats, categories, recent, isLoading, error } = useExpenseDashboardData(undefined, {
+    dateFrom: period.dateFrom,
+    dateTo: period.dateTo,
+  });
 
   if (error) {
     return (
@@ -81,6 +87,15 @@ export const ExpenseDashboard: React.FC = () => {
           </PopoverContent>
         </Popover>
       </div>
+
+      {/* Time period filter — drives Recent Expenses + Expenses by Category below.
+          Summary cards intentionally stay all-time; the "This Month" card already
+          provides time context for the dashboard front door. */}
+      <Card>
+        <CardContent className="py-3">
+          <TimePeriodFilter value={period} onChange={setPeriod} size="md" />
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
@@ -155,6 +170,9 @@ export const ExpenseDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Recent Expenses</CardTitle>
+            {period.preset !== "all" && (
+              <p className="text-xs text-muted-foreground">Filtered by selected period</p>
+            )}
           </CardHeader>
           <CardContent>
             {recent.length === 0 ? (
@@ -176,6 +194,9 @@ export const ExpenseDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Expenses by Category</CardTitle>
+            {period.preset !== "all" && (
+              <p className="text-xs text-muted-foreground">Filtered by selected period</p>
+            )}
           </CardHeader>
           <CardContent>
             {categories.length === 0 ? (
