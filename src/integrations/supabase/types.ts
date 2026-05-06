@@ -4089,6 +4089,8 @@ export type Database = {
       }
       get_expense_dashboard_stats: {
         Args: {
+          p_date_from?: string
+          p_date_to?: string
           p_project_category?: Database["public"]["Enums"]["project_category"]
         }
         Returns: {

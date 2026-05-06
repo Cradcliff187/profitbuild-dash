@@ -88,9 +88,7 @@ export const ExpenseDashboard: React.FC = () => {
         </Popover>
       </div>
 
-      {/* Time period filter — drives Recent Expenses + Expenses by Category below.
-          Summary cards intentionally stay all-time; the "This Month" card already
-          provides time context for the dashboard front door. */}
+      {/* Time period filter — drives every card on this dashboard. */}
       <Card>
         <CardContent className="py-3">
           <TimePeriodFilter value={period} onChange={setPeriod} size="md" />
@@ -170,9 +168,6 @@ export const ExpenseDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Recent Expenses</CardTitle>
-            {period.preset !== "all" && (
-              <p className="text-xs text-muted-foreground">Filtered by selected period</p>
-            )}
           </CardHeader>
           <CardContent>
             {recent.length === 0 ? (
@@ -194,9 +189,6 @@ export const ExpenseDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Expenses by Category</CardTitle>
-            {period.preset !== "all" && (
-              <p className="text-xs text-muted-foreground">Filtered by selected period</p>
-            )}
           </CardHeader>
           <CardContent>
             {categories.length === 0 ? (
