@@ -55,8 +55,22 @@ const STALE_TIME = 30 * 1000;
  * invalidation fan-out to include `['expense-dashboard-stats']`,
  * `['expense-category-rollup']`, and `['expense-dashboard-recent']`.
  */
-export function useExpenseDashboardData(projectCategory?: ProjectCategory) {
+export interface DashboardDateRange {
+  dateFrom?: string | null;
+  dateTo?: string | null;
+}
+
+export function useExpenseDashboardData(
+  projectCategory?: ProjectCategory,
+  range: DashboardDateRange = {}
+) {
+  const dateFrom = range.dateFrom ?? null;
+  const dateTo = range.dateTo ?? null;
+
   const statsQuery = useQuery({
+    // Stats RPC does not support date params today — keep its key independent of
+    // the date range so summary cards stay all-time and the cache survives across
+    // period changes. The "This Month" card already provides time context.
     queryKey: ["expense-dashboard-stats", projectCategory ?? null],
     queryFn: async (): Promise<DashboardStats> => {
       const { data, error } = await supabase.rpc("get_expense_dashboard_stats", {
@@ -90,11 +104,11 @@ export function useExpenseDashboardData(projectCategory?: ProjectCategory) {
   });
 
   const categoriesQuery = useQuery({
-    queryKey: ["expense-category-rollup", projectCategory ?? null],
+    queryKey: ["expense-category-rollup", projectCategory ?? null, dateFrom, dateTo],
     queryFn: async (): Promise<CategoryRollupRow[]> => {
       const { data, error } = await supabase.rpc("get_expense_category_rollup", {
-        p_date_from: null,
-        p_date_to: null,
+        p_date_from: dateFrom,
+        p_date_to: dateTo,
         p_project_category: projectCategory ?? null,
       });
       if (error) throw error;
@@ -107,7 +121,7 @@ export function useExpenseDashboardData(projectCategory?: ProjectCategory) {
   });
 
   const recentQuery = useQuery({
-    queryKey: ["expense-dashboard-recent", projectCategory ?? null],
+    queryKey: ["expense-dashboard-recent", projectCategory ?? null, dateFrom, dateTo],
     queryFn: async (): Promise<RecentExpenseRow[]> => {
       let q = supabase
         .from("expenses_search")
@@ -117,6 +131,8 @@ export function useExpenseDashboardData(projectCategory?: ProjectCategory) {
         .order("created_at", { ascending: false })
         .limit(5);
       if (projectCategory) q = q.eq("project_category", projectCategory);
+      if (dateFrom) q = q.gte("expense_date", dateFrom);
+      if (dateTo) q = q.lte("expense_date", dateTo);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as RecentExpenseRow[];

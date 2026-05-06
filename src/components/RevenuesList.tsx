@@ -16,6 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
+import { TimePeriodFilter } from "./ui/time-period-filter";
+import { ALL_TIME_PERIOD, TimePeriodValue } from "@/utils/timePeriodPresets";
 import { usePagination } from '@/hooks/usePagination';
 import { RevenueBulkActions } from "./RevenueBulkActions";
 import { RevenueSplitDialog } from "./RevenueSplitDialog";
@@ -111,6 +113,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterProjects, setFilterProjects] = useState<string[]>([]);
   const [filterClients, setFilterClients] = useState<string[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState<TimePeriodValue>(ALL_TIME_PERIOD);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [revenueToDelete, setRevenueToDelete] = useState<ProjectRevenue | null>(null);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -317,8 +320,18 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
       filtered = filtered.filter(rev => rev.client_name && filterClients.includes(rev.client_name));
     }
 
+    // Date range filter
+    if (filterPeriod.dateFrom || filterPeriod.dateTo) {
+      filtered = filtered.filter(rev => {
+        const dateStr = format(new Date(rev.invoice_date), "yyyy-MM-dd");
+        if (filterPeriod.dateFrom && dateStr < filterPeriod.dateFrom) return false;
+        if (filterPeriod.dateTo && dateStr > filterPeriod.dateTo) return false;
+        return true;
+      });
+    }
+
     return filtered;
-  }, [revenues, searchTerm, filterProjects, filterClients]);
+  }, [revenues, searchTerm, filterProjects, filterClients, filterPeriod]);
 
   // Sort revenues
   const sortedRevenues = useMemo(() => {
@@ -466,6 +479,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     if (searchTerm) count++;
     if (filterProjects.length > 0) count++;
     if (filterClients.length > 0) count++;
+    if (filterPeriod.preset !== "all") count++;
     return count;
   };
 
@@ -477,6 +491,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     setSearchTerm("");
     setFilterProjects([]);
     setFilterClients([]);
+    setFilterPeriod(ALL_TIME_PERIOD);
     setSelectedRevenues([]); // Clear selection when filters change
     pagination.goToPage(1);
   };
@@ -767,6 +782,16 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                 pagination.goToPage(1);
               }}
               className="h-9"
+            />
+          </div>
+
+          <div className="md:col-span-4">
+            <TimePeriodFilter
+              value={filterPeriod}
+              onChange={(v) => {
+                setFilterPeriod(v);
+                pagination.goToPage(1);
+              }}
             />
           </div>
 
