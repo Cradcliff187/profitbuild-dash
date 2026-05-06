@@ -282,13 +282,24 @@ const Settings = () => {
   //   - latest commit on main from GitHub's public commits API (what should be deployed)
   // No auth needed — repo is public. CORS is allowed by GitHub for this endpoint.
   // Both fetches degrade silently on failure; the indicator just doesn't render.
-  const fetchDeployStatus = async () => {
+  // Returns the fetched values so callers can act on them without waiting for
+  // React state to settle (handleCheckForUpdates needs sync access).
+  const fetchDeployStatus = async (): Promise<{
+    deployedBuildTime: string | null;
+    deployedVersion: string | null;
+    latestCommitDate: string | null;
+  }> => {
+    let nextBuildTime: string | null = null;
+    let nextVersion: string | null = null;
+    let nextCommitDate: string | null = null;
     try {
       const versionRes = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
       if (versionRes.ok) {
         const { version, buildTime } = await versionRes.json();
-        setDeployedVersion(version ?? null);
-        setDeployedBuildTime(buildTime ?? null);
+        nextVersion = version ?? null;
+        nextBuildTime = buildTime ?? null;
+        setDeployedVersion(nextVersion);
+        setDeployedBuildTime(nextBuildTime);
       }
     } catch {
       // Network or parse error — leave indicator hidden
@@ -300,15 +311,35 @@ const Settings = () => {
       );
       if (commitRes.ok) {
         const data = await commitRes.json();
+        nextCommitDate = data.commit?.committer?.date ?? data.commit?.author?.date ?? "";
         setLatestCommit({
           sha: data.sha?.slice(0, 7) ?? "",
-          date: data.commit?.committer?.date ?? data.commit?.author?.date ?? "",
+          date: nextCommitDate ?? "",
           message: (data.commit?.message ?? "").split("\n")[0],
         });
       }
     } catch {
       // GitHub API rate-limited or offline — leave indicator partial
     }
+    return {
+      deployedBuildTime: nextBuildTime,
+      deployedVersion: nextVersion,
+      latestCommitDate: nextCommitDate,
+    };
+  };
+
+  // Same threshold as the visual deploy-status card (getDeployStatus). Using
+  // the raw timestamps avoids depending on React state that fetchDeployStatus
+  // has just set asynchronously.
+  const isPublishPending = (
+    buildTime: string | null,
+    commitDate: string | null,
+  ): boolean => {
+    if (!buildTime || !commitDate) return false;
+    const deployTs = new Date(buildTime).getTime();
+    const commitTs = new Date(commitDate).getTime();
+    if (Number.isNaN(deployTs) || Number.isNaN(commitTs)) return false;
+    return commitTs - deployTs > 5 * 60 * 1000;
   };
 
   // Format an ISO timestamp as "5 minutes ago" / "2 hours ago" / "3 days ago"
@@ -385,9 +416,6 @@ const Settings = () => {
       const currentVersion = __APP_VERSION__;
       setDeployedVersion(deployedVersion ?? null);
       setDeployedBuildTime(buildTime ?? null);
-      // Also refresh the latest-commit pointer so the publish-pending dot is
-      // accurate after a manual check.
-      fetchDeployStatus();
 
       if (deployedVersion && deployedVersion !== currentVersion) {
         toast('Update Available', {
@@ -403,10 +431,27 @@ const Settings = () => {
           const registration = await navigator.serviceWorker.getRegistration();
           registration?.update().catch(() => {});
         }
+
+        // Refresh the publish-pending indicator in the background; UI state has
+        // already been driven by the toast above.
+        fetchDeployStatus();
       } else {
-        toast.success("You're up to date", {
-          description: `Running ${currentVersion}`,
-        });
+        // Up-to-date with the deployed build — but the deployed build itself
+        // may be behind main. Await fetchDeployStatus so the toast can reflect
+        // pending-publish state instead of a misleading flat "you're up to date"
+        // while the card right above it shows "Publish pending".
+        const { deployedBuildTime: nextBuildTime, latestCommitDate } = await fetchDeployStatus();
+        if (isPublishPending(nextBuildTime ?? buildTime ?? null, latestCommitDate)) {
+          toast('Up to date with the deployed build', {
+            description:
+              'A newer commit is on main but has not been published yet. Open Lovable and click Publish to deploy.',
+            duration: 8000,
+          });
+        } else {
+          toast.success("You're up to date", {
+            description: `Running ${currentVersion}`,
+          });
+        }
       }
     } catch (error) {
       console.error('Update check failed:', error);
@@ -859,6 +904,44 @@ const Settings = () => {
                 Last checked: {lastUpdateCheck.toLocaleTimeString()}
               </p>
             )}
+
+            {/*
+              Always-visible escape hatch. The version-check above can falsely
+              report "up to date" when the PWA's service worker is serving a
+              stale /version.json (iOS PWA stuck-cache class — see Gotcha #46).
+              In that state both __APP_VERSION__ and the fetched version match,
+              the "Update Available" toast never fires, and the user has no way
+              to escape from inside the app. This button bypasses the version
+              check entirely: unregisters every SW, deletes every Cache Storage
+              cache, and hard-reloads. Behind a confirm() so it's not tapped
+              accidentally — clears in-progress form state on reload.
+            */}
+            <div className="rounded-md border border-dashed p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Stuck on an old version?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use this if the version above doesn't match what's been deployed.
+                Unregisters the service worker, clears all caches, and reloads.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'This will clear the cached app and reload. Any unsaved work will be lost. Continue?'
+                    )
+                  ) {
+                    forceUpdate();
+                  }
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Force update (clear cache &amp; reload)
+              </Button>
+            </div>
           </CardContent>
         </Card>
         </section>
