@@ -49,52 +49,19 @@ export function usePendingCounts(): PendingCounts {
   useEffect(() => {
     fetchCounts();
 
-    // Set up real-time subscriptions.
-    // CRITICAL: keep narrow filters here — removing the category filter caused a
-    // token-refresh cascade (every expense change triggered setAuth → refresh →
-    //  429s → 406s on profile lookup). Use TWO channel listeners — one per
-    // labor-bearing category — so the fan-out stays small while still covering
-    // subcontractor time entries (category='subcontractors').
-    const expensesChannel = supabase
-      .channel('pending-time-entries')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: 'category=eq.labor_internal',
-        },
-        () => fetchCounts()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: 'category=eq.subcontractors',
-        },
-        () => fetchCounts()
-      )
-      .subscribe();
-
-    const receiptsChannel = supabase
-      .channel('pending-receipts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'receipts'
-        },
-        () => fetchCounts()
-      )
-      .subscribe();
-
+    // P0 FIX (May 2026): realtime subscriptions on this hook are temporarily
+    // disabled. They mount inside AppSidebar (admin-only) immediately after
+    // login, and the postgres_changes channel's setAuth → token-refresh chain
+    // was triggering refresh-token rate-limit cascades that bounced admins
+    // back to the login page in a loop. Counts now refresh on:
+    //   * Hook mount (AppSidebar mount, route changes)
+    //   * Next navigation that remounts the sidebar
+    // Real-time refresh of the pending badge is not critical — counts are
+    // checked when admins navigate, which is frequent enough.
     return () => {
-      supabase.removeChannel(expensesChannel);
-      supabase.removeChannel(receiptsChannel);
+      // No-op cleanup; left as a placeholder for when we re-enable realtime
+      // with a different mechanism (e.g., periodic poll, focus event, or
+      // dedicated low-volume notification channel).
     };
   }, [isAdmin, isManager]);
 
