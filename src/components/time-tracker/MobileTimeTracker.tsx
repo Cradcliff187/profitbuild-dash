@@ -167,7 +167,7 @@ export const MobileTimeTracker: React.FC = () => {
       const { data, error } = await supabase
         .from('expenses')
         .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, email, is_internal, provides_labor, user_id), projects(id, project_name, project_number, client_name, address)')
-        .eq('category', 'labor_internal')
+        .not('start_time', 'is', null)
         .is('end_time', null);
 
       if (error) throw error;
@@ -389,13 +389,17 @@ export const MobileTimeTracker: React.FC = () => {
       );
       setProjects(cleanedProjects);
 
-      // Load internal labor team members
+      // Load labor-providing team members linked to a user.
+      // Includes both internal employees (is_internal=true) and linked
+      // subcontractor labor providers (is_internal=false, payee_type='subcontractor',
+      // provides_labor=true). The .not('user_id','is',null) filter excludes
+      // orphan/unlinked payees that no real user owns.
       const { data: teamMembersData, error: teamMembersError } = await supabase
         .from('payees')
-        .select('id, payee_name, hourly_rate, email')
-        .eq('is_internal', true)
+        .select('id, payee_name, hourly_rate, email, is_internal, payee_type, user_id')
         .eq('provides_labor', true)
         .eq('is_active', true)
+        .not('user_id', 'is', null)
         .order('payee_name');
 
       if (teamMembersError) throw teamMembersError;
@@ -433,7 +437,11 @@ export const MobileTimeTracker: React.FC = () => {
           event: '*', // Listen to INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'expenses',
-          filter: `category=eq.labor_internal`
+          // No category filter — postgres_changes can't express "start_time IS NOT NULL".
+          // The handler re-queries via loadTodayEntries/loadActiveTimers, which apply
+          // the start_time discriminator correctly. Cost: a few harmless reloads
+          // when non-time-entry expenses change. Necessary so subcontractor time
+          // entries (category='subcontractors') also trigger UI refresh.
         },
         (payload) => {
           console.log('Real-time change detected:', payload);
@@ -481,7 +489,7 @@ export const MobileTimeTracker: React.FC = () => {
           payees!inner(id, payee_name, hourly_rate),
           projects!inner(id, project_number, project_name, client_name, address)
         `)
-        .eq('category', 'labor_internal')
+        .not('start_time', 'is', null)
         .eq('expense_date', today);
       
       // Field workers only see their own entries
@@ -652,7 +660,7 @@ export const MobileTimeTracker: React.FC = () => {
         .from('expenses')
         .select('*, projects(project_name, project_number)')
         .eq('payee_id', selectedTeamMember.id)
-        .eq('category', 'labor_internal')
+        .not('start_time', 'is', null)
         .is('end_time', null)
         .order('start_time', { ascending: false })
         .limit(1)
@@ -876,7 +884,7 @@ export const MobileTimeTracker: React.FC = () => {
           .from('expenses')
           .select('id')
           .eq('payee_id', activeTimer.teamMember.id)
-          .eq('category', 'labor_internal')
+          .not('start_time', 'is', null)
           .is('end_time', null)
           .eq('start_time', activeTimer.startTime.toISOString())
           .maybeSingle();

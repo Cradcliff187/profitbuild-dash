@@ -37,7 +37,9 @@ export const checkTimeOverlap = async (
         )
       `)
       .eq('payee_id', payeeId)
-      .eq('category', 'labor_internal')
+      // Discriminator widened from category='labor_internal' to start_time IS NOT NULL
+      // so overlap detection covers subcontractor time entries (category='subcontractors')
+      // alongside internal labor on the same payee/date.
       .not('start_time', 'is', null)
       .not('end_time', 'is', null)
       .lt('start_time', endTime.toISOString())
