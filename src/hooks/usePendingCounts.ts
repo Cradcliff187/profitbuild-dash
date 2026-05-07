@@ -49,7 +49,12 @@ export function usePendingCounts(): PendingCounts {
   useEffect(() => {
     fetchCounts();
 
-    // Set up real-time subscriptions
+    // Set up real-time subscriptions.
+    // CRITICAL: keep narrow filters here — removing the category filter caused a
+    // token-refresh cascade (every expense change triggered setAuth → refresh →
+    //  429s → 406s on profile lookup). Use TWO channel listeners — one per
+    // labor-bearing category — so the fan-out stays small while still covering
+    // subcontractor time entries (category='subcontractors').
     const expensesChannel = supabase
       .channel('pending-time-entries')
       .on(
@@ -58,8 +63,17 @@ export function usePendingCounts(): PendingCounts {
           event: '*',
           schema: 'public',
           table: 'expenses',
-          // No category filter — postgres_changes can't express "start_time IS NOT NULL".
-          // The fetchCounts callback re-applies the discriminator correctly.
+          filter: 'category=eq.labor_internal',
+        },
+        () => fetchCounts()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: 'category=eq.subcontractors',
         },
         () => fetchCounts()
       )
