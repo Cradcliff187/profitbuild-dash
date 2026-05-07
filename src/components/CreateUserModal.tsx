@@ -15,11 +15,22 @@ interface CreateUserModalProps {
   onUserCreated: () => void;
 }
 
+// Field-worker users can be backed by two kinds of payee:
+//   * 'internal' — W2 employee. Auto-creates is_internal=true, payee_type='internal_labor',
+//                  hourly_rate=$75 default. Their clocked time → expenses with
+//                  category='labor_internal', amount=hours*rate (DB trigger enforces).
+//   * 'subcontractor' — labor-providing subcontractor. Auto-creates is_internal=false,
+//                       payee_type='subcontractor', provides_labor=true, hourly_rate=NULL.
+//                       Their clocked time → expenses with category='subcontractors',
+//                       amount forced to 0 (informational only — real cost via bills).
+type FieldWorkerPayeeType = 'internal' | 'subcontractor';
+
 export default function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUserModalProps) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<AppRole>('field_worker');
+  const [fieldWorkerPayeeType, setFieldWorkerPayeeType] = useState<FieldWorkerPayeeType>('internal');
   const [method, setMethod] = useState<'temporary_password' | 'permanent_password'>('temporary_password');
   const [permanentPassword, setPermanentPassword] = useState('');
   const [temporaryPassword, setTemporaryPassword] = useState('');
@@ -31,6 +42,7 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
       setEmail('');
       setFullName('');
       setRole('field_worker');
+      setFieldWorkerPayeeType('internal');
       setMethod('temporary_password');
       setPermanentPassword('');
       setTemporaryPassword('');
@@ -66,26 +78,32 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
-      // Auto-create the linked internal payee ONLY for field workers.
+      // Auto-create the linked payee ONLY for field workers (any flavor).
       // Admins and managers don't log labor by default, so they don't need a payee row.
-      // If later they're assigned as a project owner or receive an expense, the admin
-      // can add one on demand from Role Management → Accounting Linkage ("Add anyway").
-      // Separate from auth so we don't need to redeploy the edge function.
+      // The kind of payee depends on the field-worker flavor (internal employee or
+      // labor-providing subcontractor). Both shapes get auto-linked to the new user.
       // The unique partial index on payees.user_id WHERE is_internal makes duplicate
-      // inserts a cheap no-op (23505 → treated as success). See Architectural Rule 11.
+      // inserts of internal payees a cheap no-op (23505 → treated as success).
+      // See Architectural Rule 11.
       if (role === 'field_worker') {
         const newUserId: string | undefined = data.userId ?? data.user?.id;
         if (newUserId) {
           try {
             const payeeName = fullName.trim() || email.trim().split('@')[0];
+            const isInternal = fieldWorkerPayeeType === 'internal';
             const { error: payeeError } = await supabase.from('payees').insert({
               user_id: newUserId,
               payee_name: payeeName,
               email: email.trim(),
-              is_internal: true,
+              is_internal: isInternal,
               is_active: true,
               provides_labor: true,
-              payee_type: 'internal_labor',
+              payee_type: isInternal ? 'internal_labor' : 'subcontractor',
+              // Internal employees default to $75/hr (matches PayeeForm default).
+              // Subcontractor labor providers don't have a system rate — their actual cost
+              // flows via real bills, not via clocked time × rate. The DB trigger
+              // enforces amount=0 on their time entries regardless of what rate is set.
+              hourly_rate: isInternal ? 75 : null,
             });
             if (payeeError && (payeeError as { code?: string }).code !== '23505') {
               console.error('Linked payee creation failed:', payeeError);
@@ -216,6 +234,30 @@ export default function CreateUserModal({ open, onOpenChange, onUserCreated }: C
                     </SelectContent>
                   </Select>
                 </div>
+
+                {role === 'field_worker' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="fieldWorkerPayeeType">Worker Type</Label>
+                    <Select
+                      value={fieldWorkerPayeeType}
+                      onValueChange={(value) => setFieldWorkerPayeeType(value as FieldWorkerPayeeType)}
+                      disabled={loading}
+                    >
+                      <SelectTrigger id="fieldWorkerPayeeType">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="internal">Internal Employee (W2)</SelectItem>
+                        <SelectItem value="subcontractor">Subcontractor with hourly time tracking</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {fieldWorkerPayeeType === 'internal'
+                        ? 'Their clocked time × rate flows into the project as labor cost.'
+                        : 'Their clocked time is captured for visibility only — actual cost flows through normal vendor bills (CSV import or manual expense).'}
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="method">Creation Method</Label>
