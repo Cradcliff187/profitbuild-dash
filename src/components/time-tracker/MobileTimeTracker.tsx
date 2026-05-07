@@ -427,28 +427,42 @@ export const MobileTimeTracker: React.FC = () => {
     }
   };
 
-  // Set up real-time subscription for time entries
+  // Set up real-time subscription for time entries.
+  //
+  // CRITICAL: postgres_changes filters can't express "start_time IS NOT NULL",
+  // and removing the category filter entirely caused a token-refresh cascade
+  // (every expense INSERT/UPDATE/DELETE triggered setAuth → refresh → 429s →
+  //  406s on profile lookup → users couldn't log in). Use TWO narrowly-filtered
+  // channels instead — one per labor-bearing category — so the fan-out stays
+  // small while still covering subcontractor time entries.
   const setupRealtimeSubscription = () => {
+    const handleChange = (payload: unknown) => {
+      // Reload today's entries when any change occurs
+      loadTodayEntries();
+      loadActiveTimers();
+    };
+
     const channel = supabase
       .channel('time-entries-changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'expenses',
-          // No category filter — postgres_changes can't express "start_time IS NOT NULL".
-          // The handler re-queries via loadTodayEntries/loadActiveTimers, which apply
-          // the start_time discriminator correctly. Cost: a few harmless reloads
-          // when non-time-entry expenses change. Necessary so subcontractor time
-          // entries (category='subcontractors') also trigger UI refresh.
+          filter: 'category=eq.labor_internal',
         },
-        (payload) => {
-          console.log('Real-time change detected:', payload);
-          // Reload today's entries when any change occurs
-          loadTodayEntries();
-          loadActiveTimers();
-        }
+        handleChange
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: 'category=eq.subcontractors',
+        },
+        handleChange
       )
       .subscribe();
 
