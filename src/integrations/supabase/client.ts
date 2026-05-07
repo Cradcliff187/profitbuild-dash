@@ -12,6 +12,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     storage: localStorage,
     persistSession: true,
-    autoRefreshToken: true,
+    // P0 (May 2026): autoRefreshToken disabled.
+    // The auto-refresh path was firing under load (multiple realtime
+    // subscriptions + rapid post-login API calls), hitting Supabase's
+    // refresh-token rate limit (30/5min), 429-cascading, and
+    // supabase-js's failure handling was clearing the session each
+    // time. Result: users were briefly signed out mid-session, the
+    // post-signin .from('profiles').single() queries 406'd because
+    // the request fell back to the anon key, and AppLayout bounced
+    // them back to /auth in a loop.
+    //
+    // With autoRefreshToken=false, the access token is used for its
+    // full lifetime (1 hour by default) and then the session simply
+    // ends. User re-logs-in once an hour. Acceptable trade-off vs.
+    // not being able to log in at all.
+    autoRefreshToken: false,
   }
 });
