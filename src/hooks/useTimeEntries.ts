@@ -46,7 +46,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           payees!inner(payee_name, hourly_rate, employee_number),
           projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
-        .eq('category', 'labor_internal')
+        .not('start_time', 'is', null)
         .order('expense_date', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -144,7 +144,7 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       let statsQuery = supabase
         .from('expenses')
         .select('approval_status, start_time, end_time, description, expense_date, lunch_taken, lunch_duration_minutes, hours')
-        .eq('category', 'labor_internal');
+        .not('start_time', 'is', null);
 
       // Apply the same filters as the main query (except status filter)
       if (filters.dateFrom) {

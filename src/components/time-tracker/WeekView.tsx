@@ -84,7 +84,7 @@ export const WeekView = ({ onEditEntry, onCreateEntry }: WeekViewProps) => {
           payees!expenses_payee_id_fkey(payee_name, hourly_rate),
           projects!expenses_project_id_fkey(project_number, project_name, client_name, address)
         `)
-        .eq('category', 'labor_internal')
+        .not('start_time', 'is', null)
         .gte('expense_date', format(weekStart, 'yyyy-MM-dd'))
         .lte('expense_date', format(weekEnd, 'yyyy-MM-dd'))
         .order('expense_date', { ascending: false })

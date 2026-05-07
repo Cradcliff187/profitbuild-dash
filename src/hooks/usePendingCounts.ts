@@ -23,11 +23,12 @@ export function usePendingCounts(): PendingCounts {
     }
 
     try {
-      // Fetch pending time entries (labor_internal with pending or null status)
+      // Fetch pending time entries (any expense row with start_time set, regardless of category).
+      // Discriminator widened so subcontractor labor providers' time entries are counted too.
       const { count: timeCount } = await supabase
         .from('expenses')
         .select('*', { count: 'exact', head: true })
-        .eq('category', 'labor_internal')
+        .not('start_time', 'is', null)
         .or('approval_status.is.null,approval_status.eq.pending');
 
       // Fetch pending receipts
@@ -57,7 +58,8 @@ export function usePendingCounts(): PendingCounts {
           event: '*',
           schema: 'public',
           table: 'expenses',
-          filter: 'category=eq.labor_internal'
+          // No category filter — postgres_changes can't express "start_time IS NOT NULL".
+          // The fetchCounts callback re-applies the discriminator correctly.
         },
         () => fetchCounts()
       )
