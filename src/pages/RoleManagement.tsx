@@ -386,24 +386,57 @@ export default function RoleManagement() {
         );
       case 'NO_PAYEE':
         if (isFieldWorker) {
+          // Field worker → MUST pick W2 vs Subcontractor up-front. The DB trigger
+          // routes their time entries to category='labor_internal' (W2) or
+          // category='subcontractors' (sub, with amount=0) based on the linked
+          // payee's shape. Picking the wrong one silently miscategorizes their
+          // labor cost. Dropdown matches CreateUserModal's Worker Type prompt.
           return (
             <div className="flex items-center gap-2">
               <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
                 <AlertTriangle className="h-3 w-3" /> Required
               </Badge>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-6 text-[11px] px-2"
-                disabled={busy}
-                onClick={() => createLinkedPayee.mutate(audit)}
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Enable
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[11px] px-2"
+                    disabled={busy}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Enable
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-72">
+                  <DropdownMenuItem
+                    className="flex flex-col items-start gap-0.5 py-2 cursor-pointer"
+                    onClick={() => createLinkedPayee.mutate({ row: audit, workerType: 'internal' })}
+                  >
+                    <span className="text-xs font-medium">Internal Employee (W2)</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Clocked time × rate flows into the project as labor cost.
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="flex flex-col items-start gap-0.5 py-2 cursor-pointer"
+                    onClick={() => createLinkedPayee.mutate({ row: audit, workerType: 'subcontractor' })}
+                  >
+                    <span className="text-xs font-medium">Subcontractor with hourly time tracking</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Time captured for visibility only — actual cost flows through normal vendor bills.
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           );
         }
+        // Admin/manager — no Worker Type prompt; defaults to internal.
+        // (Their use case is rare: project ownership or expense allocation. They
+        // never log labor through the time tracker, so the W2/sub distinction
+        // doesn't affect them.)
         return (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>Not enabled</span>
@@ -413,7 +446,7 @@ export default function RoleManagement() {
               variant="ghost"
               className="h-6 text-[11px] px-2 text-muted-foreground"
               disabled={busy}
-              onClick={() => createLinkedPayee.mutate(audit)}
+              onClick={() => createLinkedPayee.mutate({ row: audit, workerType: 'internal' })}
               title="Only needed if they'll own a project or be billed an expense"
             >
               Enable
