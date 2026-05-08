@@ -4,6 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useRoles } from '@/contexts/RoleContext';
+import {
+  getShowSandboxProject,
+  SANDBOX_PROJECT_NUMBER,
+} from '@/utils/sandboxPreferences';
 
 const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
 
@@ -31,20 +36,39 @@ export function ProjectPicker({
   onChange,
   disabled = false,
 }: ProjectPickerProps) {
+  const { isAdmin, isManager } = useRoles();
+  const isAllProjects = isAdmin || isManager;
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    supabase
+    let query = supabase
       .from('projects')
-      .select('id, project_name, project_number, category')
-      .in('status', ['approved', 'in_progress'])
-      .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)')
+      .select('id, project_name, project_number, category');
+
+    if (isAllProjects) {
+      // Admin / manager filing entries on behalf of any worker need every
+      // legitimate project available — no status or category restriction.
+      // SYS-TEST sandbox stays hidden unless the per-device toggle is on,
+      // matching every other project surface in the app (Rule per
+      // sandboxPreferences.ts).
+      if (!getShowSandboxProject()) {
+        query = query.neq('project_number', SANDBOX_PROJECT_NUMBER);
+      }
+    } else {
+      // Field workers / subs clocking time on themselves see only their
+      // construction work + the three PTO buckets (sick / vacation / holiday).
+      query = query
+        .in('status', ['approved', 'in_progress'])
+        .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)');
+    }
+
+    query
       .order('project_number', { ascending: true })
       .then(({ data }) => {
         if (data) setProjects(data);
       });
-  }, []);
+  }, [isAllProjects]);
 
   const selected = projects.find((p) => p.id === value);
 
