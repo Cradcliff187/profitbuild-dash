@@ -31,12 +31,20 @@ export function WorkerPicker({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // Includes both internal employees (is_internal=true) and linked
+    // subcontractor labor providers (is_internal=false, payee_type='subcontractor',
+    // provides_labor=true). user_id IS NOT NULL excludes orphan/unlinked vendor
+    // rows. Mirrors the MobileTimeTracker self-clock filter so manual entry and
+    // self-clock surfaces show the same set of people. The
+    // enforce_time_entry_category_from_payee DB trigger rewrites category +
+    // amount per payee shape on insert, so the form's hardcoded
+    // category='labor_internal' is corrected at the DB layer for sub-as-labor.
     supabase
       .from('payees')
       .select('id, payee_name, user_id')
-      .eq('is_internal', true)
       .eq('provides_labor', true)
       .eq('is_active', true)
+      .not('user_id', 'is', null)
       .order('payee_name')
       .then(({ data }) => {
         if (data) setWorkers(data as WorkerOption[]);
