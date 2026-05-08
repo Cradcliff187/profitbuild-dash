@@ -579,6 +579,12 @@ The quote detail surfaces (project-scoped `/projects/:id/estimates/quotes/:quote
 
 - **`idx_payees_user_id_internal_unique`** — unique partial index `ON payees(user_id) WHERE is_internal AND user_id IS NOT NULL`. Prevents a single auth user from having more than one linked internal payee. Auto-create handlers treat `23505` as benign (no-op success).
 - `payees.user_id` FK → `auth.users(id) ON DELETE SET NULL` — deleting an auth user nulls the payee link but preserves the payee row + its expense history.
+- **`sync_payee_provides_labor_on_role_change`** trigger (May 8, 2026) — fires on `user_roles` INSERT/DELETE for `role='field_worker'`. When a user gains/loses `field_worker`, automatically updates their LINKED payee's `provides_labor` to match. Touches:
+  - `is_internal=true` payees (W2 employees) → flip to match
+  - `is_internal=false AND payee_type='subcontractor' AND provides_labor=true` (sub-as-field-worker) → flip to match
+  - Skips other linked vendor records (material_supplier, etc.). Skips unlinked payees (`user_id IS NULL`). No-ops when adding/removing `admin` or `manager` roles.
+
+  Closes the role↔payee desync class. Symptom: admin gains `field_worker` role but stays `provides_labor=false` on their existing internal payee → page shows "Enabled" but they cannot clock time because `MobileTimeTracker`'s team-members picker filters `provides_labor=true`. Without this trigger, every role-change required admins to manually flip the payee. Now it's automatic and DB-enforced regardless of which code path adds/removes the role. Mirrors Rule 6a's pattern.
 
 #### Common pitfalls
 
