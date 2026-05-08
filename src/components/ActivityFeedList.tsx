@@ -135,25 +135,16 @@ export const ActivityFeedList = ({
     setActivities([]);
   }, [activityTypeFilter]);
 
+  // P0 (May 2026): real-time subscription DISABLED.
+  // Companion to PR #65 (usePendingCounts), PR #66 (autoRefreshToken=false),
+  // and the post-login realtime sweep in this PR. ActivityFeedList renders on
+  // the Dashboard which is the post-login landing page for admins/managers,
+  // so its subscribe call sits on the same critical path that's been driving
+  // token-refresh cascades and login loops. Activities refresh on mount and
+  // when displayLimit / projectId / activityTypeFilter change. Manual Refresh
+  // on the Dashboard reloads the feed.
   useEffect(() => {
-    const channel = supabase
-      .channel('activity-feed-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'activity_feed',
-          filter: projectId ? `project_id=eq.${projectId}` : undefined
-        },
-        () => {
-          loadActivities();
-        }
-      )
-      .subscribe();
-
     return () => {
-      supabase.removeChannel(channel);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

@@ -62,28 +62,12 @@ const Dashboard = () => {
     loadDashboardData();
   }, []);
 
-  useEffect(() => {
-    // Set up real-time subscriptions for pending approvals
-    const timeEntriesChannel = supabase
-      .channel('dashboard-time-entries')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: 'category=eq.labor_internal'
-        },
-        () => {
-          loadPendingApprovals();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(timeEntriesChannel);
-    };
-  }, []);
+  // P0 (May 2026): real-time subscription for pending approvals DISABLED.
+  // Companion to PR #65 (usePendingCounts) and PR #66 (autoRefreshToken=false).
+  // Mounting on Dashboard puts this on the post-login critical path; its
+  // subscribe call internally goes through supabase.auth.getSession() which
+  // can still trip refresh attempts in the expiry-margin window. Pending
+  // approval counts now refresh on Dashboard mount + manual Refresh button.
 
   const loadDashboardData = async () => {
     setLoading(true);

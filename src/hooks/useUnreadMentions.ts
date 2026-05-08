@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,31 +28,22 @@ export function useUnreadMentions() {
     enabled: !!user?.id,
   });
 
-  // Real-time subscription — listen to ALL events (INSERT, UPDATE, DELETE)
-  // so marking as read triggers a re-fetch across all hook instances
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel(`user-notifications-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: [QUERY_KEY, user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]);
+  // P0 (May 2026): Real-time subscription DISABLED.
+  //
+  // Companion to PR #65 (usePendingCounts) and PR #66 (autoRefreshToken=false).
+  // useUnreadMentions runs in NotificationBell which mounts in AppLayout for
+  // every authenticated user on every page — so its realtime subscription
+  // fires on the same critical post-login path that's been driving the token-
+  // refresh cascade and login-loop reports. Even with autoRefreshToken=false,
+  // a realtime subscribe path internally calls supabase.auth.getSession()
+  // (via _getAccessToken in @supabase/supabase-js), which can still trigger
+  // a refresh when the access token is in the expiry-margin window.
+  //
+  // Counts refresh on hook mount + dependency change (sidebar mount, route
+  // change, login), and the optimistic update in markAsRead/markAllAsRead
+  // keeps the badge accurate for actions taken in this tab. Users in another
+  // tab will see new mentions on next route navigation rather than instantly,
+  // which is the same trade-off PR #65 made for pending counts.
 
   const markAsRead = async (notificationId: string) => {
     // Optimistic: remove from cache immediately
