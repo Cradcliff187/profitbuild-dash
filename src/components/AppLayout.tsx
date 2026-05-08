@@ -122,10 +122,26 @@ export default function AppLayout() {
     loadBranding();
   }, [user]);
 
+  // P0 (May 8, 2026): debounce the redirect to /auth.
+  //
+  // Belt-and-suspenders for the post-login bounce class: if a SIGNED_OUT
+  // event fires spuriously (refresh-failure cascade, racy getUser() call,
+  // BroadcastChannel sync from another tab, etc.), `user` briefly becomes
+  // null but the access token in storage is often still valid. Without a
+  // debounce, the redirect to /auth fires immediately and the user lands
+  // back at login — the exact loop symptom reported May 8.
+  //
+  // 1.5s is long enough to let any in-flight signInWithPassword /
+  // _saveSession resolve and re-set `user`, but short enough that a real
+  // signOut still feels instant from the user's perspective. If `user`
+  // comes back during the window, we cancel the pending redirect.
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+    if (user) return;
+    const timer = setTimeout(() => {
       navigate('/auth');
-    }
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [user, authLoading, navigate]);
 
   // Check if user must change password

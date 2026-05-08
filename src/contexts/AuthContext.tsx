@@ -91,7 +91,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // P0 (May 8, 2026): use the user from signInWithPassword's response
+      // directly. Previously this code called supabase.auth.getUser() after
+      // signInWithPassword to fetch user.id. That second call races against
+      // the session being fully written/picked up — and on a slow miss it
+      // surfaces as AuthSessionMissingError, which makes supabase-js
+      // unconditionally fire `_removeSession()` → SIGNED_OUT event →
+      // AuthContext clears `user` → AppLayout `useEffect(() => { if (!user)
+      // navigate('/auth') })` bounces the user back to login. Symptom:
+      // "Login → spinner → straight back to /auth" even though the auth API
+      // call succeeded. signInWithPassword already returns `data.user`, so
+      // the second round-trip is unnecessary AND the source of the race.
+      // (See node_modules/@supabase/auth-js/src/GoTrueClient.ts:1491.)
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -101,13 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error };
       }
 
-      // Check if user must change password
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user) {
+      // Check if user must change password using user from signin response.
+      if (data.user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('must_change_password')
-          .eq('id', userData.user.id)
+          .eq('id', data.user.id)
           .single();
 
         if (profile?.must_change_password) {
