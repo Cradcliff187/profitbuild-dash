@@ -143,6 +143,11 @@ export const AdminEditTimeEntrySheet = ({
             : null,
           amount,
           description: formData.notes || '',
+          // Send hours / gross_hours always. The DB trigger calculate_gross_hours
+          // overrides from start_time/end_time when both are set; for PTO entries
+          // (both NULL) the trigger preserves what we send. May 8 2026 fix.
+          hours: formData.hours,
+          gross_hours: formData.grossHours,
           lunch_taken: formData.lunchTaken,
           lunch_duration_minutes: formData.lunchTaken
             ? formData.lunchDurationMinutes

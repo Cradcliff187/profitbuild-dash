@@ -92,6 +92,12 @@ export const AdminCreateTimeEntrySheet = ({
         transaction_type: 'expense',
         user_id: user?.id,
         updated_by: user?.id,
+        // Send hours / gross_hours always. The DB trigger calculate_gross_hours
+        // overrides these from start_time/end_time when both are set; for PTO
+        // entries (both NULL) the trigger preserves what we send. See May 8
+        // 2026 fix — without this, PTO entries land with hours=NULL.
+        hours: formData.hours,
+        gross_hours: formData.grossHours,
         lunch_taken: formData.lunchTaken,
         lunch_duration_minutes: formData.lunchTaken
           ? formData.lunchDurationMinutes

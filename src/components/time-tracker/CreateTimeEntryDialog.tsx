@@ -92,6 +92,14 @@ export const CreateTimeEntryDialog = ({
         updated_by: user?.id,
         start_time: formData.startTime ? formData.startTime.toISOString() : null,
         end_time: formData.endTime ? formData.endTime.toISOString() : null,
+        // Send hours / gross_hours always. The DB trigger calculate_gross_hours
+        // overrides these from start_time/end_time when both are set; for PTO
+        // entries (both NULL) the trigger now preserves what we send. Without
+        // this, PTO entries land with hours=NULL and amount=N, which is
+        // internally inconsistent and causes the row to surface as a phantom
+        // active timer with epoch-zero start_time. See May 8 2026 fix.
+        hours: formData.hours,
+        gross_hours: formData.grossHours,
         lunch_taken: formData.lunchTaken,
         lunch_duration_minutes: formData.lunchTaken
           ? formData.lunchDurationMinutes
