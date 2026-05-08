@@ -94,6 +94,13 @@ The 5-minute buffer absorbs the natural Lovable build window without false-posit
 
 Hit the actual deployed flow. For PWA users, check that `Settings → App Updates → Check for Updates` reflects the new version (per [CLAUDE.md](../CLAUDE.md) Gotcha #46).
 
+**Verification ritual after a P0 publish — run these in order, don't skip any:**
+
+1. `curl -sL https://rcgwork.com/version.json` — confirm `buildTime` is AFTER the commit timestamp of the fix. If it's still the old build, Lovable didn't publish (or you're hitting a cache; retry with `?t=$(date +%s)` cache-buster). Until this clears, the next steps are meaningless.
+2. Open `rcgwork.com` directly (NOT Lovable's editor preview iframe — that's served from `id-preview--*.lovable.app` and runs a separate build that won't reflect your publish).
+3. Test the *full* user flow end-to-end, not just the part the fix targeted. May 8 2026 had two contributing root causes for the same login-loop symptom (Gotcha #53 cascade + Gotcha #54 race). After publishing the cascade fix, the cascade was gone but the race remained — the user thought the publish "appeared to work" until they actually tried logging in. **Lesson**: when the symptom is the same but you fixed multiple things, only the most recent end-to-end test counts. "It looked OK" doesn't.
+4. For login/auth fixes specifically: pull `auth.audit_log_entries` for the test user 5 minutes after the test. Look for paired `login` + `logout` events firing seconds apart (loop signal) or `token_revoked` clusters within 2 seconds of `login` (cascade signal). Both should be absent.
+
 ---
 
 ## Branch protection settings (for reference / re-applying)
