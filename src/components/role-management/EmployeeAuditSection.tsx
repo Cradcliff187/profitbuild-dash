@@ -145,7 +145,7 @@ export function EmployeeAuditSection() {
                 variant="outline"
                 className="h-7 text-xs"
                 disabled={isBusy}
-                onClick={() => createMutation.mutate(row)}
+                onClick={() => createMutation.mutate({ row, workerType: 'internal' })}
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Enable time tracking
@@ -157,7 +157,7 @@ export function EmployeeAuditSection() {
                 variant="ghost"
                 className="h-7 text-xs text-muted-foreground"
                 disabled={isBusy}
-                onClick={() => createMutation.mutate(row)}
+                onClick={() => createMutation.mutate({ row, workerType: 'internal' })}
                 title="Optional — only needed if you plan to assign them as a project owner or attribute an expense to them"
               >
                 <Plus className="h-3 w-3 mr-1" />

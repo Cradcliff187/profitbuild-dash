@@ -46,15 +46,39 @@ export function useEmployeesAudit() {
 }
 
 /**
- * Create a linked internal payee for a role-holder that has no payee row yet.
- * Sets provides_labor based on role (field_worker → true, admin/manager → false).
+ * Worker-type selector for `useCreateLinkedPayee` when called for a field worker.
+ *  - 'internal'      → W2 employee (is_internal=true, payee_type='internal_labor')
+ *  - 'subcontractor' → labor-providing sub (is_internal=false, payee_type='subcontractor',
+ *                      provides_labor=true). Time entries land as category='subcontractors'
+ *                      with amount=0 via the enforce_time_entry_category_from_payee trigger.
+ *
+ * For admin / manager users this is ignored — they always get the internal shape on
+ * demand (no Worker Type prompt; their use case is rare and conservative is fine).
+ *
+ * See Architectural Rule 11 in CLAUDE.md.
+ */
+export type FieldWorkerPayeeType = 'internal' | 'subcontractor';
+
+/**
+ * Create a linked payee for a role-holder that has no payee row yet.
+ *
+ * Field workers can be backed by EITHER an internal employee OR a labor-providing
+ * subcontractor — the second `workerType` argument distinguishes the two. Defaults
+ * to 'internal' so admin/manager calls remain a single-arg call without breakage.
+ *
+ * Pre-May 8 2026 this hook hard-coded `is_internal: true, payee_type: 'internal_labor'`
+ * — which silently miscategorized any subcontractor user whose auto-payee creation
+ * had failed at create-time and was being retried via Role Management's "Enable"
+ * button. Their first time entry would then post as labor_internal × $75/hr instead
+ * of subcontractors × $0. Net effect: phantom labor cost on the project.
  */
 export function useCreateLinkedPayee() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (row: EmployeeAuditRow) => {
-      const providesLabor = (row.roles ?? []).includes('field_worker');
+    mutationFn: async ({ row, workerType = 'internal' }: { row: EmployeeAuditRow; workerType?: FieldWorkerPayeeType }) => {
+      const isFieldWorker = (row.roles ?? []).includes('field_worker');
+      const isInternal = workerType === 'internal';
       const displayName =
         row.full_name?.trim() || row.email.split('@')[0];
 
@@ -62,10 +86,16 @@ export function useCreateLinkedPayee() {
         user_id: row.user_id,
         payee_name: displayName,
         email: row.email,
-        is_internal: true,
+        is_internal: isInternal,
         is_active: true,
-        provides_labor: providesLabor,
-        payee_type: 'internal_labor',
+        // Field workers always log labor regardless of W2/sub flavor.
+        // Admin/manager-on-demand payees (workerType defaults to 'internal') do not.
+        provides_labor: isFieldWorker,
+        payee_type: isInternal ? 'internal_labor' : 'subcontractor',
+        // W2 employees get the standard $75/hr default that PayeeForm uses; sub
+        // labor providers don't have a system rate (their cost flows via real bills,
+        // not via clocked time × rate; the DB trigger zeros out their entry amount).
+        hourly_rate: isInternal ? 75 : null,
       });
 
       if (error) throw error;

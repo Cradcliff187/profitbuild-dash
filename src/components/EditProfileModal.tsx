@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, UserCog } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -27,12 +27,11 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
   const [phone, setPhone] = useState(user.phone || '');
   const [smsEnabled, setSmsEnabled] = useState(user.sms_notifications_enabled ?? true);
 
-  // Reset form data when modal opens or user changes
+  // Reset form data when sheet opens or user changes
   useEffect(() => {
     if (open) {
-      // Reset fullName with the new user's data
       setFullName(user.full_name || '');
-      
+
       async function loadPhoneData() {
         const { data, error } = await supabase
           .from('profiles')
@@ -79,85 +78,82 @@ export default function EditProfileModal({ open, onOpenChange, user, onSuccess }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <UserCog className="h-4 w-4" />
-            Edit Profile
-          </DialogTitle>
-          <DialogDescription className="text-xs">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-[600px] flex flex-col p-0">
+        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b">
+          <SheetTitle>Edit User</SheetTitle>
+          <SheetDescription>
             Update user profile information
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Email (read-only)</Label>
-            <Input
-              value={user.email}
-              disabled
-              className="h-8 text-sm bg-muted"
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4" id="edit-profile-form">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email (read-only)</Label>
+              <Input
+                id="email"
+                value={user.email}
+                disabled
+                className="bg-muted"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="fullName" className="text-xs">Full Name</Label>
-            <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Enter full name"
-              disabled={loading}
-              className="h-8 text-sm"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter full name"
+                disabled={loading}
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="phone" className="text-xs">Mobile Phone (for SMS)</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(555) 123-4567"
-              disabled={loading}
-              className="h-8 text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              Used for clock-in reminders and team notifications
-            </p>
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Mobile Phone (for SMS)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(555) 123-4567"
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for clock-in reminders and team notifications
+              </p>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="sms-enabled"
-              checked={smsEnabled}
-              onCheckedChange={(checked) => setSmsEnabled(checked === true)}
-              disabled={loading}
-            />
-            <label htmlFor="sms-enabled" className="text-xs cursor-pointer">
-              Receive SMS notifications
-            </label>
-          </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="sms-enabled"
+                checked={smsEnabled}
+                onCheckedChange={(checked) => setSmsEnabled(checked === true)}
+                disabled={loading}
+              />
+              <label htmlFor="sms-enabled" className="text-sm cursor-pointer">
+                Receive SMS notifications
+              </label>
+            </div>
+          </form>
+        </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              className="flex-1 h-8 text-xs"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1 h-8 text-xs">
-              {loading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-              Save Changes
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-background">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form="edit-profile-form" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
