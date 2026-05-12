@@ -55,7 +55,8 @@ export const ReceiptsList = () => {
           payees:payee_id (payee_name),
           projects:project_id (project_number, project_name)
         `)
-        .order('captured_at', { ascending: false });
+        .order('captured_at', { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
 

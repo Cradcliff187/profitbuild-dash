@@ -86,6 +86,19 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
   
   // Use extracted hooks
   const receiptsData = useReceiptsData();
+
+  // The hook only fetches the last 90 days by default. If the admin filters to an older
+  // date range, widen the fetch to the full table so the results aren't silently clipped.
+  useEffect(() => {
+    if (!receiptsData.loadAll && filters.dateFrom) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - receiptsData.windowDays);
+      if (new Date(filters.dateFrom) < cutoff) {
+        receiptsData.setLoadAll(true);
+      }
+    }
+  }, [filters.dateFrom, receiptsData.loadAll, receiptsData.windowDays, receiptsData]);
+
   const { filteredReceipts } = useReceiptFiltering(receiptsData.allReceipts, filters);
   const sorting = useReceiptSorting(filteredReceipts);
   const actions = useReceiptActions({
@@ -252,6 +265,23 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
 
   return (
     <>
+      {/* Windowed-fetch notice — the hook loads only the last 90 days by default */}
+      {receiptsData.isWindowed && (
+        <div className="mb-2 flex flex-col gap-1 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+          <span>
+            Showing the most recent {receiptsData.loadedCount} of {receiptsData.totalCount} receipts (last {receiptsData.windowDays} days).
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => receiptsData.setLoadAll(true)}
+          >
+            Load all receipts
+          </Button>
+        </div>
+      )}
+
       {/* Mobile Card View */}
       {isMobile ? (
         <ReceiptsCardView

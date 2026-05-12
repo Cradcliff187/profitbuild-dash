@@ -64,7 +64,8 @@ export const ReceiptsGallery: React.FC = () => {
           projects!inner(id, project_number, project_name, client_name)
         `)
         .not('attachment_url', 'is', null)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: false })
+        .limit(2000);
 
       if (dateFilter !== 'all') {
         query = query.gte('expense_date', dateCondition);
