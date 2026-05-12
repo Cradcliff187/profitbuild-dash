@@ -55,7 +55,8 @@ export const ReceiptsList = () => {
           payees:payee_id (payee_name),
           projects:project_id (project_number, project_name)
         `)
-        .order('captured_at', { ascending: false });
+        .order('captured_at', { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
 
@@ -311,6 +312,8 @@ export const ReceiptsList = () => {
                 <img
                   src={receipt.image_url}
                   alt="Receipt"
+                  loading="lazy"
+                  decoding="async"
                   className="w-10 h-10 rounded object-cover flex-shrink-0"
                 />
 
@@ -354,6 +357,8 @@ export const ReceiptsList = () => {
                   <img
                     src={receipt.image_url}
                     alt="Receipt"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full rounded-lg"
                   />
 

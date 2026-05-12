@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
@@ -26,38 +26,39 @@ export interface UnifiedReceipt {
   submitted_by_name?: string;
 }
 
+/** Default lookback window so the admin view doesn't pull every receipt ever on mount. */
+const DEFAULT_WINDOW_DAYS = 90;
+/** Hard safety cap regardless of window — prevents an unbounded fetch from ever choking the page. */
+const MAX_ROWS = 5000;
+
 export const receiptQueryKeys = {
   all: ['receipts'] as const,
-  list: () => [...receiptQueryKeys.all, 'list'] as const,
+  list: (loadAll: boolean) => [...receiptQueryKeys.all, 'list', loadAll ? 'all' : 'windowed'] as const,
+  count: () => [...receiptQueryKeys.all, 'count'] as const,
   payees: () => ['receipt-payees'] as const,
   projects: () => ['receipt-projects'] as const,
 };
 
 /**
- * Hook for fetching and managing receipt data
+ * Hook for fetching and managing receipt data.
  *
- * Fetches standalone receipts from the database, handles real-time updates,
- * and provides statistics. Also fetches payees and projects for filtering.
- *
- * @returns Object containing receipt data, loading state, and utilities
- * @returns {UnifiedReceipt[]} allReceipts - Array of all receipts
- * @returns {boolean} loading - Loading state indicator
- * @returns {Array} payees - Array of payees for filtering
- * @returns {Array} projects - Array of projects for filtering
- * @returns {Function} loadReceipts - Function to manually refresh receipts
- * @returns {Object} statistics - Receipt statistics (pendingCount, approvedTodayCount, etc.)
+ * By default fetches only the last {@link DEFAULT_WINDOW_DAYS} days of receipts (newest first,
+ * capped at {@link MAX_ROWS}). Call `setLoadAll(true)` to widen to the full table — e.g. when the
+ * user applies a date filter older than the window. This keeps the admin Receipts page snappy as
+ * the `receipts` table grows, without changing the client-side filter/sort/paginate machinery.
  */
 export const useReceiptsData = () => {
   const queryClient = useQueryClient();
+  const [loadAll, setLoadAll] = useState(false);
 
   const {
     data: allReceipts = [],
     isLoading: receiptsLoading,
   } = useQuery({
-    queryKey: receiptQueryKeys.list(),
+    queryKey: receiptQueryKeys.list(loadAll),
     staleTime: 1000 * 60 * 2, // 2 minutes — realtime subscription still invalidates on actual changes
     queryFn: async (): Promise<UnifiedReceipt[]> => {
-      const { data: receiptsData, error: receiptsError } = await supabase
+      let query = supabase
         .from('receipts')
         .select(`
           id,
@@ -76,7 +77,16 @@ export const useReceiptsData = () => {
           payees(payee_name),
           projects(project_number, project_name)
         `)
-        .order('captured_at', { ascending: false });
+        .order('captured_at', { ascending: false })
+        .limit(MAX_ROWS);
+
+      if (!loadAll) {
+        const since = new Date();
+        since.setDate(since.getDate() - DEFAULT_WINDOW_DAYS);
+        query = query.gte('captured_at', since.toISOString());
+      }
+
+      const { data: receiptsData, error: receiptsError } = await query;
 
       if (receiptsError) throw receiptsError;
 
@@ -122,6 +132,18 @@ export const useReceiptsData = () => {
             ? profilesMap.get(receipt.user_id)
             : undefined,
         }));
+    },
+  });
+
+  const { data: totalCount = 0 } = useQuery({
+    queryKey: receiptQueryKeys.count(),
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('receipts')
+        .select('id', { count: 'exact', head: true });
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 
@@ -218,5 +240,11 @@ export const useReceiptsData = () => {
     projects: projectsRaw,
     loadReceipts,
     statistics,
+    loadAll,
+    setLoadAll,
+    totalCount,
+    loadedCount: allReceipts.length,
+    windowDays: DEFAULT_WINDOW_DAYS,
+    isWindowed: !loadAll && allReceipts.length < totalCount,
   };
 };

@@ -221,6 +221,8 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
                     <img
                       src={receipt.image_url}
                       alt="Receipt"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -303,6 +305,8 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
                           <img
                             src={receipt.image_url}
                             alt="Receipt"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         </div>

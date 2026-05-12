@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
-
-const UNASSIGNED_RECEIPTS_PROJECT_NUMBER = 'SYS-000';
 
 interface Project {
   id: string;
@@ -46,64 +45,48 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<string>('');
   const [uploading, setUploading] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [systemProjectId, setSystemProjectId] = useState<string | null>(null);
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
 
+  const { data: projectData } = useQuery({
+    queryKey: ['receipt-modal-projects', getProjectCategoryOrFilter()],
+    staleTime: 1000 * 60 * 10,
+    queryFn: async () => {
+      const [sysRes, overheadRes, constructionRes] = await Promise.all([
+        supabase.from('projects').select('id').eq('project_number', 'SYS-000').maybeSingle(),
+        supabase
+          .from('projects')
+          .select('id, project_number, project_name, status, category')
+          .eq('category', 'overhead')
+          .in('status', ['approved', 'in_progress'])
+          .order('project_number', { ascending: true }),
+        supabase
+          .from('projects')
+          .select('id, project_number, project_name, status, category')
+          .or(getProjectCategoryOrFilter())
+          .in('status', ['approved', 'in_progress'])
+          .order('project_number', { ascending: false }),
+      ]);
+      if (overheadRes.error) throw overheadRes.error;
+      if (constructionRes.error) throw constructionRes.error;
+      return {
+        systemProjectId: sysRes.data?.id ?? null,
+        projects: [...(overheadRes.data || []), ...(constructionRes.data || [])] as Project[],
+      };
+    },
+  });
+
+  const projects = useMemo(() => projectData?.projects ?? [], [projectData]);
+  const systemProjectId = projectData?.systemProjectId ?? null;
+
   useEffect(() => {
-    if (open) {
-      loadProjects();
-      // Pre-populate project if provided
-      if (initialProjectId) {
-        setSelectedProjectId(initialProjectId);
-      }
+    if (open && initialProjectId) {
+      setSelectedProjectId(initialProjectId);
     }
   }, [open, initialProjectId]);
 
-  const loadProjects = async () => {
-    try {
-      // Get system project ID for unassigned fallback
-      const { data: sysProject } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('project_number', 'SYS-000')
-        .single();
-      
-      if (sysProject) {
-        setSystemProjectId(sysProject.id);
-      }
-      
-      // Get overhead projects (these get pinned at top of list)
-      const { data: overheadProjects, error: overheadError } = await supabase
-        .from('projects')
-        .select('id, project_number, project_name, status, category')
-        .eq('category', 'overhead')
-        .in('status', ['approved', 'in_progress'])
-        .order('project_number', { ascending: true });
-      
-      if (overheadError) throw overheadError;
-      
-      // Get construction projects (and SYS-TEST when sandbox toggle is on)
-      const { data: constructionProjects, error: constructionError } = await supabase
-        .from('projects')
-        .select('id, project_number, project_name, status, category')
-        .or(getProjectCategoryOrFilter())
-        .in('status', ['approved', 'in_progress'])
-        .order('project_number', { ascending: false });
-      
-      if (constructionError) throw constructionError;
-      
-      // Combine: overhead first (pinned), then construction projects
-      setProjects([...(overheadProjects || []), ...(constructionProjects || [])]);
-    } catch (error) {
-      console.error('Failed to load projects:', error);
-      toast.error('Failed to load projects');
-    }
-  };
-
   const filteredProjects = useMemo(() => {
     if (!projectSearchQuery.trim()) return projects;
-    
+
     const query = projectSearchQuery.toLowerCase();
     return projects.filter(project =>
       project.project_number.toLowerCase().includes(query) ||
