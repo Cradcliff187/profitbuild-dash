@@ -271,7 +271,16 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
           });
 
         if (uploadError) throw uploadError;
-        finalImageUrl = filePath;
+
+        // Store a signed URL in receipts.image_url — consistent with AddReceiptModal,
+        // ReceiptCapture and EditReceiptModal. Writing the bare storage path here would
+        // 403 in ReceiptPreviewModal / download utils, which all assume a URL.
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('time-tracker-documents')
+          .createSignedUrl(filePath, 31536000); // 1 year
+
+        if (signedUrlError) throw signedUrlError;
+        finalImageUrl = signedUrlData.signedUrl;
       }
 
       const finalProjectId = projectId || systemProjectId;
