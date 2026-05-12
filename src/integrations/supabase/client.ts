@@ -29,3 +29,46 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: false,
   }
 });
+
+// P0 (May 12, 2026): client-side refresh-token rate limit.
+//
+// Even with autoRefreshToken=false, supabase-js's internal __loadSession
+// still calls _callRefreshToken whenever it considers the current session
+// "in the expiry margin" (90 seconds before expires_at). Auth audit log
+// proves a regression somewhere between May 6 and May 7 2026 made every
+// fresh access token read back as "in margin" — refresh:login ratio went
+// from 1-3x to 7-17x and has stayed there. PRs #65/#66/#67/#69 reduced
+// magnitude but didn't kill the cascade. Today's count: 15 logins → 259
+// refreshes, with 30+ refreshes per login at ~100ms intervals.
+//
+// This is a defensive rate-limit: after a successful refresh, any
+// subsequent refresh requested within REFRESH_COOLDOWN_MS short-circuits
+// to the in-memory session instead of contacting the server. Breaks the
+// loop regardless of the underlying root cause (short JWT TTL, library
+// bug, racing __loadSession calls — TBD).
+//
+// Safe because: the just-refreshed access token is valid for at least
+// the server-issued TTL (≥60s on any sane config). If something genuinely
+// needs to refresh sooner (e.g. user clicked sign-out then sign-in), the
+// cooldown elapses on its own. Real-token-expired-and-needs-refresh
+// scenarios after the cooldown still work normally.
+const REFRESH_COOLDOWN_MS = 30_000;
+// _callRefreshToken is a private library internal — typed `any` because the
+// public surface deliberately excludes it. We're patching at the boundary
+// where ts-public-API exposure isn't the goal.
+const authInternals = supabase.auth as unknown as {
+  _callRefreshToken: (refreshToken: string) => Promise<{ session: unknown; error: unknown }>;
+};
+const originalCallRefreshToken = authInternals._callRefreshToken.bind(supabase.auth);
+let lastRefreshAt = 0;
+let lastRefreshResult: { session: unknown; error: unknown } | null = null;
+authInternals._callRefreshToken = async function (refreshToken: string) {
+  const now = Date.now();
+  if (lastRefreshResult && now - lastRefreshAt < REFRESH_COOLDOWN_MS) {
+    return lastRefreshResult;
+  }
+  const result = await originalCallRefreshToken(refreshToken);
+  lastRefreshAt = Date.now();
+  lastRefreshResult = result;
+  return result;
+};
