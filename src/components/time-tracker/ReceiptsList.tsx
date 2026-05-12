@@ -311,6 +311,8 @@ export const ReceiptsList = () => {
                 <img
                   src={receipt.image_url}
                   alt="Receipt"
+                  loading="lazy"
+                  decoding="async"
                   className="w-10 h-10 rounded object-cover flex-shrink-0"
                 />
 
@@ -354,6 +356,8 @@ export const ReceiptsList = () => {
                   <img
                     src={receipt.image_url}
                     alt="Receipt"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full rounded-lg"
                   />
 

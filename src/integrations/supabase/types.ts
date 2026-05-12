@@ -4115,6 +4115,13 @@ export type Database = {
         }[]
       }
       get_next_project_number: { Args: never; Returns: string }
+      get_payee_usage_counts: {
+        Args: { p_source?: string }
+        Returns: {
+          payee_id: string
+          usage_count: number
+        }[]
+      }
       get_profit_analysis_data: {
         Args: { status_filter?: string[] }
         Returns: {
@@ -4470,3 +4477,4 @@ export const Constants = {
     },
   },
 } as const
+

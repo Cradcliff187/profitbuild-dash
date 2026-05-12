@@ -159,6 +159,8 @@ export const ReceiptsGallery: React.FC = () => {
                   <img
                     src={receipt.attachment_url}
                     alt="Receipt"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                   {receipt.project.project_number === 'SYS-000' && (
