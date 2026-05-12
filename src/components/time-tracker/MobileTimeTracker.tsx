@@ -308,14 +308,6 @@ export const MobileTimeTracker: React.FC = () => {
       loadInitialData();
       loadTodayEntries();
       loadActiveTimers();
-      
-      // Set up real-time subscription
-      const channel = setupRealtimeSubscription();
-      
-      // Cleanup on unmount
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
   }, [user]);
 
@@ -427,62 +419,39 @@ export const MobileTimeTracker: React.FC = () => {
     }
   };
 
-  // Set up real-time subscription for time entries.
+  // P0 (May 12, 2026): real-time subscription DISABLED.
   //
-  // CRITICAL: postgres_changes filters can't express "start_time IS NOT NULL",
-  // and removing the category filter entirely caused a token-refresh cascade
-  // (every expense INSERT/UPDATE/DELETE triggered setAuth → refresh → 429s →
-  //  406s on profile lookup → users couldn't log in). Use TWO narrowly-filtered
-  // channels instead — one per labor-bearing category — so the fan-out stays
-  // small while still covering subcontractor time entries.
-  const setupRealtimeSubscription = () => {
-    const handleChange = (payload: unknown) => {
-      // Reload today's entries when any change occurs
-      loadTodayEntries();
-      loadActiveTimers();
-    };
-
-    const channel = supabase
-      .channel('time-entries-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: 'category=eq.labor_internal',
-        },
-        handleChange
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: 'category=eq.subcontractors',
-        },
-        handleChange
-      )
-      .subscribe();
-
-    return channel;
-  };
+  // Companion to PR #65 (usePendingCounts), PR #66 (autoRefreshToken=false),
+  // and PR #67 (Dashboard / ActivityFeedList / useUnreadMentions). MobileTimeTracker
+  // mounts on /time-tracker — which is the immediate post-login landing page
+  // for pure field workers (AppLayout redirects them off / and /dashboard).
+  // Subscribing two postgres_changes channels on mount put exactly the same
+  // auth.getSession() → _callRefreshToken pressure on the post-login critical
+  // path that PR #67 removed from the admin path, just for field workers
+  // instead. Even with autoRefreshToken=false the subscribe path's internal
+  // _getAccessToken → __loadSession can still refresh in the expiry-margin
+  // window. See Gotcha #53.
+  //
+  // Today's entries + active timers now refresh on:
+  //   - mount (via the useEffect above)
+  //   - visibility change (existing handleVisibilityChange listener)
+  //   - explicit user actions (clock in/out, edit, delete reload locally)
+  // Same trade-off PR #67 made for Dashboard pending approvals.
 
   const loadTodayEntries = async () => {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      
-      // Get current user and check role
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id || '');
-      
-      const isAdmin = roles?.some(r => r.role === 'admin');
-      const isManager = roles?.some(r => r.role === 'manager');
-      
+
+      // P0 (May 12, 2026): use `user` from useAuth and `isAdmin`/`isManager`
+      // from useRoles instead of `supabase.auth.getUser()` + a follow-up
+      // `from('user_roles')` query. Both are already available in this
+      // component's scope. The previous getUser() call on mount races against
+      // the just-saved session on the post-login burst — on a slow miss it
+      // throws AuthSessionMissingError, supabase-js unconditionally fires
+      // _removeSession() → SIGNED_OUT → AppLayout bounces to /auth. Same
+      // class as Gotcha #54 (AuthContext.signIn race), just on the
+      // /time-tracker landing instead of the signin handler.
+
       let query = supabase
         .from('expenses')
         .select(`
