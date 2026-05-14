@@ -15,6 +15,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
+import { createReceiptSignedUrl } from '@/utils/receiptUrls';
 
 interface Project {
   id: string;
@@ -168,19 +169,15 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
       if (uploadError) throw uploadError;
 
-      // Get signed URL
-      const { data: urlData } = await supabase.storage
-        .from('time-tracker-documents')
-        .createSignedUrl(uploadData.path, 31536000); // 1 year expiry
-
-      if (!urlData?.signedUrl) throw new Error('Failed to get signed URL');
+      // Get signed URL (1-year, centralized — see src/utils/receiptUrls.ts)
+      const signedUrl = await createReceiptSignedUrl(uploadData.path);
 
       // Create receipt record (NOT an expense)
       const { data: receiptData, error: receiptError } = await supabase
         .from('receipts')
         .insert({
           user_id: user.id,
-          image_url: urlData.signedUrl,
+          image_url: signedUrl,
           amount: parseFloat(amount),
           payee_id: selectedPayeeId,
           project_id: selectedProjectId || systemProjectId,

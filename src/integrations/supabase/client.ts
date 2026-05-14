@@ -72,3 +72,16 @@ authInternals._callRefreshToken = async function (refreshToken: string) {
   lastRefreshResult = result;
   return result;
 };
+
+// Clear the rate-limit cache on sign-out. Without this, a shared machine with a
+// skewed clock (Gotcha #56) could leak the prior user's session through the next
+// in-margin refresh during the 30s cooldown window after sign-out → sign-in.
+// On a non-skewed machine the new session isn't in margin so _callRefreshToken
+// wouldn't fire anyway — but this is cheap defense-in-depth for the exact
+// systems where the rate-limit itself is most needed.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    lastRefreshAt = 0;
+    lastRefreshResult = null;
+  }
+});
