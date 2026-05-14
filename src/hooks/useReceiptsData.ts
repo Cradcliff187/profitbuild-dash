@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
@@ -35,8 +35,27 @@ export const receiptQueryKeys = {
   all: ['receipts'] as const,
   list: (loadAll: boolean) => [...receiptQueryKeys.all, 'list', loadAll ? 'all' : 'windowed'] as const,
   count: () => [...receiptQueryKeys.all, 'count'] as const,
+  stats: () => [...receiptQueryKeys.all, 'stats'] as const,
   payees: () => ['receipt-payees'] as const,
   projects: () => ['receipt-projects'] as const,
+};
+
+/**
+ * Compute today's-start + week's-start as ISO strings in the BROWSER's local
+ * timezone. Matches the semantics the old client-side stats computation used
+ * (Sunday-start, midnight local). Passed into get_receipt_stats() so admins
+ * in non-UTC timezones don't see counts drift at day/week boundaries.
+ */
+const computeStatsBoundaries = () => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  return {
+    todayStartIso: todayStart.toISOString(),
+    weekStartIso: weekStart.toISOString(),
+  };
 };
 
 /**
@@ -203,31 +222,36 @@ export const useReceiptsData = () => {
     };
   }, [queryClient]);
 
-  const statistics = useMemo(() => {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
-    weekStart.setHours(0, 0, 0, 0);
+  // Stats come from a server-side RPC against the FULL receipts table, not the
+  // 90-day windowed `allReceipts` slice. Without this, admin tiles like
+  // "Rejected: 4" were wrong-by-omission whenever rejected rows sat older than
+  // the window. RPC is SECURITY INVOKER — RLS still scopes results per user.
+  const { data: stats } = useQuery({
+    queryKey: receiptQueryKeys.stats(),
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const { todayStartIso, weekStartIso } = computeStatsBoundaries();
+      const { data, error } = await supabase.rpc('get_receipt_stats', {
+        p_today_start: todayStartIso,
+        p_week_start: weekStartIso,
+      });
+      if (error) throw error;
+      const row = (data || [])[0];
+      return {
+        pendingCount: Number(row?.pending_count ?? 0),
+        approvedTodayCount: Number(row?.approved_today_count ?? 0),
+        rejectedCount: Number(row?.rejected_count ?? 0),
+        totalThisWeekCount: Number(row?.total_this_week_count ?? 0),
+      };
+    },
+  });
 
-    return {
-      pendingCount: allReceipts.filter(
-        (r) => !r.approval_status || r.approval_status === 'pending'
-      ).length,
-      approvedTodayCount: allReceipts.filter(
-        (r) =>
-          r.approval_status === 'approved' &&
-          r.approved_at &&
-          new Date(r.approved_at) >= todayStart
-      ).length,
-      rejectedCount: allReceipts.filter(
-        (r) => r.approval_status === 'rejected'
-      ).length,
-      totalThisWeekCount: allReceipts.filter(
-        (r) => new Date(r.date) >= weekStart
-      ).length,
-    };
-  }, [allReceipts]);
+  const statistics = stats ?? {
+    pendingCount: 0,
+    approvedTodayCount: 0,
+    rejectedCount: 0,
+    totalThisWeekCount: 0,
+  };
 
   const loadReceipts = () => {
     queryClient.invalidateQueries({ queryKey: receiptQueryKeys.all });

@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -4186,6 +4186,15 @@ export type Database = {
       get_project_revenue_total: {
         Args: { p_project_id: string }
         Returns: number
+      }
+      get_receipt_stats: {
+        Args: { p_today_start: string; p_week_start: string }
+        Returns: {
+          approved_today_count: number
+          pending_count: number
+          rejected_count: number
+          total_this_week_count: number
+        }[]
       }
       get_scheduled_sms_recipients: {
         Args: {
