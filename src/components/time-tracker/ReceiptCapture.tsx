@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { isIOSPWA } from '@/utils/platform';
+import { createReceiptSignedUrl } from '@/utils/receiptUrls';
 
 interface ReceiptCaptureProps {
   projectId: string;
@@ -92,12 +93,10 @@ export const ReceiptCapture: React.FC<ReceiptCaptureProps> = ({
 
       if (error) throw error;
 
-      // Get signed URL (1 year expiry)
-      const { data: urlData } = await supabase.storage
-        .from('time-tracker-documents')
-        .createSignedUrl(data.path, 31536000);
+      // Get signed URL (1-year, centralized — see src/utils/receiptUrls.ts)
+      const signedUrl = await createReceiptSignedUrl(data.path);
 
-      onCapture(urlData?.signedUrl || '');
+      onCapture(signedUrl);
       
     } catch (error) {
       console.error('Receipt capture failed:', error);
