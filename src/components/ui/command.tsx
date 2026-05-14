@@ -57,16 +57,29 @@ CommandInput.displayName = CommandPrimitive.Input.displayName;
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, onWheel, ...props }, ref) => (
-  // Stop wheel-event propagation so Radix Dialog/Sheet's body-scroll-lock
-  // (registered on document) doesn't preventDefault() and kill native
-  // mouse-wheel scrolling inside cmdk popovers nested in dialogs.
+>(({ className, onWheel, onTouchMove, onTouchStart, ...props }, ref) => (
+  // Stop wheel + touch propagation so Radix Dialog/Sheet's body-scroll-lock
+  // (react-remove-scroll, registered on document) doesn't preventDefault()
+  // and kill native scrolling inside cmdk popovers nested in dialogs.
+  // onWheel covers desktop mouse-wheel; onTouchStart/onTouchMove cover iOS.
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden pt-2 pr-2", className)}
+    className={cn(
+      "max-h-[300px] overflow-y-auto overflow-x-hidden overscroll-contain pt-2 pr-2",
+      className,
+    )}
+    style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
     onWheel={(e) => {
       e.stopPropagation();
       onWheel?.(e);
+    }}
+    onTouchStart={(e) => {
+      e.stopPropagation();
+      onTouchStart?.(e);
+    }}
+    onTouchMove={(e) => {
+      e.stopPropagation();
+      onTouchMove?.(e);
     }}
     {...props}
   />
