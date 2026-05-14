@@ -15,6 +15,7 @@ import { useRoles } from '@/contexts/RoleContext';
 import { cn } from '@/lib/utils';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { isIOSPWA } from '@/utils/platform';
+import { createReceiptSignedUrl } from '@/utils/receiptUrls';
 
 interface Project {
   id: string;
@@ -273,14 +274,10 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
         if (uploadError) throw uploadError;
 
         // Store a signed URL in receipts.image_url — consistent with AddReceiptModal,
-        // ReceiptCapture and EditReceiptModal. Writing the bare storage path here would
-        // 403 in ReceiptPreviewModal / download utils, which all assume a URL.
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('time-tracker-documents')
-          .createSignedUrl(filePath, 31536000); // 1 year
-
-        if (signedUrlError) throw signedUrlError;
-        finalImageUrl = signedUrlData.signedUrl;
+        // ReceiptCapture and EditReceiptModal (1-year, centralized — see
+        // src/utils/receiptUrls.ts). Writing the bare storage path here would 403 in
+        // ReceiptPreviewModal / download utils, which all assume a URL.
+        finalImageUrl = await createReceiptSignedUrl(filePath);
       }
 
       const finalProjectId = projectId || systemProjectId;

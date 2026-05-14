@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Camera } from 'lucide-react';
 import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
+import { createReceiptSignedUrl } from '@/utils/receiptUrls';
 
 interface Project {
   id: string;
@@ -258,13 +259,8 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
 
         if (uploadError) throw uploadError;
 
-        // Create signed URL
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('time-tracker-documents')
-          .createSignedUrl(filePath, 31536000); // 1 year
-
-        if (signedUrlError) throw signedUrlError;
-        finalImageUrl = signedUrlData.signedUrl;
+        // Create signed URL (1-year, centralized — see src/utils/receiptUrls.ts)
+        finalImageUrl = await createReceiptSignedUrl(filePath);
       }
 
       // Use system project if no project selected
