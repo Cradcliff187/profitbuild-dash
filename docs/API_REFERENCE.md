@@ -1,12 +1,12 @@
 # API Reference
 
-> Generated on 2026-04-19T02:55:16.027Z by `scripts/generate-api-docs.ts`.
+> Generated on 2026-05-17T01:50:48.118Z by `scripts/generate-api-docs.ts`.
 
 This reference enumerates all exported components, hooks, functions, classes, types, enums, and values exposed under `src/`. Each entry includes import examples and usage guidance.
 
 ## React Components
 
-Total: 378
+Total: 393
 
 ### AccountMappingsManager
 
@@ -16,7 +16,7 @@ Total: 378
 - Export type: named
 
 ```ts
-function AccountMappingsManager(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function AccountMappingsManager(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -37,7 +37,7 @@ import { AccountMappingsManager } from '@/components/AccountMappingsManager';
 - Export type: named
 
 ```ts
-function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -62,7 +62,7 @@ function ActivityFeedList({
   limit = 20, 
   projectId = null,
   showFilters = true 
-}: ActivityFeedListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ActivityFeedListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -88,7 +88,7 @@ function AddReceiptModal({
   onClose,
   onSuccess,
   initialProjectId
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -113,7 +113,7 @@ function AdminCreateTimeEntrySheet({
   open,
   onOpenChange,
   onSuccess,
-}: AdminCreateTimeEntrySheetProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: AdminCreateTimeEntrySheetProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -139,7 +139,7 @@ function AdminEditTimeEntrySheet({
   open,
   onOpenChange,
   onSuccess,
-}: AdminEditTimeEntrySheetProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: AdminEditTimeEntrySheetProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -165,7 +165,7 @@ function AICaptionEnhancer({
   originalCaption,
   onAccept,
   onCancel
-}: AICaptionEnhancerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: AICaptionEnhancerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -186,7 +186,7 @@ import { AICaptionEnhancer } from '@/components/AICaptionEnhancer';
 - Export type: named
 
 ```ts
-function AIInsightsCard({ insights, className }: AIInsightsCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function AIInsightsCard({ insights, className }: AIInsightsCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -207,7 +207,7 @@ import { AIInsightsCard } from '@/components/reports/AIInsightsCard';
 - Export type: named
 
 ```ts
-function AIReportChat(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function AIReportChat(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -271,6 +271,27 @@ import App from '@/App';
 <App {...props} />
 ```
 
+### AppBreadcrumbs
+
+**Import:** `@/components/layout/AppBreadcrumbs`
+
+- Defined in: `components/layout/AppBreadcrumbs.tsx`
+- Export type: named
+
+```ts
+function AppBreadcrumbs({ items, className }: AppBreadcrumbsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { AppBreadcrumbs } from '@/components/layout/AppBreadcrumbs';
+
+<AppBreadcrumbs {...props} />
+```
+
 ### AppLayout
 
 **Import:** `@/components/AppLayout`
@@ -279,7 +300,7 @@ import App from '@/App';
 - Export type: default
 
 ```ts
-function AppLayout(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function AppLayout(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -300,7 +321,7 @@ import AppLayout from '@/components/AppLayout';
 - Export type: named
 
 ```ts
-function AppSidebar(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function AppSidebar(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -326,7 +347,7 @@ function AudioVisualizer({
   className, 
   barCount = 5,
   compact = false 
-}: AudioVisualizerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: AudioVisualizerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -347,7 +368,7 @@ import { AudioVisualizer } from '@/components/ui/audio-visualizer';
 - Export type: default
 
 ```ts
-function Auth(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function Auth(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -368,7 +389,7 @@ import Auth from '@/pages/Auth';
 - Export type: named
 
 ```ts
-function AuthProvider({ children }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function AuthProvider({ children }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -410,7 +431,7 @@ import { AVAILABLE_FIELDS } from '@/components/reports/SimpleReportBuilder';
 - Export type: named
 
 ```ts
-function Badge({ className, variant, ...props }: BadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function Badge({ className, variant, ...props }: BadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -435,7 +456,7 @@ function BidBulkActions({
   selectedCount,
   onDelete,
   onCancel,
-}: BidBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: BidBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -456,7 +477,7 @@ import { BidBulkActions } from '@/components/BidBulkActions';
 - Export type: named
 
 ```ts
-function BidDocumentUpload({ bidId }: BidDocumentUploadProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidDocumentUpload({ bidId }: BidDocumentUploadProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -481,7 +502,7 @@ function BidExportModal({
   isOpen,
   onClose,
   bids
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -509,7 +530,7 @@ function BidFilters({
   leftActions,
   actions,
   clients
-}: BidFiltersProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: BidFiltersProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -530,7 +551,7 @@ import { BidFilters } from '@/components/BidFilters';
 - Export type: named
 
 ```ts
-function BidMediaBulkUpload({ bidId, onUploadComplete }: BidMediaBulkUploadProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidMediaBulkUpload({ bidId, onUploadComplete }: BidMediaBulkUploadProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -551,7 +572,7 @@ import { BidMediaBulkUpload } from '@/components/BidMediaBulkUpload';
 - Export type: named
 
 ```ts
-function BidMediaGallery({ bidId, bidName }: BidMediaGalleryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidMediaGallery({ bidId }: BidMediaGalleryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -564,6 +585,34 @@ import { BidMediaGallery } from '@/components/BidMediaGallery';
 <BidMediaGallery {...props} />
 ```
 
+### BidNoteComposer
+
+**Import:** `@/components/bids/BidNoteComposer`
+
+- Defined in: `components/bids/BidNoteComposer.tsx`
+- Export type: named
+
+```ts
+function BidNoteComposer({
+  bidId,
+  presentation,
+  open,
+  onOpenChange,
+  onSubmitted,
+  placeholder = 'Add a note...',
+}: BidNoteComposerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { BidNoteComposer } from '@/components/bids/BidNoteComposer';
+
+<BidNoteComposer {...props} />
+```
+
 ### BidNotesTimeline
 
 **Import:** `@/components/BidNotesTimeline`
@@ -572,7 +621,7 @@ import { BidMediaGallery } from '@/components/BidMediaGallery';
 - Export type: named
 
 ```ts
-function BidNotesTimeline({ bidId }: BidNotesTimelineProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimelineProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -593,7 +642,7 @@ import { BidNotesTimeline } from '@/components/BidNotesTimeline';
 - Export type: default
 
 ```ts
-function BidPhotoCapture(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidPhotoCapture(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -614,7 +663,7 @@ import BidPhotoCapture from '@/pages/BidPhotoCapture';
 - Export type: named
 
 ```ts
-function BidPhotoLightbox({ photo, allPhotos, onClose, onNavigate, bidId }: BidPhotoLightboxProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidPhotoLightbox({ photo, allPhotos, onClose, onNavigate, bidId }: BidPhotoLightboxProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -625,6 +674,27 @@ _No inline documentation provided._
 import { BidPhotoLightbox } from '@/components/BidPhotoLightbox';
 
 <BidPhotoLightbox {...props} />
+```
+
+### BidQuickActionBar
+
+**Import:** `@/components/bids/BidQuickActionBar`
+
+- Defined in: `components/bids/BidQuickActionBar.tsx`
+- Export type: named
+
+```ts
+function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQuickActionBarProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { BidQuickActionBar } from '@/components/bids/BidQuickActionBar';
+
+<BidQuickActionBar {...props} />
 ```
 
 ### BidsTableView
@@ -654,7 +724,7 @@ function BidsTableView({
   currentPage,
   totalPages,
   onPageChange,
-}: BidsTableViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: BidsTableViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -675,7 +745,7 @@ import { BidsTableView } from '@/components/BidsTableView';
 - Export type: default
 
 ```ts
-function BidVideoCapture(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BidVideoCapture(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -696,7 +766,7 @@ import BidVideoCapture from '@/pages/BidVideoCapture';
 - Export type: named
 
 ```ts
-function BillingProgressTable({ data, isLoading, onSelectProject }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BillingProgressTable({ data, isLoading, onSelectProject }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -717,7 +787,7 @@ import { BillingProgressTable } from '@/components/profit-analysis/BillingProgre
 - Export type: default
 
 ```ts
-function BranchBidDetail(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BranchBidDetail(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -738,7 +808,7 @@ import BranchBidDetail from '@/pages/BranchBidDetail';
 - Export type: default
 
 ```ts
-function BranchBids(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BranchBids(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -763,7 +833,7 @@ function BrandedLoader({
   message,
   size = 'lg',
   className,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -784,17 +854,18 @@ import { BrandedLoader } from '@/components/ui/branded-loader';
 - Export type: named
 
 ```ts
-function BucketEmptyState({ unmatchedSpend, bucketName }: BucketEmptyStateProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BucketEmptyState({ unmatchedSpend, bucketName, onRecategorize }: BucketEmptyStateProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Rendered inside an expanded bucket that has no line items.
 
 Two states:
   - unmatchedSpend === 0: neutral "no line items" message (e.g. permits estimated but no spend yet)
-  - unmatchedSpend > 0:   amber data-hygiene warning with dollar amount + recategorize CTA copy
-
-This is the surface the bucket view exists to make impossible to miss
-(see plan, Step 1, "category exists in spend but not in estimate" handling).
+  - unmatchedSpend > 0:   amber data-hygiene warning with dollar amount. If the caller
+                           passed `onRecategorize`, a CTA button is rendered that opens
+                           the bulk-recategorize sheet. Without the callback the amber
+                           copy renders alone (e.g. overhead/system projects where the
+                           Rule 6a trigger would silently rewrite any change anyway).
 
 **Example**
 
@@ -812,7 +883,7 @@ import { BucketEmptyState } from '@/components/cost-tracking/BucketEmptyState';
 - Export type: named
 
 ```ts
-function BucketHeaderRow({ bucket, isOpen, onClick }: BucketHeaderRowProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BucketHeaderRow({ bucket, isOpen, onClick }: BucketHeaderRowProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Bucket header row used by CostBucketView (the "replace the table" view).
@@ -842,7 +913,7 @@ import { BucketHeaderRow } from '@/components/cost-tracking/BucketHeaderRow';
 - Export type: named
 
 ```ts
-function BudgetComparisonBadge({ status }: BudgetComparisonBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BudgetComparisonBadge({ status }: BudgetComparisonBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -863,7 +934,7 @@ import { BudgetComparisonBadge } from '@/components/BudgetComparisonBadge';
 - Export type: named
 
 ```ts
-function BudgetHealthTable({ data, isLoading, onSelectProject }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BudgetHealthTable({ data, isLoading, onSelectProject }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -884,7 +955,7 @@ import { BudgetHealthTable } from '@/components/profit-analysis/BudgetHealthTabl
 - Export type: named
 
 ```ts
-function BulkActionsBar({ selectedIds, onClearSelection, onRefresh }: BulkActionsBarProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function BulkActionsBar({ selectedIds, onClearSelection, onRefresh }: BulkActionsBarProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -909,7 +980,7 @@ function BulkExpenseAllocationSheet({
   open,
   onOpenChange,
   onSuccess,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1078,7 +1149,7 @@ import { calculateScheduleVariance } from '@/components/schedule/utils/scheduleC
 - Export type: named
 
 ```ts
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1120,7 +1191,7 @@ import { CAPTION_PROMPTS } from '@/components/CaptionPromptToast';
 - Export type: named
 
 ```ts
-function CategoryBreakdownTable({ categories, expensesByCategory }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function CategoryBreakdownTable({ categories, expensesByCategory }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1145,7 +1216,7 @@ function CertificationSection({
   application,
   onUpdateStatus,
   isUpdating,
-}: CertificationSectionProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: CertificationSectionProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1166,7 +1237,7 @@ import { CertificationSection } from '@/components/payment-applications/Certific
 - Export type: named
 
 ```ts
-function ChangeOrderForm({ projectId, changeOrder, onSuccess, onCancel }: ChangeOrderFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ChangeOrderForm({ projectId, changeOrder, onSuccess, onCancel }: ChangeOrderFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1194,7 +1265,7 @@ function ChangeOrderLineItemTable({
   onAddLineItem,
   contingencyRemaining,
   showContingencyGuidance,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1222,7 +1293,7 @@ function ChangeOrderModal({
   editingChangeOrder,
   onSuccess,
   onCancel,
-}: ChangeOrderModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ChangeOrderModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1251,7 +1322,7 @@ function ChangeOrdersList({
   isChangeOrderModalOpen = false,
   enablePagination = false,
   pageSize = 20
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1272,7 +1343,7 @@ import { ChangeOrdersList } from '@/components/ChangeOrdersList';
 - Export type: named
 
 ```ts
-function ChangeOrderStatusBadge({ status }: ChangeOrderStatusBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ChangeOrderStatusBadge({ status }: ChangeOrderStatusBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1293,7 +1364,7 @@ import { ChangeOrderStatusBadge } from '@/components/ChangeOrderStatusBadge';
 - Export type: named
 
 ```ts
-function ChangeOrderStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ChangeOrderStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1314,7 +1385,7 @@ import { ChangeOrderStatusBadge } from '@/components/ui/status-badge';
 - Export type: default
 
 ```ts
-function ChangePassword(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ChangePassword(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1339,7 +1410,7 @@ function ClientBulkActions({
   selectedClientIds, 
   onSelectionChange, 
   onComplete 
-}: ClientBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ClientBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1366,7 +1437,7 @@ function ClientDetailsModal({
   onClose,
   onEdit,
   onDelete
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1395,7 +1466,7 @@ function ClientFilters({
   statusFilter,
   onStatusFilterChange,
   resultCount,
-}: ClientFiltersProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ClientFiltersProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1416,7 +1487,7 @@ import { ClientFilters } from '@/components/ClientFilters';
 - Export type: named
 
 ```ts
-function ClientForm({ client, onSave, onCancel }: ClientFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ClientForm({ client, onSave, onCancel }: ClientFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1437,7 +1508,7 @@ import { ClientForm } from '@/components/ClientForm';
 - Export type: named
 
 ```ts
-function ClientImportModal({ open, onClose, onSuccess }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ClientImportModal({ open, onClose, onSuccess }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1483,7 +1554,7 @@ function ClientSelector({
   required = false,
   error = "",
   showLabel = true
-}: ClientSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ClientSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1504,7 +1575,7 @@ import { ClientSelector } from '@/components/ClientSelector';
 - Export type: named
 
 ```ts
-import("C:/Dev/profitbuild-dash/node_modules/@types/react/index").ForwardRefExoticComponent<ClientsListProps & import("C:/Dev/profitbuild-dash/node_modules/@types/react/index").RefAttributes<ClientsListRef>>
+import("E:/profitbuild-dash/node_modules/@types/react/index").ForwardRefExoticComponent<ClientsListProps & import("E:/profitbuild-dash/node_modules/@types/react/index").RefAttributes<ClientsListRef>>
 ```
 
 _No inline documentation provided._
@@ -1537,7 +1608,7 @@ function CollapsibleFilterSection({
   className,
   leftActions,
   actions
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1565,7 +1636,7 @@ function ColumnSelector({
   columnOrder = columns.map(c => c.key),
   onColumnOrderChange,
   className,
-}: ColumnSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ColumnSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1592,7 +1663,7 @@ function CompactTemplateList({
   onSelectTemplate, 
   onCustomBuilder,
   selectedCategory 
-}: CompactTemplateListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: CompactTemplateListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1613,7 +1684,7 @@ import { CompactTemplateList } from '@/components/reports/CompactTemplateList';
 - Export type: named
 
 ```ts
-function CompanyBrandingSettings(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function CompanyBrandingSettings(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1641,7 +1712,7 @@ function CompletePagination({
   showPrevNext = true,
   showEllipsis = true,
   className,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1683,7 +1754,7 @@ import { CONSTRUCTION_SEQUENCES } from '@/components/schedule/utils/construction
 - Export type: named
 
 ```ts
-function ContractDocumentPreview({ fieldValues }: ContractDocumentPreviewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ContractDocumentPreview({ fieldValues }: ContractDocumentPreviewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1704,7 +1775,7 @@ import { ContractDocumentPreview } from '@/components/contracts/ContractDocument
 - Export type: named
 
 ```ts
-function ContractFieldSummary({ fieldValues }: ContractFieldSummaryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ContractFieldSummary({ fieldValues }: ContractFieldSummaryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1733,7 +1804,7 @@ function ContractGenerationModal({
   quoteId,
   payeeId,
   onSuccess,
-}: ContractGenerationModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ContractGenerationModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1754,7 +1825,7 @@ import { ContractGenerationModal } from '@/components/contracts/ContractGenerati
 - Export type: named
 
 ```ts
-function ContractGenerationSuccess({ result, onClose }: ContractGenerationSuccessProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ContractGenerationSuccess({ result, onClose }: ContractGenerationSuccessProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1775,7 +1846,7 @@ import { ContractGenerationSuccess } from '@/components/contracts/ContractGenera
 - Export type: named
 
 ```ts
-function ContractsListView({ projectId, projectNumber }: ContractsListViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ContractsListView({ projectId, projectNumber }: ContractsListViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1796,7 +1867,7 @@ import { ContractsListView } from '@/components/contracts/ContractsListView';
 - Export type: named
 
 ```ts
-function ContractStepper({ currentStep }: ContractStepperProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ContractStepper({ currentStep }: ContractStepperProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1817,7 +1888,7 @@ import { ContractStepper } from '@/components/contracts/ContractStepper';
 - Export type: named
 
 ```ts
-function CostAnalysisTable({ data, isLoading, onSelectProject }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function CostAnalysisTable({ data, isLoading, onSelectProject }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1838,7 +1909,7 @@ import { CostAnalysisTable } from '@/components/profit-analysis/CostAnalysisTabl
 - Export type: named
 
 ```ts
-function CostBucketSummaryStrip({ projectId, project }: CostBucketSummaryStripProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function CostBucketSummaryStrip({ projectId, project }: CostBucketSummaryStripProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Compact "Detail" tab strip — sits above the existing dense table.
@@ -1871,7 +1942,7 @@ function CostBucketTotalsRow({
   remaining,
   percentUsed,
   variant = 'card',
-}: CostBucketTotalsRowProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: CostBucketTotalsRowProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Totals row anchored at the bottom of either view. Shows the project's overall
@@ -1894,7 +1965,7 @@ import { CostBucketTotalsRow } from '@/components/cost-tracking/CostBucketTotals
 - Export type: named
 
 ```ts
-function CostBucketView({ projectId, project }: CostBucketViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function CostBucketView({ projectId, project }: CostBucketViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 "Buckets" view — replaces the dense LineItemControlDashboard table with a
@@ -1926,7 +1997,7 @@ function CostFlowVisualization({
   quotedCost, 
   actualCost,
   budgetUtilization 
-}: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1953,7 +2024,7 @@ function CreatePaymentAppDialog({
   onCreateApp,
   isCreating,
   nextAppNumber,
-}: CreatePaymentAppDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: CreatePaymentAppDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1978,7 +2049,7 @@ function CreateTimeEntryDialog({
   open,
   onOpenChange,
   onSaved,
-}: CreateTimeEntryDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: CreateTimeEntryDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -1999,7 +2070,7 @@ import { CreateTimeEntryDialog } from '@/components/time-tracker/CreateTimeEntry
 - Export type: default
 
 ```ts
-function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUserModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUserModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2059,7 +2130,7 @@ function DashboardHeader({
   lastUpdated,
   onRefresh,
   isRefreshing
-}: DashboardHeaderProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: DashboardHeaderProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2080,7 +2151,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 - Export type: named
 
 ```ts
-function DateField({ value, onChange, disabled = false }: DateFieldProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function DateField({ value, onChange, disabled = false }: DateFieldProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2093,6 +2164,45 @@ import { DateField } from '@/components/time-entry-form/fields/DateField';
 <DateField {...props} />
 ```
 
+### DatePickerPopover
+
+**Import:** `@/components/ui/date-picker-popover`
+
+- Defined in: `components/ui/date-picker-popover.tsx`
+- Export type: named
+
+```ts
+function DatePickerPopover({
+  value,
+  onSelect,
+  placeholder = "Pick a date",
+  dateFormat = "PPP",
+  disabled,
+  disabledDays,
+  triggerClassName,
+  size,
+  iconPlacement = "start",
+  iconClassName,
+  align = "start",
+  id,
+  initialFocus = true,
+}: DatePickerPopoverProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+Date picker built on `Popover` + `Calendar`. Auto-dismisses on selection.
+
+Replaces the inline `<Popover><PopoverTrigger><Button>...<Calendar /></PopoverContent></Popover>`
+boilerplate. The inline pattern leaves the popover open after pick because nothing closes it;
+this wrapper owns the open state and closes on a real selection.
+
+**Example**
+
+```tsx
+import { DatePickerPopover } from '@/components/ui/date-picker-popover';
+
+<DatePickerPopover {...props} />
+```
+
 ### DeleteUserDialog
 
 **Import:** `@/components/DeleteUserDialog`
@@ -2101,7 +2211,7 @@ import { DateField } from '@/components/time-entry-form/fields/DateField';
 - Export type: named
 
 ```ts
-function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: DeleteUserDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function DeleteUserDialog({ open, onOpenChange, user, onSuccess }: DeleteUserDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2122,7 +2232,7 @@ import { DeleteUserDialog } from '@/components/DeleteUserDialog';
 - Export type: default
 
 ```ts
-function DevMobileCards(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function DevMobileCards(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2143,7 +2253,7 @@ import DevMobileCards from '@/pages/DevMobileCards';
 - Export type: named
 
 ```ts
-function DocumentPreviewModals({ preview }: DocumentPreviewModalsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function DocumentPreviewModals({ preview }: DocumentPreviewModalsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2169,7 +2279,7 @@ function DocumentUpload({
   documentType, 
   onUploadSuccess,
   relatedQuoteId 
-}: DocumentUploadProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: DocumentUploadProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2196,7 +2306,7 @@ function DuplicateQuoteModal({
   quote,
   estimates,
   onSuccess
-}: DuplicateQuoteModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: DuplicateQuoteModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2217,7 +2327,7 @@ import { DuplicateQuoteModal } from '@/components/DuplicateQuoteModal';
 - Export type: default
 
 ```ts
-function EditProfileModal({ open, onOpenChange, user, onSuccess }: EditProfileModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EditProfileModal({ open, onOpenChange, user, onSuccess }: EditProfileModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2238,7 +2348,7 @@ import EditProfileModal from '@/components/EditProfileModal';
 - Export type: named
 
 ```ts
-function EditReceiptDialog({ receipt, open, onOpenChange, onSaved }: EditReceiptDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EditReceiptDialog({ receipt, open, onOpenChange, onSaved }: EditReceiptDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2259,7 +2369,7 @@ import { EditReceiptDialog } from '@/components/time-tracker/EditReceiptDialog';
 - Export type: named
 
 ```ts
-function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EditReceiptModal({ open, onClose, onSuccess, receipt }: EditReceiptModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2285,7 +2395,7 @@ function EditTimeEntryDialog({
   open,
   onOpenChange,
   onSaved,
-}: EditTimeEntryDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: EditTimeEntryDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2306,7 +2416,7 @@ import { EditTimeEntryDialog } from '@/components/time-tracker/EditTimeEntryDial
 - Export type: named
 
 ```ts
-function EmployeeAuditSection(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EmployeeAuditSection(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2351,7 +2461,7 @@ function EntityTableTemplate({
   defaultSortColumn,
   defaultSortDirection = 'asc',
   renderActions,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2372,7 +2482,7 @@ import { EntityTableTemplate } from '@/components/EntityTableTemplate';
 - Export type: named
 
 ```ts
-function EstimateAccuracyChart({ data }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateAccuracyChart({ data }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2393,13 +2503,13 @@ import { EstimateAccuracyChart } from '@/components/EstimateAccuracyChart';
 - Export type: named
 
 ```ts
-function EstimateActionsMenu({ 
-  estimate, 
-  onView, 
-  onEdit, 
+function EstimateActionsMenu({
+  estimate,
+  onView,
+  onEdit,
   onDelete,
-  className 
-}: EstimateActionsMenuProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+  className
+}: EstimateActionsMenuProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2420,7 +2530,7 @@ import { EstimateActionsMenu } from '@/components/EstimateActionsMenu';
 - Export type: named
 
 ```ts
-function EstimateEditRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateEditRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2445,7 +2555,7 @@ function EstimateExportModal({
   isOpen,
   onClose,
   filters
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2466,7 +2576,7 @@ import { EstimateExportModal } from '@/components/EstimateExportModal';
 - Export type: default
 
 ```ts
-function EstimateFinancialAnalyticsDashboard({ timeframe = 'all' }: EstimateFinancialAnalyticsDashboardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateFinancialAnalyticsDashboard({ timeframe = 'all' }: EstimateFinancialAnalyticsDashboardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2487,7 +2597,7 @@ import EstimateFinancialAnalyticsDashboard from '@/components/EstimateFinancialA
 - Export type: named
 
 ```ts
-function EstimateForm({ mode = 'edit', initialEstimate, preselectedProjectId, preselectedProjectType, availableEstimates = [], onSave, onCancel, hideNavigationButtons = false }: EstimateFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateForm({ mode = 'edit', initialEstimate, preselectedProjectId, preselectedProjectType, availableEstimates = [], onSave, onCancel, hideNavigationButtons = false }: EstimateFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2508,7 +2618,7 @@ import { EstimateForm } from '@/components/EstimateForm';
 - Export type: named
 
 ```ts
-function EstimateNewRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateNewRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2529,7 +2639,7 @@ import { EstimateNewRoute } from '@/components/project-routes/EstimateNewRoute';
 - Export type: named
 
 ```ts
-function EstimateQuoteStatusView({ estimateId }: EstimateQuoteStatusViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateQuoteStatusView({ estimateId }: EstimateQuoteStatusViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2550,7 +2660,7 @@ import { EstimateQuoteStatusView } from '@/components/reports/EstimateQuoteStatu
 - Export type: named
 
 ```ts
-function EstimatesCardView({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesCardViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimatesCardView({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesCardViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2579,7 +2689,7 @@ function EstimateSearchFilters({
   resultCount,
   clients,
   projects
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2606,7 +2716,7 @@ function EstimateSelector({
   onSelect,
   placeholder = "Select an estimate...",
   disabled = false
-}: EstimateSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: EstimateSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2644,7 +2754,7 @@ import EstimatesPage from '@/pages/Estimates';
 - Export type: named
 
 ```ts
-function EstimatesTableView({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimatesTableView({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesTableViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2665,7 +2775,7 @@ import { EstimatesTableView } from '@/components/EstimatesTableView';
 - Export type: named
 
 ```ts
-function EstimateStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2695,7 +2805,7 @@ function EstimateStatusSelector({
   onStatusChange,
   disabled = false,
   showLabel = false
-}: EstimateStatusSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: EstimateStatusSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2738,7 +2848,7 @@ function EstimateSummaryCard({
   onContingencyChange,
   readOnly = false,
   className,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2765,7 +2875,7 @@ function EstimateTotalsRow({
   avgMarkupPercent,
   subtotal,
   className,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2786,7 +2896,7 @@ import { EstimateTotalsRow } from '@/components/estimates/EstimateTotalsRow';
 - Export type: named
 
 ```ts
-function EstimateVersionComparison({ projectId, onClose }: EstimateVersionComparisonProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function EstimateVersionComparison({ projectId, onClose }: EstimateVersionComparisonProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2812,7 +2922,7 @@ function ExpenseAllocationSheet({
   onOpenChange,
   expenseId,
   onSuccess
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2837,7 +2947,7 @@ function ExpenseBulkActions({
   selectedExpenseIds, 
   onSelectionChange, 
   onComplete 
-}: ExpenseBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ExpenseBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2858,7 +2968,7 @@ import { ExpenseBulkActions } from '@/components/ExpenseBulkActions';
 - Export type: named
 
 ```ts
-function ExpenseDashboard({ expenses, estimates }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ExpenseDashboard(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2882,8 +2992,7 @@ import { ExpenseDashboard } from '@/components/ExpenseDashboard';
 function ExpenseExportModal({
   isOpen,
   onClose,
-  expenses
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2904,7 +3013,7 @@ import { ExpenseExportModal } from '@/components/ExpenseExportModal';
 - Export type: named
 
 ```ts
-function ExpenseForm({ expense, onSave, onCancel, defaultProjectId }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ExpenseForm({ expense, onSave, onCancel, defaultProjectId }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2932,7 +3041,7 @@ function ExpenseFormSheet({
   onSave,
   defaultProjectId,
   projectName,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -2958,7 +3067,7 @@ function ExpenseImportModal({
   onClose, 
   onSuccess, 
   estimates 
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3039,7 +3148,7 @@ function ExpenseSplitDialog({
   open,
   onClose,
   onSuccess
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3060,7 +3169,7 @@ import { ExpenseSplitDialog } from '@/components/ExpenseSplitDialog';
 - Export type: named
 
 ```ts
-function ExpenseStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ExpenseStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3081,7 +3190,7 @@ import { ExpenseStatusBadge } from '@/components/ui/status-badge';
 - Export type: named
 
 ```ts
-function ExportControls({ reportName, data, fields }: ExportControlsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ExportControls({ reportName, data, fields }: ExportControlsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3102,7 +3211,7 @@ import { ExportControls } from '@/components/reports/ExportControls';
 - Export type: named
 
 ```ts
-function FieldDocumentsList({ projectId }: FieldDocumentsListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldDocumentsList({ projectId }: FieldDocumentsListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3123,7 +3232,7 @@ import { FieldDocumentsList } from '@/components/schedule/FieldDocumentsList';
 - Export type: default
 
 ```ts
-function FieldMedia(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldMedia(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3144,7 +3253,7 @@ import FieldMedia from '@/pages/FieldMedia';
 - Export type: named
 
 ```ts
-function FieldMediaGallery({ projectId }: FieldMediaGalleryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldMediaGallery({ projectId }: FieldMediaGalleryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3165,7 +3274,7 @@ import { FieldMediaGallery } from '@/components/schedule/FieldMediaGallery';
 - Export type: default
 
 ```ts
-function FieldPhotoCapture(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldPhotoCapture(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3186,7 +3295,7 @@ import FieldPhotoCapture from '@/pages/FieldPhotoCapture';
 - Export type: named
 
 ```ts
-function FieldProjectSelector({ selectedProjectId, onProjectSelect }: FieldProjectSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldProjectSelector({ selectedProjectId, onProjectSelect }: FieldProjectSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3207,18 +3316,25 @@ import { FieldProjectSelector } from '@/components/FieldProjectSelector';
 - Export type: named
 
 ```ts
-function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActionBarProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActionBarProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Three-button quick-action row: Note · Camera · Attach.
 
-The Note button opens a shared NoteComposer in sheet presentation — full
-text + mentions + voice + attach flow with Take Photo / Record Video /
-Upload File labeled options inside. Camera and Attach stay as independent
-quick-capture affordances for the "snap and forget" flow (no composition).
+Routing by button + file type (kept deliberate so the item lands where the
+user expects to find it later):
 
-Sticky-bottom-positioned by default. When used inline inside a card, callers
-override with `[&>div:first-child]:!static` utilities.
+  Camera                → project_media  (Media tab) — with optional GPS
+  Attach, image/video   → project_media  (Media tab)
+  Attach, PDF/doc/etc.  → project_documents as 'other' (Documents tab)
+  NoteComposer internal → note-attachments (stays on the Notes timeline,
+                          inline with any message text the user wrote)
+
+The Note button opens a shared NoteComposer in sheet presentation — full
+text + mentions + voice + attach flow. The composer's internal attach menu
+is INTENTIONALLY separate from this bar: a photo captioned "north wall
+framing done" belongs on the Notes timeline with that text; a raw photo with
+no words belongs in Media.
 
 **Example**
 
@@ -3226,27 +3342,6 @@ override with `[&>div:first-child]:!static` utilities.
 import { FieldQuickActionBar } from '@/components/schedule/FieldQuickActionBar';
 
 <FieldQuickActionBar {...props} />
-```
-
-### FieldSchedule
-
-**Import:** `@/pages/FieldSchedule`
-
-- Defined in: `pages/FieldSchedule.tsx`
-- Export type: default
-
-```ts
-function FieldSchedule(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
-```
-
-_No inline documentation provided._
-
-**Example**
-
-```tsx
-import FieldSchedule from '@/pages/FieldSchedule';
-
-<FieldSchedule {...props} />
 ```
 
 ### FieldScheduleTable
@@ -3261,7 +3356,7 @@ function FieldScheduleTable({
   tasks,
   projectId,
   onTaskUpdate,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3282,7 +3377,7 @@ import { FieldScheduleTable } from '@/components/schedule/FieldScheduleTable';
 - Export type: named
 
 ```ts
-function FieldTaskCard({ task, projectId, onToggleComplete, onTogglePhase }: FieldTaskCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldTaskCard({ task, projectId, onToggleComplete, onTogglePhase }: FieldTaskCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3309,7 +3404,7 @@ function FieldTaskSection({
   defaultOpen,
   projectId,
   onTaskUpdate,
-}: FieldTaskSectionProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: FieldTaskSectionProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3330,7 +3425,7 @@ import { FieldTaskSection } from '@/components/schedule/FieldTaskSection';
 - Export type: default
 
 ```ts
-function FieldVideoCapture(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FieldVideoCapture(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3351,7 +3446,7 @@ import FieldVideoCapture from '@/pages/FieldVideoCapture';
 - Export type: named
 
 ```ts
-function FilterPresets({ dataSource, availableFields, onApplyPreset }: FilterPresetsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FilterPresets({ dataSource, availableFields, onApplyPreset }: FilterPresetsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3372,7 +3467,7 @@ import { FilterPresets } from '@/components/reports/FilterPresets';
 - Export type: named
 
 ```ts
-function FilterSummary({ filters, availableFields, onRemoveFilter, onClearAll }: FilterSummaryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function FilterSummary({ filters, availableFields, onRemoveFilter, onClearAll }: FilterSummaryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3412,7 +3507,7 @@ function FinancialTableTemplate<T>({
   onCollapsedGroupsChange,
   expandable = false,
   renderExpandedContent,
-}: FinancialTableTemplateProps<T>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: FinancialTableTemplateProps<T>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3501,7 +3596,7 @@ function FuzzyMatchDetailsPanel({
   unallocatedExpenses,
   onAllocateExpense,
   showAllocateButtons = false
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3529,7 +3624,7 @@ function G702Summary({
   clientName,
   retainagePercent = 10,
   appLines,
-}: G702SummaryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: G702SummaryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3554,7 +3649,7 @@ function G703ContinuationSheet({
   lines,
   isEditable,
   onUpdateLine,
-}: G703ContinuationSheetProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: G703ContinuationSheetProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3580,7 +3675,7 @@ function generateScheduleWarnings(tasks: ScheduleTask[], settings: {
     dateOverlap: boolean;
     changeOrderTiming: boolean;
     resourceConflicts: boolean;
-  }): import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleWarning[]
+  }): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleWarning[]
 ```
 
 Generate all schedule warnings for a set of tasks
@@ -3601,7 +3696,7 @@ import { generateScheduleWarnings } from '@/components/schedule/utils/scheduleVa
 - Export type: named
 
 ```ts
-function getNavigationGroups(): import("C:/Dev/profitbuild-dash/src/components/project-detail/projectNavigation").NavGroup[]
+function getNavigationGroups(options: NavigationOptions = {}): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/project-detail/projectNavigation").NavGroup[]
 ```
 
 _No inline documentation provided._
@@ -3622,7 +3717,7 @@ import { getNavigationGroups } from '@/components/project-detail/projectNavigati
 - Export type: named
 
 ```ts
-function getReadyToStartTasks(tasks: ScheduleTask[]): import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleTask[]
+function getReadyToStartTasks(tasks: ScheduleTask[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleTask[]
 ```
 
 Get tasks that can start now (all dependencies met)
@@ -3643,7 +3738,7 @@ import { getReadyToStartTasks } from '@/components/schedule/utils/scheduleCalcul
 - Export type: named
 
 ```ts
-function getSectionIcon(section: string): React.ForwardRefExoticComponent<Omit<import("C:/Dev/profitbuild-dash/node_modules/lucide-react/dist/lucide-react").LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>
+function getSectionIcon(section: string): React.ForwardRefExoticComponent<Omit<import("E:/profitbuild-dash/node_modules/lucide-react/dist/lucide-react").LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>
 ```
 
 _No inline documentation provided._
@@ -3730,7 +3825,7 @@ import { getTypicalDuration } from '@/components/schedule/utils/constructionSequ
 function GlobalExpenseAllocation({
   onClose,
   projectId
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3758,7 +3853,7 @@ function HierarchicalNumber({
   className,
   showProjectName = false,
   projectName
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3787,7 +3882,7 @@ function HoursDisplay({
   manualHours,
   onManualHoursChange,
   isPTO,
-}: HoursDisplayProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: HoursDisplayProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3829,7 +3924,7 @@ import { identifyConstructionPhase } from '@/components/schedule/utils/construct
 - Export type: named
 
 ```ts
-function ImportBatchDetail({ batchId, onBack }: ImportBatchDetailProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ImportBatchDetail({ batchId, onBack }: ImportBatchDetailProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3850,7 +3945,7 @@ import { ImportBatchDetail } from '@/components/ImportBatchDetail';
 - Export type: default
 
 ```ts
-function ImportEstimateModal({ isOpen, onClose, onImport }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ImportEstimateModal({ isOpen, onClose, onImport }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3871,7 +3966,7 @@ import ImportEstimateModal from '@/components/estimates/ImportEstimateModal';
 - Export type: named
 
 ```ts
-function ImportHistory(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ImportHistory(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3882,6 +3977,101 @@ _No inline documentation provided._
 import { ImportHistory } from '@/components/ImportHistory';
 
 <ImportHistory {...props} />
+```
+
+### InvoiceFieldSummary
+
+**Import:** `@/components/invoices/InvoiceFieldSummary`
+
+- Defined in: `components/invoices/InvoiceFieldSummary.tsx`
+- Export type: named
+
+```ts
+function InvoiceFieldSummary({ fieldValues }: InvoiceFieldSummaryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+Read-only "what we're about to send to the template" summary. Mirrors the
+shape of `ContractFieldSummary`.
+
+**Example**
+
+```tsx
+import { InvoiceFieldSummary } from '@/components/invoices/InvoiceFieldSummary';
+
+<InvoiceFieldSummary {...props} />
+```
+
+### InvoiceGenerationModal
+
+**Import:** `@/components/invoices/InvoiceGenerationModal`
+
+- Defined in: `components/invoices/InvoiceGenerationModal.tsx`
+- Export type: named
+
+```ts
+function InvoiceGenerationModal({
+  open,
+  onOpenChange,
+  projectId,
+  revenueId,
+  clientId,
+  onSuccess,
+}: InvoiceGenerationModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { InvoiceGenerationModal } from '@/components/invoices/InvoiceGenerationModal';
+
+<InvoiceGenerationModal {...props} />
+```
+
+### InvoiceGenerationSuccess
+
+**Import:** `@/components/invoices/InvoiceGenerationSuccess`
+
+- Defined in: `components/invoices/InvoiceGenerationSuccess.tsx`
+- Export type: named
+
+```ts
+function InvoiceGenerationSuccess({
+  result,
+  onClose,
+}: InvoiceGenerationSuccessProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { InvoiceGenerationSuccess } from '@/components/invoices/InvoiceGenerationSuccess';
+
+<InvoiceGenerationSuccess {...props} />
+```
+
+### InvoiceStepper
+
+**Import:** `@/components/invoices/InvoiceStepper`
+
+- Defined in: `components/invoices/InvoiceStepper.tsx`
+- Export type: named
+
+```ts
+function InvoiceStepper({ currentStep }: InvoiceStepperProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { InvoiceStepper } from '@/components/invoices/InvoiceStepper';
+
+<InvoiceStepper {...props} />
 ```
 
 ### isSequenceViolation
@@ -3935,7 +4125,7 @@ import { isTaskOverdue } from '@/components/schedule/utils/scheduleCalculations'
 - Export type: default
 
 ```ts
-function KPIGuide(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function KPIGuide(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -3956,7 +4146,7 @@ import KPIGuide from '@/pages/KPIGuide';
 - Export type: named
 
 ```ts
-function LaborLineItemRow({ lineItem }: LaborLineItemRowProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function LaborLineItemRow({ lineItem }: LaborLineItemRowProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Single labor line item shown inside an expanded Labor bucket.
@@ -3985,7 +4175,7 @@ import { LaborLineItemRow } from '@/components/cost-tracking/LaborLineItemRow';
 - Export type: named
 
 ```ts
-function LaborRateSettings(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function LaborRateSettings(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4006,7 +4196,7 @@ import { LaborRateSettings } from '@/components/admin/LaborRateSettings';
 - Export type: named
 
 ```ts
-function LineItemAllocationSheet({ projectId, projectNumber, open, onClose }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function LineItemAllocationSheet({ projectId, projectNumber, open, onClose }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4027,7 +4217,7 @@ import { LineItemAllocationSheet } from '@/components/profit-analysis/LineItemAl
 - Export type: named
 
 ```ts
-function LineItemControlCardView({ lineItems, onViewDetails }: LineItemControlCardViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function LineItemControlCardView({ lineItems, onViewDetails }: LineItemControlCardViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4048,7 +4238,7 @@ import { LineItemControlCardView } from '@/components/LineItemControlCardView';
 - Export type: named
 
 ```ts
-function LineItemControlDashboard({ projectId, project }: LineItemControlDashboardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function LineItemControlDashboard({ projectId, project }: LineItemControlDashboardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4074,7 +4264,7 @@ function LineItemDetailModal({
   isOpen,
   onClose,
   onSave,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4104,7 +4294,7 @@ function LineItemTable({
   onDuplicateLineItem,
   readOnly = false,
   showTotalsRow = false,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4133,7 +4323,7 @@ function LunchSection({
   disabled = false,
   isMobile = false,
   isPTO = false,
-}: LunchSectionProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: LunchSectionProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4162,7 +4352,7 @@ function LunchToggle({
   disabled = false,
   isMobile = false,
   compact = false,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4191,7 +4381,7 @@ function ManualTimeEntryForm({
   showRates = false,
   restrictToCurrentUser = false,
   onFormDataReady,
-}: ManualTimeEntryFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ManualTimeEntryFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4227,7 +4417,7 @@ function ManualTimeEntrySheet({
   canDelete = true,
   showRates = false,
   restrictToCurrentUser = false,
-}: ManualTimeEntrySheetProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ManualTimeEntrySheetProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4248,7 +4438,7 @@ import { ManualTimeEntrySheet } from '@/components/time-entry-form/ManualTimeEnt
 - Export type: named
 
 ```ts
-function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function MarginAnalysisTable({ data, isLoading, onSelectProject }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4274,7 +4464,7 @@ function MarginComparisonBars({
   projectedMargin, 
   currentMargin,
   contractedAmount 
-}: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4295,7 +4485,7 @@ import { MarginComparisonBars } from '@/components/profit-analysis/MarginCompari
 - Export type: named
 
 ```ts
-function MediaCommentBadge({ count }: MediaCommentBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function MediaCommentBadge({ count }: MediaCommentBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4316,7 +4506,7 @@ import { MediaCommentBadge } from '@/components/MediaCommentBadge';
 - Export type: named
 
 ```ts
-function MediaCommentForm({ mediaId }: MediaCommentFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function MediaCommentForm({ mediaId }: MediaCommentFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4337,7 +4527,7 @@ import { MediaCommentForm } from '@/components/MediaCommentForm';
 - Export type: named
 
 ```ts
-function MediaCommentsList({ mediaId }: MediaCommentsListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function MediaCommentsList({ mediaId }: MediaCommentsListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4367,7 +4557,7 @@ function MediaReportBuilderModal({
   address,
   selectedMedia,
   onComplete,
-}: MediaReportBuilderModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MediaReportBuilderModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4388,7 +4578,7 @@ import { MediaReportBuilderModal } from '@/components/MediaReportBuilderModal';
 - Export type: default
 
 ```ts
-function Mentions(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function Mentions(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4417,7 +4607,7 @@ function MentionTextarea({
   className,
   disabled,
   mentionableUsers,
-}: MentionTextareaProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MentionTextareaProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4428,6 +4618,27 @@ _No inline documentation provided._
 import { MentionTextarea } from '@/components/notes/MentionTextarea';
 
 <MentionTextarea {...props} />
+```
+
+### MobileBackButton
+
+**Import:** `@/components/layout/MobileBackButton`
+
+- Defined in: `components/layout/MobileBackButton.tsx`
+- Export type: named
+
+```ts
+function MobileBackButton({ to, label = "Back", className }: MobileBackButtonProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { MobileBackButton } from '@/components/layout/MobileBackButton';
+
+<MobileBackButton {...props} />
 ```
 
 ### MobileListCard
@@ -4472,7 +4683,7 @@ function MobileListCard({
 
   // Styling
   className,
-}: MobileListCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MobileListCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4500,7 +4711,7 @@ function MobilePageWrapper({
   fullWidth = false,
   onRefresh,
   enablePullToRefresh = false,
-}: MobilePageWrapperProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MobilePageWrapperProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Universal mobile-first page wrapper component.
@@ -4533,7 +4744,7 @@ function MobileResponsiveHeader({
   primaryAction,
   className,
   maxVisibleActions = 2,
-}: MobileResponsiveHeaderProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MobileResponsiveHeaderProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Universal mobile-first header component that prevents overflow issues.
@@ -4563,7 +4774,7 @@ function MobileResponsiveTabs({
   defaultTab,
   className,
   maxMobileTabs = 3,
-}: MobileResponsiveTabsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MobileResponsiveTabsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Universal mobile-first tabs component that prevents layout issues.
@@ -4580,6 +4791,27 @@ import { MobileResponsiveTabs } from '@/components/ui/mobile-responsive-tabs';
 <MobileResponsiveTabs {...props} />
 ```
 
+### MobileScheduleView
+
+**Import:** `@/components/schedule/MobileScheduleView`
+
+- Defined in: `components/schedule/MobileScheduleView.tsx`
+- Export type: named
+
+```ts
+function MobileScheduleView({ projectId, projectStartDate, projectEndDate }: MobileScheduleViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { MobileScheduleView } from '@/components/schedule/MobileScheduleView';
+
+<MobileScheduleView {...props} />
+```
+
 ### MobileTabSelector
 
 **Import:** `@/components/ui/mobile-tab-selector`
@@ -4593,10 +4825,19 @@ function MobileTabSelector({
   onValueChange,
   options,
   className,
-}: MobileTabSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: MobileTabSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
-_No inline documentation provided._
+Mobile horizontal pill-strip tab selector. All options visible inline
+with active-state and badge counts — no disclosure click needed.
+
+Replaces the previous Select-dropdown implementation (R2). Matches the
+canonical pattern from MobileScheduleView and BranchBidDetail mobile
+tabs so the app uses one mobile-tab pattern across every list page,
+detail page, and schedule view.
+
+Overflow strategy: horizontal scroll when tabs exceed viewport width,
+with `scrollbar-hide` so it stays clean on iOS. Min touch target 44px.
 
 **Example**
 
@@ -4614,7 +4855,7 @@ import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 - Export type: named
 
 ```ts
-function MobileTimeTracker(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function MobileTimeTracker(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4645,7 +4886,7 @@ function NeedsAttentionCard({
   overdueWorkOrders = 0,
   workOrdersOnHold = 0,
   workOrdersOverBudget = 0
-}: NeedsAttentionCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: NeedsAttentionCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4666,7 +4907,7 @@ import { NeedsAttentionCard } from '@/components/dashboard/NeedsAttentionCard';
 - Export type: named
 
 ```ts
-function NewTemplateGallery({ onSelectTemplate, onCustomBuilder, selectedCategory = 'standard', savedReports = [] }: NewTemplateGalleryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function NewTemplateGallery({ onSelectTemplate, onCustomBuilder, selectedCategory = 'standard', savedReports = [] }: NewTemplateGalleryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4687,7 +4928,7 @@ import { NewTemplateGallery } from '@/components/reports/NewTemplateGallery';
 - Export type: named
 
 ```ts
-function NonLaborLineItemRow({ lineItem }: NonLaborLineItemRowProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function NonLaborLineItemRow({ lineItem }: NonLaborLineItemRowProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Single non-labor line item (Materials, Subs, Equipment, etc.) inside an
@@ -4728,7 +4969,7 @@ function NoteCard({
   onEnlargeVideo,
   onPreviewPdf,
   formatTimestamp,
-}: NoteCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: NoteCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4760,7 +5001,7 @@ function NoteComposer({
   enableVoice = true,
   enableAttach = true,
   className,
-}: NoteComposerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: NoteComposerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Unified note composer — replaces the three parallel implementations that
@@ -4781,46 +5022,6 @@ import { NoteComposer } from '@/components/notes/NoteComposer';
 <NoteComposer {...props} />
 ```
 
-### NoteInput
-
-**Import:** `@/components/notes/NoteInput`
-
-- Defined in: `components/notes/NoteInput.tsx`
-- Export type: named
-
-```ts
-function NoteInput({
-  variant = 'default',
-  noteText,
-  onNoteTextChange,
-  onSubmit,
-  isSubmitting,
-  isUploading,
-  attachmentPreview,
-  attachmentType,
-  attachmentFileName,
-  onClearAttachment,
-  onCapturePhoto,
-  onCaptureVideo,
-  onFileSelect,
-  isCapturingPhoto,
-  isRecording,
-  fileInputId = 'file-upload-notes',
-  voiceNoteSlot,
-  mentionableUsers,
-}: NoteInputProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
-```
-
-_No inline documentation provided._
-
-**Example**
-
-```tsx
-import { NoteInput } from '@/components/notes/NoteInput';
-
-<NoteInput {...props} />
-```
-
 ### NoteLightbox
 
 **Import:** `@/components/notes/NoteLightbox`
@@ -4838,7 +5039,7 @@ function NoteLightbox({
   onPdfPreviewChange,
   pdfUrl,
   pdfFileName,
-}: NoteLightboxProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: NoteLightboxProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4859,7 +5060,7 @@ import { NoteLightbox } from '@/components/notes/NoteLightbox';
 - Export type: named
 
 ```ts
-function NotesField({ value, onChange, disabled = false }: NotesFieldProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function NotesField({ value, onChange, disabled = false }: NotesFieldProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4870,27 +5071,6 @@ _No inline documentation provided._
 import { NotesField } from '@/components/time-entry-form/fields/NotesField';
 
 <NotesField {...props} />
-```
-
-### NotesSheetTrigger
-
-**Import:** `@/components/schedule/NotesSheetTrigger`
-
-- Defined in: `components/schedule/NotesSheetTrigger.tsx`
-- Export type: named
-
-```ts
-function NotesSheetTrigger({ projectId, projectName }: NotesSheetTriggerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
-```
-
-_No inline documentation provided._
-
-**Example**
-
-```tsx
-import { NotesSheetTrigger } from '@/components/schedule/NotesSheetTrigger';
-
-<NotesSheetTrigger {...props} />
 ```
 
 ### NotFound
@@ -4918,7 +5098,7 @@ import NotFound from '@/pages/NotFound';
 - Export type: named
 
 ```ts
-function NotificationBell(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function NotificationBell(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4945,7 +5125,7 @@ function OfficeDocumentPreviewModal({
   fileUrl,
   fileName,
   fileType,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4966,7 +5146,7 @@ import { OfficeDocumentPreviewModal } from '@/components/OfficeDocumentPreviewMo
 - Export type: named
 
 ```ts
-function OfflineIndicator(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function OfflineIndicator(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -4991,7 +5171,7 @@ function OvernightIndicator({
   isOvernight,
   endDate,
   className,
-}: OvernightIndicatorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: OvernightIndicatorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5017,10 +5197,11 @@ function PageHeader({
   description,
   icon: Icon,
   actions,
+  mobileActions,
   className,
   children,
   showAccent = true,
-}: PageHeaderProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PageHeaderProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5046,7 +5227,7 @@ function PayeeBulkActions({
   onBulkDelete, 
   onBulkUpdateType, 
   onClearSelection 
-}: PayeeBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PayeeBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5073,7 +5254,7 @@ function PayeeDetailsModal({
   onClose,
   onEdit,
   onDelete
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5104,7 +5285,7 @@ function PayeeFilters({
   onClearFilters,
   hasActiveFilters,
   resultCount,
-}: PayeeFiltersProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PayeeFiltersProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5125,7 +5306,7 @@ import { PayeeFilters } from '@/components/PayeeFilters';
 - Export type: named
 
 ```ts
-function PayeeForm({ payee, onSuccess, onCancel, defaultPayeeType, defaultIsInternal, defaultProvidesLabor, isSubmittingRef }: PayeeFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function PayeeForm({ payee, onSuccess, onCancel, defaultPayeeType, defaultIsInternal, defaultProvidesLabor, isSubmittingRef }: PayeeFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5146,7 +5327,7 @@ import { PayeeForm } from '@/components/PayeeForm';
 - Export type: named
 
 ```ts
-function PayeeImportModal({ open, onClose, onSuccess }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function PayeeImportModal({ open, onClose, onSuccess }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5203,7 +5384,7 @@ function PayeeSelector({
   sortByUsage = false,
   usageSource = 'receipts',
   isMobile = false,
-}: PayeeSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PayeeSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5224,7 +5405,7 @@ import { PayeeSelector } from '@/components/PayeeSelector';
 - Export type: named
 
 ```ts
-import("C:/Dev/profitbuild-dash/node_modules/@types/react/index").ForwardRefExoticComponent<PayeesListProps & import("C:/Dev/profitbuild-dash/node_modules/@types/react/index").RefAttributes<PayeesListRef>>
+import("E:/profitbuild-dash/node_modules/@types/react/index").ForwardRefExoticComponent<PayeesListProps & import("E:/profitbuild-dash/node_modules/@types/react/index").RefAttributes<PayeesListRef>>
 ```
 
 _No inline documentation provided._
@@ -5251,7 +5432,7 @@ function PaymentApplicationsTab({
   projectNumber,
   clientName,
   estimates,
-}: PaymentApplicationsTabProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PaymentApplicationsTabProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5272,7 +5453,7 @@ import { PaymentApplicationsTab } from '@/components/payment-applications/Paymen
 - Export type: named
 
 ```ts
-function PaymentAppStatusBadge({ status }: PaymentAppStatusBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function PaymentAppStatusBadge({ status }: PaymentAppStatusBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5299,7 +5480,7 @@ function PdfPreviewModal({
   pdfBlob,
   pdfUrl,
   fileName,
-}: PdfPreviewModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PdfPreviewModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5320,7 +5501,7 @@ import { PdfPreviewModal } from '@/components/PdfPreviewModal';
 - Export type: named
 
 ```ts
-function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLightboxProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLightboxProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5341,7 +5522,7 @@ import { PhotoLightbox } from '@/components/PhotoLightbox';
 - Export type: default
 
 ```ts
-function ProfitAnalysis({ estimates, quotes, expenses, projects }: ProfitAnalysisProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProfitAnalysis({ estimates, quotes, expenses, projects }: ProfitAnalysisProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5362,7 +5543,7 @@ import ProfitAnalysis from '@/components/ProfitAnalysis';
 - Export type: default
 
 ```ts
-function ProfitAnalysis(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProfitAnalysis(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5383,7 +5564,7 @@ import ProfitAnalysis from '@/pages/ProfitAnalysis';
 - Export type: default
 
 ```ts
-function ProfitChart({ data, type, dataKey, title, height = 300 }: ProfitChartProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProfitChart({ data, type, dataKey, title, height = 300 }: ProfitChartProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5404,7 +5585,7 @@ import ProfitChart from '@/components/ProfitChart';
 - Export type: named
 
 ```ts
-function ProfitSummaryCards({ data, isLoading }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProfitSummaryCards({ data, isLoading }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5425,7 +5606,7 @@ import { ProfitSummaryCards } from '@/components/profit-analysis/ProfitSummaryCa
 - Export type: named
 
 ```ts
-function ProjectBillingRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectBillingRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5451,7 +5632,7 @@ function ProjectBulkActions({
   onStatusUpdate,
   onDelete,
   onCancel,
-}: ProjectBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5472,7 +5653,7 @@ import { ProjectBulkActions } from '@/components/ProjectBulkActions';
 - Export type: named
 
 ```ts
-function ProjectChangesRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectChangesRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5493,7 +5674,7 @@ import { ProjectChangesRoute } from '@/components/project-routes/ProjectChangesR
 - Export type: named
 
 ```ts
-function ProjectContractsRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectContractsRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5514,7 +5695,7 @@ import { ProjectContractsRoute } from '@/components/project-routes/ProjectContra
 - Export type: named
 
 ```ts
-function ProjectControlRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectControlRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5535,7 +5716,7 @@ import { ProjectControlRoute } from '@/components/project-routes/ProjectControlR
 - Export type: named
 
 ```ts
-function ProjectCostBreakdown({ project, open, onClose }: Props): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectCostBreakdown({ project, open, onClose }: Props): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5556,7 +5737,7 @@ import { ProjectCostBreakdown } from '@/components/profit-analysis/ProjectCostBr
 - Export type: named
 
 ```ts
-function ProjectDetailView(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectDetailView(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5577,7 +5758,7 @@ import { ProjectDetailView } from '@/components/ProjectDetailView';
 - Export type: named
 
 ```ts
-function ProjectDocumentsHub({ projectId, projectName, projectNumber, clientName }: ProjectDocumentsHubProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectDocumentsHub({ projectId, projectName, projectNumber, clientName }: ProjectDocumentsHubProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5598,7 +5779,7 @@ import { ProjectDocumentsHub } from '@/components/ProjectDocumentsHub';
 - Export type: named
 
 ```ts
-function ProjectDocumentsRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectDocumentsRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5619,7 +5800,7 @@ import { ProjectDocumentsRoute } from '@/components/project-routes/ProjectDocume
 - Export type: named
 
 ```ts
-function ProjectDocumentsTable({ projectId, documentType, projectNumber, onDocumentDeleted }: ProjectDocumentsTableProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectDocumentsTable({ projectId, documentType, projectNumber, onDocumentDeleted }: ProjectDocumentsTableProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5640,7 +5821,7 @@ import { ProjectDocumentsTable } from '@/components/ProjectDocumentsTable';
 - Export type: named
 
 ```ts
-function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDocumentsTimelineProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDocumentsTimelineProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5661,7 +5842,7 @@ import { ProjectDocumentsTimeline } from '@/components/ProjectDocumentsTimeline'
 - Export type: default
 
 ```ts
-function ProjectEdit(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectEdit(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5682,7 +5863,7 @@ import ProjectEdit from '@/pages/ProjectEdit';
 - Export type: named
 
 ```ts
-function ProjectEditForm({ project, onSave, onCancel }: ProjectEditFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectEditForm({ project, onSave, onCancel }: ProjectEditFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5703,7 +5884,7 @@ import { ProjectEditForm } from '@/components/ProjectEditForm';
 - Export type: named
 
 ```ts
-function ProjectEditRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectEditRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5724,7 +5905,7 @@ import { ProjectEditRoute } from '@/components/project-routes/ProjectEditRoute';
 - Export type: named
 
 ```ts
-function ProjectEstimatesRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectEstimatesRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5745,7 +5926,7 @@ import { ProjectEstimatesRoute } from '@/components/project-routes/ProjectEstima
 - Export type: named
 
 ```ts
-function ProjectEstimatesView({ projectId, estimates, quotes, onRefresh }: ProjectEstimatesViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectEstimatesView({ projectId, estimates, quotes, onRefresh }: ProjectEstimatesViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5766,7 +5947,7 @@ import { ProjectEstimatesView } from '@/components/ProjectEstimatesView';
 - Export type: named
 
 ```ts
-function ProjectExpensesRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectExpensesRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5787,7 +5968,7 @@ import { ProjectExpensesRoute } from '@/components/project-routes/ProjectExpense
 - Export type: named
 
 ```ts
-function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectExportModal({ isOpen, onClose, filters }: ProjectExportModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5815,7 +5996,7 @@ function ProjectFilters({
   leftActions,
   actions,
   clients
-}: ProjectFiltersProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectFiltersProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5836,7 +6017,7 @@ import { ProjectFilters } from '@/components/ProjectFilters';
 - Export type: named
 
 ```ts
-function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, defaultProjectType = 'construction_project' }: ProjectFormSimpleProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, defaultProjectType = 'construction_project' }: ProjectFormSimpleProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5866,7 +6047,7 @@ function ProjectMediaGallery({
   externalActiveTab,
   hideInternalTabs = false,
   controlsContainerRef,
-}: ProjectMediaGalleryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectMediaGalleryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5879,6 +6060,23 @@ import { ProjectMediaGallery } from '@/components/ProjectMediaGallery';
 <ProjectMediaGallery {...props} />
 ```
 
+### ProjectNew
+
+**Import:** `@/pages/ProjectNew`
+
+- Defined in: `pages/ProjectNew.tsx`
+- Export type: default
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import ProjectNew from '@/pages/ProjectNew';
+
+<ProjectNew {...props} />
+```
+
 ### ProjectNotesTimeline
 
 **Import:** `@/components/ProjectNotesTimeline`
@@ -5887,7 +6085,7 @@ import { ProjectMediaGallery } from '@/components/ProjectMediaGallery';
 - Export type: named
 
 ```ts
-function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer = false }: ProjectNotesTimelineProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer = false }: ProjectNotesTimelineProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5918,7 +6116,7 @@ function ProjectOperationalDashboard({
   pendingReceipts,
   mediaCounts,
   documentCount
-}: ProjectOperationalDashboardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectOperationalDashboardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5946,7 +6144,7 @@ function ProjectOption({
   meta,
   className,
   size = "md",
-}: ProjectOptionProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectOptionProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5967,7 +6165,7 @@ import { ProjectOption } from '@/components/projects/ProjectOption';
 - Export type: named
 
 ```ts
-function ProjectOverviewRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectOverviewRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5992,7 +6190,7 @@ function ProjectPicker({
   value,
   onChange,
   disabled = false,
-}: ProjectPickerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectPickerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6017,7 +6215,7 @@ function ProjectProfitTable({
   data, 
   enablePagination = false, 
   pageSize = 10 
-}: ProjectProfitTableProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectProfitTableProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6038,7 +6236,7 @@ import ProjectProfitTable from '@/components/ProjectProfitTable';
 - Export type: named
 
 ```ts
-function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectQuotePDFsList({ projectId }: ProjectQuotePDFsListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6059,7 +6257,7 @@ import { ProjectQuotePDFsList } from '@/components/ProjectQuotePDFsList';
 - Export type: named
 
 ```ts
-function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6097,7 +6295,7 @@ import Projects from '@/pages/Projects';
 - Export type: named
 
 ```ts
-function ProjectScheduleRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectScheduleRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6123,7 +6321,7 @@ function ProjectScheduleSelector({
   projects,
   onSelectProject,
   onClose,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6148,7 +6346,7 @@ function ProjectScheduleView({
   projectId, 
   projectStartDate, 
   projectEndDate 
-}: ProjectScheduleViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectScheduleViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6175,7 +6373,7 @@ function ProjectSelector({
   onSelect,
   onCreateNew,
   placeholder = "Select a project..."
-}: ProjectSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6202,8 +6400,9 @@ function ProjectSelectorNew({
   onSelect,
   onCreateNew,
   placeholder = "Select a project...",
-  hideCreateButton = false
-}: ProjectSelectorNewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+  hideCreateButton = false,
+  disabled = false,
+}: ProjectSelectorNewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6233,7 +6432,7 @@ function ProjectsList({
   onRefresh, 
   enablePagination = false,
   pageSize = 12 
-}: ProjectsListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectsListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6273,7 +6472,7 @@ function ProjectsTableView({
   totalPages = 1,
   onPageChange,
   onRefresh,
-}: ProjectsTableViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectsTableViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6294,7 +6493,7 @@ import { ProjectsTableView } from '@/components/ProjectsTableView';
 - Export type: named
 
 ```ts
-function ProjectStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ProjectStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6323,7 +6522,7 @@ function ProjectStatusCard({
   activeProjectedMargin,
   activeProjectedMarginPercent,
   totalInvoiced
-}: ProjectStatusCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectStatusCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6353,7 +6552,7 @@ function ProjectStatusSelector({
   onStatusChange,
   disabled = false,
   showLabel = false
-}: ProjectStatusSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ProjectStatusSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6379,7 +6578,7 @@ function PullToRefreshIndicator({
   pullProgress,
   isRefreshing,
   threshold = 60,
-}: PullToRefreshIndicatorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: PullToRefreshIndicatorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 Visual indicator for pull-to-refresh.
@@ -6391,6 +6590,37 @@ Shows pull progress and spinning loader when refreshing.
 import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicator';
 
 <PullToRefreshIndicator {...props} />
+```
+
+### QuickAddPayee
+
+**Import:** `@/components/QuickAddPayee`
+
+- Defined in: `components/QuickAddPayee.tsx`
+- Export type: named
+
+```ts
+function QuickAddPayee({
+  open,
+  onOpenChange,
+  onCreated,
+  defaultPayeeType = PayeeType.MATERIAL_SUPPLIER,
+  defaultProvidesLabor,
+  defaultIsInternal = false,
+  isMobile = false,
+}: QuickAddPayeeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+Minimal payee creation form for inline use inside selectors (receipts, expenses, time entries).
+Captures only name + type + optional contact info. The full PayeeForm (1099, insurance,
+contract terms, billing address, etc.) lives on the /payees page for back-office editing.
+
+**Example**
+
+```tsx
+import { QuickAddPayee } from '@/components/QuickAddPayee';
+
+<QuickAddPayee {...props} />
 ```
 
 ### QuickBooksBackfillModal
@@ -6405,7 +6635,7 @@ function QuickBooksBackfillModal({
   open,
   onClose,
   onSuccess,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6426,7 +6656,7 @@ import { QuickBooksBackfillModal } from '@/components/QuickBooksBackfillModal';
 - Export type: named
 
 ```ts
-function QuickBooksSettings(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuickBooksSettings(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6450,7 +6680,7 @@ import { QuickBooksSettings } from '@/components/QuickBooksSettings';
 function QuickBooksSyncHistory({
   open,
   onClose
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6476,7 +6706,7 @@ function QuickBooksSyncModal({
   onClose,
   onSuccess,
   defaultDaysBack = 30
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6497,7 +6727,7 @@ import { QuickBooksSyncModal } from '@/components/QuickBooksSyncModal';
 - Export type: named
 
 ```ts
-function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaptionModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuickCaptionModal({ photo, open, onClose, onSave }: QuickCaptionModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6543,7 +6773,7 @@ function QuoteAttachmentUpload({
   disabled = false,
   relatedQuoteId,
   onViewDocument,
-}: QuoteAttachmentUploadProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: QuoteAttachmentUploadProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6556,15 +6786,15 @@ import { QuoteAttachmentUpload } from '@/components/QuoteAttachmentUpload';
 <QuoteAttachmentUpload {...props} />
 ```
 
-### QuoteComparison
+### QuoteComparePeerRoute
 
-**Import:** `@/components/QuoteComparison`
+**Import:** `@/components/project-routes/QuoteComparePeerRoute`
 
-- Defined in: `components/QuoteComparison.tsx`
+- Defined in: `components/project-routes/QuoteComparePeerRoute.tsx`
 - Export type: named
 
 ```ts
-function QuoteComparison({ quote, estimate, onBack }: QuoteComparisonProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuoteComparePeerRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6572,9 +6802,85 @@ _No inline documentation provided._
 **Example**
 
 ```tsx
-import { QuoteComparison } from '@/components/QuoteComparison';
+import { QuoteComparePeerRoute } from '@/components/project-routes/QuoteComparePeerRoute';
 
-<QuoteComparison {...props} />
+<QuoteComparePeerRoute {...props} />
+```
+
+### QuoteComparisonPeer
+
+**Import:** `@/components/quotes/QuoteComparisonPeer`
+
+- Defined in: `components/quotes/QuoteComparisonPeer.tsx`
+- Export type: named
+
+```ts
+function QuoteComparisonPeer({
+  quote,
+  quotes,
+  estimates,
+  onBack,
+  peerHrefBuilder,
+  onOpenPeer,
+}: QuoteComparisonPeerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { QuoteComparisonPeer } from '@/components/quotes/QuoteComparisonPeer';
+
+<QuoteComparisonPeer {...props} />
+```
+
+### QuoteCoverageCard
+
+**Import:** `@/components/quotes/QuoteCoverageCard`
+
+- Defined in: `components/quotes/QuoteCoverageCard.tsx`
+- Export type: named
+
+```ts
+function QuoteCoverageCard({ quote, estimates }: QuoteCoverageCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { QuoteCoverageCard } from '@/components/quotes/QuoteCoverageCard';
+
+<QuoteCoverageCard {...props} />
+```
+
+### QuoteDocumentsCard
+
+**Import:** `@/components/quotes/QuoteDocumentsCard`
+
+- Defined in: `components/quotes/QuoteDocumentsCard.tsx`
+- Export type: named
+
+```ts
+function QuoteDocumentsCard({
+  quote,
+  contracts,
+  contractsLoading,
+  onDeleteContract,
+  onAttachmentChange,
+}: QuoteDocumentsCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { QuoteDocumentsCard } from '@/components/quotes/QuoteDocumentsCard';
+
+<QuoteDocumentsCard {...props} />
 ```
 
 ### QuoteEditRoute
@@ -6585,7 +6891,7 @@ import { QuoteComparison } from '@/components/QuoteComparison';
 - Export type: named
 
 ```ts
-function QuoteEditRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuoteEditRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6610,7 +6916,7 @@ function QuoteExportModal({
   isOpen,
   onClose,
   filters
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6637,7 +6943,7 @@ function QuoteFilters({
   resultCount,
   clients,
   payees
-}: QuoteFiltersProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: QuoteFiltersProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6658,7 +6964,7 @@ import { QuoteFilters } from '@/components/QuoteFilters';
 - Export type: named
 
 ```ts
-function QuoteForm({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote, projectNumber, payeeName, onDeleteContract }: QuoteFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuoteForm({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote, projectNumber, payeeName, onDeleteContract }: QuoteFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6679,7 +6985,7 @@ import { QuoteForm } from '@/components/QuoteForm';
 - Export type: named
 
 ```ts
-function QuoteNewRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuoteNewRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6690,6 +6996,27 @@ _No inline documentation provided._
 import { QuoteNewRoute } from '@/components/project-routes/QuoteNewRoute';
 
 <QuoteNewRoute {...props} />
+```
+
+### QuoteNotesCard
+
+**Import:** `@/components/quotes/QuoteNotesCard`
+
+- Defined in: `components/quotes/QuoteNotesCard.tsx`
+- Export type: named
+
+```ts
+function QuoteNotesCard({ notes, rejectionReason }: QuoteNotesCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { QuoteNotesCard } from '@/components/quotes/QuoteNotesCard';
+
+<QuoteNotesCard {...props} />
 ```
 
 ### Quotes
@@ -6717,7 +7044,7 @@ import Quotes from '@/pages/Quotes';
 - Export type: named
 
 ```ts
-function QuotesList({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew, onRefresh }: QuotesListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuotesList({ quotes, estimates, onEdit, onView, onDelete, onCompare, onExpire, onCreateNew, onRefresh }: QuotesListProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6747,7 +7074,7 @@ function QuotesTableView({
   onCompare, 
   onCreateNew,
   onRefresh 
-}: QuotesTableViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: QuotesTableViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6768,7 +7095,7 @@ import { QuotesTableView } from '@/components/QuotesTableView';
 - Export type: named
 
 ```ts
-function QuoteStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuoteStatusBadge(props: Omit<StatusBadgeProps, 'type'>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6799,7 +7126,7 @@ function QuoteStatusSelector({
   onStatusChange,
   disabled = false,
   showLabel = false
-}: QuoteStatusSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: QuoteStatusSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6812,6 +7139,38 @@ import { QuoteStatusSelector } from '@/components/QuoteStatusSelector';
 <QuoteStatusSelector {...props} />
 ```
 
+### QuoteViewHero
+
+**Import:** `@/components/quotes/QuoteViewHero`
+
+- Defined in: `components/quotes/QuoteViewHero.tsx`
+- Export type: named
+
+```ts
+function QuoteViewHero({
+  quote,
+  variance,
+  margin,
+  currentStatus,
+  hasGeneratedContract,
+  peerCount = 0,
+  onStatusChange,
+  onEdit,
+  onGenerateContract,
+  onCompare,
+}: QuoteViewHeroProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { QuoteViewHero } from '@/components/quotes/QuoteViewHero';
+
+<QuoteViewHero {...props} />
+```
+
 ### QuoteViewRoute
 
 **Import:** `@/components/project-routes/QuoteViewRoute`
@@ -6820,7 +7179,7 @@ import { QuoteStatusSelector } from '@/components/QuoteStatusSelector';
 - Export type: named
 
 ```ts
-function QuoteViewRoute(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function QuoteViewRoute(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6847,7 +7206,7 @@ function ReassignExpenseProjectDialog({
   onSuccess,
   expenseIds,
   currentProjectName,
-}: ReassignExpenseProjectDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ReassignExpenseProjectDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6874,7 +7233,7 @@ function ReassignReceiptDialog({
   onSuccess,
   receiptIds,
   currentProjectNumber,
-}: ReassignReceiptDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ReassignReceiptDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6887,29 +7246,40 @@ import { ReassignReceiptDialog } from '@/components/time-tracker/ReassignReceipt
 <ReassignReceiptDialog {...props} />
 ```
 
-### ReceiptCapture
+### RecategorizeOtherBucketSheet
 
-**Import:** `@/components/time-tracker/ReceiptCapture`
+**Import:** `@/components/cost-tracking/RecategorizeOtherBucketSheet`
 
-- Defined in: `components/time-tracker/ReceiptCapture.tsx`
+- Defined in: `components/cost-tracking/RecategorizeOtherBucketSheet.tsx`
 - Export type: named
 
 ```ts
-function ReceiptCapture({ 
-  projectId, 
-  onCapture,
-  onSkip
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function RecategorizeOtherBucketSheet({
+  projectId,
+  sourceCategory = ExpenseCategory.OTHER,
+  open,
+  onOpenChange,
+  onRecategorized,
+}: RecategorizeOtherBucketSheetProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
-_No inline documentation provided._
+Bulk-recategorize the expenses sitting inside a bucket on the Cost Tracking
+page (typically the "Other" bucket). Admin picks a target category from the
+dropdown, deselects any rows that shouldn't move, and confirms. The update
+is a single `.update().in('id', ids)` — the DB's
+enforce_project_default_expense_category trigger (Rule 6a) is a no-op here
+because this sheet is only opened for construction projects whose
+default_expense_category is NULL.
+
+On success: invalidates dashboard + cost-bucket + expenses-search caches
+via the parent's onRecategorized callback (Gotcha #27 invalidation fanout).
 
 **Example**
 
 ```tsx
-import { ReceiptCapture } from '@/components/time-tracker/ReceiptCapture';
+import { RecategorizeOtherBucketSheet } from '@/components/cost-tracking/RecategorizeOtherBucketSheet';
 
-<ReceiptCapture {...props} />
+<RecategorizeOtherBucketSheet {...props} />
 ```
 
 ### ReceiptLinkModal
@@ -6925,7 +7295,7 @@ function ReceiptLinkModal({
   onOpenChange,
   expense,
   onSuccess,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -6951,7 +7321,7 @@ function ReceiptPreviewModal({
   onOpenChange,
   receiptUrl,
   timeEntryDetails,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7000,7 +7370,7 @@ function ReceiptSearchFilters({
   resultCount,
   payees,
   projects
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7021,7 +7391,7 @@ import { ReceiptSearchFilters } from '@/components/ReceiptSearchFilters';
 - Export type: named
 
 ```ts
-function ReceiptsGallery(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ReceiptsGallery(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7042,7 +7412,7 @@ import { ReceiptsGallery } from '@/components/time-tracker/ReceiptsGallery';
 - Export type: named
 
 ```ts
-function ReceiptsList(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ReceiptsList(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7106,7 +7476,7 @@ function ReceiptsTable({
   setPageSize,
   pagination,
   renderSortIcon,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7136,7 +7506,7 @@ function ReceiptsTableHeader({
   onSelectAll,
   allSelected,
   renderSortIcon,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7183,7 +7553,7 @@ function RejectTimeEntryDialog({
   onOpenChange,
   onConfirm,
   entryCount,
-}: RejectTimeEntryDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: RejectTimeEntryDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7211,7 +7581,7 @@ function ReportActionsMenu({
   onUse,
   onViewDetails,
   onDuplicate,
-}: ReportActionsMenuProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: ReportActionsMenuProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7249,7 +7619,7 @@ import ReportsPage from '@/pages/Reports';
 - Export type: named
 
 ```ts
-function ReportViewer({ data, fields, isLoading, pageSize: initialPageSize = 50 }: ReportViewerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ReportViewer({ data, fields, isLoading, pageSize: initialPageSize = 50 }: ReportViewerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7308,7 +7678,7 @@ import ResetPassword from '@/pages/ResetPassword';
 - Export type: default
 
 ```ts
-function ResetPasswordModal({ open, onOpenChange, userId, userEmail }: ResetPasswordModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ResetPasswordModal({ open, onOpenChange, userId, userEmail }: ResetPasswordModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7333,7 +7703,7 @@ function RevenueBulkActions({
   selectedRevenueIds, 
   onSelectionChange, 
   onComplete 
-}: RevenueBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: RevenueBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7359,7 +7729,7 @@ function RevenueForm({
   onSave,
   onCancel,
   defaultProjectId,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7387,7 +7757,7 @@ function RevenueFormSheet({
   onSave,
   defaultProjectId,
   projectName,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7419,7 +7789,7 @@ function RevenuesList({
   onVisibleColumnsChange,
   columnOrder: externalColumnOrder,
   onColumnOrderChange,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7445,7 +7815,7 @@ function RevenueSplitDialog({
   open,
   onClose,
   onSuccess,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7466,7 +7836,7 @@ import RevenueSplitDialog, { RevenueSplitDialog as RevenueSplitDialogNamed } fro
 - Export type: default
 
 ```ts
-function RoleManagement(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function RoleManagement(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7487,7 +7857,7 @@ import RoleManagement from '@/pages/RoleManagement';
 - Export type: named
 
 ```ts
-function RoleProvider({ children }: { children: ReactNode }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function RoleProvider({ children }: { children: ReactNode }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7508,7 +7878,7 @@ import { RoleProvider } from '@/contexts/RoleContext';
 - Export type: named
 
 ```ts
-function ScheduledSMSLogs({ scheduleIdFilter }: ScheduledSMSLogsProps = {}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ScheduledSMSLogs({ scheduleIdFilter }: ScheduledSMSLogsProps = {}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7529,7 +7899,7 @@ import { ScheduledSMSLogs } from '@/components/sms/ScheduledSMSLogs';
 - Export type: named
 
 ```ts
-function ScheduledSMSManager(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ScheduledSMSManager(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7558,7 +7928,7 @@ function ScheduleExportModal({
   projectNumber,
   clientName,
   ganttContainerRef
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7579,7 +7949,7 @@ import { ScheduleExportModal } from '@/components/schedule/ScheduleExportModal';
 - Export type: named
 
 ```ts
-function ScheduleSkeleton(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ScheduleSkeleton(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7600,7 +7970,7 @@ import { ScheduleSkeleton } from '@/components/schedule/ScheduleSkeleton';
 - Export type: default
 
 ```ts
-function ScheduleStats({ tasks }: ScheduleStatsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ScheduleStats({ tasks }: ScheduleStatsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7625,7 +7995,7 @@ function ScheduleTableView({
   tasks,
   projectId,
   onTaskClick,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7646,7 +8016,7 @@ import { ScheduleTableView } from '@/components/schedule/ScheduleTableView';
 - Export type: default
 
 ```ts
-function ScheduleWarningBanner({ warnings, onDismiss, onAdjust }: ScheduleWarningBannerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ScheduleWarningBanner({ warnings, onDismiss, onAdjust }: ScheduleWarningBannerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7710,7 +8080,7 @@ import { showCaptionPrompt } from '@/components/CaptionPromptToast';
 - Export type: named
 
 ```ts
-function SimpleFilterPanel({ filters, onFiltersChange, availableFields, dataSource }: SimpleFilterPanelProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SimpleFilterPanel({ filters, onFiltersChange, availableFields, dataSource }: SimpleFilterPanelProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7731,7 +8101,7 @@ import { SimpleFilterPanel } from '@/components/reports/SimpleFilterPanel';
 - Export type: named
 
 ```ts
-function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: ReportConfig, fields: ReportField[]) => void }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SimpleReportBuilder({ onRunReport }: { onRunReport: (config: ReportConfig, fields: ReportField[]) => void }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7752,7 +8122,7 @@ import { SimpleReportBuilder } from '@/components/reports/SimpleReportBuilder';
 - Export type: named
 
 ```ts
-function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7773,7 +8143,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 - Export type: default
 
 ```ts
-function SMSAdmin(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SMSAdmin(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7794,7 +8164,7 @@ import SMSAdmin from '@/pages/SMSAdmin';
 - Export type: named
 
 ```ts
-function SMSComposer(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SMSComposer(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7815,7 +8185,7 @@ import { SMSComposer } from '@/components/sms/SMSComposer';
 - Export type: named
 
 ```ts
-function SMSHistory(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SMSHistory(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7836,7 +8206,7 @@ import { SMSHistory } from '@/components/sms/SMSHistory';
 - Export type: named
 
 ```ts
-function SMSSettings(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SMSSettings(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7863,7 +8233,7 @@ function SOVGeneratorDialog({
   estimates,
   onGenerate,
   isGenerating,
-}: SOVGeneratorDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: SOVGeneratorDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7884,7 +8254,7 @@ import { SOVGeneratorDialog } from '@/components/payment-applications/SOVGenerat
 - Export type: named
 
 ```ts
-function SOVTable({ sov, lines }: SOVTableProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SOVTable({ sov, lines }: SOVTableProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7905,7 +8275,7 @@ import { SOVTable } from '@/components/payment-applications/SOVTable';
 - Export type: named
 
 ```ts
-function StatusBadge({ status, type, size = 'default', className, label }: StatusBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function StatusBadge({ status, type, size = 'default', className, label }: StatusBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7932,7 +8302,7 @@ function SyncStatusBadge({
   onMarkAsSynced, 
   onResetSync,
   showActions = false 
-}: SyncStatusBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: SyncStatusBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7953,7 +8323,7 @@ import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 - Export type: named
 
 ```ts
-function SyncStatusBanner(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function SyncStatusBanner(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -7974,7 +8344,7 @@ import { SyncStatusBanner } from '@/components/time-tracker/SyncStatusBanner';
 - Export type: default
 
 ```ts
-function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskEditPanelProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskEditPanelProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8001,7 +8371,7 @@ function TaskReorderPanel({
   onMoveDown,
   isOpen,
   onToggle
-}: TaskReorderPanelProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TaskReorderPanelProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8043,7 +8413,7 @@ import { tasksOverlap } from '@/components/schedule/utils/scheduleCalculations';
 - Export type: named
 
 ```ts
-function TemplateCard({ template, onUse, variant = 'default' }: TemplateCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TemplateCard({ template, onUse, variant = 'default' }: TemplateCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8064,7 +8434,7 @@ import { TemplateCard } from '@/components/reports/TemplateCard';
 - Export type: named
 
 ```ts
-function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8102,7 +8472,7 @@ function TimeEntriesCardView({
   onBulkReject,
   onBulkDelete,
   onClearSelection,
-}: TimeEntriesCardViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimeEntriesCardViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8162,7 +8532,7 @@ function TimeEntriesTable({
   setPageSize,
   pagination,
   renderSortIcon,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8192,7 +8562,7 @@ function TimeEntriesTableHeader({
   onSelectAll,
   allSelected,
   renderSortIcon,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8240,7 +8610,7 @@ function TimeEntryBulkActions({
   onReject,
   onDelete,
   onCancel,
-}: TimeEntryBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimeEntryBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8267,7 +8637,7 @@ function TimeEntryDialog({
   title, 
   description,
   children 
-}: TimeEntryDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimeEntryDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8294,7 +8664,7 @@ function TimeEntryExportModal({
   entries,
   filters,
   totalCount
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8322,7 +8692,7 @@ function TimeEntrySearchFilters({
   resultCount,
   workers,
   projects
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8343,7 +8713,7 @@ import { TimeEntrySearchFilters } from '@/components/TimeEntrySearchFilters';
 - Export type: named
 
 ```ts
-function TimelineStoryView({ media, onMediaClick }: TimelineStoryViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TimelineStoryView({ media, onMediaClick }: TimelineStoryViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8354,6 +8724,32 @@ _No inline documentation provided._
 import { TimelineStoryView } from '@/components/TimelineStoryView';
 
 <TimelineStoryView {...props} />
+```
+
+### TimePeriodFilter
+
+**Import:** `@/components/ui/time-period-filter`
+
+- Defined in: `components/ui/time-period-filter.tsx`
+- Export type: named
+
+```ts
+function TimePeriodFilter({
+  value,
+  onChange,
+  size = "sm",
+  className,
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { TimePeriodFilter } from '@/components/ui/time-period-filter';
+
+<TimePeriodFilter {...props} />
 ```
 
 ### TimePicker
@@ -8370,7 +8766,7 @@ function TimePicker({
   trigger,
   disabled = false,
   isMobile = false,
-}: TimePickerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimePickerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8398,7 +8794,7 @@ function TimePickerButton({
   disabled = false,
   className,
   placeholder = '--:-- --',
-}: TimePickerButtonProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimePickerButtonProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8425,7 +8821,7 @@ function TimeRangeField({
   onStartTimeChange,
   onEndTimeChange,
   disabled = false,
-}: TimeRangeFieldProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimeRangeFieldProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8451,7 +8847,7 @@ function TimesheetGridCell({
   onChange,
   hourlyRate,
   disabled = false
-}: TimesheetGridCellProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TimesheetGridCellProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8472,7 +8868,7 @@ import { TimesheetGridCell } from '@/components/TimesheetGridCell';
 - Export type: named
 
 ```ts
-function TimesheetGridView({ open, onClose, onSuccess, preselectedProjectId }: TimesheetGridViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TimesheetGridView({ open, onClose, onSuccess, preselectedProjectId }: TimesheetGridViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8493,7 +8889,7 @@ import { TimesheetGridView } from '@/components/TimesheetGridView';
 - Export type: named
 
 ```ts
-function TimesheetSummary({ entries, validationErrors }: TimesheetSummaryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TimesheetSummary({ entries, validationErrors }: TimesheetSummaryProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8514,7 +8910,7 @@ import { TimesheetSummary } from '@/components/TimesheetSummary';
 - Export type: named
 
 ```ts
-function TimesheetWeekSelector({ startDate, endDate, onChange }: TimesheetWeekSelectorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TimesheetWeekSelector({ startDate, endDate, onChange }: TimesheetWeekSelectorProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8552,7 +8948,7 @@ import TimeTracker from '@/pages/TimeTracker';
 - Export type: default
 
 ```ts
-function Training(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function Training(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8573,7 +8969,7 @@ import Training from '@/pages/Training';
 - Export type: default
 
 ```ts
-function TrainingAdmin(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TrainingAdmin(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8599,7 +8995,7 @@ function TrainingAssignmentDialog({
   onOpenChange,
   trainingContentId,
   onSuccess,
-}: TrainingAssignmentDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TrainingAssignmentDialogProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8620,7 +9016,7 @@ import { TrainingAssignmentDialog } from '@/components/training/TrainingAssignme
 - Export type: named
 
 ```ts
-function TrainingContentForm({ content, onSave, onCancel }: TrainingContentFormProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TrainingContentForm({ content, onSave, onCancel }: TrainingContentFormProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8641,7 +9037,7 @@ import { TrainingContentForm } from '@/components/training/TrainingContentForm';
 - Export type: default
 
 ```ts
-function TrainingViewer(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function TrainingViewer(): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8677,7 +9073,7 @@ function TransactionSelectionControls({
   onStatusFilterChange,
   searchQuery,
   onSearchChange,
-}: TransactionSelectionControlsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TransactionSelectionControlsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8704,7 +9100,7 @@ function TransactionSelectionTable({
   onSelectionChange,
   statusFilter = 'all',
   searchQuery = '',
-}: TransactionSelectionTableProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: TransactionSelectionTableProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8746,7 +9142,7 @@ import { validateTask } from '@/components/schedule/utils/scheduleValidation';
 - Export type: named
 
 ```ts
-function VarianceBadge({ variance, percentage, type, className }: VarianceBadgeProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function VarianceBadge({ variance, percentage, type, className }: VarianceBadgeProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8767,7 +9163,7 @@ import { VarianceBadge } from '@/components/ui/variance-badge';
 - Export type: named
 
 ```ts
-function VersionEvolutionChart({ data }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function VersionEvolutionChart({ data }): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8788,7 +9184,7 @@ import { VersionEvolutionChart } from '@/components/VersionEvolutionChart';
 - Export type: named
 
 ```ts
-function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLightboxProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLightboxProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8809,7 +9205,7 @@ import { VideoLightbox } from '@/components/VideoLightbox';
 - Export type: named
 
 ```ts
-function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: VoiceCaptionModalProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function VoiceCaptionModal({ open, onClose, onCaptionReady, imageUrl }: VoiceCaptionModalProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8834,7 +9230,7 @@ function VoiceNoteButton({
   onTranscription,
   disabled = false,
   variant = 'icon',
-}: VoiceNoteButtonProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: VoiceNoteButtonProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8855,7 +9251,7 @@ import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
 - Export type: named
 
 ```ts
-function WeekView({ onEditEntry, onCreateEntry }: WeekViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function WeekView({ onEditEntry, onCreateEntry }: WeekViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8882,7 +9278,7 @@ function WorkerPicker({
   disabled = false,
   showRates = false,
   restrictToCurrentUser = false,
-}: WorkerPickerProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: WorkerPickerProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8908,7 +9304,7 @@ function WorkOrderBulkActions({
   onStatusUpdate,
   onDelete,
   onCancel,
-}: WorkOrderBulkActionsProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: WorkOrderBulkActionsProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8951,7 +9347,7 @@ function WorkOrderEditSheet({
   onOpenChange,
   workOrder,
   onSave,
-}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8979,7 +9375,7 @@ function WorkOrderFilters({
   leftActions,
   actions,
   clients
-}: WorkOrderFiltersProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: WorkOrderFiltersProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -9039,7 +9435,7 @@ function WorkOrdersTableView({
   currentPage = 1,
   totalPages = 1,
   onPageChange,
-}: WorkOrdersTableViewProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: WorkOrdersTableViewProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -9068,7 +9464,7 @@ function WorkOrderStatusCard({
   activeProjectedMargin,
   activeProjectedMarginPercent,
   totalInvoiced
-}: WorkOrderStatusCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+}: WorkOrderStatusCardProps): import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -9083,7 +9479,7 @@ import { WorkOrderStatusCard } from '@/components/dashboard/WorkOrderStatusCard'
 
 ## Hooks
 
-Total: 82
+Total: 86
 
 ### calculateSummaryTotals
 
@@ -9093,7 +9489,7 @@ Total: 82
 - Export type: named
 
 ```ts
-function calculateSummaryTotals(projects: ProfitAnalysisProject[]): import("C:/Dev/profitbuild-dash/src/types/profitAnalysis").ProfitSummaryTotals
+function calculateSummaryTotals(projects: ProfitAnalysisProject[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profitAnalysis").ProfitSummaryTotals
 ```
 
 Calculate summary totals from project data
@@ -9136,7 +9532,7 @@ const result = clearGeocodeCache(/* params */);
 - Export type: named
 
 ```ts
-{ all: readonly ["receipts"]; list: () => readonly ["receipts", "list"]; payees: () => readonly ["receipt-payees"]; projects: () => readonly ["receipt-projects"]; }
+{ all: readonly ["receipts"]; list: (loadAll: boolean) => readonly ["receipts", "list", "all" | "windowed"]; count: () => readonly ["receipts", "count"]; stats: () => readonly ["receipts", "stats"]; payees: () => readonly ["receipt-payees"]; projects: () => readonly ["receipt-projects"]; }
 ```
 
 _No inline documentation provided._
@@ -9178,7 +9574,7 @@ const result = useActivityTracker(/* params */);
 - Export type: named
 
 ```ts
-function useAICaptionEnhancement(): { enhance: (imageUrl: string, originalCaption: string, options: import("C:/Dev/profitbuild-dash/src/hooks/useAICaptionEnhancement").EnhancementOptions) => Promise<import("C:/Dev/profitbuild-dash/src/hooks/useAICaptionEnhancement").EnhancementResult>; isEnhancing: boolean; error: string; reset: () => void; }
+function useAICaptionEnhancement(): { enhance: (imageUrl: string, originalCaption: string, options: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useAICaptionEnhancement").EnhancementOptions) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useAICaptionEnhancement").EnhancementResult>; isEnhancing: boolean; error: string; reset: () => void; }
 ```
 
 _No inline documentation provided._
@@ -9199,7 +9595,7 @@ const result = useAICaptionEnhancement(/* params */);
 - Export type: named
 
 ```ts
-function useAIReportAssistant(): { messages: import("C:/Dev/profitbuild-dash/src/hooks/useAIReportAssistant").AIMessage[]; isLoading: boolean; error: string; sendQuery: (query: string) => Promise<import("C:/Dev/profitbuild-dash/src/hooks/useAIReportAssistant").AIReportResult>; clearHistory: () => void; }
+function useAIReportAssistant(): { messages: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useAIReportAssistant").AIMessage[]; isLoading: boolean; error: string; sendQuery: (query: string) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useAIReportAssistant").AIReportResult>; clearHistory: () => void; }
 ```
 
 _No inline documentation provided._
@@ -9438,11 +9834,20 @@ const result = useContractData(/* params */);
 - Export type: named
 
 ```ts
-function useCreateLinkedPayee(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, import("C:/Dev/profitbuild-dash/src/hooks/useEmployeesAudit").EmployeeAuditRow, unknown>
+function useCreateLinkedPayee(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, { row: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useEmployeesAudit").EmployeeAuditRow; workerType?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useEmployeesAudit").FieldWorkerPayeeType; }, unknown>
 ```
 
-Create a linked internal payee for a role-holder that has no payee row yet.
-Sets provides_labor based on role (field_worker → true, admin/manager → false).
+Create a linked payee for a role-holder that has no payee row yet.
+
+Field workers can be backed by EITHER an internal employee OR a labor-providing
+subcontractor — the second `workerType` argument distinguishes the two. Defaults
+to 'internal' so admin/manager calls remain a single-arg call without breakage.
+
+Pre-May 8 2026 this hook hard-coded `is_internal: true, payee_type: 'internal_labor'`
+— which silently miscategorized any subcontractor user whose auto-payee creation
+had failed at create-time and was being retried via Role Management's "Enable"
+button. Their first time entry would then post as labor_internal × $75/hr instead
+of subcontractors × $0. Net effect: phantom labor cost on the project.
 
 **Example**
 
@@ -9460,7 +9865,7 @@ const result = useCreateLinkedPayee(/* params */);
 - Export type: named
 
 ```ts
-function useDeactivatePayee(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
+function useDeactivatePayee(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
 ```
 
 Deactivate an existing payee (e.g. an unlinked legacy record the admin doesn't want to use).
@@ -9503,7 +9908,7 @@ const result = useDebounce(/* params */);
 - Export type: named
 
 ```ts
-function useDocumentPreview(): import("C:/Dev/profitbuild-dash/src/hooks/useDocumentPreview").UseDocumentPreviewReturn
+function useDocumentPreview(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useDocumentPreview").UseDocumentPreviewReturn
 ```
 
 _No inline documentation provided._
@@ -9524,7 +9929,7 @@ const result = useDocumentPreview(/* params */);
 - Export type: named
 
 ```ts
-function useEmployeesAudit(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/hooks/useEmployeesAudit").EmployeeAuditRow[], Error>
+function useEmployeesAudit(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useEmployeesAudit").EmployeeAuditRow[], Error>
 ```
 
 Admin-only read: every role-holder with their internal-payee linkage status.
@@ -9547,7 +9952,7 @@ const result = useEmployeesAudit(/* params */);
 - Export type: named
 
 ```ts
-function useEstimateQuoteStatus(estimateId?: string): { lineItems: import("C:/Dev/profitbuild-dash/src/hooks/useEstimateQuoteStatus").EstimateLineItemQuoteStatus[]; summary: import("C:/Dev/profitbuild-dash/src/hooks/useEstimateQuoteStatus").EstimateQuoteStatusSummary; isLoading: boolean; error: string; fetchData: (id: string) => Promise<void>; fetchAllSummaries: () => Promise<any[]>; clearError: () => void; }
+function useEstimateQuoteStatus(estimateId?: string): { lineItems: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useEstimateQuoteStatus").EstimateLineItemQuoteStatus[]; summary: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useEstimateQuoteStatus").EstimateQuoteStatusSummary; isLoading: boolean; error: string; fetchData: (id: string) => Promise<void>; fetchAllSummaries: () => Promise<any[]>; clearError: () => void; }
 ```
 
 _No inline documentation provided._
@@ -9560,6 +9965,27 @@ import { useEstimateQuoteStatus } from '@/hooks/useEstimateQuoteStatus';
 const result = useEstimateQuoteStatus(/* params */);
 ```
 
+### useExpenseDashboardData
+
+**Import:** `@/hooks/useExpenseDashboardData`
+
+- Defined in: `hooks/useExpenseDashboardData.ts`
+- Export type: named
+
+```ts
+function useExpenseDashboardData(projectCategory?: ProjectCategory, range: DashboardDateRange = {}): { stats: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useExpenseDashboardData").DashboardStats; categories: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useExpenseDashboardData").CategoryRollupRow[]; recent: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useExpenseDashboardData").RecentExpenseRow[]; isLoading: boolean; error: Error; }
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useExpenseDashboardData } from '@/hooks/useExpenseDashboardData';
+
+const result = useExpenseDashboardData(/* params */);
+```
+
 ### useExpensesQuery
 
 **Import:** `@/hooks/useExpensesQuery`
@@ -9568,7 +9994,7 @@ const result = useEstimateQuoteStatus(/* params */);
 - Export type: named
 
 ```ts
-function useExpensesQuery(filters: ExpensesQueryFilters = {}, options: { enabled?: boolean } = {}): { data: import("C:/Dev/profitbuild-dash/src/types/expense").Expense[]; totalCount: number; isLoading: boolean; isFetching: boolean; isFetchingNextPage: boolean; hasNextPage: boolean; fetchNextPage: (options?: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").av) => Promise<import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aQ<import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").a8<ExpensesPage, unknown>, Error>>; refetch: (options?: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aq) => Promise<import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aH<import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").a8<ExpensesPage, unknown>, Error>>; error: Error; }
+function useExpensesQuery(filters: ExpensesQueryFilters = {}, options: { enabled?: boolean } = {}): { data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").Expense[]; totalCount: number; isLoading: boolean; isFetching: boolean; isFetchingNextPage: boolean; hasNextPage: boolean; fetchNextPage: (options?: import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").av) => Promise<import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aQ<import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").a8<ExpensesPage, unknown>, Error>>; refetch: (options?: import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aq) => Promise<import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aH<import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").a8<ExpensesPage, unknown>, Error>>; error: Error; }
 ```
 
 _No inline documentation provided._
@@ -9579,6 +10005,29 @@ _No inline documentation provided._
 import { useExpensesQuery } from '@/hooks/useExpensesQuery';
 
 const result = useExpensesQuery(/* params */);
+```
+
+### useGenerateInvoiceDescription
+
+**Import:** `@/hooks/useGenerateInvoiceDescription`
+
+- Defined in: `hooks/useGenerateInvoiceDescription.ts`
+- Export type: named
+
+```ts
+function useGenerateInvoiceDescription(): { generate: ({ projectId, estimateId }: GenerateArgs) => Promise<GenerateInvoiceDescriptionResult>; isGenerating: boolean; error: string; }
+```
+
+Calls the `generate-invoice-description` edge function. Returns the AI-drafted
+narrative (≤150 words) or an empty string when no approved current-version
+estimate exists. Caller controls toast/UI side effects.
+
+**Example**
+
+```ts
+import { useGenerateInvoiceDescription } from '@/hooks/useGenerateInvoiceDescription';
+
+const result = useGenerateInvoiceDescription(/* params */);
 ```
 
 ### useGeolocation
@@ -9611,7 +10060,7 @@ const result = useGeolocation(/* params */);
 - Export type: named
 
 ```ts
-function useHardDeletePayee(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
+function useHardDeletePayee(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
 ```
 
 Hard-delete a payee row. Will fail at the DB level (FK constraint 23503) if anything
@@ -9638,7 +10087,7 @@ const result = useHardDeletePayee(/* params */);
 - Export type: named
 
 ```ts
-function useInternalLaborRates(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/types/companySettings").InternalLaborRates, Error>
+function useInternalLaborRates(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/companySettings").InternalLaborRates, Error>
 ```
 
 Hook to fetch internal labor rates from company settings
@@ -9649,6 +10098,35 @@ Hook to fetch internal labor rates from company settings
 import { useInternalLaborRates } from '@/hooks/useCompanySettings';
 
 const result = useInternalLaborRates(/* params */);
+```
+
+### useInvoiceData
+
+**Import:** `@/hooks/useInvoiceData`
+
+- Defined in: `hooks/useInvoiceData.ts`
+- Export type: named
+
+```ts
+function useInvoiceData({
+  projectId,
+  revenueId,
+  clientId,
+}: UseInvoiceDataParams): UseInvoiceDataResult
+```
+
+Loads everything needed to prefill the invoice generation modal:
+project + client + revenue + company_settings (for RCG defaults).
+
+Mirrors the shape of `useContractData`. Description is intentionally left
+blank — the modal calls `useGenerateInvoiceDescription` to draft it.
+
+**Example**
+
+```ts
+import { useInvoiceData } from '@/hooks/useInvoiceData';
+
+const result = useInvoiceData(/* params */);
 ```
 
 ### useIsMobile
@@ -9701,7 +10179,7 @@ const result = useLineItemControl(/* params */);
 - Export type: named
 
 ```ts
-function useLinkExistingPayee(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, import("C:/Dev/profitbuild-dash/src/hooks/useEmployeesAudit").EmployeeAuditRow, unknown>
+function useLinkExistingPayee(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useEmployeesAudit").EmployeeAuditRow, unknown>
 ```
 
 Link an existing unlinked internal payee to the role-holder with the matching email.
@@ -9722,7 +10200,7 @@ const result = useLinkExistingPayee(/* params */);
 - Export type: named
 
 ```ts
-function useMentionableUsers(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<any, Error>
+function useMentionableUsers(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/notification").MentionableUser[], Error>
 ```
 
 Returns every role-holder who can be
@@ -9743,7 +10221,7 @@ const result = useMentionableUsers(/* params */);
 - Export type: named
 
 ```ts
-function useMyTraining(): { items: import("C:/Dev/profitbuild-dash/src/types/training").MyTrainingItem[]; stats: import("C:/Dev/profitbuild-dash/src/types/training").TrainingStats; isLoading: boolean; markComplete: (contentId: string, options?: { time_spent_minutes?: number; notes?: string; }) => Promise<boolean>; refresh: () => Promise<void>; }
+function useMyTraining(): { items: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").MyTrainingItem[]; stats: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingStats; isLoading: boolean; markComplete: (contentId: string, options?: { time_spent_minutes?: number; notes?: string; }) => Promise<boolean>; refresh: () => Promise<void>; }
 ```
 
 _No inline documentation provided._
@@ -9789,7 +10267,7 @@ function useOvernightDetection({
   date,
   startTime,
   endTime,
-}: UseOvernightDetectionParams): import("C:/Dev/profitbuild-dash/src/components/time-entry-form/hooks/useOvernightDetection").UseOvernightDetectionResult
+}: UseOvernightDetectionParams): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/time-entry-form/hooks/useOvernightDetection").UseOvernightDetectionResult
 ```
 
 Detects when shift crosses midnight (endTime <= startTime in HH:mm)
@@ -9836,7 +10314,7 @@ const result = usePagination(/* params */);
 - Export type: named
 
 ```ts
-function usePaymentApplicationLines(applicationId: string | null): { lines: import("C:/Dev/profitbuild-dash/src/types/paymentApplication").PaymentApplicationLineWithSOV[]; isLoading: boolean; updateLine: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, { lineId: string; currentWork: number; storedMaterials: number; }, unknown>; refetch: (options?: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aq) => Promise<import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aH<import("C:/Dev/profitbuild-dash/src/types/paymentApplication").PaymentApplicationLineWithSOV[], Error>>; }
+function usePaymentApplicationLines(applicationId: string | null): { lines: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/paymentApplication").PaymentApplicationLineWithSOV[]; isLoading: boolean; updateLine: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, { lineId: string; currentWork: number; storedMaterials: number; }, unknown>; refetch: (options?: import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aq) => Promise<import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aH<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/paymentApplication").PaymentApplicationLineWithSOV[], Error>>; }
 ```
 
 _No inline documentation provided._
@@ -9857,7 +10335,7 @@ const result = usePaymentApplicationLines(/* params */);
 - Export type: named
 
 ```ts
-function usePaymentApplications(projectId: string): { applications: { application_number: number; balance_to_finish: number; certified_amount: number; certified_by: string; certified_date: string; contract_sum_to_date: number; created_at: string; created_by: string; current_payment_due: number; g702_pdf_storage_path: string; g702_pdf_url: string; g703_pdf_storage_path: string; g703_pdf_url: string; id: string; net_change_orders: number; notes: string; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: "rejected" | "draft" | "submitted" | "certified" | "paid"; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }[]; isLoading: boolean; createApplication: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<string, Error, { periodFrom: string; periodTo: string; }, unknown>; updateStatus: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, { applicationId: string; status: "rejected" | "draft" | "submitted" | "certified" | "paid"; certifiedAmount?: number; certifiedBy?: string; }, unknown>; deleteApplication: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, string, unknown>; refetch: (options?: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aq) => Promise<import("C:/Dev/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aH<{ application_number: number; balance_to_finish: number; certified_amount: number; certified_by: string; certified_date: string; contract_sum_to_date: number; created_at: string; created_by: string; current_payment_due: number; g702_pdf_storage_path: string; g702_pdf_url: string; g703_pdf_storage_path: string; g703_pdf_url: string; id: string; net_change_orders: number; notes: string; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: "rejected" | "draft" | "submitted" | "certified" | "paid"; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }[], Error>>; }
+function usePaymentApplications(projectId: string): { applications: { application_number: number; balance_to_finish: number; certified_amount: number; certified_by: string; certified_date: string; contract_sum_to_date: number; created_at: string; created_by: string; current_payment_due: number; g702_pdf_storage_path: string; g702_pdf_url: string; g703_pdf_storage_path: string; g703_pdf_url: string; id: string; net_change_orders: number; notes: string; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: "rejected" | "draft" | "submitted" | "certified" | "paid"; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }[]; isLoading: boolean; createApplication: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<string, Error, { periodFrom: string; periodTo: string; }, unknown>; updateStatus: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, { applicationId: string; status: "rejected" | "draft" | "submitted" | "certified" | "paid"; certifiedAmount?: number; certifiedBy?: string; }, unknown>; deleteApplication: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, string, unknown>; refetch: (options?: import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aq) => Promise<import("E:/profitbuild-dash/node_modules/@tanstack/query-core/build/modern/hydration-Cvr-9VdO").aH<{ application_number: number; balance_to_finish: number; certified_amount: number; certified_by: string; certified_date: string; contract_sum_to_date: number; created_at: string; created_by: string; current_payment_due: number; g702_pdf_storage_path: string; g702_pdf_url: string; g703_pdf_storage_path: string; g703_pdf_url: string; id: string; net_change_orders: number; notes: string; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: "rejected" | "draft" | "submitted" | "certified" | "paid"; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }[], Error>>; }
 ```
 
 _No inline documentation provided._
@@ -9899,7 +10377,7 @@ const result = usePendingCounts(/* params */);
 - Export type: named
 
 ```ts
-function useProfitAnalysisData(statusFilter: string[] = ['approved', 'in_progress', 'complete']): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/types/profitAnalysis").ProfitAnalysisProject[], Error>
+function useProfitAnalysisData(statusFilter: string[] = ['approved', 'in_progress', 'complete']): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profitAnalysis").ProfitAnalysisProject[], Error>
 ```
 
 _No inline documentation provided._
@@ -9934,6 +10412,27 @@ import { useProgressTracking } from '@/components/schedule/hooks/useProgressTrac
 const result = useProgressTracking(/* params */);
 ```
 
+### useProjectBreadcrumbs
+
+**Import:** `@/components/layout/useProjectBreadcrumbs`
+
+- Defined in: `components/layout/useProjectBreadcrumbs.ts`
+- Export type: named
+
+```ts
+function useProjectBreadcrumbs(project: ProjectWithFinancials | null | undefined, estimates: Estimate[] | undefined, quotes: Quote[] | undefined): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/layout/AppBreadcrumbs").AppBreadcrumbItem[]
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useProjectBreadcrumbs } from '@/components/layout/useProjectBreadcrumbs';
+
+const result = useProjectBreadcrumbs(/* params */);
+```
+
 ### useProjectContext
 
 **Import:** `@/components/ProjectDetailView`
@@ -9942,7 +10441,7 @@ const result = useProgressTracking(/* params */);
 - Export type: named
 
 ```ts
-function useProjectContext(): import("C:/Dev/profitbuild-dash/src/components/ProjectDetailView").ProjectOutletContext
+function useProjectContext(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/ProjectDetailView").ProjectOutletContext
 ```
 
 _No inline documentation provided._
@@ -9963,7 +10462,7 @@ const result = useProjectContext(/* params */);
 - Export type: named
 
 ```ts
-function useProjectCostBuckets(projectId: string, project: Project): import("C:/Dev/profitbuild-dash/src/hooks/useProjectCostBuckets").UseProjectCostBucketsResult
+function useProjectCostBuckets(projectId: string, project: Project): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useProjectCostBuckets").UseProjectCostBucketsResult
 ```
 
 Composite hook producing per-category cost buckets for the project.
@@ -9993,7 +10492,7 @@ const result = useProjectCostBuckets(/* params */);
 - Export type: named
 
 ```ts
-function useProjectData(projectId: string | undefined): import("C:/Dev/profitbuild-dash/src/hooks/useProjectData").UseProjectDataReturn
+function useProjectData(projectId: string | undefined): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useProjectData").UseProjectDataReturn
 ```
 
 _No inline documentation provided._
@@ -10014,7 +10513,7 @@ const result = useProjectData(/* params */);
 - Export type: named
 
 ```ts
-function useProjectFinancialDetail(projectId: string | null): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<{ categories: import("C:/Dev/profitbuild-dash/src/components/profit-analysis/hooks/useProjectFinancialDetail").CategorySummary[]; estimateToQuoteChange: number; estimateToQuotePercent: number; quoteToActualChange: number; quoteToActualPercent: number; projectedFinalCost: any; projectedFinalMargin: any; burnRate: any; allocationSummary: import("C:/Dev/profitbuild-dash/src/components/profit-analysis/hooks/useProjectFinancialDetail").AllocationSummary; }, Error>
+function useProjectFinancialDetail(projectId: string | null): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<{ categories: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/profit-analysis/hooks/useProjectFinancialDetail").CategorySummary[]; estimateToQuoteChange: number; estimateToQuotePercent: number; quoteToActualChange: number; quoteToActualPercent: number; projectedFinalCost: any; projectedFinalMargin: any; burnRate: any; allocationSummary: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/profit-analysis/hooks/useProjectFinancialDetail").AllocationSummary; }, Error>
 ```
 
 _No inline documentation provided._
@@ -10077,7 +10576,7 @@ const result = useProjectMediaUpload(/* params */);
 - Export type: named
 
 ```ts
-function useProjectNotes(projectId: string): { notes: import("C:/Dev/profitbuild-dash/src/types/projectNote").ProjectNote[]; isLoading: boolean; addNote: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutateFunction<void, Error, AddNoteParams, unknown>; isAdding: boolean; updateNote: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutateFunction<void, Error, { id: string; text: string; }, unknown>; deleteNote: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutateFunction<void, Error, string, unknown>; uploadAttachment: (dataUrl: string, type: "image" | "video" | "file", fileName?: string) => Promise<string>; }
+function useProjectNotes(projectId: string): { notes: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/projectNote").ProjectNote[]; isLoading: boolean; addNote: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutateFunction<void, Error, AddNoteParams, unknown>; isAdding: boolean; updateNote: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutateFunction<void, Error, { id: string; text: string; }, unknown>; deleteNote: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutateFunction<void, Error, string, unknown>; uploadAttachment: (dataUrl: string, type: "image" | "video" | "file", fileName?: string) => Promise<string>; }
 ```
 
 _No inline documentation provided._
@@ -10130,7 +10629,7 @@ const result = usePullToRefresh(/* params */);
 - Export type: named
 
 ```ts
-function useQuickBooksConnection(): { connection: import("C:/Dev/profitbuild-dash/src/hooks/useQuickBooksConnection").QuickBooksConnection; isLoading: boolean; error: Error; isConnected: boolean; isConnecting: boolean; isDisconnecting: boolean; initiateConnection: () => Promise<void>; disconnect: () => Promise<void>; }
+function useQuickBooksConnection(): { connection: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useQuickBooksConnection").QuickBooksConnection; isLoading: boolean; error: Error; isConnected: boolean; isConnecting: boolean; isDisconnecting: boolean; initiateConnection: () => Promise<void>; disconnect: () => Promise<void>; }
 ```
 
 _No inline documentation provided._
@@ -10151,7 +10650,7 @@ const result = useQuickBooksConnection(/* params */);
 - Export type: named
 
 ```ts
-function useQuickBooksSync(): import("C:/Dev/profitbuild-dash/src/hooks/useQuickBooksSync").UseQuickBooksSyncReturn
+function useQuickBooksSync(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useQuickBooksSync").UseQuickBooksSyncReturn
 ```
 
 Hook to check QuickBooks auto sync feature flag and configuration
@@ -10172,7 +10671,7 @@ const result = useQuickBooksSync(/* params */);
 - Export type: named
 
 ```ts
-function useReactivatePayee(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
+function useReactivatePayee(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
 ```
 
 Reactivate an inactive internal payee.
@@ -10246,7 +10745,7 @@ const result = useReceiptBulkActions(/* params */);
 - Export type: named
 
 ```ts
-function useReceiptFiltering(allReceipts: UnifiedReceipt[], filters: ReceiptFilters): { filteredReceipts: import("C:/Dev/profitbuild-dash/src/hooks/useReceiptsData").UnifiedReceipt[]; }
+function useReceiptFiltering(allReceipts: UnifiedReceipt[], filters: ReceiptFilters): { filteredReceipts: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReceiptsData").UnifiedReceipt[]; }
 ```
 
 _No inline documentation provided._
@@ -10267,7 +10766,7 @@ const result = useReceiptFiltering(/* params */);
 - Export type: named
 
 ```ts
-function useReceiptsData(): { allReceipts: import("C:/Dev/profitbuild-dash/src/hooks/useReceiptsData").UnifiedReceipt[]; loading: boolean; payees: { id: any; name: any; }[]; projects: { id: any; number: any; name: any; }[]; loadReceipts: () => void; statistics: { pendingCount: number; approvedTodayCount: number; rejectedCount: number; totalThisWeekCount: number; }; }
+function useReceiptsData(): { allReceipts: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReceiptsData").UnifiedReceipt[]; loading: boolean; payees: { id: any; name: any; }[]; projects: { id: any; number: any; name: any; }[]; loadReceipts: () => void; statistics: { pendingCount: number; approvedTodayCount: number; rejectedCount: number; totalThisWeekCount: number; }; loadAll: boolean; setLoadAll: React.Dispatch<React.SetStateAction<boolean>>; totalCount: number; loadedCount: number; windowDays: number; isWindowed: boolean; }
 ```
 
 _No inline documentation provided._
@@ -10288,7 +10787,7 @@ const result = useReceiptsData(/* params */);
 - Export type: named
 
 ```ts
-function useReceiptSorting(filteredReceipts: UnifiedReceipt[]): { sortColumn: string; sortDirection: "asc" | "desc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedReceipts: import("C:/Dev/profitbuild-dash/src/hooks/useReceiptsData").UnifiedReceipt[]; }
+function useReceiptSorting(filteredReceipts: UnifiedReceipt[]): { sortColumn: string; sortDirection: "asc" | "desc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedReceipts: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReceiptsData").UnifiedReceipt[]; }
 ```
 
 _No inline documentation provided._
@@ -10309,7 +10808,7 @@ const result = useReceiptSorting(/* params */);
 - Export type: named
 
 ```ts
-function useReportExecution(): { executeReport: (config: import("C:/Dev/profitbuild-dash/src/hooks/useReportExecution").ReportConfig) => Promise<import("C:/Dev/profitbuild-dash/src/hooks/useReportExecution").ReportResult>; isLoading: boolean; error: string; clearError: () => void; }
+function useReportExecution(): { executeReport: (config: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportExecution").ReportConfig) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportExecution").ReportResult>; isLoading: boolean; error: string; clearError: () => void; }
 ```
 
 _No inline documentation provided._
@@ -10351,7 +10850,7 @@ const result = useReportFavorites(/* params */);
 - Export type: named
 
 ```ts
-function useReportFilterOptions(): { clients: import("C:/Dev/profitbuild-dash/src/hooks/useReportFilterOptions").FilterOption[]; payees: import("C:/Dev/profitbuild-dash/src/hooks/useReportFilterOptions").FilterOption[]; workers: import("C:/Dev/profitbuild-dash/src/hooks/useReportFilterOptions").FilterOption[]; projects: import("C:/Dev/profitbuild-dash/src/hooks/useReportFilterOptions").FilterOption[]; isLoading: boolean; }
+function useReportFilterOptions(): { clients: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportFilterOptions").FilterOption[]; payees: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportFilterOptions").FilterOption[]; workers: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportFilterOptions").FilterOption[]; projects: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportFilterOptions").FilterOption[]; isLoading: boolean; }
 ```
 
 _No inline documentation provided._
@@ -10372,7 +10871,7 @@ const result = useReportFilterOptions(/* params */);
 - Export type: named
 
 ```ts
-function useReportTemplates(): { templates: import("C:/Dev/profitbuild-dash/src/hooks/useReportTemplates").ReportTemplate[]; savedReports: import("C:/Dev/profitbuild-dash/src/hooks/useReportTemplates").ReportTemplate[]; isLoading: boolean; error: string; loadTemplates: () => Promise<void>; loadSavedReports: () => Promise<void>; saveReport: (name: string, description: string, category: "schedule" | "financial" | "operational" | "client" | "vendor" | "Training", config: any, isTemplate?: boolean) => Promise<string>; deleteReport: (reportId: string) => Promise<boolean>; clearError: () => void; }
+function useReportTemplates(): { templates: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportTemplates").ReportTemplate[]; savedReports: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useReportTemplates").ReportTemplate[]; isLoading: boolean; error: string; loadTemplates: () => Promise<void>; loadSavedReports: () => Promise<void>; saveReport: (name: string, description: string, category: "financial" | "operational" | "client" | "vendor" | "schedule" | "Training", config: any, isTemplate?: boolean) => Promise<string>; deleteReport: (reportId: string) => Promise<boolean>; clearError: () => void; }
 ```
 
 _No inline documentation provided._
@@ -10439,7 +10938,7 @@ const result = useRoles(/* params */);
 - Export type: named
 
 ```ts
-function useScheduleOfValues(projectId: string): { sov: { created_at: string; created_by: string; estimate_id: string; id: string; original_contract_sum: number; project_id: string; retainage_percent: number; updated_at: string; }; sovLines: { category: "labor_internal" | "subcontractors" | "materials" | "equipment" | "other" | "permits" | "management" | "office_expenses" | "vehicle_expenses" | "tools" | "software" | "vehicle_maintenance" | "gas" | "meals"; created_at: string; description: string; id: string; item_number: string; retainage_percent_override: number; scheduled_value: number; sort_order: number; source_change_order_id: string; source_estimate_line_item_id: string; sov_id: string; }[]; isLoading: boolean; isLinesLoading: boolean; generateSOV: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<string, Error, { estimateId: string; retainagePercent?: number; }, unknown>; updateRetainage: import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, number, unknown>; refetch: () => void; }
+function useScheduleOfValues(projectId: string): { sov: { created_at: string; created_by: string; estimate_id: string; id: string; original_contract_sum: number; project_id: string; retainage_percent: number; updated_at: string; }; sovLines: { category: "labor_internal" | "subcontractors" | "materials" | "equipment" | "other" | "permits" | "management" | "office_expenses" | "vehicle_expenses" | "tools" | "software" | "vehicle_maintenance" | "gas" | "meals"; created_at: string; description: string; id: string; item_number: string; retainage_percent_override: number; scheduled_value: number; sort_order: number; source_change_order_id: string; source_estimate_line_item_id: string; sov_id: string; }[]; isLoading: boolean; isLinesLoading: boolean; generateSOV: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<string, Error, { estimateId: string; retainagePercent?: number; }, unknown>; updateRetainage: import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, Error, number, unknown>; refetch: () => void; }
 ```
 
 _No inline documentation provided._
@@ -10460,7 +10959,7 @@ const result = useScheduleOfValues(/* params */);
 - Export type: named
 
 ```ts
-function useScheduleTableColumns(projectId: string): { columnDefinitions: import("C:/Dev/profitbuild-dash/src/hooks/useScheduleTableColumns").ScheduleColumnConfig[]; visibleColumns: string[]; setVisibleColumns: React.Dispatch<React.SetStateAction<string[]>>; }
+function useScheduleTableColumns(projectId: string): { columnDefinitions: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/hooks/useScheduleTableColumns").ScheduleColumnConfig[]; visibleColumns: string[]; setVisibleColumns: React.Dispatch<React.SetStateAction<string[]>>; }
 ```
 
 _No inline documentation provided._
@@ -10485,7 +10984,7 @@ function useScheduleTasks({
   projectId,
   projectStartDate,
   projectEndDate
-}: UseScheduleTasksProps): { tasks: import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleTask[]; isLoading: boolean; error: Error; loadTasks: () => Promise<void>; updateTask: (updatedTask: import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleTask) => Promise<import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleTask>; updateTaskDates: (taskId: string, start: Date, end: Date) => Promise<void>; refreshProgress: () => Promise<void>; }
+}: UseScheduleTasksProps): { tasks: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleTask[]; isLoading: boolean; error: Error; loadTasks: () => Promise<void>; updateTask: (updatedTask: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleTask) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleTask>; updateTaskDates: (taskId: string, start: Date, end: Date) => Promise<void>; refreshProgress: () => Promise<void>; }
 ```
 
 Load and manage schedule tasks from database
@@ -10506,7 +11005,7 @@ const result = useScheduleTasks(/* params */);
 - Export type: named
 
 ```ts
-function useScheduleWarnings(tasks: ScheduleTask[], settings: ScheduleSettings): { warnings: import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleWarning[]; dismissWarning: (warningId: string) => void; clearDismissed: () => void; getTaskWarnings: (taskId: string) => import("C:/Dev/profitbuild-dash/src/types/schedule").ScheduleWarning[]; warningCounts: { error: number; warning: number; info: number; total: number; }; }
+function useScheduleWarnings(tasks: ScheduleTask[], settings: ScheduleSettings): { warnings: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleWarning[]; dismissWarning: (warningId: string) => void; clearDismissed: () => void; getTaskWarnings: (taskId: string) => import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/schedule").ScheduleWarning[]; warningCounts: { error: number; warning: number; info: number; total: number; }; }
 ```
 
 Generate and manage schedule warnings
@@ -10613,7 +11112,7 @@ const result = useSwipeGesture(/* params */);
 - Export type: named
 
 ```ts
-function useTimeEntries(filters: TimeEntryFilters, pageSize: number = 25, currentPage: number = 1): { entries: import("C:/Dev/profitbuild-dash/src/types/timeEntry").TimeEntryListItem[]; statistics: import("C:/Dev/profitbuild-dash/src/types/timeEntry").TimeEntryStatistics; loading: boolean; totalCount: number; refetch: () => Promise<void>; }
+function useTimeEntries(filters: TimeEntryFilters, pageSize: number = 25, currentPage: number = 1): { entries: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/timeEntry").TimeEntryListItem[]; statistics: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/timeEntry").TimeEntryStatistics; loading: boolean; totalCount: number; refetch: () => Promise<void>; }
 ```
 
 _No inline documentation provided._
@@ -10661,7 +11160,7 @@ const result = useTimeEntryActions(/* params */);
 - Export type: named
 
 ```ts
-function useTimeEntryForm(options: UseTimeEntryFormOptions = {}): { workerId: string; setWorkerId: React.Dispatch<React.SetStateAction<string>>; projectId: string; setProjectId: React.Dispatch<React.SetStateAction<string>>; date: string; setDate: React.Dispatch<React.SetStateAction<string>>; startTime: string; setStartTime: React.Dispatch<React.SetStateAction<string>>; endTime: string; setEndTime: React.Dispatch<React.SetStateAction<string>>; lunchTaken: boolean; setLunchTaken: React.Dispatch<React.SetStateAction<boolean>>; lunchDuration: number; setLunchDuration: React.Dispatch<React.SetStateAction<number>>; manualHours: number; setManualHours: React.Dispatch<React.SetStateAction<number>>; isOvernight: boolean; adjustedEndDate: string; isPTO: boolean; grossHours: number; netHours: number; lunchHours: number; isAutoCalculated: boolean; effectiveNetHours: number; notes: string; setNotes: React.Dispatch<React.SetStateAction<string>>; getFormData: () => import("C:/Dev/profitbuild-dash/src/components/time-entry-form/hooks/useTimeEntryForm").TimeEntryFormData; }
+function useTimeEntryForm(options: UseTimeEntryFormOptions = {}): { workerId: string; setWorkerId: React.Dispatch<React.SetStateAction<string>>; projectId: string; setProjectId: React.Dispatch<React.SetStateAction<string>>; date: string; setDate: React.Dispatch<React.SetStateAction<string>>; startTime: string; setStartTime: React.Dispatch<React.SetStateAction<string>>; endTime: string; setEndTime: React.Dispatch<React.SetStateAction<string>>; lunchTaken: boolean; setLunchTaken: React.Dispatch<React.SetStateAction<boolean>>; lunchDuration: number; setLunchDuration: React.Dispatch<React.SetStateAction<number>>; manualHours: number; setManualHours: React.Dispatch<React.SetStateAction<number>>; isOvernight: boolean; adjustedEndDate: string; isPTO: boolean; grossHours: number; netHours: number; lunchHours: number; isAutoCalculated: boolean; effectiveNetHours: number; notes: string; setNotes: React.Dispatch<React.SetStateAction<string>>; getFormData: () => import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/components/time-entry-form/hooks/useTimeEntryForm").TimeEntryFormData; }
 ```
 
 _No inline documentation provided._
@@ -10703,7 +11202,7 @@ const result = useTimeEntrySelection(/* params */);
 - Export type: named
 
 ```ts
-function useTimeEntrySorting(entries: TimeEntryListItem[]): { sortColumn: string; sortDirection: "asc" | "desc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedEntries: import("C:/Dev/profitbuild-dash/src/types/timeEntry").TimeEntryListItem[]; }
+function useTimeEntrySorting(entries: TimeEntryListItem[]): { sortColumn: string; sortDirection: "asc" | "desc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("E:/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedEntries: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/timeEntry").TimeEntryListItem[]; }
 ```
 
 _No inline documentation provided._
@@ -10724,7 +11223,7 @@ const result = useTimeEntrySorting(/* params */);
 - Export type: named
 
 ```ts
-function useToggleMentionable(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, { userId: string; canBeMentioned: boolean; }, unknown>
+function useToggleMentionable(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, { userId: string; canBeMentioned: boolean; }, unknown>
 ```
 
 Toggle whether a user appears in the
@@ -10745,7 +11244,7 @@ const result = useToggleMentionable(/* params */);
 - Export type: named
 
 ```ts
-function useTrainingAssignments(contentId?: string): { assignments: import("C:/Dev/profitbuild-dash/src/types/training").TrainingAssignment[]; isLoading: boolean; createAssignments: (trainingContentId: string, userIds: string[], options?: { due_date?: string; priority?: number; notes?: string; }) => Promise<boolean>; deleteAssignment: (assignmentId: string) => Promise<boolean>; sendNotifications: (params: import("C:/Dev/profitbuild-dash/src/types/training").SendNotificationParams) => Promise<import("C:/Dev/profitbuild-dash/src/types/training").NotificationResult>; refresh: () => Promise<void>; }
+function useTrainingAssignments(contentId?: string): { assignments: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingAssignment[]; isLoading: boolean; createAssignments: (trainingContentId: string, userIds: string[], options?: { due_date?: string; priority?: number; notes?: string; }) => Promise<boolean>; deleteAssignment: (assignmentId: string) => Promise<boolean>; sendNotifications: (params: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").SendNotificationParams) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").NotificationResult>; refresh: () => Promise<void>; }
 ```
 
 _No inline documentation provided._
@@ -10766,7 +11265,7 @@ const result = useTrainingAssignments(/* params */);
 - Export type: named
 
 ```ts
-function useTrainingContent(): { content: import("C:/Dev/profitbuild-dash/src/types/training").TrainingContent[]; isLoading: boolean; error: Error; fetchContent: (statusFilter?: import("C:/Dev/profitbuild-dash/src/types/training").TrainingStatus) => Promise<void>; createContent: (data: import("C:/Dev/profitbuild-dash/src/types/training").CreateTrainingContentData) => Promise<import("C:/Dev/profitbuild-dash/src/types/training").TrainingContent>; updateContent: (data: import("C:/Dev/profitbuild-dash/src/types/training").UpdateTrainingContentData) => Promise<import("C:/Dev/profitbuild-dash/src/types/training").TrainingContent>; deleteContent: (id: string) => Promise<boolean>; setContentStatus: (id: string, status: import("C:/Dev/profitbuild-dash/src/types/training").TrainingStatus) => Promise<boolean>; refresh: (statusFilter?: import("C:/Dev/profitbuild-dash/src/types/training").TrainingStatus) => Promise<void>; }
+function useTrainingContent(): { content: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingContent[]; isLoading: boolean; error: Error; fetchContent: (statusFilter?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingStatus) => Promise<void>; createContent: (data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").CreateTrainingContentData) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingContent>; updateContent: (data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").UpdateTrainingContentData) => Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingContent>; deleteContent: (id: string) => Promise<boolean>; setContentStatus: (id: string, status: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingStatus) => Promise<boolean>; refresh: (statusFilter?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/training").TrainingStatus) => Promise<void>; }
 ```
 
 _No inline documentation provided._
@@ -10787,7 +11286,7 @@ const result = useTrainingContent(/* params */);
 - Export type: named
 
 ```ts
-function useUnapprovedExpensesCount(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<number, Error>
+function useUnapprovedExpensesCount(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<number, Error>
 ```
 
 _No inline documentation provided._
@@ -10808,7 +11307,7 @@ const result = useUnapprovedExpensesCount(/* params */);
 - Export type: named
 
 ```ts
-function useUnreadMentions(): { unreadCount: number; notifications: import("C:/Dev/profitbuild-dash/src/types/notification").UserNotification[]; isLoading: boolean; markAsRead: (notificationId: string) => Promise<void>; markAllAsRead: () => Promise<void>; }
+function useUnreadMentions(): { unreadCount: number; notifications: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/notification").UserNotification[]; isLoading: boolean; markAsRead: (notificationId: string) => Promise<void>; markAllAsRead: () => Promise<void>; }
 ```
 
 _No inline documentation provided._
@@ -10829,7 +11328,7 @@ const result = useUnreadMentions(/* params */);
 - Export type: named
 
 ```ts
-function useUpdateInternalLaborRates(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<{ created_at: string; description: string; id: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at: string; }, Error, import("C:/Dev/profitbuild-dash/src/types/companySettings").InternalLaborRates, unknown>
+function useUpdateInternalLaborRates(): import("E:/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<{ created_at: string; description: string; id: string; setting_key: string; setting_value: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; updated_at: string; }, Error, import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/companySettings").InternalLaborRates, unknown>
 ```
 
 Hook to update internal labor rates (admin only)
@@ -10888,7 +11387,7 @@ const result = useVideoCapture(/* params */);
 
 ## Functions
 
-Total: 319
+Total: 346
 
 ### addBidMediaToQueue
 
@@ -11043,7 +11542,7 @@ const result = base64ToFile(/* args */);
 - Export type: named
 
 ```ts
-function batchFuzzyMatchPayees(qbNames: string[], payees: PartialPayee[]): import("C:/Dev/profitbuild-dash/src/utils/fuzzyPayeeMatcher").FuzzyMatchResult[]
+function batchFuzzyMatchPayees(qbNames: string[], payees: PartialPayee[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/fuzzyPayeeMatcher").FuzzyMatchResult[]
 ```
 
 _No inline documentation provided._
@@ -11120,6 +11619,90 @@ import { buildTimeEntryDateTimes } from '@/utils/timeEntryCalculations';
 const result = buildTimeEntryDateTimes(/* args */);
 ```
 
+### calcAvgMarkupPercent
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function calcAvgMarkupPercent(items: LineItem[]): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { calcAvgMarkupPercent } from '@/utils/lineItemTotals';
+
+const result = calcAvgMarkupPercent(/* args */);
+```
+
+### calcSubtotal
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function calcSubtotal(items: LineItem[]): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { calcSubtotal } from '@/utils/lineItemTotals';
+
+const result = calcSubtotal(/* args */);
+```
+
+### calcTotalCost
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function calcTotalCost(items: LineItem[]): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { calcTotalCost } from '@/utils/lineItemTotals';
+
+const result = calcTotalCost(/* args */);
+```
+
+### calcTotalMarkup
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function calcTotalMarkup(items: LineItem[]): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { calcTotalMarkup } from '@/utils/lineItemTotals';
+
+const result = calcTotalMarkup(/* args */);
+```
+
 ### calculateEstimateAverageMarkup
 
 **Import:** `@/utils/estimateFinancials`
@@ -11149,7 +11732,7 @@ const result = calculateEstimateAverageMarkup(/* args */);
 - Export type: named
 
 ```ts
-function calculateEstimateFinancials(lineItems: LineItem[]): import("C:/Dev/profitbuild-dash/src/utils/estimateFinancials").EstimateFinancialMetrics
+function calculateEstimateFinancials(lineItems: LineItem[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/estimateFinancials").EstimateFinancialMetrics
 ```
 
 _No inline documentation provided._
@@ -11296,7 +11879,7 @@ const result = calculateImportedItemCushion(/* args */);
 - Export type: named
 
 ```ts
-function calculateLaborMetrics(input: LaborCalculationInput): import("C:/Dev/profitbuild-dash/src/utils/laborCalculations").LaborCalculationResult
+function calculateLaborMetrics(input: LaborCalculationInput): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/laborCalculations").LaborCalculationResult
 ```
 
 Calculate all labor-related financial metrics
@@ -11387,7 +11970,7 @@ const result = calculateMinimumAcceptableCost(/* args */);
 - Export type: named
 
 ```ts
-function calculateProfitAnalytics(estimates: Estimate[], quotes: Quote[], expenses: Expense[], projects?: Project[]): import("C:/Dev/profitbuild-dash/src/types/profit").ProfitAnalyticsSummary
+function calculateProfitAnalytics(estimates: Estimate[], quotes: Quote[], expenses: Expense[], projects?: Project[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profit").ProfitAnalyticsSummary
 ```
 
 _No inline documentation provided._
@@ -11408,7 +11991,7 @@ const result = calculateProfitAnalytics(/* args */);
 - Export type: named
 
 ```ts
-function calculateProfitTrends(projectProfits: ProjectProfitData[]): import("C:/Dev/profitbuild-dash/src/types/profit").ProfitTrend[]
+function calculateProfitTrends(projectProfits: ProjectProfitData[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profit").ProfitTrend[]
 ```
 
 _No inline documentation provided._
@@ -11458,7 +12041,7 @@ function calculateProjectProfit(estimate: Estimate, quotes: Quote[], expenses: E
     adjusted_est_margin?: number | null;
     margin_percentage?: number | null;
     total_accepted_quotes?: number | null;
-  }): import("C:/Dev/profitbuild-dash/src/types/profit").ProjectProfitData
+  }): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profit").ProjectProfitData
 ```
 
 _No inline documentation provided._
@@ -11485,7 +12068,7 @@ function calculateProjectProfitAsync(estimate: Estimate, quotes: Quote[], expens
     adjusted_est_margin?: number | null;
     margin_percentage?: number | null;
     total_accepted_quotes?: number | null;
-  }): Promise<import("C:/Dev/profitbuild-dash/src/types/profit").ProjectProfitData>
+  }): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profit").ProjectProfitData>
 ```
 
 Async version of calculateProjectProfit that correctly handles split expenses
@@ -11551,7 +12134,7 @@ const result = calculateQuoteAverageMarkup(/* args */);
 - Export type: named
 
 ```ts
-function calculateQuoteFinancials(lineItems: QuoteLineItem[]): import("C:/Dev/profitbuild-dash/src/utils/quoteFinancials").QuoteFinancialMetrics
+function calculateQuoteFinancials(lineItems: QuoteLineItem[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/quoteFinancials").QuoteFinancialMetrics
 ```
 
 _No inline documentation provided._
@@ -11740,7 +12323,7 @@ const result = calculateQuoteTotalProfit(/* args */);
 - Export type: named
 
 ```ts
-function calculateScheduleStatus(startDate?: Date | string | null, endDate?: Date | string | null, projectStatus?: string | null): import("C:/Dev/profitbuild-dash/src/utils/projectDashboard").ScheduleStatus
+function calculateScheduleStatus(startDate?: Date | string | null, endDate?: Date | string | null, projectStatus?: string | null): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/projectDashboard").ScheduleStatus
 ```
 
 _No inline documentation provided._
@@ -11824,7 +12407,7 @@ const result = calculateTimeEntryAmount(/* args */);
 - Export type: named
 
 ```ts
-function calculateTimeEntryHours(startTime: Date, endTime: Date, lunchTaken: boolean = false, lunchDurationMinutes: number = 30): import("C:/Dev/profitbuild-dash/src/utils/timeEntryCalculations").TimeEntryHours
+function calculateTimeEntryHours(startTime: Date, endTime: Date, lunchTaken: boolean = false, lunchDurationMinutes: number = 30): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/timeEntryCalculations").TimeEntryHours
 ```
 
 Calculate hours breakdown for a time entry
@@ -11958,7 +12541,7 @@ const result = canUseInstallPrompt(/* args */);
 - Export type: named
 
 ```ts
-function categorizeExpense(description: string, accountPath?: string, dbMappings?: QuickBooksAccountMapping[]): import("C:/Dev/profitbuild-dash/src/types/expense").ExpenseCategory
+function categorizeExpense(description: string, accountPath?: string, dbMappings?: QuickBooksAccountMapping[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").ExpenseCategory
 ```
 
 _No inline documentation provided._
@@ -12021,7 +12604,7 @@ const result = checkStaleTimer(/* args */);
 - Export type: named
 
 ```ts
-function checkTimeOverlap(payeeId: string, date: string, startTime: Date, endTime: Date, excludeId?: string): Promise<import("C:/Dev/profitbuild-dash/src/utils/timeEntryValidation").OverlapCheckResult>
+function checkTimeOverlap(payeeId: string, date: string, startTime: Date, endTime: Date, excludeId?: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/timeEntryValidation").OverlapCheckResult>
 ```
 
 _No inline documentation provided._
@@ -12042,7 +12625,7 @@ const result = checkTimeOverlap(/* args */);
 - Export type: named
 
 ```ts
-function classifyPayees(uniquePayeesFromCSV: PayeeImportData[], existingPayees: PartialPayee[], inFileMergeMetadata: { canonicalIndex: number; mergedNames: string[] }[] = []): import("C:/Dev/profitbuild-dash/src/utils/payeeImportMatcher").ClassifiedPayee[]
+function classifyPayees(uniquePayeesFromCSV: PayeeImportData[], existingPayees: PartialPayee[], inFileMergeMetadata: { canonicalIndex: number; mergedNames: string[] }[] = []): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/payeeImportMatcher").ClassifiedPayee[]
 ```
 
 Classify each unique CSV payee against existing payees using fuzzyMatchPayee.
@@ -12106,7 +12689,7 @@ const result = cn(/* args */);
 - Export type: named
 
 ```ts
-function compareQuoteToEstimate(quoteLineItems: QuoteLineItem[], estimateLineItems: LineItem[]): { [category: string]: import("C:/Dev/profitbuild-dash/src/utils/quoteFinancials").CategoryCostComparison; }
+function compareQuoteToEstimate(quoteLineItems: QuoteLineItem[], estimateLineItems: LineItem[]): { [category: string]: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/quoteFinancials").CategoryCostComparison; }
 ```
 
 _No inline documentation provided._
@@ -12139,6 +12722,28 @@ Reduces file size while maintaining acceptable quality for construction site pho
 import { compressImage } from '@/utils/imageCompression';
 
 const result = compressImage(/* args */);
+```
+
+### computeDueDate
+
+**Import:** `@/utils/invoiceFormatters`
+
+- Defined in: `utils/invoiceFormatters.ts`
+- Export type: named
+
+```ts
+function computeDueDate(invoiceDate: Date | string, paymentTerms?: string | null): Date
+```
+
+Compute an invoice due date from an issue date + payment terms in days.
+Defaults to NET 30 when terms are missing or unparseable.
+
+**Example**
+
+```ts
+import { computeDueDate } from '@/utils/invoiceFormatters';
+
+const result = computeDueDate(/* args */);
 ```
 
 ### convertMovToM4a
@@ -12205,6 +12810,27 @@ Convert any audio blob to WAV format using Web Audio API
 import { convertToWav } from '@/utils/audioConverter';
 
 const result = convertToWav(/* args */);
+```
+
+### countLineItemPeerQuotes
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+function countLineItemPeerQuotes(quote: Quote, allQuotes: Quote[]): number
+```
+
+Count distinct OTHER quotes that share at least one line item with this quote.
+
+**Example**
+
+```ts
+import { countLineItemPeerQuotes } from '@/utils/quoteFinancials';
+
+const result = countLineItemPeerQuotes(/* args */);
 ```
 
 ### createExpenseKey
@@ -12296,6 +12922,28 @@ import { createPayeeFromTransaction } from '@/utils/enhancedTransactionImporter'
 const result = createPayeeFromTransaction(/* args */);
 ```
 
+### createReceiptSignedUrl
+
+**Import:** `@/utils/receiptUrls`
+
+- Defined in: `utils/receiptUrls.ts`
+- Export type: named
+
+```ts
+function createReceiptSignedUrl(storagePath: string): Promise<string>
+```
+
+Generate a 1-year signed URL for a receipt image just uploaded to storage.
+Throws on signing failure (callers should treat the upload as failed and roll back).
+
+**Example**
+
+```ts
+import { createReceiptSignedUrl } from '@/utils/receiptUrls';
+
+const result = createReceiptSignedUrl(/* args */);
+```
+
 ### createRevenueKey
 
 **Import:** `@/utils/importCore`
@@ -12325,7 +12973,7 @@ const result = createRevenueKey(/* args */);
 - Export type: named
 
 ```ts
-function createRevenueSplits(revenueId: string, splits: CreateRevenueSplitInput[]): Promise<import("C:/Dev/profitbuild-dash/src/types/revenue").RevenueSplitResult>
+function createRevenueSplits(revenueId: string, splits: CreateRevenueSplitInput[]): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/revenue").RevenueSplitResult>
 ```
 
 Create splits for a revenue record
@@ -12350,7 +12998,7 @@ const result = createRevenueSplits(/* args */);
 - Export type: named
 
 ```ts
-function dedupePayeesInFile(payees: PayeeImportData[]): import("C:/Dev/profitbuild-dash/src/utils/payeeCsvParser").DedupePayeesResult
+function dedupePayeesInFile(payees: PayeeImportData[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/payeeCsvParser").DedupePayeesResult
 ```
 
 Dedupe payees within the CSV by normalized name. Keeps one canonical row per name (first occurrence), optionally merging non-empty email/phone/address from others.
@@ -12436,7 +13084,7 @@ const result = deleteProjectMedia(/* args */);
 - Export type: named
 
 ```ts
-function deleteRevenueSplits(revenueId: string): Promise<import("C:/Dev/profitbuild-dash/src/types/revenue").RevenueSplitResult>
+function deleteRevenueSplits(revenueId: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/revenue").RevenueSplitResult>
 ```
 
 Delete all splits for a revenue and revert to single-project assignment
@@ -12479,7 +13127,7 @@ const result = deleteTrainingFile(/* args */);
 - Export type: named
 
 ```ts
-function detectClientType(clientName: string, contactPerson?: string): import("C:/Dev/profitbuild-dash/src/types/client").ClientType
+function detectClientType(clientName: string, contactPerson?: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/client").ClientType
 ```
 
 _No inline documentation provided._
@@ -12563,7 +13211,7 @@ const result = detectDateFormat(/* args */);
 - Export type: named
 
 ```ts
-function detectFileType(mimeType?: string | null, fileUrl?: string | null, fileName?: string | null): import("C:/Dev/profitbuild-dash/src/utils/documentFileType").PreviewableFileType
+function detectFileType(mimeType?: string | null, fileUrl?: string | null, fileName?: string | null): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/documentFileType").PreviewableFileType
 ```
 
 _No inline documentation provided._
@@ -12605,7 +13253,7 @@ const result = detectOfficeSubtype(/* args */);
 - Export type: named
 
 ```ts
-function detectPayeeTypeFromAccount(accountPath?: string): import("C:/Dev/profitbuild-dash/src/types/payee").PayeeType
+function detectPayeeTypeFromAccount(accountPath?: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/payee").PayeeType
 ```
 
 _No inline documentation provided._
@@ -13121,7 +13769,7 @@ const result = exportToPDF(/* args */);
 - Export type: named
 
 ```ts
-function extractBudgetSheet(grid: Grid): import("C:/Dev/profitbuild-dash/src/types/importTypes").ExtractionResult
+function extractBudgetSheet(grid: Grid): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").ExtractionResult
 ```
 
 _No inline documentation provided._
@@ -13165,7 +13813,7 @@ const result = extractExifMetadata(/* args */);
 - Export type: named
 
 ```ts
-function extractLineItems(grid: Grid, columns: BudgetColumns, startRow: number, endRow: number): { items: import("C:/Dev/profitbuild-dash/src/types/importTypes").ExtractedLineItem[]; warnings: import("C:/Dev/profitbuild-dash/src/types/importTypes").ImportWarning[]; compoundRowsSplit: number; }
+function extractLineItems(grid: Grid, columns: BudgetColumns, startRow: number, endRow: number): { items: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").ExtractedLineItem[]; warnings: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").ImportWarning[]; compoundRowsSplit: number; }
 ```
 
 _No inline documentation provided._
@@ -13207,7 +13855,7 @@ const result = extractProjectCounter(/* args */);
 - Export type: named
 
 ```ts
-function fetchLinkedReceipt(receiptId: string): Promise<import("C:/Dev/profitbuild-dash/src/utils/receiptLinking").ReceiptForLinking>
+function fetchLinkedReceipt(receiptId: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/receiptLinking").ReceiptForLinking>
 ```
 
 Fetch the linked receipt for an expense
@@ -13228,7 +13876,7 @@ const result = fetchLinkedReceipt(/* args */);
 - Export type: named
 
 ```ts
-function fetchReceiptsForLinking(): Promise<import("C:/Dev/profitbuild-dash/src/utils/receiptLinking").ReceiptForLinking[]>
+function fetchReceiptsForLinking(): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/receiptLinking").ReceiptForLinking[]>
 ```
 
 Fetch all receipts available for linking
@@ -13271,7 +13919,7 @@ const result = findHeaderRow(/* args */);
 - Export type: named
 
 ```ts
-function findKPIByAlias(alias: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure
+function findKPIByAlias(alias: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure
 ```
 
 Find KPI by alias (fuzzy match)
@@ -13292,7 +13940,7 @@ const result = findKPIByAlias(/* args */);
 - Export type: named
 
 ```ts
-function findKPIById(id: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure
+function findKPIById(id: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure
 ```
 
 Find a KPI by ID (legacy alias)
@@ -13313,7 +13961,7 @@ const result = findKPIById(/* args */);
 - Export type: named
 
 ```ts
-function findKPIsByConcept(concept: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure[]
+function findKPIsByConcept(concept: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure[]
 ```
 
 Find KPIs by semantic concept (legacy)
@@ -13494,6 +14142,27 @@ import { formatDateString } from '@/utils/dateUtils';
 const result = formatDateString(/* args */);
 ```
 
+### formatDeviceLabel
+
+**Import:** `@/utils/formatDeviceLabel`
+
+- Defined in: `utils/formatDeviceLabel.ts`
+- Export type: named
+
+```ts
+function formatDeviceLabel(raw: string | null | undefined): string
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { formatDeviceLabel } from '@/utils/formatDeviceLabel';
+
+const result = formatDeviceLabel(/* args */);
+```
+
 ### formatDuration
 
 **Import:** `@/utils/videoUtils`
@@ -13618,6 +14287,49 @@ Format hours for display with optional lunch indicator
 import { formatHoursDisplay } from '@/utils/timeEntryCalculations';
 
 const result = formatHoursDisplay(/* args */);
+```
+
+### formatInvoiceDateDisplay
+
+**Import:** `@/utils/invoiceFormatters`
+
+- Defined in: `utils/invoiceFormatters.ts`
+- Export type: named
+
+```ts
+function formatInvoiceDateDisplay(date: Date | string): string
+```
+
+Format an invoice date for display: "May 4, 2026".
+
+**Example**
+
+```ts
+import { formatInvoiceDateDisplay } from '@/utils/invoiceFormatters';
+
+const result = formatInvoiceDateDisplay(/* args */);
+```
+
+### formatInvoiceDateIso
+
+**Import:** `@/utils/invoiceFormatters`
+
+- Defined in: `utils/invoiceFormatters.ts`
+- Export type: named
+
+```ts
+function formatInvoiceDateIso(date: Date | string): string
+```
+
+Format a date as ISO YYYY-MM-DD (the canonical persistence form on
+`invoices.invoice_date` / `invoices.due_date`).
+
+**Example**
+
+```ts
+import { formatInvoiceDateIso } from '@/utils/invoiceFormatters';
+
+const result = formatInvoiceDateIso(/* args */);
 ```
 
 ### formatLegalForm
@@ -13746,6 +14458,27 @@ import { formatSplitInfo } from '@/utils/revenueSplits';
 const result = formatSplitInfo(/* args */);
 ```
 
+### formatUnitPrice
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function formatUnitPrice(value: number | null | undefined): string
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { formatUnitPrice } from '@/utils/lineItemTotals';
+
+const result = formatUnitPrice(/* args */);
+```
+
 ### formatValidationReport
 
 **Import:** `@/lib/kpi-definitions/validation`
@@ -13775,7 +14508,7 @@ const result = formatValidationReport(/* args */);
 - Export type: named
 
 ```ts
-function fuzzyMatchClient(qbName: string, clients: PartialClient[]): { bestMatch: import("C:/Dev/profitbuild-dash/src/utils/importCore").ClientMatchResult; suggestions: { client: import("C:/Dev/profitbuild-dash/src/utils/importCore").PartialClient; confidence: number; }[]; }
+function fuzzyMatchClient(qbName: string, clients: PartialClient[]): { bestMatch: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/importCore").ClientMatchResult; suggestions: { client: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/importCore").PartialClient; confidence: number; }[]; }
 ```
 
 _No inline documentation provided._
@@ -13796,7 +14529,7 @@ const result = fuzzyMatchClient(/* args */);
 - Export type: named
 
 ```ts
-function fuzzyMatchPayee(qbName: string, payees: PartialPayee[]): import("C:/Dev/profitbuild-dash/src/utils/fuzzyPayeeMatcher").FuzzyMatchResult
+function fuzzyMatchPayee(qbName: string, payees: PartialPayee[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/fuzzyPayeeMatcher").FuzzyMatchResult
 ```
 
 _No inline documentation provided._
@@ -13817,7 +14550,7 @@ const result = fuzzyMatchPayee(/* args */);
 - Export type: named
 
 ```ts
-function fuzzyMatchProject(qbProjectWO: string, projects: PartialProject[], aliases: ProjectAlias[]): import("C:/Dev/profitbuild-dash/src/utils/importCore").ProjectMatchResult
+function fuzzyMatchProject(qbProjectWO: string, projects: PartialProject[], aliases: ProjectAlias[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/importCore").ProjectMatchResult
 ```
 
 _No inline documentation provided._
@@ -13838,7 +14571,7 @@ const result = fuzzyMatchProject(/* args */);
 - Export type: named
 
 ```ts
-function generateAIContext(): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").AIKPIContext
+function generateAIContext(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").AIKPIContext
 ```
 
 Generate the complete AI context object
@@ -13859,7 +14592,7 @@ const result = generateAIContext(/* args */);
 - Export type: named
 
 ```ts
-function generateAndSaveG702(app: PaymentApplication, project: ProjectInfo, appLines?: PaymentApplicationLineWithSOV[]): Promise<import("C:/Dev/profitbuild-dash/src/utils/paymentApplicationPdf").PdfSaveResult>
+function generateAndSaveG702(app: PaymentApplication, project: ProjectInfo, appLines?: PaymentApplicationLineWithSOV[]): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/paymentApplicationPdf").PdfSaveResult>
 ```
 
 _No inline documentation provided._
@@ -13880,7 +14613,7 @@ const result = generateAndSaveG702(/* args */);
 - Export type: named
 
 ```ts
-function generateAndSaveG703(app: PaymentApplication, appLines: PaymentApplicationLineWithSOV[], project: ProjectInfo): Promise<import("C:/Dev/profitbuild-dash/src/utils/paymentApplicationPdf").PdfSaveResult>
+function generateAndSaveG703(app: PaymentApplication, appLines: PaymentApplicationLineWithSOV[], project: ProjectInfo): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/paymentApplicationPdf").PdfSaveResult>
 ```
 
 _No inline documentation provided._
@@ -13933,6 +14666,34 @@ Generate unique contract number. Format: {ClientInitials}{ProjectNumber} or with
 import { generateContractNumber } from '@/utils/contractFormatters';
 
 const result = generateContractNumber(/* args */);
+```
+
+### generateInvoiceInternalReference
+
+**Import:** `@/utils/invoiceFormatters`
+
+- Defined in: `utils/invoiceFormatters.ts`
+- Export type: named
+
+```ts
+function generateInvoiceInternalReference(clientName: string | null, projectNumber: string | null, existingReferences: string[]): string
+```
+
+Generate the auto invoice internal reference. Format: `INV-{INITIALS}-{NNN}-{NN}`.
+ - INITIALS = first 2-3 chars of client name (uppercase, alpha only).
+ - NNN     = bare project number with dashes removed.
+ - NN      = zero-padded version (1-based, derived from existing count + 1).
+
+`existingReferences` is the list of `internal_reference` values already on
+other invoices for the same project; this lets us pick a non-colliding
+suffix when re-generating for the same revenue.
+
+**Example**
+
+```ts
+import { generateInvoiceInternalReference } from '@/utils/invoiceFormatters';
+
+const result = generateInvoiceInternalReference(/* args */);
 ```
 
 ### generatePDFFileName
@@ -14076,7 +14837,7 @@ const result = generateWorkOrderNumber(/* args */);
 - Export type: named
 
 ```ts
-function getAllKPIs(): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure[]
+function getAllKPIs(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure[]
 ```
 
 Get all KPIs as a flat array (for legacy compatibility)
@@ -14118,7 +14879,7 @@ const result = getAudioDuration(/* args */);
 - Export type: named
 
 ```ts
-function getBenchmarkForMetric(metricId: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/business-benchmarks").Benchmark
+function getBenchmarkForMetric(metricId: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/business-benchmarks").Benchmark
 ```
 
 _No inline documentation provided._
@@ -14203,7 +14964,7 @@ const result = getBudgetUtilizationColor(/* args */);
 - Export type: named
 
 ```ts
-function getCaptionPreferences(): Promise<import("C:/Dev/profitbuild-dash/src/utils/userPreferences").CaptionPreferences>
+function getCaptionPreferences(): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/userPreferences").CaptionPreferences>
 ```
 
 _No inline documentation provided._
@@ -14329,7 +15090,7 @@ const result = getChangeOrderStatusColor(/* args */);
 - Export type: named
 
 ```ts
-function getCompanyBranding(): Promise<import("C:/Dev/profitbuild-dash/src/utils/companyBranding").CompanyBranding>
+function getCompanyBranding(): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/companyBranding").CompanyBranding>
 ```
 
 _No inline documentation provided._
@@ -14350,7 +15111,7 @@ const result = getCompanyBranding(/* args */);
 - Export type: named
 
 ```ts
-function getConstructionFilter(): import("C:/Dev/profitbuild-dash/src/types/project").ProjectCategory
+function getConstructionFilter(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").ProjectCategory
 ```
 
 _No inline documentation provided._
@@ -14394,7 +15155,7 @@ const result = getContingencyColor(/* args */);
 - Export type: named
 
 ```ts
-function getCostVariance(quote: Quote, estimates: Estimate[]): import("C:/Dev/profitbuild-dash/src/utils/quoteFinancials").CostVarianceResult
+function getCostVariance(quote: Quote, estimates: Estimate[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/quoteFinancials").CostVarianceResult
 ```
 
 Calculate cost variance between quoted cost and estimated cost.
@@ -14459,7 +15220,7 @@ const result = getCostVarianceStatus(/* args */);
 - Export type: named
 
 ```ts
-function getDefaultKPIForConcept(concept: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure
+function getDefaultKPIForConcept(concept: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure
 ```
 
 Get the default KPI for a business concept
@@ -14501,7 +15262,7 @@ const result = getDeviceInfo(/* args */);
 - Export type: named
 
 ```ts
-function getEstimateForQuote(quote: Quote, estimates: Estimate[]): import("C:/Dev/profitbuild-dash/src/types/estimate").Estimate
+function getEstimateForQuote(quote: Quote, estimates: Estimate[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/estimate").Estimate
 ```
 
 Find the matching estimate for a given quote.
@@ -14590,7 +15351,7 @@ const result = getEstimateStatusColor(/* args */);
 - Export type: named
 
 ```ts
-function getExpenseContextFilter(): import("C:/Dev/profitbuild-dash/src/types/project").ProjectCategory[]
+function getExpenseContextFilter(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").ProjectCategory[]
 ```
 
 _No inline documentation provided._
@@ -14635,7 +15396,7 @@ const result = getExpensePayeeLabel(/* args */);
 - Export type: named
 
 ```ts
-function getExpenseSplits(expenseId: string): Promise<import("C:/Dev/profitbuild-dash/src/types/expense").ExpenseSplit[]>
+function getExpenseSplits(expenseId: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").ExpenseSplit[]>
 ```
 
 Get all splits for an expense with project details
@@ -14656,7 +15417,7 @@ const result = getExpenseSplits(/* args */);
 - Export type: named
 
 ```ts
-function getExpenseSplitsBatch(expenseIds: string[]): Promise<Record<string, import("C:/Dev/profitbuild-dash/src/types/expense").ExpenseSplit[]>>
+function getExpenseSplitsBatch(expenseIds: string[]): Promise<Record<string, import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").ExpenseSplit[]>>
 ```
 
 Get splits for multiple expenses in a single query (batch fetch).
@@ -14700,7 +15461,7 @@ const result = getExpenseStatusColor(/* args */);
 - Export type: named
 
 ```ts
-function getExpiringQuotes(quotes: Quote[], daysAhead: number = 7): import("C:/Dev/profitbuild-dash/src/types/quote").Quote[]
+function getExpiringQuotes(quotes: Quote[], daysAhead: number = 7): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/quote").Quote[]
 ```
 
 _No inline documentation provided._
@@ -14742,7 +15503,7 @@ const result = getFileExtension(/* args */);
 - Export type: named
 
 ```ts
-function getFinancialHealth(value: number | null | undefined, warningThreshold: number, criticalThreshold: number, invertDirection: boolean = false): import("C:/Dev/profitbuild-dash/src/utils/financialColors").FinancialHealthStatus
+function getFinancialHealth(value: number | null | undefined, warningThreshold: number, criticalThreshold: number, invertDirection: boolean = false): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/financialColors").FinancialHealthStatus
 ```
 
 Determine financial health based on a value and thresholds.
@@ -14807,7 +15568,7 @@ const result = getFinancialHealthHSL(/* args */);
 - Export type: named
 
 ```ts
-function getKPIById(id: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure
+function getKPIById(id: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure
 ```
 
 Get a KPI by its ID
@@ -14828,7 +15589,7 @@ const result = getKPIById(/* args */);
 - Export type: named
 
 ```ts
-function getKPIsByDomain(domain: KPIDomain | string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure[]
+function getKPIsByDomain(domain: KPIDomain | string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure[]
 ```
 
 Get all KPIs for a specific domain
@@ -14849,7 +15610,7 @@ const result = getKPIsByDomain(/* args */);
 - Export type: named
 
 ```ts
-function getKPIsBySource(source: KPISource): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure[]
+function getKPIsBySource(source: KPISource): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure[]
 ```
 
 Get all KPIs from a specific source
@@ -14927,6 +15688,28 @@ import { getMarginColor } from '@/utils/financialColors';
 const result = getMarginColor(/* args */);
 ```
 
+### getMarginIfAccepted
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+function getMarginIfAccepted(quote: Quote, estimates: Estimate[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/quoteFinancials").MarginIfAccepted
+```
+
+Compute "what margin do I keep if I accept this vendor's quote?" for the line items this quote covers.
+Uses estimate line-item sell totals (quote → estimate mapping already in getEstimateLineItemPrice).
+
+**Example**
+
+```ts
+import { getMarginIfAccepted } from '@/utils/quoteFinancials';
+
+const result = getMarginIfAccepted(/* args */);
+```
+
 ### getMarginPerformanceStatus
 
 **Import:** `@/utils/estimateFinancials`
@@ -14977,7 +15760,7 @@ const result = getMarginPerformanceStatus(/* args */);
 - Export type: named
 
 ```ts
-function getMarginThresholdStatus(currentMargin: number | null | undefined, minimumThreshold: number = 10.0, targetMargin: number = 20.0): import("C:/Dev/profitbuild-dash/src/types/project").MarginThresholdStatus
+function getMarginThresholdStatus(currentMargin: number | null | undefined, minimumThreshold: number = 10.0, targetMargin: number = 20.0): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").MarginThresholdStatus
 ```
 
 _No inline documentation provided._
@@ -15053,6 +15836,27 @@ import { getPlatformName } from '@/utils/platform';
 const result = getPlatformName(/* args */);
 ```
 
+### getPresetRange
+
+**Import:** `@/utils/timePeriodPresets`
+
+- Defined in: `utils/timePeriodPresets.ts`
+- Export type: named
+
+```ts
+function getPresetRange(preset: TimePeriodPreset, today: Date = new Date()): { dateFrom: string; dateTo: string; }
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { getPresetRange } from '@/utils/timePeriodPresets';
+
+const result = getPresetRange(/* args */);
+```
+
 ### getProfitStatus
 
 **Import:** `@/utils/quoteFinancials`
@@ -15074,6 +15878,27 @@ import { getProfitStatus } from '@/utils/quoteFinancials';
 const result = getProfitStatus(/* args */);
 ```
 
+### getProjectCategoryOrFilter
+
+**Import:** `@/utils/sandboxPreferences`
+
+- Defined in: `utils/sandboxPreferences.ts`
+- Export type: named
+
+```ts
+function getProjectCategoryOrFilter(opts: { includeOverhead?: boolean } = {}): string
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
+
+const result = getProjectCategoryOrFilter(/* args */);
+```
+
 ### getProjectMediaList
 
 **Import:** `@/utils/projectMedia`
@@ -15086,7 +15911,7 @@ function getProjectMediaList(projectId: string, options?: {
     fileType?: 'image' | 'video';
     limit?: number;
     offset?: number;
-  }): Promise<{ data: import("C:/Dev/profitbuild-dash/src/types/project").ProjectMedia[]; error: Error; }>
+  }): Promise<{ data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").ProjectMedia[]; error: Error; }>
 ```
 
 Get media list for a project with signed URLs
@@ -15150,7 +15975,7 @@ const result = getProjectStatusColor(/* args */);
 - Export type: named
 
 ```ts
-function getQueue(): Promise<import("C:/Dev/profitbuild-dash/src/utils/syncQueue").QueuedOperation[]>
+function getQueue(): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/syncQueue").QueuedOperation[]>
 ```
 
 _No inline documentation provided._
@@ -15171,7 +15996,7 @@ const result = getQueue(/* args */);
 - Export type: named
 
 ```ts
-function getQuickBooksColumnMapping(headers: string[]): import("C:/Dev/profitbuild-dash/src/utils/clientCsvParser").ClientColumnMapping
+function getQuickBooksColumnMapping(headers: string[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/clientCsvParser").ClientColumnMapping
 ```
 
 _No inline documentation provided._
@@ -15206,6 +16031,29 @@ correctness even for quotes saved before the totalCost fix.
 import { getQuotedCost } from '@/utils/quoteFinancials';
 
 const result = getQuotedCost(/* args */);
+```
+
+### getQuotePeersByLineItem
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+function getQuotePeersByLineItem(quote: Quote, allQuotes: Quote[], estimates: Estimate[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/quoteFinancials").LineItemPeers[]
+```
+
+For a given quote, build per-line-item peer leaderboards.
+Peers = any other quote whose quote_line_items reference the SAME estimate_line_item_id.
+Same-version-only by design — schema has no cross-version line-item family.
+
+**Example**
+
+```ts
+import { getQuotePeersByLineItem } from '@/utils/quoteFinancials';
+
+const result = getQuotePeersByLineItem(/* args */);
 ```
 
 ### getQuoteStatusColor
@@ -15258,7 +16106,7 @@ const result = getRecommendedUnitCodes(/* args */);
 - Export type: named
 
 ```ts
-function getRecommendedUnits(category: string): import("C:/Dev/profitbuild-dash/src/utils/units").UnitDefinition[]
+function getRecommendedUnits(category: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/units").UnitDefinition[]
 ```
 
 _No inline documentation provided._
@@ -15301,7 +16149,7 @@ const result = getRevenueDisplayAmount(/* args */);
 - Export type: named
 
 ```ts
-function getRevenueSplits(revenueId: string): Promise<import("C:/Dev/profitbuild-dash/src/types/revenue").RevenueSplit[]>
+function getRevenueSplits(revenueId: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/revenue").RevenueSplit[]>
 ```
 
 Get all splits for a revenue with project details
@@ -15333,6 +16181,28 @@ _No inline documentation provided._
 import { getShowSandboxProject } from '@/utils/sandboxPreferences';
 
 const result = getShowSandboxProject(/* args */);
+```
+
+### getSignedCostVariance
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+function getSignedCostVariance(quote: Quote, estimates: Estimate[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/quoteFinancials").SignedCostVariance
+```
+
+Like getCostVariance but preserves sign + baseline for UI display.
+Used by QuoteViewHero to render the "screaming number" variance.
+
+**Example**
+
+```ts
+import { getSignedCostVariance } from '@/utils/quoteFinancials';
+
+const result = getSignedCostVariance(/* args */);
 ```
 
 ### getSupportedMediaTypes
@@ -15427,7 +16297,7 @@ const result = getTimeRemainingBeforeSizeLimit(/* args */);
 - Export type: named
 
 ```ts
-function getTopProfitableProjects(projectProfits: ProjectProfitData[], limit: number = 5): import("C:/Dev/profitbuild-dash/src/types/profit").ProjectProfitData[]
+function getTopProfitableProjects(projectProfits: ProjectProfitData[], limit: number = 5): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profit").ProjectProfitData[]
 ```
 
 _No inline documentation provided._
@@ -15469,7 +16339,7 @@ const result = getTrainingFileUrl(/* args */);
 - Export type: named
 
 ```ts
-function getUnitByCode(code: string): import("C:/Dev/profitbuild-dash/src/utils/units").UnitDefinition
+function getUnitByCode(code: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/units").UnitDefinition
 ```
 
 _No inline documentation provided._
@@ -15490,7 +16360,7 @@ const result = getUnitByCode(/* args */);
 - Export type: named
 
 ```ts
-function getUnitsByCategory(category: UnitCategory): import("C:/Dev/profitbuild-dash/src/utils/units").UnitDefinition[]
+function getUnitsByCategory(category: UnitCategory): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/units").UnitDefinition[]
 ```
 
 _No inline documentation provided._
@@ -15554,7 +16424,7 @@ const result = getVideoEmbedUrl(/* args */);
 - Export type: named
 
 ```ts
-function getWorstPerformingProjects(projectProfits: ProjectProfitData[], limit: number = 5): import("C:/Dev/profitbuild-dash/src/types/profit").ProjectProfitData[]
+function getWorstPerformingProjects(projectProfits: ProjectProfitData[], limit: number = 5): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/profit").ProjectProfitData[]
 ```
 
 _No inline documentation provided._
@@ -15575,7 +16445,7 @@ const result = getWorstPerformingProjects(/* args */);
 - Export type: named
 
 ```ts
-function importBudgetSheet(file: File, options: ImportOptions = {}): Promise<import("C:/Dev/profitbuild-dash/src/types/importTypes").ImportResult>
+function importBudgetSheet(file: File, options: ImportOptions = {}): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").ImportResult>
 ```
 
 _No inline documentation provided._
@@ -15777,6 +16647,27 @@ import { isOverheadProject } from '@/types/project';
 const result = isOverheadProject(/* args */);
 ```
 
+### isProjectVisibleByCategory
+
+**Import:** `@/utils/sandboxPreferences`
+
+- Defined in: `utils/sandboxPreferences.ts`
+- Export type: named
+
+```ts
+function isProjectVisibleByCategory(project: { category?: string | null; project_number?: string | null }, opts: { includeOverhead?: boolean } = {}): boolean
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
+
+const result = isProjectVisibleByCategory(/* args */);
+```
+
 ### isPWAInstalled
 
 **Import:** `@/utils/platform`
@@ -15903,6 +16794,90 @@ import { jaroWinklerSimilarity } from '@/utils/fuzzyPayeeMatcher';
 const result = jaroWinklerSimilarity(/* args */);
 ```
 
+### lineItemCost
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function lineItemCost(item: LineItem): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { lineItemCost } from '@/utils/lineItemTotals';
+
+const result = lineItemCost(/* args */);
+```
+
+### lineItemMarkup
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function lineItemMarkup(item: LineItem): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { lineItemMarkup } from '@/utils/lineItemTotals';
+
+const result = lineItemMarkup(/* args */);
+```
+
+### lineItemMarkupPercent
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function lineItemMarkupPercent(item: LineItem): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { lineItemMarkupPercent } from '@/utils/lineItemTotals';
+
+const result = lineItemMarkupPercent(/* args */);
+```
+
+### lineItemTotal
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function lineItemTotal(item: LineItem): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { lineItemTotal } from '@/utils/lineItemTotals';
+
+const result = lineItemTotal(/* args */);
+```
+
 ### linkReceiptToExpense
 
 **Import:** `@/utils/receiptLinking`
@@ -15932,7 +16907,7 @@ const result = linkReceiptToExpense(/* args */);
 - Export type: named
 
 ```ts
-function mapAccountToCategory(accountFullName: string): import("C:/Dev/profitbuild-dash/src/types/expense").ExpenseCategory
+function mapAccountToCategory(accountFullName: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").ExpenseCategory
 ```
 
 _No inline documentation provided._
@@ -15953,7 +16928,7 @@ const result = mapAccountToCategory(/* args */);
 - Export type: named
 
 ```ts
-function mapColumns(grid: Grid, headerRowIndex: number): import("C:/Dev/profitbuild-dash/src/types/importTypes").ColumnMappingResult
+function mapColumns(grid: Grid, headerRowIndex: number): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").ColumnMappingResult
 ```
 
 _No inline documentation provided._
@@ -15974,7 +16949,7 @@ const result = mapColumns(/* args */);
 - Export type: named
 
 ```ts
-function mapCSVToClients(data: ClientCSVRow[], mapping: ClientColumnMapping, fileName: string): import("C:/Dev/profitbuild-dash/src/utils/clientCsvParser").ClientImportData[]
+function mapCSVToClients(data: ClientCSVRow[], mapping: ClientColumnMapping, fileName: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/clientCsvParser").ClientImportData[]
 ```
 
 _No inline documentation provided._
@@ -15995,7 +16970,7 @@ const result = mapCSVToClients(/* args */);
 - Export type: named
 
 ```ts
-function mapCSVToExpenses(data: CSVRow[], mapping: ColumnMapping, projectId: string, fileName: string): import("C:/Dev/profitbuild-dash/src/types/expense").Expense[]
+function mapCSVToExpenses(data: CSVRow[], mapping: ColumnMapping, projectId: string, fileName: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").Expense[]
 ```
 
 _No inline documentation provided._
@@ -16016,7 +16991,7 @@ const result = mapCSVToExpenses(/* args */);
 - Export type: named
 
 ```ts
-function mapCSVToExpenses(data: ExpenseCSVRow[], mapping: ExpenseColumnMapping, fallbackProjectId: string, payeeMap: Map<string, string> = new Map(), projectMap: Map<string, string> = new Map()): import("C:/Dev/profitbuild-dash/src/utils/expenseCsvParser").ExpenseImportData[]
+function mapCSVToExpenses(data: ExpenseCSVRow[], mapping: ExpenseColumnMapping, fallbackProjectId: string, payeeMap: Map<string, string> = new Map(), projectMap: Map<string, string> = new Map()): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/expenseCsvParser").ExpenseImportData[]
 ```
 
 _No inline documentation provided._
@@ -16037,7 +17012,7 @@ const result = mapCSVToExpenses(/* args */);
 - Export type: named
 
 ```ts
-function mapCSVToPayees(data: PayeeCSVRow[], mapping: PayeeColumnMapping, fileName: string): import("C:/Dev/profitbuild-dash/src/utils/payeeCsvParser").PayeeImportData[]
+function mapCSVToPayees(data: PayeeCSVRow[], mapping: PayeeColumnMapping, fileName: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/payeeCsvParser").PayeeImportData[]
 ```
 
 _No inline documentation provided._
@@ -16058,7 +17033,7 @@ const result = mapCSVToPayees(/* args */);
 - Export type: named
 
 ```ts
-function mapDbToLineItem(dbItem: any): import("C:/Dev/profitbuild-dash/src/types/estimate").LineItem
+function mapDbToLineItem(dbItem: any): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/estimate").LineItem
 ```
 
 _No inline documentation provided._
@@ -16079,7 +17054,7 @@ const result = mapDbToLineItem(/* args */);
 - Export type: named
 
 ```ts
-function mapLineItemToDb(item: LineItem): { id: string; category: import("C:/Dev/profitbuild-dash/src/types/estimate").LineItemCategory; description: string; quantity: number; rate: number; total: number; unit: string; sort_order: number; cost_per_unit: number; markup_percent: number; markup_amount: number; price_per_unit: number; total_cost: number; total_markup: number; }
+function mapLineItemToDb(item: LineItem): { id: string; category: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/estimate").LineItemCategory; description: string; quantity: number; unit: string; sort_order: number; cost_per_unit: number; markup_percent: number; markup_amount: number; price_per_unit: number; }
 ```
 
 _No inline documentation provided._
@@ -16100,7 +17075,7 @@ const result = mapLineItemToDb(/* args */);
 - Export type: named
 
 ```ts
-function mapQuickBooksToExpenses(transactions: QBTransaction[], fileName: string): Promise<import("C:/Dev/profitbuild-dash/src/utils/csvParser").QBImportResult>
+function mapQuickBooksToExpenses(transactions: QBTransaction[], fileName: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/csvParser").QBImportResult>
 ```
 
 _No inline documentation provided._
@@ -16121,7 +17096,7 @@ const result = mapQuickBooksToExpenses(/* args */);
 - Export type: named
 
 ```ts
-function mapTransactionType(transactionType: string): import("C:/Dev/profitbuild-dash/src/types/expense").TransactionType
+function mapTransactionType(transactionType: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").TransactionType
 ```
 
 _No inline documentation provided._
@@ -16184,7 +17159,7 @@ const result = markAsSynced(/* args */);
 - Export type: named
 
 ```ts
-function markPayeeAsSynced(payeeId: string): Promise<{ error: import("C:/Dev/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
+function markPayeeAsSynced(payeeId: string): Promise<{ error: import("E:/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
 ```
 
 _No inline documentation provided._
@@ -16205,7 +17180,7 @@ const result = markPayeeAsSynced(/* args */);
 - Export type: named
 
 ```ts
-function markProjectAsSynced(projectId: string): Promise<{ error: import("C:/Dev/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
+function markProjectAsSynced(projectId: string): Promise<{ error: import("E:/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
 ```
 
 _No inline documentation provided._
@@ -16323,6 +17298,30 @@ import { normalizeUnit } from '@/utils/dbMapping';
 const result = normalizeUnit(/* args */);
 ```
 
+### parseAddressOneLine
+
+**Import:** `@/utils/invoiceFormatters`
+
+- Defined in: `utils/invoiceFormatters.ts`
+- Export type: named
+
+```ts
+function parseAddressOneLine(addr?: string | null): { street: string; cityStateZip: string; }
+```
+
+Parse a one-line address into street + city/state/zip pair. Mirrors the
+heuristic used inside `generate-contract` (street suffixes + 2-letter state +
+5/9-digit ZIP). Returns the original string in `street` and an empty
+`cityStateZip` when no state/zip can be parsed.
+
+**Example**
+
+```ts
+import { parseAddressOneLine } from '@/utils/invoiceFormatters';
+
+const result = parseAddressOneLine(/* args */);
+```
+
 ### parseClientCSVFile
 
 **Import:** `@/utils/clientCsvParser`
@@ -16331,7 +17330,7 @@ const result = normalizeUnit(/* args */);
 - Export type: named
 
 ```ts
-function parseClientCSVFile(file: File): Promise<import("C:/Dev/profitbuild-dash/src/utils/clientCsvParser").ParsedClientCSV>
+function parseClientCSVFile(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/clientCsvParser").ParsedClientCSV>
 ```
 
 _No inline documentation provided._
@@ -16394,7 +17393,7 @@ const result = parseCsvDateForDB(/* args */);
 - Export type: named
 
 ```ts
-function parseCSVFile(file: File): Promise<import("C:/Dev/profitbuild-dash/src/utils/csvParser").ParseResult>
+function parseCSVFile(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/csvParser").ParseResult>
 ```
 
 _No inline documentation provided._
@@ -16436,7 +17435,7 @@ const result = parseDateOnly(/* args */);
 - Export type: named
 
 ```ts
-function parseEnhancedQuickBooksCSV(file: File): Promise<{ data: import("C:/Dev/profitbuild-dash/src/utils/enhancedCsvParser").QBTransaction[]; errors: string[]; headers: string[]; }>
+function parseEnhancedQuickBooksCSV(file: File): Promise<{ data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/enhancedCsvParser").QBTransaction[]; errors: string[]; headers: string[]; }>
 ```
 
 _No inline documentation provided._
@@ -16457,7 +17456,7 @@ const result = parseEnhancedQuickBooksCSV(/* args */);
 - Export type: named
 
 ```ts
-function parseExpenseCSVFile(file: File): Promise<import("C:/Dev/profitbuild-dash/src/utils/expenseCsvParser").ParsedExpenseCSV>
+function parseExpenseCSVFile(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/expenseCsvParser").ParsedExpenseCSV>
 ```
 
 _No inline documentation provided._
@@ -16522,7 +17521,7 @@ const result = parseMentions(/* args */);
 - Export type: named
 
 ```ts
-function parsePayeeCSVFile(file: File): Promise<import("C:/Dev/profitbuild-dash/src/utils/payeeCsvParser").ParsedPayeeCSV>
+function parsePayeeCSVFile(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/payeeCsvParser").ParsedPayeeCSV>
 ```
 
 _No inline documentation provided._
@@ -16533,6 +17532,28 @@ _No inline documentation provided._
 import { parsePayeeCSVFile } from '@/utils/payeeCsvParser';
 
 const result = parsePayeeCSVFile(/* args */);
+```
+
+### parsePaymentTermsDays
+
+**Import:** `@/utils/invoiceFormatters`
+
+- Defined in: `utils/invoiceFormatters.ts`
+- Export type: named
+
+```ts
+function parsePaymentTermsDays(terms?: string | null): number
+```
+
+Parse a `payment_terms` text value (e.g. "Net 30", "30", "NET 45 days")
+into a day count. Returns null if no number is found.
+
+**Example**
+
+```ts
+import { parsePaymentTermsDays } from '@/utils/invoiceFormatters';
+
+const result = parsePaymentTermsDays(/* args */);
 ```
 
 ### parseQuickBooksAmount
@@ -16564,7 +17585,7 @@ const result = parseQuickBooksAmount(/* args */);
 - Export type: named
 
 ```ts
-function parseQuickBooksCSV(file: File): Promise<import("C:/Dev/profitbuild-dash/src/utils/csvParser").QBParseResult>
+function parseQuickBooksCSV(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/csvParser").QBParseResult>
 ```
 
 _No inline documentation provided._
@@ -16585,7 +17606,7 @@ const result = parseQuickBooksCSV(/* args */);
 - Export type: named
 
 ```ts
-function parseTransactionCSV(file: File): Promise<import("C:/Dev/profitbuild-dash/src/utils/enhancedTransactionImporter").ParsedTransactionData>
+function parseTransactionCSV(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/enhancedTransactionImporter").ParsedTransactionData>
 ```
 
 _No inline documentation provided._
@@ -16606,7 +17627,7 @@ const result = parseTransactionCSV(/* args */);
 - Export type: named
 
 ```ts
-function parseUploadedFile(file: File): Promise<import("C:/Dev/profitbuild-dash/src/types/importTypes").Grid>
+function parseUploadedFile(file: File): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").Grid>
 ```
 
 _No inline documentation provided._
@@ -16648,7 +17669,7 @@ const result = parseVideoUrl(/* args */);
 - Export type: named
 
 ```ts
-function processEnhancedQuickBooksImport(transactions: QBTransaction[], fileName: string): Promise<import("C:/Dev/profitbuild-dash/src/utils/enhancedCsvParser").EnhancedQBImportResult>
+function processEnhancedQuickBooksImport(transactions: QBTransaction[], fileName: string): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/enhancedCsvParser").EnhancedQBImportResult>
 ```
 
 _No inline documentation provided._
@@ -16711,7 +17732,7 @@ const result = processQueue(/* args */);
 - Export type: named
 
 ```ts
-function processTransactionImport(data: TransactionCSVRow[], import_batch_id?: string, options?: { overrideDedup?: Set<string> }): Promise<import("C:/Dev/profitbuild-dash/src/utils/enhancedTransactionImporter").TransactionImportResult>
+function processTransactionImport(data: TransactionCSVRow[], import_batch_id?: string, options?: { overrideDedup?: Set<string> }): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/enhancedTransactionImporter").TransactionImportResult>
 ```
 
 _No inline documentation provided._
@@ -16754,7 +17775,7 @@ const result = refreshMediaSignedUrl(/* args */);
 - Export type: named
 
 ```ts
-function resetPayeeSyncStatus(payeeId: string): Promise<{ error: import("C:/Dev/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
+function resetPayeeSyncStatus(payeeId: string): Promise<{ error: import("E:/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
 ```
 
 _No inline documentation provided._
@@ -16775,7 +17796,7 @@ const result = resetPayeeSyncStatus(/* args */);
 - Export type: named
 
 ```ts
-function resetProjectSyncStatus(projectId: string): Promise<{ error: import("C:/Dev/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
+function resetProjectSyncStatus(projectId: string): Promise<{ error: import("E:/profitbuild-dash/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestError").default; }>
 ```
 
 _No inline documentation provided._
@@ -16838,7 +17859,7 @@ const result = resolveMentions(/* args */);
 - Export type: named
 
 ```ts
-function resolveQBAccountCategory(accountPath: string): import("C:/Dev/profitbuild-dash/src/types/expense").ExpenseCategory
+function resolveQBAccountCategory(accountPath: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").ExpenseCategory
 ```
 
 _No inline documentation provided._
@@ -16870,6 +17891,27 @@ Check if a revenue has splits
 import { revenueHasSplits } from '@/utils/revenueSplits';
 
 const result = revenueHasSplits(/* args */);
+```
+
+### round2
+
+**Import:** `@/utils/lineItemTotals`
+
+- Defined in: `utils/lineItemTotals.ts`
+- Export type: named
+
+```ts
+function round2(n: number): number
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { round2 } from '@/utils/lineItemTotals';
+
+const result = round2(/* args */);
 ```
 
 ### runValidation
@@ -16928,7 +17970,7 @@ const result = saveReportToProjectDocuments(/* args */);
 - Export type: named
 
 ```ts
-function searchKPIs(term: string): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").KPIMeasure[]
+function searchKPIs(term: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").KPIMeasure[]
 ```
 
 Find all KPIs matching a search term
@@ -17118,7 +18160,7 @@ const result = startSyncService(/* args */);
 - Export type: named
 
 ```ts
-function suggestCategoryFromAccountName(accountFullName: string): import("C:/Dev/profitbuild-dash/src/types/expense").ExpenseCategory
+function suggestCategoryFromAccountName(accountFullName: string): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/expense").ExpenseCategory
 ```
 
 _No inline documentation provided._
@@ -17205,7 +18247,7 @@ const result = unlinkReceiptFromExpense(/* args */);
 function updateBidMediaMetadata(mediaId: string, updates: {
     caption?: string;
     description?: string;
-  }): Promise<{ data: import("C:/Dev/profitbuild-dash/src/types/bid").BidMedia; error: Error; }>
+  }): Promise<{ data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/bid").BidMedia; error: Error; }>
 ```
 
 Update bid media metadata (caption, description)
@@ -17272,7 +18314,7 @@ function updateMediaMetadata(mediaId: string, updates: {
     caption?: string;
     description?: string;
     location_name?: string;
-  }): Promise<{ data: import("C:/Dev/profitbuild-dash/src/types/project").ProjectMedia; error: Error; }>
+  }): Promise<{ data: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").ProjectMedia; error: Error; }>
 ```
 
 Update media metadata (caption, description, location)
@@ -17314,7 +18356,7 @@ const result = updateOperationStatus(/* args */);
 - Export type: named
 
 ```ts
-function updateRevenueSplits(revenueId: string, splits: CreateRevenueSplitInput[]): Promise<import("C:/Dev/profitbuild-dash/src/types/revenue").RevenueSplitResult>
+function updateRevenueSplits(revenueId: string, splits: CreateRevenueSplitInput[]): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/revenue").RevenueSplitResult>
 ```
 
 Update splits for a revenue (deletes old splits and creates new ones)
@@ -17348,6 +18390,31 @@ import { uploadLogo } from '@/utils/companyBranding';
 const result = uploadLogo(/* args */);
 ```
 
+### uploadProjectDocument
+
+**Import:** `@/utils/projectDocumentUpload`
+
+- Defined in: `utils/projectDocumentUpload.ts`
+- Export type: named
+
+```ts
+function uploadProjectDocument({
+  projectId,
+  file,
+  documentType = "other",
+}: UploadProjectDocumentParams): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/projectDocumentUpload").UploadProjectDocumentResult>
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { uploadProjectDocument } from '@/utils/projectDocumentUpload';
+
+const result = uploadProjectDocument(/* args */);
+```
+
 ### uploadProjectMedia
 
 **Import:** `@/utils/projectMedia`
@@ -17356,7 +18423,7 @@ const result = uploadLogo(/* args */);
 - Export type: named
 
 ```ts
-function uploadProjectMedia(params: UploadProjectMediaParams): Promise<import("C:/Dev/profitbuild-dash/src/utils/projectMedia").UploadProjectMediaResult>
+function uploadProjectMedia(params: UploadProjectMediaParams): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/projectMedia").UploadProjectMediaResult>
 ```
 
 Upload media file to project-media bucket and create database record
@@ -17377,7 +18444,7 @@ const result = uploadProjectMedia(/* args */);
 - Export type: named
 
 ```ts
-function uploadTrainingFile(file: File, contentType: 'document' | 'presentation'): Promise<import("C:/Dev/profitbuild-dash/src/utils/trainingStorage").UploadResult>
+function uploadTrainingFile(file: File, contentType: 'document' | 'presentation'): Promise<import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/trainingStorage").UploadResult>
 ```
 
 Upload a training content file to Supabase storage
@@ -17440,7 +18507,7 @@ const result = validateClientCSVData(/* args */);
 - Export type: named
 
 ```ts
-function validateContractFields(fieldValues: ContractFieldValues): import("C:/Dev/profitbuild-dash/src/types/contract").ContractFieldValidation
+function validateContractFields(fieldValues: ContractFieldValues): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/contract").ContractFieldValidation
 ```
 
 _No inline documentation provided._
@@ -17517,6 +18584,27 @@ import { validateExpensesForCorrelation } from '@/utils/expenseValidation';
 const result = validateExpensesForCorrelation(/* args */);
 ```
 
+### validateInvoiceFields
+
+**Import:** `@/utils/invoiceValidation`
+
+- Defined in: `utils/invoiceValidation.ts`
+- Export type: named
+
+```ts
+function validateInvoiceFields(fieldValues: InvoiceFieldValues): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/invoice").InvoiceFieldValidation
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { validateInvoiceFields } from '@/utils/invoiceValidation';
+
+const result = validateInvoiceFields(/* args */);
+```
+
 ### validateKPIDefinitions
 
 **Import:** `@/lib/kpi-definitions/validation`
@@ -17525,7 +18613,7 @@ const result = validateExpensesForCorrelation(/* args */);
 - Export type: named
 
 ```ts
-function validateKPIDefinitions(): import("C:/Dev/profitbuild-dash/src/lib/kpi-definitions/types").ValidationResult
+function validateKPIDefinitions(): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/lib/kpi-definitions/types").ValidationResult
 ```
 
 Run all validations and return results
@@ -17546,7 +18634,7 @@ const result = validateKPIDefinitions(/* args */);
 - Export type: named
 
 ```ts
-function validateMediaFile(file: File): import("C:/Dev/profitbuild-dash/src/utils/mediaMetadata").ValidationResult
+function validateMediaFile(file: File): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/utils/mediaMetadata").ValidationResult
 ```
 
 Validate media file type and size (supports images, videos, and documents)
@@ -17567,7 +18655,7 @@ const result = validateMediaFile(/* args */);
 - Export type: named
 
 ```ts
-function validateMediaItems(items: ProjectMedia[]): { valid: import("C:/Dev/profitbuild-dash/src/types/project").ProjectMedia[]; invalid: import("C:/Dev/profitbuild-dash/src/types/project").ProjectMedia[]; }
+function validateMediaItems(items: ProjectMedia[]): { valid: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").ProjectMedia[]; invalid: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/project").ProjectMedia[]; }
 ```
 
 _No inline documentation provided._
@@ -17657,7 +18745,7 @@ const result = validateSplitTotal(/* args */);
 - Export type: named
 
 ```ts
-function validateSplitTotal(revenueAmount: number, splitAmounts: number[]): import("C:/Dev/profitbuild-dash/src/types/revenue").SplitValidationResult
+function validateSplitTotal(revenueAmount: number, splitAmounts: number[]): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/revenue").SplitValidationResult
 ```
 
 Validate that split amounts sum to the revenue total
@@ -17721,7 +18809,7 @@ const result = validateTimeEntryHoursV2(/* args */);
 - Export type: named
 
 ```ts
-function validateTotals(items: ExtractedLineItem[], grid: Grid, columns: BudgetColumns): import("C:/Dev/profitbuild-dash/src/types/importTypes").ImportWarning[]
+function validateTotals(items: ExtractedLineItem[], grid: Grid, columns: BudgetColumns): import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/types/importTypes").ImportWarning[]
 ```
 
 _No inline documentation provided._
@@ -17804,7 +18892,7 @@ const instance = new ScheduleErrorBoundary(/* args */);
 
 ## Interfaces
 
-Total: 265
+Total: 287
 
 ### AIKPIContext
 
@@ -17909,6 +18997,27 @@ _No inline documentation provided._
 import type { AllocationSummary } from '@/components/profit-analysis/hooks/useProjectFinancialDetail';
 
 type Example = AllocationSummary;
+```
+
+### AppBreadcrumbItem
+
+**Import:** `@/components/layout/AppBreadcrumbs`
+
+- Defined in: `components/layout/AppBreadcrumbs.tsx`
+- Export type: named
+
+```ts
+interface AppBreadcrumbItem
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { AppBreadcrumbItem } from '@/components/layout/AppBreadcrumbs';
+
+type Example = AppBreadcrumbItem;
 ```
 
 ### BadgeProps
@@ -18206,6 +19315,27 @@ _No inline documentation provided._
 import type { CategoryCostComparison } from '@/utils/quoteFinancials';
 
 type Example = CategoryCostComparison;
+```
+
+### CategoryRollupRow
+
+**Import:** `@/hooks/useExpenseDashboardData`
+
+- Defined in: `hooks/useExpenseDashboardData.ts`
+- Export type: named
+
+```ts
+interface CategoryRollupRow
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { CategoryRollupRow } from '@/hooks/useExpenseDashboardData';
+
+type Example = CategoryRollupRow;
 ```
 
 ### CategorySummary
@@ -18542,27 +19672,6 @@ _No inline documentation provided._
 import type { CompanySetting } from '@/types/companySettings';
 
 type Example = CompanySetting;
-```
-
-### ComparisonData
-
-**Import:** `@/types/quote`
-
-- Defined in: `types/quote.ts`
-- Export type: named
-
-```ts
-interface ComparisonData
-```
-
-_No inline documentation provided._
-
-**Example**
-
-```ts
-import type { ComparisonData } from '@/types/quote';
-
-type Example = ComparisonData;
 ```
 
 ### ConstructionPhase
@@ -19034,6 +20143,58 @@ import type { CSVRow } from '@/types/expense';
 type Example = CSVRow;
 ```
 
+### DashboardDateRange
+
+**Import:** `@/hooks/useExpenseDashboardData`
+
+- Defined in: `hooks/useExpenseDashboardData.ts`
+- Export type: named
+
+```ts
+interface DashboardDateRange
+```
+
+Server-aggregated dashboard data for ExpenseDashboard. Replaces the
+previous eager `.range(0, 9999)` fetch of raw expense rows.
+
+Three parallel queries, each independently cacheable:
+ - `['expense-dashboard-stats', projectCategory]`   — summary card totals
+ - `['expense-category-rollup', projectCategory]`   — category bar chart
+ - `['expense-dashboard-recent', projectCategory]`  — last 5 expenses
+
+Invalidation pattern (Gotcha #27): ExpensesList.refreshAll extends the
+invalidation fan-out to include `['expense-dashboard-stats']`,
+`['expense-category-rollup']`, and `['expense-dashboard-recent']`.
+
+**Example**
+
+```ts
+import type { DashboardDateRange } from '@/hooks/useExpenseDashboardData';
+
+type Example = DashboardDateRange;
+```
+
+### DashboardStats
+
+**Import:** `@/hooks/useExpenseDashboardData`
+
+- Defined in: `hooks/useExpenseDashboardData.ts`
+- Export type: named
+
+```ts
+interface DashboardStats
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { DashboardStats } from '@/hooks/useExpenseDashboardData';
+
+type Example = DashboardStats;
+```
+
 ### DateFieldProps
 
 **Import:** `@/components/time-entry-form/fields/DateField`
@@ -19053,6 +20214,27 @@ _No inline documentation provided._
 import type { DateFieldProps } from '@/components/time-entry-form/fields/DateField';
 
 type Example = DateFieldProps;
+```
+
+### DatePickerPopoverProps
+
+**Import:** `@/components/ui/date-picker-popover`
+
+- Defined in: `components/ui/date-picker-popover.tsx`
+- Export type: named
+
+```ts
+interface DatePickerPopoverProps
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { DatePickerPopoverProps } from '@/components/ui/date-picker-popover';
+
+type Example = DatePickerPopoverProps;
 ```
 
 ### DedupePayeesResult
@@ -19917,6 +21099,198 @@ import type { InternalLaborRates } from '@/types/companySettings';
 type Example = InternalLaborRates;
 ```
 
+### Invoice
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface Invoice
+```
+
+`invoices` row shape (matches DB column names).
+
+**Example**
+
+```ts
+import type { Invoice } from '@/types/invoice';
+
+type Example = Invoice;
+```
+
+### InvoiceCustomerInfo
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceCustomerInfo
+```
+
+"Bill To" section — sourced from `clients` (via project.client_id) plus
+any per-invoice override.
+
+**Example**
+
+```ts
+import type { InvoiceCustomerInfo } from '@/types/invoice';
+
+type Example = InvoiceCustomerInfo;
+```
+
+### InvoiceDetails
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceDetails
+```
+
+Per-invoice details. Populated mostly from `project_revenues` plus user
+edits in the modal.
+
+**Example**
+
+```ts
+import type { InvoiceDetails } from '@/types/invoice';
+
+type Example = InvoiceDetails;
+```
+
+### InvoiceFieldValidation
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceFieldValidation
+```
+
+Validation result for invoice fields, mirrors `ContractFieldValidation`.
+
+**Example**
+
+```ts
+import type { InvoiceFieldValidation } from '@/types/invoice';
+
+type Example = InvoiceFieldValidation;
+```
+
+### InvoiceFieldValues
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceFieldValues
+```
+
+Complete payload sent to `generate-invoice` edge function.
+
+**Example**
+
+```ts
+import type { InvoiceFieldValues } from '@/types/invoice';
+
+type Example = InvoiceFieldValues;
+```
+
+### InvoiceGenerationRequest
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceGenerationRequest
+```
+
+Edge-function request body.
+
+**Example**
+
+```ts
+import type { InvoiceGenerationRequest } from '@/types/invoice';
+
+type Example = InvoiceGenerationRequest;
+```
+
+### InvoiceGenerationResponse
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceGenerationResponse
+```
+
+Edge-function response body.
+
+**Example**
+
+```ts
+import type { InvoiceGenerationResponse } from '@/types/invoice';
+
+type Example = InvoiceGenerationResponse;
+```
+
+### InvoiceProjectInfo
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceProjectInfo
+```
+
+Project context for the invoice header.
+
+**Example**
+
+```ts
+import type { InvoiceProjectInfo } from '@/types/invoice';
+
+type Example = InvoiceProjectInfo;
+```
+
+### InvoiceRCGInfo
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+interface InvoiceRCGInfo
+```
+
+RCG company defaults (copied from `company_settings`). Same shape as the
+contract version so the same template-rendering helpers can be reused.
+
+**Example**
+
+```ts
+import type { InvoiceRCGInfo } from '@/types/invoice';
+
+type Example = InvoiceRCGInfo;
+```
+
 ### KPIMeasure
 
 **Import:** `@/lib/kpi-definitions/types`
@@ -20220,6 +21594,27 @@ import type { LineItemForMatching } from '@/utils/expenseAllocation';
 type Example = LineItemForMatching;
 ```
 
+### LineItemPeers
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+interface LineItemPeers
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { LineItemPeers } from '@/utils/quoteFinancials';
+
+type Example = LineItemPeers;
+```
+
 ### LinkReceiptParams
 
 **Import:** `@/utils/receiptLinking`
@@ -20325,15 +21720,15 @@ import type { ManualTimeEntrySheetProps } from '@/components/time-entry-form/Man
 type Example = ManualTimeEntrySheetProps;
 ```
 
-### MarginComparisonData
+### MarginIfAccepted
 
-**Import:** `@/types/quote`
+**Import:** `@/utils/quoteFinancials`
 
-- Defined in: `types/quote.ts`
+- Defined in: `utils/quoteFinancials.ts`
 - Export type: named
 
 ```ts
-interface MarginComparisonData
+interface MarginIfAccepted
 ```
 
 _No inline documentation provided._
@@ -20341,9 +21736,9 @@ _No inline documentation provided._
 **Example**
 
 ```ts
-import type { MarginComparisonData } from '@/types/quote';
+import type { MarginIfAccepted } from '@/utils/quoteFinancials';
 
-type Example = MarginComparisonData;
+type Example = MarginIfAccepted;
 ```
 
 ### MarginThreshold
@@ -20659,6 +22054,27 @@ _No inline documentation provided._
 import type { OvernightIndicatorProps } from '@/components/time-entry-form/fields/OvernightIndicator';
 
 type Example = OvernightIndicatorProps;
+```
+
+### PageHeaderMobileAction
+
+**Import:** `@/components/ui/page-header`
+
+- Defined in: `components/ui/page-header.tsx`
+- Export type: named
+
+```ts
+interface PageHeaderMobileAction
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { PageHeaderMobileAction } from '@/components/ui/page-header';
+
+type Example = PageHeaderMobileAction;
 ```
 
 ### ParsedClientCSV
@@ -21058,6 +22474,27 @@ _No inline documentation provided._
 import type { PdfSaveResult } from '@/utils/paymentApplicationPdf';
 
 type Example = PdfSaveResult;
+```
+
+### PeerBid
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+interface PeerBid
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { PeerBid } from '@/utils/quoteFinancials';
+
+type Example = PeerBid;
 ```
 
 ### PendingClientReview
@@ -21927,6 +23364,27 @@ import type { RCGInfo } from '@/types/contract';
 type Example = RCGInfo;
 ```
 
+### RecategorizeOtherBucketSheetProps
+
+**Import:** `@/components/cost-tracking/RecategorizeOtherBucketSheet`
+
+- Defined in: `components/cost-tracking/RecategorizeOtherBucketSheet.tsx`
+- Export type: named
+
+```ts
+interface RecategorizeOtherBucketSheetProps
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { RecategorizeOtherBucketSheetProps } from '@/components/cost-tracking/RecategorizeOtherBucketSheet';
+
+type Example = RecategorizeOtherBucketSheetProps;
+```
+
 ### ReceiptFilters
 
 **Import:** `@/components/ReceiptSearchFilters`
@@ -21988,6 +23446,27 @@ _No inline documentation provided._
 import type { ReceiptsManagementRef } from '@/components/ReceiptsManagement';
 
 type Example = ReceiptsManagementRef;
+```
+
+### RecentExpenseRow
+
+**Import:** `@/hooks/useExpenseDashboardData`
+
+- Defined in: `hooks/useExpenseDashboardData.ts`
+- Export type: named
+
+```ts
+interface RecentExpenseRow
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { RecentExpenseRow } from '@/hooks/useExpenseDashboardData';
+
+type Example = RecentExpenseRow;
 ```
 
 ### ReportConfig
@@ -22412,6 +23891,27 @@ import type { SendNotificationParams } from '@/types/training';
 type Example = SendNotificationParams;
 ```
 
+### SignedCostVariance
+
+**Import:** `@/utils/quoteFinancials`
+
+- Defined in: `utils/quoteFinancials.ts`
+- Export type: named
+
+```ts
+interface SignedCostVariance
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { SignedCostVariance } from '@/utils/quoteFinancials';
+
+type Example = SignedCostVariance;
+```
+
 ### SplitValidationResult
 
 **Import:** `@/types/revenue`
@@ -22670,6 +24170,27 @@ _No inline documentation provided._
 import type { TimeEntryStatistics } from '@/types/timeEntry';
 
 type Example = TimeEntryStatistics;
+```
+
+### TimePeriodValue
+
+**Import:** `@/utils/timePeriodPresets`
+
+- Defined in: `utils/timePeriodPresets.ts`
+- Export type: named
+
+```ts
+interface TimePeriodValue
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { TimePeriodValue } from '@/utils/timePeriodPresets';
+
+type Example = TimePeriodValue;
 ```
 
 ### TimePickerButtonProps
@@ -23050,6 +24571,48 @@ import type { UploadBidMediaParams } from '@/types/bid';
 type Example = UploadBidMediaParams;
 ```
 
+### UploadProjectDocumentParams
+
+**Import:** `@/utils/projectDocumentUpload`
+
+- Defined in: `utils/projectDocumentUpload.ts`
+- Export type: named
+
+```ts
+interface UploadProjectDocumentParams
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { UploadProjectDocumentParams } from '@/utils/projectDocumentUpload';
+
+type Example = UploadProjectDocumentParams;
+```
+
+### UploadProjectDocumentResult
+
+**Import:** `@/utils/projectDocumentUpload`
+
+- Defined in: `utils/projectDocumentUpload.ts`
+- Export type: named
+
+```ts
+interface UploadProjectDocumentResult
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { UploadProjectDocumentResult } from '@/utils/projectDocumentUpload';
+
+type Example = UploadProjectDocumentResult;
+```
+
 ### UploadProjectMediaParams
 
 **Import:** `@/utils/projectMedia`
@@ -23409,7 +24972,7 @@ type Example = WorkOrderSearchFilters;
 
 ## Types
 
-Total: 67
+Total: 70
 
 ### AppRole
 
@@ -24647,10 +26210,9 @@ type Database = {
           labor_hours: number | null
           markup_amount: number | null
           markup_percent: number | null
-          price_per_unit: number | null
+          price_per_unit: number
           quantity: number | null
           quickbooks_item_id: string | null
-          rate: number | null
           schedule_notes: string | null
           scheduled_end_date: string | null
           scheduled_start_date: string | null
@@ -24676,10 +26238,9 @@ type Database = {
           labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
-          price_per_unit?: number | null
+          price_per_unit?: number
           quantity?: number | null
           quickbooks_item_id?: string | null
-          rate?: number | null
           schedule_notes?: string | null
           scheduled_end_date?: string | null
           scheduled_start_date?: string | null
@@ -24705,10 +26266,9 @@ type Database = {
           labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
-          price_per_unit?: number | null
+          price_per_unit?: number
           quantity?: number | null
           quickbooks_item_id?: string | null
-          rate?: number | null
           schedule_notes?: string | null
           scheduled_end_date?: string | null
           scheduled_start_date?: string | null
@@ -24910,6 +26470,13 @@ type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expense_line_item_correlations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses_search"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"
             columns: ["expense_split_id"]
             isOneToOne: false
@@ -24972,6 +26539,13 @@ type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_splits_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses_search"
             referencedColumns: ["id"]
           },
           {
@@ -25226,6 +26800,120 @@ type Database = {
         }
         Relationships: []
       }
+      invoice_revenues: {
+        Row: {
+          invoice_id: string
+          revenue_id: string
+        }
+        Insert: {
+          invoice_id: string
+          revenue_id: string
+        }
+        Update: {
+          invoice_id?: string
+          revenue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_revenues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_revenues_revenue_id_fkey"
+            columns: ["revenue_id"]
+            isOneToOne: false
+            referencedRelation: "project_revenues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          docx_storage_path: string | null
+          docx_url: string | null
+          due_date: string | null
+          field_values: Json
+          id: string
+          internal_reference: string
+          invoice_date: string
+          invoice_number: string | null
+          notes: string | null
+          pdf_storage_path: string | null
+          pdf_url: string | null
+          project_id: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          docx_storage_path?: string | null
+          docx_url?: string | null
+          due_date?: string | null
+          field_values: Json
+          id?: string
+          internal_reference: string
+          invoice_date: string
+          invoice_number?: string | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
+          project_id: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          docx_storage_path?: string | null
+          docx_url?: string | null
+          due_date?: string | null
+          field_values?: Json
+          id?: string
+          internal_reference?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_comments: {
         Row: {
           comment_text: string
@@ -25264,6 +26952,35 @@ type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_mentions: {
+        Row: {
+          created_at: string
+          id: string
+          note_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_mentions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "project_notes"
             referencedColumns: ["id"]
           },
         ]
@@ -25600,6 +27317,7 @@ type Database = {
       }
       profiles: {
         Row: {
+          can_be_mentioned: boolean
           created_at: string
           deactivated_at: string | null
           deactivated_by: string | null
@@ -25614,6 +27332,7 @@ type Database = {
           updated_at: string
         }
         Insert: {
+          can_be_mentioned?: boolean
           created_at?: string
           deactivated_at?: string | null
           deactivated_by?: string | null
@@ -25628,6 +27347,7 @@ type Database = {
           updated_at?: string
         }
         Update: {
+          can_be_mentioned?: boolean
           created_at?: string
           deactivated_at?: string | null
           deactivated_by?: string | null
@@ -26004,7 +27724,9 @@ type Database = {
           created_at: string | null
           current_margin: number | null
           customer_po_number: string | null
-          default_expense_category: Database["public"]["Enums"]["expense_category"] | null
+          default_expense_category:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
           do_not_exceed: number | null
           end_date: string | null
           estimated_hours: number | null
@@ -26048,7 +27770,9 @@ type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
-          default_expense_category?: Database["public"]["Enums"]["expense_category"] | null
+          default_expense_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
           do_not_exceed?: number | null
           end_date?: string | null
           estimated_hours?: number | null
@@ -26092,7 +27816,9 @@ type Database = {
           created_at?: string | null
           current_margin?: number | null
           customer_po_number?: string | null
-          default_expense_category?: Database["public"]["Enums"]["expense_category"] | null
+          default_expense_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
           do_not_exceed?: number | null
           end_date?: string | null
           estimated_hours?: number | null
@@ -27351,6 +29077,48 @@ type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link_url: string | null
+          read_at: string | null
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          read_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          read_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -27413,6 +29181,101 @@ type Database = {
           },
         ]
       }
+      expenses_search: {
+        Row: {
+          account_full_name: string | null
+          account_name: string | null
+          amount: number | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          created_at: string | null
+          created_offline: boolean | null
+          description: string | null
+          end_time: string | null
+          expense_date: string | null
+          gross_hours: number | null
+          hours: number | null
+          id: string | null
+          import_batch_id: string | null
+          invoice_number: string | null
+          is_locked: boolean | null
+          is_planned: boolean | null
+          is_split: boolean | null
+          local_id: string | null
+          lunch_duration_minutes: number | null
+          lunch_taken: boolean | null
+          payee_full_name: string | null
+          payee_id: string | null
+          payee_name: string | null
+          payee_type: string | null
+          project_category:
+            | Database["public"]["Enums"]["project_category"]
+            | null
+          project_id: string | null
+          project_name: string | null
+          project_number: string | null
+          quickbooks_transaction_id: string | null
+          receipt_id: string | null
+          rejection_reason: string | null
+          search_text: string | null
+          start_time: string | null
+          submitted_for_approval_at: string | null
+          synced_at: string | null
+          transaction_type:
+            | Database["public"]["Enums"]["transaction_type"]
+            | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_labor_hours: {
         Row: {
           approved_entries: number | null
@@ -27424,7 +29287,7 @@ type Database = {
           pending_entries: number | null
           rejected_entries: number | null
           total_cost: number | null
-          paid_hours: number | null
+          total_hours: number | null
           week_end_saturday: string | null
           week_start_sunday: string | null
         }
@@ -27542,7 +29405,72 @@ type Database = {
         Returns: string
       }
       get_database_schema: { Args: never; Returns: Json }
+      get_employees_audit: {
+        Args: never
+        Returns: {
+          can_be_mentioned: boolean
+          email: string
+          full_name: string
+          linkage_status: string
+          payee_id: string
+          payee_is_active: boolean
+          payee_name: string
+          payee_user_id: string
+          profile_is_active: boolean
+          provides_labor: boolean
+          roles: string[]
+          user_id: string
+        }[]
+      }
+      get_expense_category_rollup: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_project_category?: Database["public"]["Enums"]["project_category"]
+        }
+        Returns: {
+          allocated_count: number
+          category: Database["public"]["Enums"]["expense_category"]
+          project_count: number
+          row_count: number
+          total_amount: number
+        }[]
+      }
+      get_expense_dashboard_stats: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_project_category?: Database["public"]["Enums"]["project_category"]
+        }
+        Returns: {
+          split_amount: number
+          split_count: number
+          this_month_amount: number
+          total_amount: number
+          total_count: number
+          unallocated_amount: number
+          unallocated_count: number
+          unassigned_amount: number
+          unassigned_count: number
+        }[]
+      }
+      get_mentionable_employees: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
       get_next_project_number: { Args: never; Returns: string }
+      get_payee_usage_counts: {
+        Args: { p_source?: string }
+        Returns: {
+          payee_id: string
+          usage_count: number
+        }[]
+      }
       get_profit_analysis_data: {
         Args: { status_filter?: string[] }
         Returns: {
@@ -27608,6 +29536,15 @@ type Database = {
         Args: { p_project_id: string }
         Returns: number
       }
+      get_receipt_stats: {
+        Args: { p_today_start: string; p_week_start: string }
+        Returns: {
+          approved_today_count: number
+          pending_count: number
+          rejected_count: number
+          total_this_week_count: number
+        }[]
+      }
       get_scheduled_sms_recipients: {
         Args: {
           p_target_roles: Json
@@ -27669,6 +29606,10 @@ type Database = {
       safe_cast_to_quote_status: {
         Args: { val: string }
         Returns: Database["public"]["Enums"]["quote_status"]
+      }
+      set_user_can_be_mentioned: {
+        Args: { target_user_id: string; value: boolean }
+        Returns: undefined
       }
     }
     Enums: {
@@ -27872,6 +29813,36 @@ import type { ExpenseStatus } from '@/lib/statusColors';
 type Example = ExpenseStatus;
 ```
 
+### FieldWorkerPayeeType
+
+**Import:** `@/hooks/useEmployeesAudit`
+
+- Defined in: `hooks/useEmployeesAudit.ts`
+- Export type: named
+
+```ts
+type FieldWorkerPayeeType = 'internal' | 'subcontractor'
+```
+
+Worker-type selector for `useCreateLinkedPayee` when called for a field worker.
+ - 'internal'      → W2 employee (is_internal=true, payee_type='internal_labor')
+ - 'subcontractor' → labor-providing sub (is_internal=false, payee_type='subcontractor',
+                     provides_labor=true). Time entries land as category='subcontractors'
+                     with amount=0 via the enforce_time_entry_category_from_payee trigger.
+
+For admin / manager users this is ignored — they always get the internal shape on
+demand (no Worker Type prompt; their use case is rare and conservative is fine).
+
+See Architectural Rule 11 in CLAUDE.md.
+
+**Example**
+
+```ts
+import type { FieldWorkerPayeeType } from '@/hooks/useEmployeesAudit';
+
+type Example = FieldWorkerPayeeType;
+```
+
 ### FinancialHealthStatus
 
 **Import:** `@/utils/financialColors`
@@ -27945,6 +29916,59 @@ _No inline documentation provided._
 import type { ImportStep } from '@/types/importTypes';
 
 type Example = ImportStep;
+```
+
+### InvoiceStatus
+
+**Import:** `@/types/invoice`
+
+- Defined in: `types/invoice.ts`
+- Export type: named
+
+```ts
+type InvoiceStatus = | 'draft'
+  | 'generated'
+  | 'sent'
+  | 'paid'
+  | 'void'
+  | 'superseded'
+```
+
+Invoice generation types — mirror of `src/types/contract.ts`.
+
+The pipeline is template-driven: a `.docx` in the `invoice-templates`
+Storage bucket has `{{TOKEN}}` placeholders that map to nested paths in
+`InvoiceFieldValues`. The `generate-invoice` edge function performs the
+substitution and writes the result + a row in `invoices` + a row in
+`project_documents`.
+
+**Example**
+
+```ts
+import type { InvoiceStatus } from '@/types/invoice';
+
+type Example = InvoiceStatus;
+```
+
+### InvoiceStep
+
+**Import:** `@/components/invoices/InvoiceStepper`
+
+- Defined in: `components/invoices/InvoiceStepper.tsx`
+- Export type: named
+
+```ts
+type InvoiceStep = 'configure' | 'preview' | 'complete'
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { InvoiceStep } from '@/components/invoices/InvoiceStepper';
+
+type Example = InvoiceStep;
 ```
 
 ### ItemCategory
@@ -28199,27 +30223,6 @@ _No inline documentation provided._
 import type { NoteCardVariant } from '@/components/notes/NoteCard';
 
 type Example = NoteCardVariant;
-```
-
-### NoteInputVariant
-
-**Import:** `@/components/notes/NoteInput`
-
-- Defined in: `components/notes/NoteInput.tsx`
-- Export type: named
-
-```ts
-type NoteInputVariant = 'default' | 'compact'
-```
-
-_No inline documentation provided._
-
-**Example**
-
-```ts
-import type { NoteInputVariant } from '@/components/notes/NoteInput';
-
-type Example = NoteInputVariant;
 ```
 
 ### NotificationType
@@ -28760,6 +30763,33 @@ import type { TablesUpdate } from '@/integrations/supabase/types';
 type Example = TablesUpdate;
 ```
 
+### TimePeriodPreset
+
+**Import:** `@/utils/timePeriodPresets`
+
+- Defined in: `utils/timePeriodPresets.ts`
+- Export type: named
+
+```ts
+type TimePeriodPreset = | "all"
+  | "this_month"
+  | "last_month"
+  | "last_30"
+  | "this_quarter"
+  | "ytd"
+  | "custom"
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { TimePeriodPreset } from '@/utils/timePeriodPresets';
+
+type Example = TimePeriodPreset;
+```
+
 ### TrainingContentType
 
 **Import:** `@/types/training`
@@ -29035,7 +31065,7 @@ const value = UnitCategory.Example;
 
 ## Values
 
-Total: 65
+Total: 68
 
 ### ACCOUNT_CATEGORY_MAP
 
@@ -29073,6 +31103,27 @@ _No inline documentation provided._
 import AiContextGenerator from '@/lib/kpi-definitions/ai-context-generator';
 
 // Use AiContextGenerator as needed.
+```
+
+### ALL_TIME_PERIOD
+
+**Import:** `@/utils/timePeriodPresets`
+
+- Defined in: `utils/timePeriodPresets.ts`
+- Export type: named
+
+```ts
+TimePeriodValue
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { ALL_TIME_PERIOD } from '@/utils/timePeriodPresets';
+
+// Use ALL_TIME_PERIOD as needed.
 ```
 
 ### allKPIs
@@ -30083,6 +32134,27 @@ import quoteKPIs, { quoteKPIs as quoteKPIsNamed } from '@/lib/kpi-definitions/qu
 // Use quoteKPIs as needed.
 ```
 
+### RECEIPT_URL_TTL_SECONDS
+
+**Import:** `@/utils/receiptUrls`
+
+- Defined in: `utils/receiptUrls.ts`
+- Export type: named
+
+```ts
+31536000
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { RECEIPT_URL_TTL_SECONDS } from '@/utils/receiptUrls';
+
+// Use RECEIPT_URL_TTL_SECONDS as needed.
+```
+
 ### receiptColumnDefinitions
 
 **Import:** `@/config/receiptColumns`
@@ -30196,7 +32268,7 @@ import semanticMappings, { semanticMappings as semanticMappingsNamed } from '@/l
 - Export type: named
 
 ```ts
-import("C:/Dev/profitbuild-dash/node_modules/@supabase/supabase-js/dist/module/SupabaseClient").default<Database, "public", "public", { Tables: { activity_feed: { Row: { activity_type: string; created_at: string; deleted_at: string | null; description: string; entity_id: string; entity_type: string; id: string; metadata: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id: string | null; user_id: string | null; }; Insert: { activity_type: string; created_at?: string; deleted_at?: string | null; description: string; entity_id: string; entity_type: string; id?: string; metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Update: { activity_type?: string; created_at?: string; deleted_at?: string | null; description?: string; entity_id?: string; entity_type?: string; id?: string; metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "activity_feed_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "activity_feed_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; admin_actions: { Row: { action_details: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at: string; id: string; target_user_id: string | null; }; Insert: { action_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at?: string; id?: string; target_user_id?: string | null; }; Update: { action_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type?: string; admin_user_id?: string; created_at?: string; id?: string; target_user_id?: string | null; }; Relationships: []; }; ai_action_log: { Row: { action_type: string; ai_response: string | null; created_at: string | null; entity_id: string | null; entity_type: string; error_message: string | null; execution_time_ms: number | null; id: string; parameters: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by: string | null; success: boolean | null; user_message: string | null; }; Insert: { action_type: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Update: { action_type?: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type?: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Relationships: [{ foreignKeyName: "ai_action_log_performed_by_fkey"; columns: ["performed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; bid_media: { Row: { altitude: number | null; bid_id: string; caption: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; bid_id: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; bid_id?: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "bid_media_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; bid_notes: { Row: { bid_id: string; created_at: string; id: string; note_text: string; updated_at: string; user_id: string; }; Insert: { bid_id: string; created_at?: string; id?: string; note_text: string; updated_at?: string; user_id: string; }; Update: { bid_id?: string; created_at?: string; id?: string; note_text?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "bid_notes_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; branch_bids: { Row: { address: string | null; client_id: string | null; created_at: string; created_by: string; deleted_at: string | null; description: string | null; estimate_id: string | null; id: string; job_type: string | null; name: string; project_id: string | null; project_type: string | null; updated_at: string; }; Insert: { address?: string | null; client_id?: string | null; created_at?: string; created_by: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Update: { address?: string | null; client_id?: string | null; created_at?: string; created_by?: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name?: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "branch_bids_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; change_order_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit: number | null; created_at: string | null; dependencies: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; id: string; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; payee_id: string | null; price_per_unit: number | null; quantity: number | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total_cost: number | null; total_price: number | null; unit: string | null; updated_at: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; payee_id?: string | null; price_per_unit?: number | null; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; change_order_id?: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; payee_id?: string | null; price_per_unit?: number | null; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_order_line_items_change_order_id_fkey"; columns: ["change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "change_order_line_items_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; change_orders: { Row: { amount: number | null; approved_by: string | null; approved_date: string | null; change_order_number: string; client_amount: number | null; contingency_billed_to_client: number | null; cost_impact: number | null; created_at: string | null; description: string; id: string; includes_contingency: boolean | null; margin_impact: number | null; project_id: string; reason_for_change: string | null; requested_date: string | null; status: Database["public"]["Enums"]["change_order_status"] | null; updated_at: string | null; }; Insert: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number: string; client_amount?: number | null; contingency_billed_to_client?: number | null; cost_impact?: number | null; created_at?: string | null; description: string; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Update: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number?: string; client_amount?: number | null; contingency_billed_to_client?: number | null; cost_impact?: number | null; created_at?: string | null; description?: string; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id?: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; clients: { Row: { billing_address: string | null; client_name: string; client_type: string | null; company_name: string | null; contact_person: string | null; created_at: string | null; email: string | null; id: string; is_active: boolean | null; mailing_address: string | null; notes: string | null; payment_terms: string | null; phone: string | null; quickbooks_customer_id: string | null; tax_exempt: boolean | null; updated_at: string | null; }; Insert: { billing_address?: string | null; client_name: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Update: { billing_address?: string | null; client_name?: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Relationships: []; }; company_branding_settings: { Row: { accent_color: string | null; company_abbreviation: string | null; company_address: string | null; company_legal_name: string | null; company_license: string | null; company_name: string | null; company_phone: string | null; created_at: string | null; id: string; light_bg_color: string | null; logo_full_url: string | null; logo_icon_url: string | null; logo_report_header_url: string | null; logo_stacked_url: string | null; primary_color: string | null; secondary_color: string | null; updated_at: string | null; }; Insert: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Update: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Relationships: []; }; company_settings: { Row: { created_at: string | null; description: string | null; id: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at: string | null; }; Insert: { created_at?: string | null; description?: string | null; id?: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at?: string | null; }; Update: { created_at?: string | null; description?: string | null; id?: string; setting_key?: string; setting_value?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at?: string | null; }; Relationships: []; }; contracts: { Row: { agreement_date: string; contract_number: string | null; contract_type: string; created_at: string; created_by: string | null; docx_storage_path: string | null; docx_url: string | null; estimate_id: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; internal_reference: string | null; notes: string | null; payee_id: string; pdf_storage_path: string | null; pdf_url: string | null; project_end_date: string | null; project_id: string; project_start_date: string | null; quote_id: string | null; status: string; subcontract_price: number; updated_at: string; version: number; }; Insert: { agreement_date: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price: number; updated_at?: string; version?: number; }; Update: { agreement_date?: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id?: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id?: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; email_messages: { Row: { created_at: string | null; delivery_status: string | null; email_type: string; entity_id: string | null; entity_type: string | null; error_message: string | null; id: string; project_id: string | null; recipient_email: string; recipient_name: string | null; recipient_user_id: string | null; resend_email_id: string | null; sent_at: string | null; sent_by: string | null; subject: string; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; email_type: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject: string; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; email_type?: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email?: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "email_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; estimate_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit: number | null; created_at: string | null; dependencies: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; estimate_id: string; id: string; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; markup_percent: number | null; price_per_unit: number | null; quantity: number | null; quickbooks_item_id: string | null; rate: number | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; estimate_id: string; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; price_per_unit?: number | null; quantity?: number | null; quickbooks_item_id?: string | null; rate?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; estimate_id?: string; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; price_per_unit?: number | null; quantity?: number | null; quickbooks_item_id?: string | null; rate?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }]; }; estimates: { Row: { contingency_amount: number | null; contingency_percent: number | null; contingency_used: number | null; created_at: string | null; created_by: string | null; date_created: string | null; default_markup_percent: number | null; estimate_number: string; id: string; is_auto_generated: boolean | null; is_current_version: boolean | null; is_draft: boolean; notes: string | null; parent_estimate_id: string | null; project_id: string; revision_number: number | null; sequence_number: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent: number | null; total_amount: number | null; total_cost: number | null; total_labor_cushion: number | null; updated_at: string | null; valid_for_days: number | null; valid_until: string | null; version_number: number | null; }; Insert: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; estimate_number: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Update: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; estimate_number?: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id?: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expense_line_item_correlations: { Row: { auto_correlated: boolean | null; change_order_line_item_id: string | null; confidence_score: number | null; correlation_type: string; created_at: string; estimate_line_item_id: string | null; expense_id: string | null; expense_split_id: string | null; id: string; notes: string | null; quote_id: string | null; updated_at: string; }; Insert: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Update: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type?: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_line_item_correlations_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"; columns: ["expense_split_id"]; isOneToOne: false; referencedRelation: "expense_splits"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; expense_splits: { Row: { created_at: string; created_by: string | null; expense_id: string; id: string; notes: string | null; project_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; expense_id: string; id?: string; notes?: string | null; project_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; expense_id?: string; id?: string; notes?: string | null; project_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses: { Row: { account_full_name: string | null; account_name: string | null; amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_id: string | null; project_id: string; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category?: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id?: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type?: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; feature_flags: { Row: { config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at: string | null; description: string | null; enabled: boolean | null; flag_name: string; id: string; updated_at: string | null; updated_by: string | null; }; Insert: { config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Update: { config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name?: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Relationships: [{ foreignKeyName: "feature_flags_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; import_batches: { Row: { duplicates_skipped: number | null; errors: number | null; expenses_imported: number | null; file_name: string; id: string; imported_at: string | null; imported_by: string | null; match_log: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported: number | null; status: string | null; total_rows: number | null; }; Insert: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Update: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name?: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Relationships: []; }; media_comments: { Row: { comment_text: string; created_at: string; id: string; media_id: string; updated_at: string; user_id: string; }; Insert: { comment_text: string; created_at?: string; id?: string; media_id: string; updated_at?: string; user_id: string; }; Update: { comment_text?: string; created_at?: string; id?: string; media_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "media_comments_media_id_fkey"; columns: ["media_id"]; isOneToOne: false; referencedRelation: "project_media"; referencedColumns: ["id"]; }, { foreignKeyName: "media_comments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; payees: { Row: { account_number: string | null; billing_address: string | null; contact_name: string | null; contact_title: string | null; created_at: string | null; email: string | null; employee_number: string | null; full_name: string | null; hourly_rate: number | null; id: string; insurance_expires: string | null; is_active: boolean | null; is_internal: boolean | null; last_synced_at: string | null; legal_form: string | null; license_number: string | null; notes: string | null; payee_name: string; payee_type: string | null; permit_issuer: boolean | null; phone_numbers: string | null; provides_labor: boolean | null; provides_materials: boolean | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_vendor_id: string | null; quickbooks_vendor_name: string | null; requires_1099: boolean | null; state_of_formation: string | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; terms: string | null; updated_at: string | null; user_id: string | null; }; Insert: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Update: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name?: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Relationships: []; }; payment_application_lines: { Row: { balance_to_finish: number; created_at: string; current_work: number; id: string; payment_application_id: string; percent_complete: number; previous_work: number; retainage: number; scheduled_value: number; sov_line_item_id: string; stored_materials: number; total_completed: number; updated_at: string; }; Insert: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Update: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id?: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id?: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "payment_application_lines_payment_application_id_fkey"; columns: ["payment_application_id"]; isOneToOne: false; referencedRelation: "payment_applications"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_application_lines_sov_line_item_id_fkey"; columns: ["sov_line_item_id"]; isOneToOne: false; referencedRelation: "sov_line_items"; referencedColumns: ["id"]; }]; }; payment_applications: { Row: { application_number: number; balance_to_finish: number; certified_amount: number | null; certified_by: string | null; certified_date: string | null; contract_sum_to_date: number; created_at: string; created_by: string | null; current_payment_due: number; g702_pdf_storage_path: string | null; g702_pdf_url: string | null; g703_pdf_storage_path: string | null; g703_pdf_url: string | null; id: string; net_change_orders: number; notes: string | null; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }; Insert: { application_number: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from: string; period_to: string; project_id: string; sov_id: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Update: { application_number?: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from?: string; period_to?: string; project_id?: string; sov_id?: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "payment_applications_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_applications_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; pending_payee_reviews: { Row: { account_full_name: string | null; created_at: string | null; id: string; import_batch_id: string; matched_payee_id: string | null; qb_name: string; resolution: string | null; resolved_at: string | null; suggested_payee_type: string | null; }; Insert: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id: string; matched_payee_id?: string | null; qb_name: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Update: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id?: string; matched_payee_id?: string | null; qb_name?: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Relationships: [{ foreignKeyName: "pending_payee_reviews_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "pending_payee_reviews_matched_payee_id_fkey"; columns: ["matched_payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; profiles: { Row: { created_at: string; deactivated_at: string | null; deactivated_by: string | null; email: string | null; full_name: string | null; id: string; is_active: boolean; last_active_at: string | null; must_change_password: boolean | null; phone: string | null; sms_notifications_enabled: boolean | null; updated_at: string; }; Insert: { created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Update: { created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id?: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "profiles_deactivated_by_fkey"; columns: ["deactivated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_aliases: { Row: { alias: string; created_at: string | null; id: string; is_active: boolean | null; match_type: string | null; project_id: string; }; Insert: { alias: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id: string; }; Update: { alias?: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id?: string; }; Relationships: [{ foreignKeyName: "project_aliases_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; project_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_assignments_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_documents: { Row: { created_at: string; description: string | null; document_type: string; expires_at: string | null; file_name: string; file_size: number; file_url: string; id: string; mime_type: string; project_id: string; related_quote_id: string | null; updated_at: string; uploaded_by: string | null; version_number: number | null; }; Insert: { created_at?: string; description?: string | null; document_type: string; expires_at?: string | null; file_name: string; file_size: number; file_url: string; id?: string; mime_type: string; project_id: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Update: { created_at?: string; description?: string | null; document_type?: string; expires_at?: string | null; file_name?: string; file_size?: number; file_url?: string; id?: string; mime_type?: string; project_id?: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "project_documents_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_documents_related_quote_id_fkey"; columns: ["related_quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; project_media: { Row: { altitude: number | null; caption: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; project_id: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; project_id: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; project_id?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "project_media_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_notes: { Row: { attachment_name: string | null; attachment_type: string | null; attachment_url: string | null; created_at: string; id: string; note_text: string; project_id: string; updated_at: string; user_id: string; }; Insert: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text: string; project_id: string; updated_at?: string; user_id: string; }; Update: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text?: string; project_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_notes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_notes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_revenues: { Row: { account_full_name: string | null; account_name: string | null; amount: number; client_id: string | null; created_at: string; description: string | null; id: string; import_batch_id: string | null; invoice_date: string; invoice_number: string | null; is_split: boolean | null; project_id: string; quickbooks_transaction_id: string | null; updated_at: string; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id?: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "project_revenues_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; projects: { Row: { actual_hours: number | null; actual_margin: number | null; address: string | null; adjusted_est_costs: number | null; adjusted_est_margin: number | null; category: Database["public"]["Enums"]["project_category"]; client_id: string | null; client_name: string; contingency_amount: number | null; contingency_remaining: number | null; contracted_amount: number | null; created_at: string | null; current_margin: number | null; customer_po_number: string | null; default_expense_category: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed: number | null; end_date: string | null; estimated_hours: number | null; id: string; job_type: string | null; last_synced_at: string | null; margin_percentage: number | null; minimum_margin_threshold: number | null; notes: string | null; original_est_costs: number | null; original_margin: number | null; owner_id: string | null; payment_terms: string | null; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"] | null; projected_margin: number | null; qb_formatted_number: string | null; quickbooks_job_id: string | null; sequence_number: number | null; start_date: string | null; status: Database["public"]["Enums"]["project_status"] | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; target_margin: number | null; total_accepted_quotes: number | null; updated_at: string | null; work_order_counter: number | null; }; Insert: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name: string; project_number: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Update: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name?: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name?: string; project_number?: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Relationships: [{ foreignKeyName: "projects_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "projects_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; quickbooks_account_mappings: { Row: { app_category: Database["public"]["Enums"]["expense_category"]; created_at: string; id: string; is_active: boolean; qb_account_full_path: string; qb_account_name: string; updated_at: string; }; Insert: { app_category: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path: string; qb_account_name: string; updated_at?: string; }; Update: { app_category?: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path?: string; qb_account_name?: string; updated_at?: string; }; Relationships: []; }; quickbooks_connections: { Row: { access_token: string; company_name: string | null; connected_at: string | null; connected_by: string | null; created_at: string | null; disconnected_at: string | null; disconnected_by: string | null; environment: string; id: string; is_active: boolean | null; last_error: string | null; last_sync_at: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at: string | null; }; Insert: { access_token: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at?: string | null; }; Update: { access_token?: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id?: string; refresh_token?: string; token_expires_at?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_connections_connected_by_fkey"; columns: ["connected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "quickbooks_connections_disconnected_by_fkey"; columns: ["disconnected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_oauth_states: { Row: { created_at: string | null; expires_at: string; state: string; user_id: string; }; Insert: { created_at?: string | null; expires_at: string; state: string; user_id: string; }; Update: { created_at?: string | null; expires_at?: string; state?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "quickbooks_oauth_states_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_sync_log: { Row: { created_at: string | null; duration_ms: number | null; entity_id: string | null; entity_type: string; environment: string | null; error_message: string | null; id: string; initiated_by: string | null; quickbooks_id: string | null; request_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at: string | null; }; Insert: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Update: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type?: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type?: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_sync_log_initiated_by_fkey"; columns: ["initiated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_transaction_syncs: { Row: { created_at: string | null; duplicates_skipped: number | null; end_date: string; environment: string; error_message: string | null; expenses_imported: number | null; id: string; initiated_by: string | null; revenues_imported: number | null; start_date: string; sync_completed_at: string | null; sync_started_at: string; sync_status: string; transactions_fetched: number | null; updated_at: string | null; }; Insert: { created_at?: string | null; duplicates_skipped?: number | null; end_date: string; environment: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Update: { created_at?: string | null; duplicates_skipped?: number | null; end_date?: string; environment?: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date?: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Relationships: []; }; quote_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id: string | null; cost_per_unit: number | null; created_at: string | null; description: string | null; estimate_line_item_id: string | null; id: string; markup_amount: number | null; markup_percent: number | null; quantity: number | null; quote_id: string; rate: number | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { category?: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id?: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "quote_line_items_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; quotes: { Row: { accepted_date: string | null; attachment_url: string | null; created_at: string | null; date_received: string | null; estimate_id: string | null; id: string; includes_labor: boolean; includes_materials: boolean; notes: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason: string | null; sequence_number: number | null; status: Database["public"]["Enums"]["quote_status"] | null; total_amount: number | null; updated_at: string | null; valid_until: string | null; }; Insert: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Update: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id?: string; project_id?: string; quote_number?: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Relationships: [{ foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; receipts: { Row: { amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; captured_at: string; created_at: string; description: string | null; id: string; image_url: string; payee_id: string | null; project_id: string | null; quickbooks_error_message: string | null; quickbooks_request_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_synced_by: string | null; quickbooks_transaction_id: string | null; rejection_reason: string | null; submitted_for_approval_at: string | null; updated_at: string; user_id: string; }; Insert: { amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id: string; }; Update: { amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url?: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "receipts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_quickbooks_synced_by_fkey"; columns: ["quickbooks_synced_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; report_execution_log: { Row: { config_used: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at: string | null; executed_by: string | null; execution_time_ms: number | null; export_format: string | null; id: string; report_id: string | null; row_count: number | null; }; Insert: { config_used?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Update: { config_used?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Relationships: [{ foreignKeyName: "report_execution_log_report_id_fkey"; columns: ["report_id"]; isOneToOne: false; referencedRelation: "saved_reports"; referencedColumns: ["id"]; }]; }; revenue_splits: { Row: { created_at: string; created_by: string | null; id: string; notes: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id?: string; revenue_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "revenue_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; saved_reports: { Row: { category: string | null; config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at: string | null; created_by: string | null; description: string | null; id: string; is_template: boolean | null; name: string; updated_at: string | null; }; Insert: { category?: string | null; config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name: string; updated_at?: string | null; }; Update: { category?: string | null; config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name?: string; updated_at?: string | null; }; Relationships: []; }; schedule_of_values: { Row: { created_at: string; created_by: string | null; estimate_id: string; id: string; original_contract_sum: number; project_id: string; retainage_percent: number; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; estimate_id: string; id?: string; original_contract_sum?: number; project_id: string; retainage_percent?: number; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; estimate_id?: string; id?: string; original_contract_sum?: number; project_id?: string; retainage_percent?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "schedule_of_values_project_id_fkey"; columns: ["project_id"]; isOneToOne: true; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; scheduled_sms_logs: { Row: { created_at: string | null; error_details: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at: string | null; failure_count: number | null; id: string; recipients_count: number | null; scheduled_sms_id: string | null; success_count: number | null; }; Insert: { created_at?: string | null; error_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Update: { created_at?: string | null; error_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_logs_scheduled_sms_id_fkey"; columns: ["scheduled_sms_id"]; isOneToOne: false; referencedRelation: "scheduled_sms_messages"; referencedColumns: ["id"]; }]; }; scheduled_sms_messages: { Row: { created_at: string | null; created_by: string; cron_expression: string | null; id: string; is_active: boolean | null; last_sent_at: string | null; link_type: string | null; link_url: string | null; message_template: string; name: string; project_id: string | null; schedule_type: string; scheduled_datetime: string | null; target_roles: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone: string; updated_at: string | null; }; Insert: { created_at?: string | null; created_by: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template: string; name: string; project_id?: string | null; schedule_type: string; scheduled_datetime?: string | null; target_roles?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Update: { created_at?: string | null; created_by?: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template?: string; name?: string; project_id?: string | null; schedule_type?: string; scheduled_datetime?: string | null; target_roles?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type?: string; target_user_ids?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_messages_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "scheduled_sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; sms_messages: { Row: { created_at: string | null; delivery_status: string | null; error_message: string | null; id: string; link_type: string | null; link_url: string | null; message_body: string; project_id: string | null; recipient_name: string | null; recipient_phone: string; recipient_user_id: string | null; sent_at: string | null; sent_by: string; status_checked_at: string | null; textbelt_http_status: number | null; textbelt_text_id: string | null; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body: string; project_id?: string | null; recipient_name?: string | null; recipient_phone: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body?: string; project_id?: string | null; recipient_name?: string | null; recipient_phone?: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by?: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; sov_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"] | null; created_at: string; description: string; id: string; item_number: string; retainage_percent_override: number | null; scheduled_value: number; sort_order: number; source_change_order_id: string | null; source_estimate_line_item_id: string | null; sov_id: string; }; Insert: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description: string; id?: string; item_number: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id: string; }; Update: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description?: string; id?: string; item_number?: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id?: string; }; Relationships: [{ foreignKeyName: "sov_line_items_source_change_order_id_fkey"; columns: ["source_change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_source_estimate_line_item_id_fkey"; columns: ["source_estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; system_settings: { Row: { created_at: string; description: string | null; id: string; setting_key: string; setting_value: string; updated_at: string; }; Insert: { created_at?: string; description?: string | null; id?: string; setting_key: string; setting_value: string; updated_at?: string; }; Update: { created_at?: string; description?: string | null; id?: string; setting_key?: string; setting_value?: string; updated_at?: string; }; Relationships: []; }; training_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; due_date: string | null; id: string; notes: string | null; notification_sent_at: string | null; priority: number | null; reminder_sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_completions: { Row: { acknowledged: boolean | null; completed_at: string | null; id: string; notes: string | null; time_spent_minutes: number | null; training_content_id: string; user_id: string; }; Insert: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id: string; user_id: string; }; Update: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_completions_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_completions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_content: { Row: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url: string | null; created_at: string | null; created_by: string | null; description: string | null; duration_minutes: number | null; embed_code: string | null; id: string; is_required: boolean | null; status: Database["public"]["Enums"]["training_status"] | null; storage_path: string | null; target_roles: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url: string | null; title: string; updated_at: string | null; }; Insert: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title: string; updated_at?: string | null; }; Update: { content_type?: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "training_content_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_notifications: { Row: { delivered: boolean | null; email_id: string | null; error_message: string | null; id: string; notification_type: string; sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type: string; sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type?: string; sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_notifications_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; user_roles: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role?: Database["public"]["Enums"]["app_role"]; user_id?: string; }; Relationships: []; }; }; Views: { estimate_financial_summary: { Row: { contingency_amount: number | null; contingency_percent: number | null; created_at: string | null; cushion_hours_capacity: number | null; estimate_id: string | null; estimate_number: string | null; estimated_gross_margin_percent: number | null; estimated_gross_profit: number | null; max_gross_profit_potential: number | null; max_potential_margin_percent: number | null; project_id: string | null; schedule_buffer_percent: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; subtotal: number | null; total_estimated_cost: number | null; total_labor_actual_cost: number | null; total_labor_billing_cost: number | null; total_labor_capacity: number | null; total_labor_client_price: number | null; total_labor_cushion: number | null; total_labor_hours: number | null; total_with_contingency: number | null; updated_at: string | null; }; Relationships: [{ foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; weekly_labor_hours: { Row: { approved_entries: number | null; employee_name: string | null; employee_number: string | null; entry_count: number | null; gross_hours: number | null; hourly_rate: number | null; pending_entries: number | null; rejected_entries: number | null; total_cost: number | null; paid_hours: number | null; week_end_saturday: string | null; week_start_sunday: string | null; }; Relationships: []; }; }; Functions: { ai_find_client_by_name: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; email: string; id: string; match_type: string; phone: string; }[]; }; ai_get_project_summary: { Args: { p_project_id: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; ai_resolve_project: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; id: string; match_type: string; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"]; status: Database["public"]["Enums"]["project_status"]; }[]; }; calculate_contingency_remaining: { Args: { project_id_param: string; }; Returns: number; }; calculate_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; calculate_project_margins: { Args: { p_project_id: string; }; Returns: undefined; }; can_access_project: { Args: { _project_id: string; _user_id: string; }; Returns: boolean; }; check_margin_thresholds: { Args: { project_id_param: string; }; Returns: string; }; check_scheduled_sms_cron_job: { Args: never; Returns: { command: string; jobid: number; schedule: string; }[]; }; cleanup_expired_oauth_states: { Args: never; Returns: undefined; }; create_estimate_version: { Args: { new_version_number?: number; source_estimate_id: string; }; Returns: string; }; create_payment_application: { Args: { p_period_from: string; p_period_to: string; p_project_id: string; }; Returns: string; }; delete_project_cascade: { Args: { p_project_id: string; }; Returns: undefined; }; duplicate_quote_for_estimate: { Args: { source_quote_id: string; target_estimate_id: string; }; Returns: string; }; execute_ai_query: { Args: { p_query: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; execute_simple_report: { Args: { p_data_source: string; p_filters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_limit?: number; p_sort_by?: string; p_sort_dir?: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; generate_estimate_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; generate_quote_number: { Args: { estimate_id_param?: string; project_id_param: string; project_number_param: string; }; Returns: string; }; generate_sov_from_estimate: { Args: { p_estimate_id: string; p_project_id: string; p_retainage_percent?: number; }; Returns: string; }; generate_work_order_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; get_database_schema: { Args: never; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; get_next_project_number: { Args: never; Returns: string; }; get_profit_analysis_data: { Args: { status_filter?: string[]; }; Returns: { accepted_quote_count: number; actual_margin: number; adjusted_est_costs: number; adjusted_est_margin: number; budget_utilization_percent: number; change_order_cost: number; change_order_count: number; change_order_revenue: number; client_name: string; contingency_amount: number; contingency_remaining: number; contingency_used: number; contracted_amount: number; cost_variance: number; cost_variance_percent: number; current_margin: number; end_date: string; expenses_by_category: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; invoice_count: number; job_type: string; margin_percentage: number; original_est_costs: number; original_margin: number; project_name: string; project_number: string; projected_margin: number; start_date: string; status: string; total_accepted_quotes: number; total_expenses: number; total_invoiced: number; }[]; }; get_project_financial_summary: { Args: never; Returns: { accepted_quote_count: number; actual_margin_percentage: number; actual_profit: number; change_order_costs: number; change_order_revenue: number; client_name: string; contingency_amount: number; cost_variance: number; expense_count: number; invoice_count: number; project_id: string; project_name: string; project_number: string; revenue_variance: number; status: Database["public"]["Enums"]["project_status"]; total_estimated: number; total_expenses: number; total_invoiced: number; total_quoted: number; }[]; }; get_project_revenue_total: { Args: { p_project_id: string; }; Returns: number; }; get_scheduled_sms_recipients: { Args: { p_target_roles: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_target_type: string; p_target_user_ids: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; Returns: { full_name: string; phone: string; user_id: string; }[]; }; get_user_auth_status: { Args: never; Returns: { confirmed_at: string; email: string; full_name: string; has_password: boolean; id: string; is_active: boolean; last_active_at: string; last_sign_in_at: string; must_change_password: boolean; }[]; }; has_any_role: { Args: { _user_id: string; }; Returns: boolean; }; has_role: { Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string; }; Returns: boolean; }; log_activity: { Args: { p_activity_type: string; p_description: string; p_entity_id: string; p_entity_type: string; p_metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_project_id: string; p_user_id: string; }; Returns: string; }; refresh_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; safe_cast_to_expense_category: { Args: { val: string; }; Returns: Database["public"]["Enums"]["expense_category"]; }; safe_cast_to_project_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["project_status"]; }; safe_cast_to_quote_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["quote_status"]; }; }; Enums: { app_role: "admin" | "manager" | "field_worker"; change_order_status: "pending" | "approved" | "rejected"; estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"; expense_category: "labor_internal" | "subcontractors" | "materials" | "equipment" | "other" | "permits" | "management" | "office_expenses" | "vehicle_expenses" | "tools" | "software" | "vehicle_maintenance" | "gas" | "meals"; payment_application_status: "draft" | "submitted" | "certified" | "paid" | "rejected"; project_category: "construction" | "system" | "overhead"; project_status: "estimating" | "approved" | "in_progress" | "complete" | "on_hold" | "cancelled"; project_type: "construction_project" | "work_order"; quote_status: "pending" | "accepted" | "rejected" | "expired"; sync_status: "success" | "failed" | "pending"; sync_type: "import" | "export"; training_content_type: "video_link" | "video_embed" | "document" | "presentation" | "external_link"; training_status: "draft" | "published" | "archived"; transaction_type: "expense" | "bill" | "check" | "credit_card" | "cash"; }; CompositeTypes: { [_ in never]: never; }; }, { PostgrestVersion: "13.0.5"; }>
+import("E:/profitbuild-dash/node_modules/@supabase/supabase-js/dist/module/SupabaseClient").default<Database, "public", "public", { Tables: { activity_feed: { Row: { activity_type: string; created_at: string; deleted_at: string | null; description: string; entity_id: string; entity_type: string; id: string; metadata: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; project_id: string | null; user_id: string | null; }; Insert: { activity_type: string; created_at?: string; deleted_at?: string | null; description: string; entity_id: string; entity_type: string; id?: string; metadata?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Update: { activity_type?: string; created_at?: string; deleted_at?: string | null; description?: string; entity_id?: string; entity_type?: string; id?: string; metadata?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "activity_feed_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "activity_feed_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; admin_actions: { Row: { action_details: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at: string; id: string; target_user_id: string | null; }; Insert: { action_details?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at?: string; id?: string; target_user_id?: string | null; }; Update: { action_details?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; action_type?: string; admin_user_id?: string; created_at?: string; id?: string; target_user_id?: string | null; }; Relationships: []; }; ai_action_log: { Row: { action_type: string; ai_response: string | null; created_at: string | null; entity_id: string | null; entity_type: string; error_message: string | null; execution_time_ms: number | null; id: string; parameters: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; performed_by: string | null; success: boolean | null; user_message: string | null; }; Insert: { action_type: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Update: { action_type?: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type?: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Relationships: [{ foreignKeyName: "ai_action_log_performed_by_fkey"; columns: ["performed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; bid_media: { Row: { altitude: number | null; bid_id: string; caption: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; bid_id: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; bid_id?: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "bid_media_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; bid_notes: { Row: { bid_id: string; created_at: string; id: string; note_text: string; updated_at: string; user_id: string; }; Insert: { bid_id: string; created_at?: string; id?: string; note_text: string; updated_at?: string; user_id: string; }; Update: { bid_id?: string; created_at?: string; id?: string; note_text?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "bid_notes_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; branch_bids: { Row: { address: string | null; client_id: string | null; created_at: string; created_by: string; deleted_at: string | null; description: string | null; estimate_id: string | null; id: string; job_type: string | null; name: string; project_id: string | null; project_type: string | null; updated_at: string; }; Insert: { address?: string | null; client_id?: string | null; created_at?: string; created_by: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Update: { address?: string | null; client_id?: string | null; created_at?: string; created_by?: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name?: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "branch_bids_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; change_order_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit: number | null; created_at: string | null; dependencies: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; id: string; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; payee_id: string | null; price_per_unit: number | null; quantity: number | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total_cost: number | null; total_price: number | null; unit: string | null; updated_at: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; payee_id?: string | null; price_per_unit?: number | null; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; change_order_id?: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; payee_id?: string | null; price_per_unit?: number | null; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_order_line_items_change_order_id_fkey"; columns: ["change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "change_order_line_items_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; change_orders: { Row: { amount: number | null; approved_by: string | null; approved_date: string | null; change_order_number: string; client_amount: number | null; contingency_billed_to_client: number | null; cost_impact: number | null; created_at: string | null; description: string; id: string; includes_contingency: boolean | null; margin_impact: number | null; project_id: string; reason_for_change: string | null; requested_date: string | null; status: Database["public"]["Enums"]["change_order_status"] | null; updated_at: string | null; }; Insert: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number: string; client_amount?: number | null; contingency_billed_to_client?: number | null; cost_impact?: number | null; created_at?: string | null; description: string; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Update: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number?: string; client_amount?: number | null; contingency_billed_to_client?: number | null; cost_impact?: number | null; created_at?: string | null; description?: string; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id?: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; clients: { Row: { billing_address: string | null; client_name: string; client_type: string | null; company_name: string | null; contact_person: string | null; created_at: string | null; email: string | null; id: string; is_active: boolean | null; mailing_address: string | null; notes: string | null; payment_terms: string | null; phone: string | null; quickbooks_customer_id: string | null; tax_exempt: boolean | null; updated_at: string | null; }; Insert: { billing_address?: string | null; client_name: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Update: { billing_address?: string | null; client_name?: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Relationships: []; }; company_branding_settings: { Row: { accent_color: string | null; company_abbreviation: string | null; company_address: string | null; company_legal_name: string | null; company_license: string | null; company_name: string | null; company_phone: string | null; created_at: string | null; id: string; light_bg_color: string | null; logo_full_url: string | null; logo_icon_url: string | null; logo_report_header_url: string | null; logo_stacked_url: string | null; primary_color: string | null; secondary_color: string | null; updated_at: string | null; }; Insert: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Update: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Relationships: []; }; company_settings: { Row: { created_at: string | null; description: string | null; id: string; setting_key: string; setting_value: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; updated_at: string | null; }; Insert: { created_at?: string | null; description?: string | null; id?: string; setting_key: string; setting_value: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; updated_at?: string | null; }; Update: { created_at?: string | null; description?: string | null; id?: string; setting_key?: string; setting_value?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; updated_at?: string | null; }; Relationships: []; }; contracts: { Row: { agreement_date: string; contract_number: string | null; contract_type: string; created_at: string; created_by: string | null; docx_storage_path: string | null; docx_url: string | null; estimate_id: string | null; field_values: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id: string; internal_reference: string | null; notes: string | null; payee_id: string; pdf_storage_path: string | null; pdf_url: string | null; project_end_date: string | null; project_id: string; project_start_date: string | null; quote_id: string | null; status: string; subcontract_price: number; updated_at: string; version: number; }; Insert: { agreement_date: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price: number; updated_at?: string; version?: number; }; Update: { agreement_date?: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id?: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id?: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; email_messages: { Row: { created_at: string | null; delivery_status: string | null; email_type: string; entity_id: string | null; entity_type: string | null; error_message: string | null; id: string; project_id: string | null; recipient_email: string; recipient_name: string | null; recipient_user_id: string | null; resend_email_id: string | null; sent_at: string | null; sent_by: string | null; subject: string; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; email_type: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject: string; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; email_type?: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email?: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "email_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; estimate_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit: number | null; created_at: string | null; dependencies: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; estimate_id: string; id: string; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; markup_percent: number | null; price_per_unit: number; quantity: number | null; quickbooks_item_id: string | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; estimate_id: string; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; price_per_unit?: number; quantity?: number | null; quickbooks_item_id?: string | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; estimate_id?: string; id?: string; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; price_per_unit?: number; quantity?: number | null; quickbooks_item_id?: string | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }]; }; estimates: { Row: { contingency_amount: number | null; contingency_percent: number | null; contingency_used: number | null; created_at: string | null; created_by: string | null; date_created: string | null; default_markup_percent: number | null; estimate_number: string; id: string; is_auto_generated: boolean | null; is_current_version: boolean | null; is_draft: boolean; notes: string | null; parent_estimate_id: string | null; project_id: string; revision_number: number | null; sequence_number: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent: number | null; total_amount: number | null; total_cost: number | null; total_labor_cushion: number | null; updated_at: string | null; valid_for_days: number | null; valid_until: string | null; version_number: number | null; }; Insert: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; estimate_number: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Update: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; estimate_number?: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id?: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expense_line_item_correlations: { Row: { auto_correlated: boolean | null; change_order_line_item_id: string | null; confidence_score: number | null; correlation_type: string; created_at: string; estimate_line_item_id: string | null; expense_id: string | null; expense_split_id: string | null; id: string; notes: string | null; quote_id: string | null; updated_at: string; }; Insert: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Update: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type?: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_line_item_correlations_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses_search"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"; columns: ["expense_split_id"]; isOneToOne: false; referencedRelation: "expense_splits"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; expense_splits: { Row: { created_at: string; created_by: string | null; expense_id: string; id: string; notes: string | null; project_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; expense_id: string; id?: string; notes?: string | null; project_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; expense_id?: string; id?: string; notes?: string | null; project_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses_search"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses: { Row: { account_full_name: string | null; account_name: string | null; amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_id: string | null; project_id: string; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category?: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id?: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type?: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; feature_flags: { Row: { config: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; created_at: string | null; description: string | null; enabled: boolean | null; flag_name: string; id: string; updated_at: string | null; updated_by: string | null; }; Insert: { config?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Update: { config?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name?: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Relationships: [{ foreignKeyName: "feature_flags_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; import_batches: { Row: { duplicates_skipped: number | null; errors: number | null; expenses_imported: number | null; file_name: string; id: string; imported_at: string | null; imported_by: string | null; match_log: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; revenues_imported: number | null; status: string | null; total_rows: number | null; }; Insert: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Update: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name?: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Relationships: []; }; invoice_revenues: { Row: { invoice_id: string; revenue_id: string; }; Insert: { invoice_id: string; revenue_id: string; }; Update: { invoice_id?: string; revenue_id?: string; }; Relationships: [{ foreignKeyName: "invoice_revenues_invoice_id_fkey"; columns: ["invoice_id"]; isOneToOne: false; referencedRelation: "invoices"; referencedColumns: ["id"]; }, { foreignKeyName: "invoice_revenues_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; invoices: { Row: { amount: number; client_id: string | null; created_at: string; created_by: string | null; description: string | null; docx_storage_path: string | null; docx_url: string | null; due_date: string | null; field_values: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id: string; internal_reference: string; invoice_date: string; invoice_number: string | null; notes: string | null; pdf_storage_path: string | null; pdf_url: string | null; project_id: string; status: string; updated_at: string; version: number; }; Insert: { amount: number; client_id?: string | null; created_at?: string; created_by?: string | null; description?: string | null; docx_storage_path?: string | null; docx_url?: string | null; due_date?: string | null; field_values: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id?: string; internal_reference: string; invoice_date: string; invoice_number?: string | null; notes?: string | null; pdf_storage_path?: string | null; pdf_url?: string | null; project_id: string; status?: string; updated_at?: string; version?: number; }; Update: { amount?: number; client_id?: string | null; created_at?: string; created_by?: string | null; description?: string | null; docx_storage_path?: string | null; docx_url?: string | null; due_date?: string | null; field_values?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id?: string; internal_reference?: string; invoice_date?: string; invoice_number?: string | null; notes?: string | null; pdf_storage_path?: string | null; pdf_url?: string | null; project_id?: string; status?: string; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "invoices_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "invoices_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; media_comments: { Row: { comment_text: string; created_at: string; id: string; media_id: string; updated_at: string; user_id: string; }; Insert: { comment_text: string; created_at?: string; id?: string; media_id: string; updated_at?: string; user_id: string; }; Update: { comment_text?: string; created_at?: string; id?: string; media_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "media_comments_media_id_fkey"; columns: ["media_id"]; isOneToOne: false; referencedRelation: "project_media"; referencedColumns: ["id"]; }, { foreignKeyName: "media_comments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; note_mentions: { Row: { created_at: string; id: string; note_id: string; user_id: string; }; Insert: { created_at?: string; id?: string; note_id: string; user_id: string; }; Update: { created_at?: string; id?: string; note_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "note_mentions_note_id_fkey"; columns: ["note_id"]; isOneToOne: false; referencedRelation: "project_notes"; referencedColumns: ["id"]; }]; }; payees: { Row: { account_number: string | null; billing_address: string | null; contact_name: string | null; contact_title: string | null; created_at: string | null; email: string | null; employee_number: string | null; full_name: string | null; hourly_rate: number | null; id: string; insurance_expires: string | null; is_active: boolean | null; is_internal: boolean | null; last_synced_at: string | null; legal_form: string | null; license_number: string | null; notes: string | null; payee_name: string; payee_type: string | null; permit_issuer: boolean | null; phone_numbers: string | null; provides_labor: boolean | null; provides_materials: boolean | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_vendor_id: string | null; quickbooks_vendor_name: string | null; requires_1099: boolean | null; state_of_formation: string | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; terms: string | null; updated_at: string | null; user_id: string | null; }; Insert: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Update: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name?: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Relationships: []; }; payment_application_lines: { Row: { balance_to_finish: number; created_at: string; current_work: number; id: string; payment_application_id: string; percent_complete: number; previous_work: number; retainage: number; scheduled_value: number; sov_line_item_id: string; stored_materials: number; total_completed: number; updated_at: string; }; Insert: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Update: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id?: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id?: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "payment_application_lines_payment_application_id_fkey"; columns: ["payment_application_id"]; isOneToOne: false; referencedRelation: "payment_applications"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_application_lines_sov_line_item_id_fkey"; columns: ["sov_line_item_id"]; isOneToOne: false; referencedRelation: "sov_line_items"; referencedColumns: ["id"]; }]; }; payment_applications: { Row: { application_number: number; balance_to_finish: number; certified_amount: number | null; certified_by: string | null; certified_date: string | null; contract_sum_to_date: number; created_at: string; created_by: string | null; current_payment_due: number; g702_pdf_storage_path: string | null; g702_pdf_url: string | null; g703_pdf_storage_path: string | null; g703_pdf_url: string | null; id: string; net_change_orders: number; notes: string | null; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }; Insert: { application_number: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from: string; period_to: string; project_id: string; sov_id: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Update: { application_number?: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from?: string; period_to?: string; project_id?: string; sov_id?: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "payment_applications_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_applications_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; pending_payee_reviews: { Row: { account_full_name: string | null; created_at: string | null; id: string; import_batch_id: string; matched_payee_id: string | null; qb_name: string; resolution: string | null; resolved_at: string | null; suggested_payee_type: string | null; }; Insert: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id: string; matched_payee_id?: string | null; qb_name: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Update: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id?: string; matched_payee_id?: string | null; qb_name?: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Relationships: [{ foreignKeyName: "pending_payee_reviews_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "pending_payee_reviews_matched_payee_id_fkey"; columns: ["matched_payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; profiles: { Row: { can_be_mentioned: boolean; created_at: string; deactivated_at: string | null; deactivated_by: string | null; email: string | null; full_name: string | null; id: string; is_active: boolean; last_active_at: string | null; must_change_password: boolean | null; phone: string | null; sms_notifications_enabled: boolean | null; updated_at: string; }; Insert: { can_be_mentioned?: boolean; created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Update: { can_be_mentioned?: boolean; created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id?: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "profiles_deactivated_by_fkey"; columns: ["deactivated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_aliases: { Row: { alias: string; created_at: string | null; id: string; is_active: boolean | null; match_type: string | null; project_id: string; }; Insert: { alias: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id: string; }; Update: { alias?: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id?: string; }; Relationships: [{ foreignKeyName: "project_aliases_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; project_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_assignments_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_documents: { Row: { created_at: string; description: string | null; document_type: string; expires_at: string | null; file_name: string; file_size: number; file_url: string; id: string; mime_type: string; project_id: string; related_quote_id: string | null; updated_at: string; uploaded_by: string | null; version_number: number | null; }; Insert: { created_at?: string; description?: string | null; document_type: string; expires_at?: string | null; file_name: string; file_size: number; file_url: string; id?: string; mime_type: string; project_id: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Update: { created_at?: string; description?: string | null; document_type?: string; expires_at?: string | null; file_name?: string; file_size?: number; file_url?: string; id?: string; mime_type?: string; project_id?: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "project_documents_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_documents_related_quote_id_fkey"; columns: ["related_quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; project_media: { Row: { altitude: number | null; caption: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; project_id: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; project_id: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; project_id?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "project_media_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_notes: { Row: { attachment_name: string | null; attachment_type: string | null; attachment_url: string | null; created_at: string; id: string; note_text: string; project_id: string; updated_at: string; user_id: string; }; Insert: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text: string; project_id: string; updated_at?: string; user_id: string; }; Update: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text?: string; project_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_notes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_notes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_revenues: { Row: { account_full_name: string | null; account_name: string | null; amount: number; client_id: string | null; created_at: string; description: string | null; id: string; import_batch_id: string | null; invoice_date: string; invoice_number: string | null; is_split: boolean | null; project_id: string; quickbooks_transaction_id: string | null; updated_at: string; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id?: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "project_revenues_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; projects: { Row: { actual_hours: number | null; actual_margin: number | null; address: string | null; adjusted_est_costs: number | null; adjusted_est_margin: number | null; category: Database["public"]["Enums"]["project_category"]; client_id: string | null; client_name: string; contingency_amount: number | null; contingency_remaining: number | null; contracted_amount: number | null; created_at: string | null; current_margin: number | null; customer_po_number: string | null; default_expense_category: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed: number | null; end_date: string | null; estimated_hours: number | null; id: string; job_type: string | null; last_synced_at: string | null; margin_percentage: number | null; minimum_margin_threshold: number | null; notes: string | null; original_est_costs: number | null; original_margin: number | null; owner_id: string | null; payment_terms: string | null; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"] | null; projected_margin: number | null; qb_formatted_number: string | null; quickbooks_job_id: string | null; sequence_number: number | null; start_date: string | null; status: Database["public"]["Enums"]["project_status"] | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; target_margin: number | null; total_accepted_quotes: number | null; updated_at: string | null; work_order_counter: number | null; }; Insert: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name: string; project_number: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Update: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name?: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name?: string; project_number?: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Relationships: [{ foreignKeyName: "projects_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "projects_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; quickbooks_account_mappings: { Row: { app_category: Database["public"]["Enums"]["expense_category"]; created_at: string; id: string; is_active: boolean; qb_account_full_path: string; qb_account_name: string; updated_at: string; }; Insert: { app_category: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path: string; qb_account_name: string; updated_at?: string; }; Update: { app_category?: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path?: string; qb_account_name?: string; updated_at?: string; }; Relationships: []; }; quickbooks_connections: { Row: { access_token: string; company_name: string | null; connected_at: string | null; connected_by: string | null; created_at: string | null; disconnected_at: string | null; disconnected_by: string | null; environment: string; id: string; is_active: boolean | null; last_error: string | null; last_sync_at: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at: string | null; }; Insert: { access_token: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at?: string | null; }; Update: { access_token?: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id?: string; refresh_token?: string; token_expires_at?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_connections_connected_by_fkey"; columns: ["connected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "quickbooks_connections_disconnected_by_fkey"; columns: ["disconnected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_oauth_states: { Row: { created_at: string | null; expires_at: string; state: string; user_id: string; }; Insert: { created_at?: string | null; expires_at: string; state: string; user_id: string; }; Update: { created_at?: string | null; expires_at?: string; state?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "quickbooks_oauth_states_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_sync_log: { Row: { created_at: string | null; duration_ms: number | null; entity_id: string | null; entity_type: string; environment: string | null; error_message: string | null; id: string; initiated_by: string | null; quickbooks_id: string | null; request_payload: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; response_payload: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; status: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at: string | null; }; Insert: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; response_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Update: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type?: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; response_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type?: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_sync_log_initiated_by_fkey"; columns: ["initiated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_transaction_syncs: { Row: { created_at: string | null; duplicates_skipped: number | null; end_date: string; environment: string; error_message: string | null; expenses_imported: number | null; id: string; initiated_by: string | null; revenues_imported: number | null; start_date: string; sync_completed_at: string | null; sync_started_at: string; sync_status: string; transactions_fetched: number | null; updated_at: string | null; }; Insert: { created_at?: string | null; duplicates_skipped?: number | null; end_date: string; environment: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Update: { created_at?: string | null; duplicates_skipped?: number | null; end_date?: string; environment?: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date?: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Relationships: []; }; quote_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id: string | null; cost_per_unit: number | null; created_at: string | null; description: string | null; estimate_line_item_id: string | null; id: string; markup_amount: number | null; markup_percent: number | null; quantity: number | null; quote_id: string; rate: number | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { category?: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id?: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "quote_line_items_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; quotes: { Row: { accepted_date: string | null; attachment_url: string | null; created_at: string | null; date_received: string | null; estimate_id: string | null; id: string; includes_labor: boolean; includes_materials: boolean; notes: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason: string | null; sequence_number: number | null; status: Database["public"]["Enums"]["quote_status"] | null; total_amount: number | null; updated_at: string | null; valid_until: string | null; }; Insert: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Update: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id?: string; project_id?: string; quote_number?: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Relationships: [{ foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; receipts: { Row: { amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; captured_at: string; created_at: string; description: string | null; id: string; image_url: string; payee_id: string | null; project_id: string | null; quickbooks_error_message: string | null; quickbooks_request_payload: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; quickbooks_response_payload: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_synced_by: string | null; quickbooks_transaction_id: string | null; rejection_reason: string | null; submitted_for_approval_at: string | null; updated_at: string; user_id: string; }; Insert: { amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id: string; }; Update: { amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url?: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "receipts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_quickbooks_synced_by_fkey"; columns: ["quickbooks_synced_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; report_execution_log: { Row: { config_used: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; executed_at: string | null; executed_by: string | null; execution_time_ms: number | null; export_format: string | null; id: string; report_id: string | null; row_count: number | null; }; Insert: { config_used?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Update: { config_used?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Relationships: [{ foreignKeyName: "report_execution_log_report_id_fkey"; columns: ["report_id"]; isOneToOne: false; referencedRelation: "saved_reports"; referencedColumns: ["id"]; }]; }; revenue_splits: { Row: { created_at: string; created_by: string | null; id: string; notes: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id?: string; revenue_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "revenue_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; saved_reports: { Row: { category: string | null; config: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; created_at: string | null; created_by: string | null; description: string | null; id: string; is_template: boolean | null; name: string; updated_at: string | null; }; Insert: { category?: string | null; config: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name: string; updated_at?: string | null; }; Update: { category?: string | null; config?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name?: string; updated_at?: string | null; }; Relationships: []; }; schedule_of_values: { Row: { created_at: string; created_by: string | null; estimate_id: string; id: string; original_contract_sum: number; project_id: string; retainage_percent: number; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; estimate_id: string; id?: string; original_contract_sum?: number; project_id: string; retainage_percent?: number; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; estimate_id?: string; id?: string; original_contract_sum?: number; project_id?: string; retainage_percent?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "schedule_of_values_project_id_fkey"; columns: ["project_id"]; isOneToOne: true; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; scheduled_sms_logs: { Row: { created_at: string | null; error_details: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; executed_at: string | null; failure_count: number | null; id: string; recipients_count: number | null; scheduled_sms_id: string | null; success_count: number | null; }; Insert: { created_at?: string | null; error_details?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Update: { created_at?: string | null; error_details?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_logs_scheduled_sms_id_fkey"; columns: ["scheduled_sms_id"]; isOneToOne: false; referencedRelation: "scheduled_sms_messages"; referencedColumns: ["id"]; }]; }; scheduled_sms_messages: { Row: { created_at: string | null; created_by: string; cron_expression: string | null; id: string; is_active: boolean | null; last_sent_at: string | null; link_type: string | null; link_url: string | null; message_template: string; name: string; project_id: string | null; schedule_type: string; scheduled_datetime: string | null; target_roles: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; timezone: string; updated_at: string | null; }; Insert: { created_at?: string | null; created_by: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template: string; name: string; project_id?: string | null; schedule_type: string; scheduled_datetime?: string | null; target_roles?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Update: { created_at?: string | null; created_by?: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template?: string; name?: string; project_id?: string | null; schedule_type?: string; scheduled_datetime?: string | null; target_roles?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; target_type?: string; target_user_ids?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_messages_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "scheduled_sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; sms_messages: { Row: { created_at: string | null; delivery_status: string | null; error_message: string | null; id: string; link_type: string | null; link_url: string | null; message_body: string; project_id: string | null; recipient_name: string | null; recipient_phone: string; recipient_user_id: string | null; sent_at: string | null; sent_by: string; status_checked_at: string | null; textbelt_http_status: number | null; textbelt_text_id: string | null; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body: string; project_id?: string | null; recipient_name?: string | null; recipient_phone: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body?: string; project_id?: string | null; recipient_name?: string | null; recipient_phone?: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by?: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; sov_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"] | null; created_at: string; description: string; id: string; item_number: string; retainage_percent_override: number | null; scheduled_value: number; sort_order: number; source_change_order_id: string | null; source_estimate_line_item_id: string | null; sov_id: string; }; Insert: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description: string; id?: string; item_number: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id: string; }; Update: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description?: string; id?: string; item_number?: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id?: string; }; Relationships: [{ foreignKeyName: "sov_line_items_source_change_order_id_fkey"; columns: ["source_change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_source_estimate_line_item_id_fkey"; columns: ["source_estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; system_settings: { Row: { created_at: string; description: string | null; id: string; setting_key: string; setting_value: string; updated_at: string; }; Insert: { created_at?: string; description?: string | null; id?: string; setting_key: string; setting_value: string; updated_at?: string; }; Update: { created_at?: string; description?: string | null; id?: string; setting_key?: string; setting_value?: string; updated_at?: string; }; Relationships: []; }; training_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; due_date: string | null; id: string; notes: string | null; notification_sent_at: string | null; priority: number | null; reminder_sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_completions: { Row: { acknowledged: boolean | null; completed_at: string | null; id: string; notes: string | null; time_spent_minutes: number | null; training_content_id: string; user_id: string; }; Insert: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id: string; user_id: string; }; Update: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_completions_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_completions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_content: { Row: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url: string | null; created_at: string | null; created_by: string | null; description: string | null; duration_minutes: number | null; embed_code: string | null; id: string; is_required: boolean | null; status: Database["public"]["Enums"]["training_status"] | null; storage_path: string | null; target_roles: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url: string | null; title: string; updated_at: string | null; }; Insert: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title: string; updated_at?: string | null; }; Update: { content_type?: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "training_content_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_notifications: { Row: { delivered: boolean | null; email_id: string | null; error_message: string | null; id: string; notification_type: string; sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type: string; sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type?: string; sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_notifications_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; user_notifications: { Row: { body: string | null; created_at: string; id: string; is_read: boolean; link_url: string | null; read_at: string | null; reference_id: string | null; reference_type: string | null; title: string; type: string; user_id: string; }; Insert: { body?: string | null; created_at?: string; id?: string; is_read?: boolean; link_url?: string | null; read_at?: string | null; reference_id?: string | null; reference_type?: string | null; title: string; type?: string; user_id: string; }; Update: { body?: string | null; created_at?: string; id?: string; is_read?: boolean; link_url?: string | null; read_at?: string | null; reference_id?: string | null; reference_type?: string | null; title?: string; type?: string; user_id?: string; }; Relationships: []; }; user_roles: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role?: Database["public"]["Enums"]["app_role"]; user_id?: string; }; Relationships: []; }; }; Views: { estimate_financial_summary: { Row: { contingency_amount: number | null; contingency_percent: number | null; created_at: string | null; cushion_hours_capacity: number | null; estimate_id: string | null; estimate_number: string | null; estimated_gross_margin_percent: number | null; estimated_gross_profit: number | null; max_gross_profit_potential: number | null; max_potential_margin_percent: number | null; project_id: string | null; schedule_buffer_percent: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; subtotal: number | null; total_estimated_cost: number | null; total_labor_actual_cost: number | null; total_labor_billing_cost: number | null; total_labor_capacity: number | null; total_labor_client_price: number | null; total_labor_cushion: number | null; total_labor_hours: number | null; total_with_contingency: number | null; updated_at: string | null; }; Relationships: [{ foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses_search: { Row: { account_full_name: string | null; account_name: string | null; amount: number | null; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"] | null; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string | null; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean | null; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_full_name: string | null; payee_id: string | null; payee_name: string | null; payee_type: string | null; project_category: Database["public"]["Enums"]["project_category"] | null; project_id: string | null; project_name: string | null; project_number: string | null; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; search_text: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"] | null; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; weekly_labor_hours: { Row: { approved_entries: number | null; employee_name: string | null; employee_number: string | null; entry_count: number | null; gross_hours: number | null; hourly_rate: number | null; pending_entries: number | null; rejected_entries: number | null; total_cost: number | null; total_hours: number | null; week_end_saturday: string | null; week_start_sunday: string | null; }; Relationships: []; }; }; Functions: { ai_find_client_by_name: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; email: string; id: string; match_type: string; phone: string; }[]; }; ai_get_project_summary: { Args: { p_project_id: string; }; Returns: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; }; ai_resolve_project: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; id: string; match_type: string; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"]; status: Database["public"]["Enums"]["project_status"]; }[]; }; calculate_contingency_remaining: { Args: { project_id_param: string; }; Returns: number; }; calculate_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; calculate_project_margins: { Args: { p_project_id: string; }; Returns: undefined; }; can_access_project: { Args: { _project_id: string; _user_id: string; }; Returns: boolean; }; check_margin_thresholds: { Args: { project_id_param: string; }; Returns: string; }; check_scheduled_sms_cron_job: { Args: never; Returns: { command: string; jobid: number; schedule: string; }[]; }; cleanup_expired_oauth_states: { Args: never; Returns: undefined; }; create_estimate_version: { Args: { new_version_number?: number; source_estimate_id: string; }; Returns: string; }; create_payment_application: { Args: { p_period_from: string; p_period_to: string; p_project_id: string; }; Returns: string; }; delete_project_cascade: { Args: { p_project_id: string; }; Returns: undefined; }; duplicate_quote_for_estimate: { Args: { source_quote_id: string; target_estimate_id: string; }; Returns: string; }; execute_ai_query: { Args: { p_query: string; }; Returns: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; }; execute_simple_report: { Args: { p_data_source: string; p_filters?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; p_limit?: number; p_sort_by?: string; p_sort_dir?: string; }; Returns: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; }; generate_estimate_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; generate_quote_number: { Args: { estimate_id_param?: string; project_id_param: string; project_number_param: string; }; Returns: string; }; generate_sov_from_estimate: { Args: { p_estimate_id: string; p_project_id: string; p_retainage_percent?: number; }; Returns: string; }; generate_work_order_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; get_database_schema: { Args: never; Returns: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; }; get_employees_audit: { Args: never; Returns: { can_be_mentioned: boolean; email: string; full_name: string; linkage_status: string; payee_id: string; payee_is_active: boolean; payee_name: string; payee_user_id: string; profile_is_active: boolean; provides_labor: boolean; roles: string[]; user_id: string; }[]; }; get_expense_category_rollup: { Args: { p_date_from?: string; p_date_to?: string; p_project_category?: Database["public"]["Enums"]["project_category"]; }; Returns: { allocated_count: number; category: Database["public"]["Enums"]["expense_category"]; project_count: number; row_count: number; total_amount: number; }[]; }; get_expense_dashboard_stats: { Args: { p_date_from?: string; p_date_to?: string; p_project_category?: Database["public"]["Enums"]["project_category"]; }; Returns: { split_amount: number; split_count: number; this_month_amount: number; total_amount: number; total_count: number; unallocated_amount: number; unallocated_count: number; unassigned_amount: number; unassigned_count: number; }[]; }; get_mentionable_employees: { Args: never; Returns: { display_name: string; email: string; roles: string[]; user_id: string; }[]; }; get_next_project_number: { Args: never; Returns: string; }; get_payee_usage_counts: { Args: { p_source?: string; }; Returns: { payee_id: string; usage_count: number; }[]; }; get_profit_analysis_data: { Args: { status_filter?: string[]; }; Returns: { accepted_quote_count: number; actual_margin: number; adjusted_est_costs: number; adjusted_est_margin: number; budget_utilization_percent: number; change_order_cost: number; change_order_count: number; change_order_revenue: number; client_name: string; contingency_amount: number; contingency_remaining: number; contingency_used: number; contracted_amount: number; cost_variance: number; cost_variance_percent: number; current_margin: number; end_date: string; expenses_by_category: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; id: string; invoice_count: number; job_type: string; margin_percentage: number; original_est_costs: number; original_margin: number; project_name: string; project_number: string; projected_margin: number; start_date: string; status: string; total_accepted_quotes: number; total_expenses: number; total_invoiced: number; }[]; }; get_project_financial_summary: { Args: never; Returns: { accepted_quote_count: number; actual_margin_percentage: number; actual_profit: number; change_order_costs: number; change_order_revenue: number; client_name: string; contingency_amount: number; cost_variance: number; expense_count: number; invoice_count: number; project_id: string; project_name: string; project_number: string; revenue_variance: number; status: Database["public"]["Enums"]["project_status"]; total_estimated: number; total_expenses: number; total_invoiced: number; total_quoted: number; }[]; }; get_project_revenue_total: { Args: { p_project_id: string; }; Returns: number; }; get_receipt_stats: { Args: { p_today_start: string; p_week_start: string; }; Returns: { approved_today_count: number; pending_count: number; rejected_count: number; total_this_week_count: number; }[]; }; get_scheduled_sms_recipients: { Args: { p_target_roles: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; p_target_type: string; p_target_user_ids: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; }; Returns: { full_name: string; phone: string; user_id: string; }[]; }; get_user_auth_status: { Args: never; Returns: { confirmed_at: string; email: string; full_name: string; has_password: boolean; id: string; is_active: boolean; last_active_at: string; last_sign_in_at: string; must_change_password: boolean; }[]; }; has_any_role: { Args: { _user_id: string; }; Returns: boolean; }; has_role: { Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string; }; Returns: boolean; }; log_activity: { Args: { p_activity_type: string; p_description: string; p_entity_id: string; p_entity_type: string; p_metadata?: import("E:/profitbuild-dash/.claude/worktrees/distracted-raman-5686e3/src/integrations/supabase/types").Json; p_project_id: string; p_user_id: string; }; Returns: string; }; refresh_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; safe_cast_to_expense_category: { Args: { val: string; }; Returns: Database["public"]["Enums"]["expense_category"]; }; safe_cast_to_project_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["project_status"]; }; safe_cast_to_quote_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["quote_status"]; }; set_user_can_be_mentioned: { Args: { target_user_id: string; value: boolean; }; Returns: undefined; }; }; Enums: { app_role: "admin" | "manager" | "field_worker"; change_order_status: "pending" | "approved" | "rejected"; estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"; expense_category: "labor_internal" | "subcontractors" | "materials" | "equipment" | "other" | "permits" | "management" | "office_expenses" | "vehicle_expenses" | "tools" | "software" | "vehicle_maintenance" | "gas" | "meals"; payment_application_status: "draft" | "submitted" | "certified" | "paid" | "rejected"; project_category: "construction" | "system" | "overhead"; project_status: "estimating" | "approved" | "in_progress" | "complete" | "on_hold" | "cancelled"; project_type: "construction_project" | "work_order"; quote_status: "pending" | "accepted" | "rejected" | "expired"; sync_status: "success" | "failed" | "pending"; sync_type: "import" | "export"; training_content_type: "video_link" | "video_embed" | "document" | "presentation" | "external_link"; training_status: "draft" | "published" | "archived"; transaction_type: "expense" | "bill" | "check" | "credit_card" | "cash"; }; CompositeTypes: { [_ in never]: never; }; }, { PostgrestVersion: "13.0.5"; }>
 ```
 
 _No inline documentation provided._
@@ -30228,6 +32300,27 @@ _No inline documentation provided._
 import { SYSTEM_PROJECT_NUMBERS } from '@/types/project';
 
 // Use SYSTEM_PROJECT_NUMBERS as needed.
+```
+
+### TIME_PERIOD_LABELS
+
+**Import:** `@/utils/timePeriodPresets`
+
+- Defined in: `utils/timePeriodPresets.ts`
+- Export type: named
+
+```ts
+Record<TimePeriodPreset, string>
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { TIME_PERIOD_LABELS } from '@/utils/timePeriodPresets';
+
+// Use TIME_PERIOD_LABELS as needed.
 ```
 
 ### timeEntryColumnDefinitions

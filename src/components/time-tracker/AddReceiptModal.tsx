@@ -17,6 +17,10 @@ import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { createReceiptSignedUrl } from '@/utils/receiptUrls';
 
+// Per-user last-picked construction project, remembered across capture sessions.
+const LAST_PROJECT_STORAGE_KEY = (userId?: string) =>
+  userId ? `rcg.receipts.lastProjectId.${userId}` : null;
+
 interface Project {
   id: string;
   project_number: string;
@@ -45,6 +49,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const [selectedPayeeId, setSelectedPayeeId] = useState<string | undefined>();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<string>('');
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
 
@@ -80,10 +85,35 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const systemProjectId = projectData?.systemProjectId ?? null;
 
   useEffect(() => {
-    if (open && initialProjectId) {
+    if (!open) return;
+
+    if (initialProjectId) {
       setSelectedProjectId(initialProjectId);
+      return;
     }
-  }, [open, initialProjectId]);
+
+    // No initialProjectId → try last-used construction project from localStorage.
+    // `projects` is in the dep array so this retries once the useQuery resolves.
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const key = LAST_PROJECT_STORAGE_KEY(user?.id);
+        if (!key) return;
+        const lastId = localStorage.getItem(key);
+        if (!lastId || cancelled) return;
+        const project = projects.find(p => p.id === lastId);
+        if (project && project.category === 'construction' &&
+            (project.status === 'approved' || project.status === 'in_progress')) {
+          setSelectedProjectId(lastId);
+        }
+      } catch {
+        // localStorage / auth failures are non-fatal
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, initialProjectId, projects]);
 
   const filteredProjects = useMemo(() => {
     if (!projectSearchQuery.trim()) return projects;
@@ -95,12 +125,19 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     );
   }, [projects, projectSearchQuery]);
 
+  const IOS_TIP_STORAGE_KEY = 'rcg.ios-upload-tip-shown';
+
   const openFilePicker = () => {
-    if (isIOSPWA()) {
+    if (isIOSPWA() && !localStorage.getItem(IOS_TIP_STORAGE_KEY)) {
       toast.info('Device upload tip', {
         description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
         duration: 4000,
       });
+      try {
+        localStorage.setItem(IOS_TIP_STORAGE_KEY, '1');
+      } catch {
+        // ignore quota / private-mode errors
+      }
     }
     fileInputRef.current?.click();
   };
@@ -189,6 +226,18 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
       if (receiptError) throw receiptError;
 
+      // Remember the picked construction project for next capture.
+      // Overhead picks don't overwrite — keeps the last real job sticky.
+      try {
+        const finalProject = projects.find(p => p.id === selectedProjectId);
+        if (finalProject?.category === 'construction') {
+          const key = LAST_PROJECT_STORAGE_KEY(user.id);
+          if (key) localStorage.setItem(key, finalProject.id);
+        }
+      } catch {
+        // non-fatal
+      }
+
       // Send email notification
       console.log('📧 Invoking send-receipt-notification for receipt ID:', receiptData.id);
       const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-receipt-notification', {
@@ -218,6 +267,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     setSelectedPayeeId(undefined);
     setDescription('');
     setAmount('');
+    setAmountError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -269,26 +319,38 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   </p>
                 </>
               ) : (
-                <div className="relative">
-                  <img
-                    src={capturedPhoto}
-                    alt="Captured receipt"
-                    className={cn("w-full object-cover rounded-lg", isMobile ? "h-48" : "h-48")}
-                  />
+                <>
+                  <div className="relative">
+                    <img
+                      src={capturedPhoto}
+                      alt="Captured receipt"
+                      className={cn("w-full object-cover rounded-lg", isMobile ? "h-48" : "h-48")}
+                    />
+                    <Button
+                      onClick={() => {
+                        setCapturedPhoto(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                      variant="destructive"
+                      size="icon"
+                      aria-label="Remove photo"
+                      className={cn("absolute top-2 right-2", isMobile && "h-10 w-10")}
+                    >
+                      <X className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
+                    </Button>
+                  </div>
                   <Button
-                    onClick={() => {
-                      setCapturedPhoto(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                      }
-                    }}
-                    variant="destructive"
-                    size="icon"
-                    className={cn("absolute top-2 right-2", isMobile && "h-10 w-10")}
+                    onClick={openFilePicker}
+                    variant="outline"
+                    size="sm"
+                    className={cn("w-full mt-2", isMobile && "h-10 text-sm")}
                   >
-                    <X className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
+                    <CameraIcon className="w-4 h-4 mr-2" />
+                    Retake photo
                   </Button>
-                </div>
+                </>
               )}
 
               <input
@@ -311,12 +373,28 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                 step="0.01"
                 min="0.01"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAmount(v);
+                  const parsed = parseFloat(v);
+                  if (v && (isNaN(parsed) || parsed <= 0)) {
+                    setAmountError('Amount must be greater than 0');
+                  } else {
+                    setAmountError(null);
+                  }
+                }}
                 placeholder="0.00"
                 required
-                className={cn(isMobile && "h-12 text-base")}
+                aria-invalid={!!amountError}
+                aria-describedby={amountError ? 'amount-error' : undefined}
+                className={cn(isMobile && "h-12 text-base", amountError && "border-destructive")}
                 style={{ fontSize: isMobile ? '16px' : undefined }}
               />
+              {amountError && (
+                <p id="amount-error" className="text-xs text-destructive">
+                  {amountError}
+                </p>
+              )}
             </div>
 
             {/* Payee (Required) */}
@@ -439,7 +517,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
           <Button
             onClick={handleSave}
             className={cn("flex-1", isMobile && "h-12 text-base font-medium")}
-            disabled={!capturedPhoto || !amount || !selectedPayeeId || uploading}
+            disabled={!capturedPhoto || !amount || !selectedPayeeId || !!amountError || uploading}
           >
             {uploading ? (
               <>

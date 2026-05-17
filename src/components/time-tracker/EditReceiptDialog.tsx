@@ -273,8 +273,8 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
 
         if (uploadError) throw uploadError;
 
-        // Store a signed URL in receipts.image_url — consistent with AddReceiptModal,
-        // ReceiptCapture and EditReceiptModal (1-year, centralized — see
+        // Store a signed URL in receipts.image_url — consistent with AddReceiptModal
+        // and EditReceiptModal (1-year, centralized — see
         // src/utils/receiptUrls.ts). Writing the bare storage path here would 403 in
         // ReceiptPreviewModal / download utils, which all assume a URL.
         finalImageUrl = await createReceiptSignedUrl(filePath);
