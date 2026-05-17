@@ -17,6 +17,10 @@ import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { createReceiptSignedUrl } from '@/utils/receiptUrls';
 
+// Per-user last-picked construction project, remembered across capture sessions.
+const LAST_PROJECT_STORAGE_KEY = (userId?: string) =>
+  userId ? `rcg.receipts.lastProjectId.${userId}` : null;
+
 interface Project {
   id: string;
   project_number: string;
@@ -81,10 +85,35 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   const systemProjectId = projectData?.systemProjectId ?? null;
 
   useEffect(() => {
-    if (open && initialProjectId) {
+    if (!open) return;
+
+    if (initialProjectId) {
       setSelectedProjectId(initialProjectId);
+      return;
     }
-  }, [open, initialProjectId]);
+
+    // No initialProjectId → try last-used construction project from localStorage.
+    // `projects` is in the dep array so this retries once the useQuery resolves.
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const key = LAST_PROJECT_STORAGE_KEY(user?.id);
+        if (!key) return;
+        const lastId = localStorage.getItem(key);
+        if (!lastId || cancelled) return;
+        const project = projects.find(p => p.id === lastId);
+        if (project && project.category === 'construction' &&
+            (project.status === 'approved' || project.status === 'in_progress')) {
+          setSelectedProjectId(lastId);
+        }
+      } catch {
+        // localStorage / auth failures are non-fatal
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, initialProjectId, projects]);
 
   const filteredProjects = useMemo(() => {
     if (!projectSearchQuery.trim()) return projects;
@@ -196,6 +225,18 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
         .single();
 
       if (receiptError) throw receiptError;
+
+      // Remember the picked construction project for next capture.
+      // Overhead picks don't overwrite — keeps the last real job sticky.
+      try {
+        const finalProject = projects.find(p => p.id === selectedProjectId);
+        if (finalProject?.category === 'construction') {
+          const key = LAST_PROJECT_STORAGE_KEY(user.id);
+          if (key) localStorage.setItem(key, finalProject.id);
+        }
+      } catch {
+        // non-fatal
+      }
 
       // Send email notification
       console.log('📧 Invoking send-receipt-notification for receipt ID:', receiptData.id);
