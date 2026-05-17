@@ -439,6 +439,7 @@ export const ReceiptsList = () => {
         <Button
           onClick={() => setShowAddModal(true)}
           size="lg"
+          aria-label="Add receipt"
           className="h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-transform"
         >
           <Plus className="w-6 h-6" />
