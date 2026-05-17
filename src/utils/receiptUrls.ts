@@ -1,11 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // Receipts store a signed URL in `receipts.image_url`, not the bare storage path
-// — ReceiptPreviewModal and the download utils both assume a URL. All four write
-// paths (AddReceiptModal, EditReceiptModal, EditReceiptDialog, ReceiptCapture)
-// stamp 1-year expiry. Centralized here so a future TTL change is one edit, not
-// four. PR #78 fixed EditReceiptDialog after it drifted to bare-path; this helper
-// keeps that class of bug from coming back.
+// — ReceiptPreviewModal and the download utils both assume a URL. All three write
+// paths (AddReceiptModal, EditReceiptModal, EditReceiptDialog) stamp 1-year
+// expiry. Centralized here so a future TTL change is one edit, not three. PR #78
+// fixed EditReceiptDialog after it drifted to bare-path; this helper keeps that
+// class of bug from coming back.
 export const RECEIPT_URL_TTL_SECONDS = 31536000; // 1 year
 
 const RECEIPTS_BUCKET = 'time-tracker-documents';
