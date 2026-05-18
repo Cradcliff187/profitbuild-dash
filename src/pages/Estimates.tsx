@@ -260,7 +260,7 @@ const EstimatesPage = () => {
         .select(
           `
           *,
-          projects (
+          projects!inner (
             project_number,
             project_name,
             client_name

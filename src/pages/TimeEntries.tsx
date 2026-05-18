@@ -305,9 +305,9 @@ const TimeEntriesPage = () => {
       const { data, error } = await supabase
         .from("payees")
         .select("id, payee_name")
-        .eq("is_internal", true)
         .eq("provides_labor", true)
         .eq("is_active", true)
+        .or("is_internal.eq.true,payee_type.eq.subcontractor")
         .order("payee_name");
 
       if (error) {
