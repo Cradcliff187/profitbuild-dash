@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -4208,6 +4208,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_time_entry_workers: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       get_user_auth_status: {
         Args: never
         Returns: {
@@ -4486,4 +4493,3 @@ export const Constants = {
     },
   },
 } as const
-
