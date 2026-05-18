@@ -116,6 +116,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
   const [filterPeriod, setFilterPeriod] = useState<TimePeriodValue>(ALL_TIME_PERIOD);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [revenueToDelete, setRevenueToDelete] = useState<ProjectRevenue | null>(null);
+  const [linkedInvoiceCount, setLinkedInvoiceCount] = useState(0);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [projects, setProjects] = useState<any[]>([]);
@@ -434,24 +435,68 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     pagination.goToPage(1);
   };
 
-  const handleDeleteClick = (revenue: ProjectRevenue) => {
+  const handleDeleteClick = async (revenue: ProjectRevenue) => {
     setRevenueToDelete(revenue);
+    setLinkedInvoiceCount(0);
     setDeleteDialogOpen(true);
+
+    if (revenue.id) {
+      const { count } = await supabase
+        .from('invoice_revenues')
+        .select('*', { count: 'exact', head: true })
+        .eq('revenue_id', revenue.id);
+      setLinkedInvoiceCount(count ?? 0);
+    }
   };
 
   const handleDeleteConfirm = async () => {
     if (!revenueToDelete) return;
 
     try {
+      // Cascade: invoice_revenues.revenue_id is ON DELETE RESTRICT, so any
+      // generated invoices linked to this revenue must be removed first.
+      const { data: links, error: linksError } = await supabase
+        .from('invoice_revenues')
+        .select('invoice_id')
+        .eq('revenue_id', revenueToDelete.id);
+      if (linksError) throw linksError;
+
+      const invoiceIds = [...new Set((links ?? []).map((l) => l.invoice_id).filter(Boolean))];
+
+      if (invoiceIds.length > 0) {
+        // Best-effort: remove the generated docx/pdf files from Storage.
+        const { data: invoiceRows } = await supabase
+          .from('invoices')
+          .select('docx_storage_path, pdf_storage_path')
+          .in('id', invoiceIds);
+        const storagePaths = (invoiceRows ?? [])
+          .flatMap((row) => [row.docx_storage_path, row.pdf_storage_path])
+          .filter((p): p is string => !!p);
+        if (storagePaths.length > 0) {
+          await supabase.storage.from('project-documents').remove(storagePaths);
+        }
+
+        // Deleting invoices cascades invoice_revenues and fires the
+        // delete_related_project_documents_invoice() trigger.
+        const { error: invoicesError } = await supabase
+          .from('invoices')
+          .delete()
+          .in('id', invoiceIds);
+        if (invoicesError) throw invoicesError;
+      }
+
       const { error } = await supabase
         .from('project_revenues')
         .delete()
         .eq('id', revenueToDelete.id);
-
       if (error) throw error;
 
       onDelete(revenueToDelete.id);
-      toast.success("Invoice Deleted", { description: "The invoice has been successfully deleted." });
+      toast.success("Invoice Deleted", {
+        description: invoiceIds.length > 0
+          ? `The invoice and ${invoiceIds.length} generated document${invoiceIds.length === 1 ? '' : 's'} were deleted.`
+          : "The invoice has been successfully deleted.",
+      });
       onRefresh();
     } catch (error: any) {
       console.error('Error deleting revenue:', error);
@@ -459,6 +504,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     } finally {
       setDeleteDialogOpen(false);
       setRevenueToDelete(null);
+      setLinkedInvoiceCount(0);
     }
   };
 
@@ -1400,6 +1446,11 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                   <div className="text-xs text-muted-foreground">
                     {revenueToDelete.project_name} • {format(new Date(revenueToDelete.invoice_date), 'MMM dd, yyyy')}
                   </div>
+                </div>
+              )}
+              {linkedInvoiceCount > 0 && (
+                <div className="mt-2 p-2 rounded border border-destructive/30 bg-destructive/10 text-xs text-destructive">
+                  This will also permanently delete {linkedInvoiceCount} generated invoice document{linkedInvoiceCount === 1 ? '' : 's'} (including the file{linkedInvoiceCount === 1 ? '' : 's'} in storage).
                 </div>
               )}
             </AlertDialogDescription>
