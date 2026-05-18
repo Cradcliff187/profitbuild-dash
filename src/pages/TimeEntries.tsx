@@ -299,16 +299,12 @@ const TimeEntriesPage = () => {
     }
   }, [activeTab]);
 
-  // Fetch workers for filter
+  // Fetch workers for filter — only payees who actually have time entries
+  // (employees and subcontractors alike). Server-side DISTINCT keeps the list
+  // short and avoids PostgREST's 1,000-row cap as the expenses table grows.
   useEffect(() => {
     const fetchWorkers = async () => {
-      const { data, error } = await supabase
-        .from("payees")
-        .select("id, payee_name")
-        .eq("provides_labor", true)
-        .eq("is_active", true)
-        .or("is_internal.eq.true,payee_type.eq.subcontractor")
-        .order("payee_name");
+      const { data, error } = await supabase.rpc("get_time_entry_workers");
 
       if (error) {
         console.error("Error fetching workers:", error);
@@ -316,7 +312,7 @@ const TimeEntriesPage = () => {
       }
 
       if (data) {
-        setWorkers(data.map((w) => ({ id: w.id, name: w.payee_name })));
+        setWorkers(data.map((w) => ({ id: w.id, name: w.name })));
       }
     };
     fetchWorkers();
