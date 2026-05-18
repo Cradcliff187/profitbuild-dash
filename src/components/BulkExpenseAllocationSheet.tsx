@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Search } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
   suggestLineItemAllocation,
@@ -45,17 +53,84 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
   const [isAllocating, setIsAllocating] = useState(false);
   const [suggestions, setSuggestions] = useState<BulkSuggestion[]>([]);
 
-  const allSelected = suggestions.length > 0 && suggestions.every(s => s.selected);
-  const someSelected = suggestions.some(s => s.selected) && !allSelected;
-  const selectedCount = suggestions.filter(s => s.selected).length;
+  // Filter state — all client-side over the already-loaded `suggestions`.
+  const [searchText, setSearchText] = useState('');
+  const [confidenceBand, setConfidenceBand] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'estimate' | 'quote' | 'change_order'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | ExpenseCategory>('all');
+
+  const filtersActive =
+    searchText.trim() !== '' ||
+    confidenceBand !== 'all' ||
+    sourceFilter !== 'all' ||
+    categoryFilter !== 'all';
+
+  const resetFilters = () => {
+    setSearchText('');
+    setConfidenceBand('all');
+    setSourceFilter('all');
+    setCategoryFilter('all');
+  };
 
   useEffect(() => {
     if (open) {
       loadBulkData();
     } else {
       setSuggestions([]);
+      resetFilters();
     }
   }, [open]);
+
+  // Distinct expense categories present in the loaded suggestions — keeps the
+  // Category dropdown short and relevant rather than listing the full enum.
+  const presentCategories = useMemo(() => {
+    const set = new Set<ExpenseCategory>();
+    suggestions.forEach(s => set.add(s.expense.category));
+    return Array.from(set).sort((a, b) =>
+      (EXPENSE_CATEGORY_DISPLAY[a] || a).localeCompare(EXPENSE_CATEGORY_DISPLAY[b] || b)
+    );
+  }, [suggestions]);
+
+  // Filtered view of the suggestions. Selection state lives on the underlying
+  // `suggestions` rows and persists across filter changes.
+  const filteredSuggestions = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return suggestions.filter(s => {
+      if (confidenceBand === 'high' && s.confidence < 75) return false;
+      if (confidenceBand === 'medium' && (s.confidence < 60 || s.confidence >= 75)) return false;
+      if (confidenceBand === 'low' && s.confidence >= 60) return false;
+
+      if (sourceFilter !== 'all' && s.lineItem.type !== sourceFilter) return false;
+
+      if (categoryFilter !== 'all' && s.expense.category !== categoryFilter) return false;
+
+      if (q) {
+        const haystack = [
+          s.expense.payee_name,
+          s.expense.project_number,
+          s.expense.project_name,
+          s.lineItem.description,
+          s.lineItem.payee_name,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+
+      return true;
+    });
+  }, [suggestions, searchText, confidenceBand, sourceFilter, categoryFilter]);
+
+  // Header tri-state checkbox + select-all act on the currently-visible
+  // (filtered) rows. With no filter active this equals the full list, so
+  // behaviour is identical to the pre-filter implementation.
+  const allSelected =
+    filteredSuggestions.length > 0 && filteredSuggestions.every(s => s.selected);
+  const someSelected =
+    filteredSuggestions.some(s => s.selected) && !allSelected;
+  // Allocate acts on the global selection regardless of the active filter.
+  const selectedCount = suggestions.filter(s => s.selected).length;
 
   const loadBulkData = async () => {
     setIsLoading(true);
@@ -297,15 +372,22 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
     }
   };
 
-  const handleToggleRow = (index: number) => {
-    setSuggestions(prev => prev.map((s, i) =>
-      i === index ? { ...s, selected: !s.selected } : s
+  // Toggle a single row's selection by expense id. Id-based (not array index)
+  // so it stays correct when the table renders a filtered subset.
+  const handleToggleRow = (expenseId: string) => {
+    setSuggestions(prev => prev.map(s =>
+      s.expense.id === expenseId ? { ...s, selected: !s.selected } : s
     ));
   };
 
+  // Select/deselect every currently-visible (filtered) row, leaving rows
+  // hidden by the filter untouched.
   const handleSelectAll = () => {
     const newVal = !allSelected;
-    setSuggestions(prev => prev.map(s => ({ ...s, selected: newVal })));
+    const visibleIds = new Set(filteredSuggestions.map(s => s.expense.id));
+    setSuggestions(prev => prev.map(s =>
+      visibleIds.has(s.expense.id) ? { ...s, selected: newVal } : s
+    ));
   };
 
   const handleBulkAllocate = async () => {
@@ -413,6 +495,76 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
           </SheetDescription>
         </SheetHeader>
 
+        {!isLoading && suggestions.length > 0 && (
+          <div className="border-b bg-background px-6 py-3 shrink-0 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search payee, project, or line item..."
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                className="pl-8 h-9"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={confidenceBand}
+                onValueChange={v => setConfidenceBand(v as typeof confidenceBand)}
+              >
+                <SelectTrigger className="h-9 w-[170px]">
+                  <SelectValue placeholder="Confidence" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All confidence</SelectItem>
+                  <SelectItem value="high">High (&ge;75%)</SelectItem>
+                  <SelectItem value="medium">Medium (60-74%)</SelectItem>
+                  <SelectItem value="low">Low (&lt;60%)</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={sourceFilter}
+                onValueChange={v => setSourceFilter(v as typeof sourceFilter)}
+              >
+                <SelectTrigger className="h-9 w-[150px]">
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="estimate">Estimate</SelectItem>
+                  <SelectItem value="quote">Quote</SelectItem>
+                  <SelectItem value="change_order">Change Order</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={categoryFilter}
+                onValueChange={v => setCategoryFilter(v as typeof categoryFilter)}
+              >
+                <SelectTrigger className="h-9 w-[170px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {presentCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>
+                      {EXPENSE_CATEGORY_DISPLAY[cat] || cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {filtersActive && (
+                <Button variant="ghost" size="sm" className="h-9" onClick={resetFilters}>
+                  Clear
+                </Button>
+              )}
+              {filtersActive && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  Showing {filteredSuggestions.length} of {suggestions.length}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
@@ -429,6 +581,18 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
                 no matching line items were found. Create estimates, quotes, or
                 change orders to enable matching.
               </p>
+            </div>
+          ) : filteredSuggestions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <Search className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No matches</h3>
+              <p className="text-sm text-muted-foreground max-w-md mb-4">
+                No suggestions match the current filters. Adjust or clear the
+                filters to see more.
+              </p>
+              <Button variant="outline" size="sm" onClick={resetFilters}>
+                Clear filters
+              </Button>
             </div>
           ) : (
             <div className="px-2 py-2">
@@ -450,19 +614,19 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {suggestions.map((suggestion, index) => (
+                  {filteredSuggestions.map(suggestion => (
                     <TableRow
                       key={suggestion.expense.id}
                       className={cn(
                         'cursor-pointer',
                         suggestion.selected && 'bg-muted/50'
                       )}
-                      onClick={() => handleToggleRow(index)}
+                      onClick={() => handleToggleRow(suggestion.expense.id)}
                     >
                       <TableCell className="px-3 align-middle" onClick={e => e.stopPropagation()}>
                         <Checkbox
                           checked={suggestion.selected}
-                          onCheckedChange={() => handleToggleRow(index)}
+                          onCheckedChange={() => handleToggleRow(suggestion.expense.id)}
                         />
                       </TableCell>
                       <TableCell className="align-top">
