@@ -17,6 +17,7 @@ import {
   getMarkupPerformanceStatus 
 } from "@/utils/estimateFinancials";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { extractProjectCounter } from "@/utils/numberGeneration";
 
 type EstimateWithQuotes = Estimate & { quotes?: Array<{ id: string; total_amount: number; status: string }> };
 
@@ -167,14 +168,11 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
   };
 
 
-  // Convert to grouped format for the table and sort by project creation date
+  // Convert to grouped format for the table and sort by project number
   const groupedData: FinancialTableGroup<EstimateWithQuotes>[] = Object.entries(estimatesByProject)
     .map(([projectId, projectEstimates]) => {
-      // Use earliest estimate's created_at as proxy for project creation date
-      const projectCreatedAt = projectEstimates.reduce((earliest, est) => {
-        const estDate = new Date(est.created_at).getTime();
-        return estDate < earliest ? estDate : earliest;
-      }, new Date(projectEstimates[0].created_at).getTime());
+      // Extract project number counter for sorting (e.g., "225-047" -> 47)
+      const projectNumberCounter = extractProjectCounter(projectEstimates[0].project_number);
 
       return {
         groupKey: projectId,
@@ -182,10 +180,10 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         items: projectEstimates,
         isCollapsible: true,
         defaultExpanded: false,
-        sortKey: projectCreatedAt,
+        sortKey: projectNumberCounter,
       };
     })
-    // Sort groups by project creation date (newest first)
+    // Sort groups by project number (descending - highest number first)
     .sort((a, b) => (b.sortKey as number) - (a.sortKey as number));
 
   const allColumns: FinancialTableColumn<EstimateWithQuotes>[] = [
