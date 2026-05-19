@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Download, Eye, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Eye, AlertTriangle, Pencil } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
-import { DOCUMENT_TYPE_LABELS, type DocumentType } from '@/types/document';
+import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsSheet';
+import { useRoles } from '@/contexts/RoleContext';
+import { DOCUMENT_TYPE_LABELS, type DocumentType, type ProjectDocument } from '@/types/document';
 import { DOCUMENT_TYPE_LUCIDE_ICONS, DOCUMENT_TYPE_ICON_COLORS } from '@/utils/documentFileType';
 import { format, differenceInDays } from 'date-fns';
 
@@ -27,19 +29,6 @@ const SECTION_LABELS: Record<string, { title: string; types: DocumentType[] }> =
   specs: { title: 'Specifications', types: ['specification'] },
   attachments: { title: 'Field Attachments', types: ['other'] },
 };
-
-interface FieldDocument {
-  id: string;
-  project_id: string;
-  document_type: DocumentType;
-  file_name: string;
-  file_url: string;
-  file_size: number;
-  mime_type: string;
-  description?: string;
-  expires_at?: string;
-  created_at: string;
-}
 
 function ExpirationWarning({ expiresAt }: { expiresAt: string }) {
   const daysUntil = differenceInDays(new Date(expiresAt), new Date());
@@ -65,9 +54,11 @@ function ExpirationWarning({ expiresAt }: { expiresAt: string }) {
 function DocumentCard({
   doc,
   onPreview,
+  onEdit,
 }: {
-  doc: FieldDocument;
+  doc: ProjectDocument;
   onPreview: () => void;
+  onEdit?: () => void;
 }) {
   const Icon = DOCUMENT_TYPE_LUCIDE_ICONS[doc.document_type] || FileText;
   const iconColor = DOCUMENT_TYPE_ICON_COLORS[doc.document_type] || 'text-muted-foreground';
@@ -107,6 +98,11 @@ function DocumentCard({
               <Download className="h-4 w-4" />
             </Button>
           </a>
+          {onEdit && (
+            <Button variant="ghost" size="sm" onClick={onEdit} className="h-9 w-9 p-0">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </Card>
@@ -115,6 +111,9 @@ function DocumentCard({
 
 export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
   const preview = useDocumentPreview();
+  const { isAdmin, isManager } = useRoles();
+  const canEdit = isAdmin || isManager;
+  const [documentToEdit, setDocumentToEdit] = useState<ProjectDocument | null>(null);
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ['field-documents', projectId],
@@ -127,7 +126,7 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as FieldDocument[];
+      return (data || []) as ProjectDocument[];
     },
     enabled: !!projectId,
   });
@@ -184,6 +183,7 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
                     mimeType: doc.mime_type,
                   })
                 }
+                onEdit={canEdit ? () => setDocumentToEdit(doc) : undefined}
               />
             ))}
           </div>
@@ -191,6 +191,12 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
       ))}
 
       <DocumentPreviewModals preview={preview} />
+
+      <DocumentDetailsSheet
+        document={documentToEdit}
+        open={!!documentToEdit}
+        onOpenChange={(o) => !o && setDocumentToEdit(null)}
+      />
     </div>
   );
 }
