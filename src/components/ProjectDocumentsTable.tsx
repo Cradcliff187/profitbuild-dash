@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Filter, FileText, Eye, Download, Trash2 } from "lucide-react";
+import { Filter, FileText, Eye, Download, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,8 @@ import { useDocumentPreview } from "@/hooks/useDocumentPreview";
 import { DocumentPreviewModals } from "@/components/documents/DocumentPreviewModals";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRoles } from "@/contexts/RoleContext";
+import { DocumentDetailsSheet } from "@/components/documents/DocumentDetailsSheet";
 import { format, differenceInDays, parseISO } from "date-fns";
 import type { ProjectDocument, DocumentType } from "@/types/document";
 import { DOCUMENT_TYPE_LABELS } from "@/types/document";
@@ -39,9 +41,12 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
   const [typeFilter, setTypeFilter] = useState<DocumentType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
+  const [documentToEdit, setDocumentToEdit] = useState<ProjectDocument | null>(null);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const preview = useDocumentPreview();
+  const { isAdmin, isManager } = useRoles();
+  const canEdit = isAdmin || isManager;
 
   // Real-time subscription for project documents
   useEffect(() => {
@@ -258,6 +263,16 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                       a.click();
                     },
                   },
+                  ...(canEdit
+                    ? [{
+                        icon: Pencil,
+                        label: 'Edit details',
+                        onClick: (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          setDocumentToEdit(doc);
+                        },
+                      }]
+                    : []),
                   {
                     icon: Trash2,
                     label: 'Delete',
@@ -293,6 +308,13 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
       </AlertDialog>
 
       <DocumentPreviewModals preview={preview} />
+
+      <DocumentDetailsSheet
+        document={documentToEdit}
+        open={!!documentToEdit}
+        onOpenChange={(o) => !o && setDocumentToEdit(null)}
+        onSaved={() => refetch()}
+      />
     </div>
   );
 }
