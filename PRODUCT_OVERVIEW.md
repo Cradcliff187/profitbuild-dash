@@ -46,9 +46,10 @@ Estimating → Approved → In Progress → Complete
 ### Estimation Features
 
 - **Hierarchical Line Items**: Phases → Categories → Items with cost/price breakdown
-- **Estimate Versioning**: Track revisions with version history
+- **Estimate Versioning**: Track revisions with version history; accepted quotes carry forward to new versions automatically (DB RPC re-points FKs)
 - **Contingency Tracking**: Built-in contingency with usage monitoring
 - **Internal vs External Costs**: Separate labor (internal) from vendor costs
+- **Header-Level Discount**: Internal margin concession (% or fixed $) at the estimate level. Customer PDFs unchanged (line items at full price, final Total reflects discount); internal UI shows the discount explicitly. DB triggers handle all math.
 
 ### Quote Management
 
@@ -56,6 +57,7 @@ Estimating → Approved → In Progress → Complete
 - **Quote Comparison**: Side-by-side vendor quote analysis
 - **Quote Acceptance**: Accept quotes that update project cost projections
 - **Quote-to-Estimate Linking**: Connect vendor quotes to estimate line items
+- **Header-Level Discount**: Same internal-only discount pattern as estimates (silent to customer PDF, visible in internal hero / cards)
 
 ### Bid Management
 
@@ -69,6 +71,7 @@ Estimating → Approved → In Progress → Complete
 - **Approval Workflow**: Pending → Approved/Rejected status flow
 - **Financial Impact Tracking**: Track margin impact of change orders
 - **Line Item Detail**: Change orders have their own line items
+- **Header-Level Discount**: Internal-only discount (% or fixed $) flows to client_amount and margin_impact; cost is unchanged. Same DB-trigger pattern as estimates/quotes.
 
 ### Project Financial Fields (Database-Calculated)
 
