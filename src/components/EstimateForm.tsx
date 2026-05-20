@@ -592,7 +592,7 @@ useEffect(() => {
     setIsLoading(true);
     
     // Optimistic update: Show saving state
-    toast.info(initialEstimate ? "Updating Estimate" : "Creating Estimate", { description: "Processing estimate details..." });
+    const toastId = toast.loading(initialEstimate ? "Updating Estimate" : "Creating Estimate", { description: "Processing estimate details..." });
     
     // Get project data to pass project number to estimate generation
     const { data: projectData, error: projectError } = await supabase
@@ -603,7 +603,7 @@ useEffect(() => {
     
     if (projectError) {
       console.error('Error fetching project:', projectError);
-      toast.error("Failed to fetch project information");
+      toast.error("Failed to fetch project information", { id: toastId });
       setIsLoading(false);
       return;
     }
@@ -722,7 +722,7 @@ useEffect(() => {
             : targetStatus === 'sent'
               ? `New version v${estimateData.version_number} sent.`
               : `New estimate version v${estimateData.version_number} created as draft.`;
-          toast.success("New Version Created", { description: versionToastLabel });
+          toast.success("New Version Created", { id: toastId, description: versionToastLabel });
 
         } else {
           // Regular editing for non-approved estimates.
@@ -852,7 +852,7 @@ useEffect(() => {
             : targetStatus === 'sent'
               ? "Estimate sent."
               : "Estimate saved as draft.";
-          toast.success("Estimate Updated", { description: updateToastLabel });
+          toast.success("Estimate Updated", { id: toastId, description: updateToastLabel });
         }
 
       } else {
@@ -983,7 +983,7 @@ useEffect(() => {
             : targetStatus === 'sent'
               ? `New version v${estimateData.version_number} sent.`
               : `New estimate version v${estimateData.version_number} created as draft.`;
-          toast.success("New Version Created", { description: newVersionToast });
+          toast.success("New Version Created", { id: toastId, description: newVersionToast });
 
         } else {
           // Project has no estimates - create first estimate.
@@ -1106,7 +1106,7 @@ useEffect(() => {
             : targetStatus === 'sent'
               ? `${estimateNumber} created and sent.`
               : `${estimateNumber} saved as draft.`;
-          toast.success("First Estimate Created", { description: firstEstimateToast });
+          toast.success("First Estimate Created", { id: toastId, description: firstEstimateToast });
         }
       }
 
@@ -1122,7 +1122,7 @@ useEffect(() => {
         lineItemsCount: validLineItems.length
       });
       
-      toast.error(`Failed to save estimate: ${error?.message || 'Unknown error'}. Please check the console for details.`);
+      toast.error(`Failed to save estimate: ${error?.message || 'Unknown error'}. Please check the console for details.`, { id: toastId });
     } finally {
       setIsLoading(false);
     }
