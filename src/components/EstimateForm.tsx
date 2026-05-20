@@ -73,6 +73,16 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   const [notes, setNotes] = useState(initialEstimate?.notes || "");
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [contingencyPercent, setContingencyPercent] = useState(initialEstimate?.contingency_percent ?? 10.0);
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed' | null>(
+    (initialEstimate?.discount_type as 'percent' | 'fixed' | null | undefined) ?? null
+  );
+  const [discountValue, setDiscountValue] = useState<number>(
+    initialEstimate?.discount_value ?? 0
+  );
+  const handleDiscountChange = (type: 'percent' | 'fixed' | null, value: number) => {
+    setDiscountType(type);
+    setDiscountValue(value);
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
@@ -645,6 +655,8 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
+              discount_type: discountType,
+              discount_value: discountValue,
               status: targetStatus,
               is_current_version: true,
               updated_at: new Date().toISOString()
@@ -737,6 +749,8 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
+              discount_type: discountType,
+              discount_value: discountValue,
               status: targetStatus,
               ...(targetStatus === 'approved' ? { is_current_version: true } : {}),
               updated_at: new Date().toISOString()
@@ -897,6 +911,8 @@ useEffect(() => {
               notes: notes.trim() || null,
               valid_until: validUntil?.toISOString().split('T')[0],
               contingency_percent: contingencyPercent,
+              discount_type: discountType,
+              discount_value: discountValue,
               is_current_version: true,
               status: targetStatus,
               updated_at: new Date().toISOString()
@@ -1005,6 +1021,8 @@ useEffect(() => {
             valid_until: validUntil?.toISOString().split('T')[0],
             contingency_percent: contingencyPercent,
             contingency_amount: contingencyAmount,
+            discount_type: discountType,
+            discount_value: discountValue,
             revision_number: 1,
             version_number: 1,
             parent_estimate_id: null,
@@ -1593,6 +1611,9 @@ useEffect(() => {
             totalLaborCapacity={laborMetrics.totalLaborCapacity}
             scheduleBufferPercent={laborMetrics.scheduleBufferPercent}
             onContingencyChange={mode !== 'view' ? setContingencyPercent : undefined}
+            discountType={discountType}
+            discountValue={discountValue}
+            onDiscountChange={mode !== 'view' ? handleDiscountChange : undefined}
             readOnly={mode === 'view'}
           />
 
@@ -1989,6 +2010,9 @@ useEffect(() => {
             totalLaborCapacity={laborMetrics.totalLaborCapacity}
             scheduleBufferPercent={laborMetrics.scheduleBufferPercent}
             onContingencyChange={mode !== 'view' ? setContingencyPercent : undefined}
+            discountType={discountType}
+            discountValue={discountValue}
+            onDiscountChange={mode !== 'view' ? handleDiscountChange : undefined}
             readOnly={mode === 'view'}
             className="mt-6"
           />

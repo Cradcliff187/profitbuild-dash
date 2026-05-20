@@ -58,6 +58,10 @@ export interface Estimate {
   client_name?: string;
   // Labor cushion summary
   totalLaborCushion?: number;
+  // Header-level discount (silent on customer PDFs; reduces total_amount via DB trigger)
+  discount_type?: 'percent' | 'fixed' | null;
+  discount_value?: number;
+  discount_amount?: number;
 }
 
 export type EstimateStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired';

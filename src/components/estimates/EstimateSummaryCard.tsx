@@ -3,6 +3,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Info } from 'lucide-react';
+import { DiscountInput, DiscountType, computeDiscountAmount } from '@/components/forms/DiscountInput';
 
 interface EstimateSummaryCardProps {
   subtotal: number;
@@ -26,6 +27,10 @@ interface EstimateSummaryCardProps {
   totalLaborCapacity?: number;
   scheduleBufferPercent?: number;
   onContingencyChange?: (percent: number) => void;
+  // Discount controls (internal — never shown on customer PDF)
+  discountType?: DiscountType;
+  discountValue?: number;
+  onDiscountChange?: (type: DiscountType, value: number) => void;
   readOnly?: boolean;
   className?: string;
 }
@@ -37,11 +42,14 @@ interface EstimateSummaryCardProps {
 export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
   subtotal,
   totalCost,
-  grossProfit,
-  grossMarginPercent,
+  // Legacy callers pass these but we now compute them locally (after discount).
+  // Kept on the interface for API stability; destructured into underscore-prefixed
+  // names so the lint rule doesn't flag them.
+  grossProfit: _legacyGrossProfit,
+  grossMarginPercent: _legacyGrossMarginPercent,
   contingencyPercent,
-  contingencyAmount,
-  totalWithContingency,
+  contingencyAmount: _legacyContingencyAmount,
+  totalWithContingency: _legacyTotalWithContingency,
   laborCushion,
   laborHours,
   laborActualCost,
@@ -54,11 +62,25 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
   totalLaborCapacity,
   scheduleBufferPercent,
   onContingencyChange,
+  discountType = null,
+  discountValue = 0,
+  onDiscountChange,
   readOnly = false,
   className,
 }) => {
-  // True profit = hidden (cushion) + visible (markup)
-  const trueProfitMargin = laborCushion ? grossProfit + laborCushion : null;
+  // Discount math (UI mirrors the DB trigger so the user sees the same result that will land in the DB)
+  const discountAmount = computeDiscountAmount(discountType, discountValue, subtotal);
+  const subtotalAfterDiscount = Math.max(0, subtotal - discountAmount);
+  // Contingency is computed from the discounted total so this card matches what calculate_contingency_amount will write
+  const displayedContingencyAmount = (subtotalAfterDiscount * (contingencyPercent || 0)) / 100;
+  const displayedTotalWithContingency = subtotalAfterDiscount + displayedContingencyAmount;
+  // Gross profit on the discounted total (cost unchanged; margin compresses by the discount)
+  const displayedGrossProfit = subtotalAfterDiscount - totalCost;
+  const displayedGrossMarginPercent = subtotalAfterDiscount > 0
+    ? (displayedGrossProfit / subtotalAfterDiscount) * 100
+    : 0;
+  // True profit = hidden (cushion) + visible (markup, now discounted)
+  const trueProfitMargin = laborCushion ? displayedGrossProfit + laborCushion : null;
   
   // Calculate true actual cost (total cost minus the labor cushion to get real cost basis)
   // This represents what the project actually costs you internally
@@ -89,14 +111,43 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
             label="Subtotal"
             value={formatCurrency(subtotal)}
           />
+          {/* Discount (internal-only; never rendered on customer PDF) */}
+          {onDiscountChange && (
+            <DiscountInput
+              type={discountType}
+              value={discountValue}
+              subtotal={subtotal}
+              onChange={onDiscountChange}
+              readOnly={readOnly}
+              className="border-b border-slate-200"
+            />
+          )}
+          {readOnly && discountAmount > 0 && (
+            <DiscountInput
+              type={discountType}
+              value={discountValue}
+              subtotal={subtotal}
+              onChange={() => {}}
+              readOnly
+              className="border-b border-slate-200"
+            />
+          )}
+          {discountAmount > 0 && (
+            <SummaryRow
+              label="After Discount"
+              value={formatCurrency(subtotalAfterDiscount)}
+              labelClassName="font-medium"
+              valueClassName="font-semibold"
+            />
+          )}
           <SummaryRow
             label="Total Estimated Cost"
             value={formatCurrency(totalCost)}
           />
           <SummaryRow
             label="Estimated Gross Profit"
-            value={formatCurrency(grossProfit)}
-            valueClassName={grossProfit < 0 ? "text-destructive" : "text-success"}
+            value={formatCurrency(displayedGrossProfit)}
+            valueClassName={displayedGrossProfit < 0 ? "text-destructive" : "text-success"}
           />
           
           {/* Labor Opportunity - shown as separate line */}
@@ -122,12 +173,12 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
           
           <SummaryRow
             label="Estimated Gross Margin"
-            value={`${grossMarginPercent.toFixed(1)}%`}
+            value={`${displayedGrossMarginPercent.toFixed(1)}%`}
             valueClassName={
-              grossMarginPercent < 0 
-                ? "text-destructive" 
-                : grossMarginPercent < 20 
-                  ? "text-warning" 
+              displayedGrossMarginPercent < 0
+                ? "text-destructive"
+                : displayedGrossMarginPercent < 20
+                  ? "text-warning"
                   : "text-success"
             }
           />
@@ -171,7 +222,7 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
               )}
             </div>
             <span className="font-mono font-semibold text-sm">
-              {formatCurrency(contingencyAmount)}
+              {formatCurrency(displayedContingencyAmount)}
             </span>
           </div>
         </div>
@@ -183,7 +234,7 @@ export const EstimateSummaryCard: React.FC<EstimateSummaryCardProps> = ({
               Total with Contingency
             </span>
             <span className="font-mono font-bold text-xl text-primary">
-              {formatCurrency(totalWithContingency)}
+              {formatCurrency(displayedTotalWithContingency)}
             </span>
           </div>
         </div>

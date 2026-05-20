@@ -220,12 +220,17 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
                             {estimate.status}
                           </Badge>
                         </div>
-                        <div className="flex gap-3 text-xs text-muted-foreground">
+                        <div className="flex gap-3 text-xs text-muted-foreground items-center flex-wrap">
                           <span>v{estimate.version_number}</span>
                           <span>•</span>
                           <span>{format(estimate.date_created, "MMM d, yyyy")}</span>
                           <span>•</span>
                           <span className="font-medium">{formatCurrency(estimate.total_amount)}</span>
+                          {(estimate.discount_amount ?? 0) > 0 && (
+                            <span className="text-amber-700 dark:text-amber-400 font-medium">
+                              − {formatCurrency(estimate.discount_amount ?? 0)} discount
+                            </span>
+                          )}
                         </div>
                       </div>
                       <Button size="xs" variant="ghost">

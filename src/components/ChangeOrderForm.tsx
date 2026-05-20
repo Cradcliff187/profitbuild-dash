@@ -16,6 +16,7 @@ import { ChangeOrderLineItemInput, CHANGE_ORDER_LINE_ITEM_TEMPLATE } from "@/typ
 
 import { Database } from "@/integrations/supabase/types";
 import { formatCurrency } from "@/lib/utils";
+import { DiscountInput, computeDiscountAmount } from "@/components/forms/DiscountInput";
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -40,6 +41,16 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   const [changeOrderNumber, setChangeOrderNumber] = useState("");
   const [contingencyRemaining, setContingencyRemaining] = useState<number>(0);
   const [lineItems, setLineItems] = useState<ChangeOrderLineItemInput[]>([]);
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed' | null>(
+    (changeOrder?.discount_type as 'percent' | 'fixed' | null | undefined) ?? null
+  );
+  const [discountValue, setDiscountValue] = useState<number>(
+    changeOrder?.discount_value ?? 0
+  );
+  const handleDiscountChange = (type: 'percent' | 'fixed' | null, value: number) => {
+    setDiscountType(type);
+    setDiscountValue(value);
+  };
 
   const form = useForm<ChangeOrderFormData>({
     resolver: zodResolver(changeOrderSchema),
@@ -402,6 +413,8 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             client_amount: totalPrice,
             margin_impact: margin,
             contingency_billed_to_client: data.contingency_billed_to_client,
+            discount_type: discountType,
+            discount_value: discountValue,
           })
           .eq('id', changeOrder.id);
 
@@ -456,6 +469,8 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             client_amount: totalPrice,
             margin_impact: margin,
             contingency_billed_to_client: data.contingency_billed_to_client,
+            discount_type: discountType,
+            discount_value: discountValue,
             status: 'pending',
             requested_date: new Date().toISOString().split('T')[0],
           })
@@ -596,32 +611,48 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             {/* Auto-calculated Totals Display */}
             <Card className="p-2 bg-muted/30">
               <h4 className="text-xs font-medium mb-1.5">Change Order Totals</h4>
-              <div className="grid grid-cols-2 gap-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Cost:</span>
-                  <span className="font-mono font-semibold">
-                    {formatCurrency(totals.totalCost)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Client Amount:</span>
-                  <span className="font-mono font-semibold">
-                    {formatCurrency(totals.totalPrice)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Margin:</span>
-                  <span className={`font-mono font-semibold ${totals.margin >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                    {formatCurrency(totals.margin)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Margin %:</span>
-                  <span className="font-mono font-semibold">
-                    {totals.marginPercent.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
+              {(() => {
+                const discountAmt = computeDiscountAmount(discountType, discountValue, totals.totalPrice);
+                const clientAmountAfterDiscount = Math.max(0, totals.totalPrice - discountAmt);
+                const marginAfterDiscount = clientAmountAfterDiscount - totals.totalCost;
+                const marginPctAfterDiscount = clientAmountAfterDiscount > 0
+                  ? (marginAfterDiscount / clientAmountAfterDiscount) * 100
+                  : 0;
+                return (
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Cost:</span>
+                      <span className="font-mono font-semibold">{formatCurrency(totals.totalCost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span className="font-mono font-semibold">{formatCurrency(totals.totalPrice)}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <DiscountInput
+                        type={discountType}
+                        value={discountValue}
+                        subtotal={totals.totalPrice}
+                        onChange={handleDiscountChange}
+                      />
+                    </div>
+                    <div className="flex justify-between font-medium">
+                      <span>Client Amount:</span>
+                      <span className="font-mono font-semibold">{formatCurrency(clientAmountAfterDiscount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Margin:</span>
+                      <span className={`font-mono font-semibold ${marginAfterDiscount >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {formatCurrency(marginAfterDiscount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Margin %:</span>
+                      <span className="font-mono font-semibold">{marginPctAfterDiscount.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </Card>
 
             {/* Contingency Billing Section */}

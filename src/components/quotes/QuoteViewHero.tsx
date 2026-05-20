@@ -141,6 +141,11 @@ export function QuoteViewHero({
                   {formatCurrency(variance.baseline)} estimated
                 </p>
               )}
+              {(quote.discount_amount ?? 0) > 0 && (
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1 tabular-nums">
+                  Discount applied: {quote.discount_type === 'percent' ? `${quote.discount_value}% off` : 'Fixed'} · −{formatCurrency(quote.discount_amount ?? 0)}
+                </p>
+              )}
               {margin.available && (
                 <div className="mt-3 pt-3 border-t border-border/60">
                   <p className="text-[11px] uppercase tracking-[0.14em] font-medium text-muted-foreground mb-1">

@@ -621,6 +621,8 @@ const Quotes = () => {
             total_amount: quote.total,
             notes: quote.notes,
             attachment_url: quote.attachment_url,
+            discount_type: quote.discount_type ?? null,
+            discount_value: quote.discount_value ?? 0,
             updated_at: new Date().toISOString()
           })
           .eq('id', quote.id);
@@ -678,7 +680,9 @@ const Quotes = () => {
               includes_labor: quote.includes_labor,
               total_amount: quote.total,
               notes: quote.notes,
-              attachment_url: quote.attachment_url
+              attachment_url: quote.attachment_url,
+              discount_type: quote.discount_type ?? null,
+              discount_value: quote.discount_value ?? 0
             })
             .select()
             .single();
