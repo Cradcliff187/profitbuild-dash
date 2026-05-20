@@ -41,11 +41,13 @@ export const formatChangeOrderWithProject = (changeOrderNumber: string, projectN
   return `${projectNumber} / ${changeOrderNumber}`;
 };
 
-export const extractProjectCounter = (projectNumber: string): number => {
+export const extractProjectCounter = (projectNumber: string | null | undefined): number => {
   // Extract the counter from project number format "125-XXX"
+  if (!projectNumber) return 0;
   const parts = projectNumber.split('-');
   if (parts.length === 2) {
-    return parseInt(parts[1], 10);
+    const counter = parseInt(parts[1], 10);
+    return Number.isNaN(counter) ? 0 : counter;
   }
   return 0;
 };

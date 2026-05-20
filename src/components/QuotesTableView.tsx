@@ -199,11 +199,15 @@ export const QuotesTableView = ({
   const groupedData: FinancialTableGroup<QuoteWithEstimate>[] = Object.entries(quotesByProject)
     .map(([projectId, projectQuotes]) => {
       // Extract project number counter for sorting (e.g., "225-047" -> 47)
-      const projectNumberCounter = extractProjectCounter(projectQuotes[0].project_number);
+      const first = projectQuotes[0];
+      const projectNumberCounter = extractProjectCounter(first.project_number);
+      const projectNumber = first.project_number ?? "—";
+      const projectName = first.projectName ?? "Untitled Project";
+      const client = first.client ?? "—";
 
       return {
         groupKey: projectId,
-        groupLabel: `[${projectQuotes[0].project_number}] ${projectQuotes[0].projectName} - ${projectQuotes[0].client}`,
+        groupLabel: `[${projectNumber}] ${projectName} - ${client}`,
         items: projectQuotes,
         isCollapsible: true,
         defaultExpanded: false,
