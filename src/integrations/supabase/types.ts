@@ -450,6 +450,9 @@ export type Database = {
           cost_impact: number | null
           created_at: string | null
           description: string
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
           id: string
           includes_contingency: boolean | null
           margin_impact: number | null
@@ -469,6 +472,9 @@ export type Database = {
           cost_impact?: number | null
           created_at?: string | null
           description: string
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           id?: string
           includes_contingency?: boolean | null
           margin_impact?: number | null
@@ -488,6 +494,9 @@ export type Database = {
           cost_impact?: number | null
           created_at?: string | null
           description?: string
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           id?: string
           includes_contingency?: boolean | null
           margin_impact?: number | null
@@ -955,6 +964,9 @@ export type Database = {
           created_by: string | null
           date_created: string | null
           default_markup_percent: number | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
           estimate_number: string
           id: string
           is_auto_generated: boolean | null
@@ -983,6 +995,9 @@ export type Database = {
           created_by?: string | null
           date_created?: string | null
           default_markup_percent?: number | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           estimate_number: string
           id?: string
           is_auto_generated?: boolean | null
@@ -1011,6 +1026,9 @@ export type Database = {
           created_by?: string | null
           date_created?: string | null
           default_markup_percent?: number | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           estimate_number?: string
           id?: string
           is_auto_generated?: boolean | null
@@ -2847,6 +2865,9 @@ export type Database = {
           attachment_url: string | null
           created_at: string | null
           date_received: string | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
           estimate_id: string | null
           id: string
           includes_labor: boolean
@@ -2867,6 +2888,9 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string | null
           date_received?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           estimate_id?: string | null
           id?: string
           includes_labor?: boolean
@@ -2887,6 +2911,9 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string | null
           date_received?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
           estimate_id?: string | null
           id?: string
           includes_labor?: boolean
@@ -4000,6 +4027,14 @@ export type Database = {
         }[]
       }
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
+      compute_estimate_totals_for_id: {
+        Args: { target_estimate_id: string }
+        Returns: undefined
+      }
+      compute_quote_totals_for_id: {
+        Args: { target_quote_id: string }
+        Returns: undefined
+      }
       create_estimate_version: {
         Args: { new_version_number?: number; source_estimate_id: string }
         Returns: string
@@ -4269,6 +4304,10 @@ export type Database = {
         Args: { target_user_id: string; value: boolean }
         Returns: undefined
       }
+      sync_change_order_totals_for_id: {
+        Args: { target_co_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "field_worker"
@@ -4493,3 +4532,4 @@ export const Constants = {
     },
   },
 } as const
+

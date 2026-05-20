@@ -210,6 +210,7 @@ Drop the new triggers before dropping the columns. Existing rows have `discount_
 
 ## Open items deferred to a future pass
 
+- **AIA SOV handling on discounted estimates / COs** — locked as a separate PR per testing decision. `generate_sov_from_estimate()` and `add_change_order_to_sov` use pre-discount line-item totals; on a discounted project this creates a known mismatch between `schedule_of_values.original_contract_sum` ($55k pre-discount) and `projects.contracted_amount` ($49.5k post-discount). Acceptable in the short term because AIA billing is a different workflow from quick-estimate discounts. Follow-up will need a UX call (scale lines / inject discount line / block the combo). See `docs/DISCOUNT_FEATURE_TEST_RESULTS.md` for the trade-off matrix.
 - **Per-line discounts** — explicitly out of scope. If needed, add `discount_value` + `discount_type` to `estimate_line_items` later. The line item rollup trigger would need to subtract the per-line discount when computing `total`.
 - **Discount on invoices** (post-acceptance courtesy / early-pay) — invoices today come from `project_revenues`, not from estimate totals. A separate pass.
 - **Audit log** of discount changes — would be nice for accountability ("who reduced the discount by $3K?") but not blocking. Activity logging is already wired for status changes on estimates/quotes/COs; can be extended.
