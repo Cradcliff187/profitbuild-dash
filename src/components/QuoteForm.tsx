@@ -28,6 +28,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateQuoteFinancials, calculateQuoteTotalProfit, calculateQuoteProfitMargin, getProfitStatus } from "@/utils/quoteFinancials";
 import { calculateEstimateFinancials } from "@/utils/estimateFinancials";
+import { DiscountInput, computeDiscountAmount } from "@/components/forms/DiscountInput";
 import { OfficeDocumentPreviewModal } from "@/components/OfficeDocumentPreviewModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import {
@@ -138,6 +139,16 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   const [previewContractFileName, setPreviewContractFileName] = useState<string>('');
   const [deleteContractDialogOpen, setDeleteContractDialogOpen] = useState(false);
   const [contractToDeleteId, setContractToDeleteId] = useState<string | null>(null);
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed' | null>(
+    initialQuote?.discount_type ?? null
+  );
+  const [discountValue, setDiscountValue] = useState<number>(
+    initialQuote?.discount_value ?? 0
+  );
+  const handleDiscountChange = (type: 'percent' | 'fixed' | null, value: number) => {
+    setDiscountType(type);
+    setDiscountValue(value);
+  };
 
   // Auto-select estimate when navigating from project details
   useEffect(() => {
@@ -691,7 +702,9 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       total: financials.totalCost,
       notes: notes.trim() || undefined,
       attachment_url: attachmentUrl || undefined,
-      createdAt: initialQuote?.createdAt || new Date()
+      createdAt: initialQuote?.createdAt || new Date(),
+      discount_type: discountType,
+      discount_value: discountValue,
     };
 
     onSave(quote);
@@ -1331,14 +1344,37 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
 
               {/* Totals Summary */}
               <div className="flex justify-end">
-                <div className="w-64 space-y-2 text-sm">
+                <div className="w-72 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Estimated Cost:</span>
                     <span className="font-mono">{formatCurrency(estimateFinancials.totalCost)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Quote Total:</span>
+                    <span className="text-muted-foreground">Subtotal:</span>
                     <span className="font-mono">{formatCurrency(quoteFinancials.totalCost)}</span>
+                  </div>
+                  {!isViewMode && (
+                    <DiscountInput
+                      type={discountType}
+                      value={discountValue}
+                      subtotal={quoteFinancials.totalCost}
+                      onChange={handleDiscountChange}
+                      className="border-b border-muted"
+                    />
+                  )}
+                  {isViewMode && (
+                    <DiscountInput
+                      type={discountType}
+                      value={discountValue}
+                      subtotal={quoteFinancials.totalCost}
+                      onChange={() => {}}
+                      readOnly
+                      className="border-b border-muted"
+                    />
+                  )}
+                  <div className="flex justify-between font-semibold">
+                    <span>Quote Total:</span>
+                    <span className="font-mono">{formatCurrency(Math.max(0, quoteFinancials.totalCost - computeDiscountAmount(discountType, discountValue, quoteFinancials.totalCost)))}</span>
                   </div>
                   {(() => {
                     // Variance convention matches per-line rows above: estimate - quote.
