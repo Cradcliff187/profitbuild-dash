@@ -31,7 +31,7 @@ export function ProjectPLHeader({ pl }: { pl: ProjectEFCResult['pl'] }) {
     <Card>
       <CardContent className="p-4 sm:p-5">
         {/* Desktop: 3-column, or 2x2 -> 4-up when a labor cushion exists */}
-        <div className={cn('hidden sm:grid gap-4', pl.hasCushion ? 'sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-3')}>
+        <div className={cn('hidden sm:grid gap-4', pl.hasCushion ? 'grid-cols-4' : 'grid-cols-3')}>
           <div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contract</div>
             <div className="mt-1 text-2xl font-semibold tabular-nums">{formatCurrency(pl.contract)}</div>
