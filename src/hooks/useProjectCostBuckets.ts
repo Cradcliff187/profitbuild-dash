@@ -14,6 +14,19 @@ import { Project } from '@/types/project';
  * On non-labor lines, acceptedQuote is populated from useLineItemControl's quotes array
  * if any matching quote is in 'accepted' status.
  */
+export interface CostBucketCorrelatedExpense {
+  id: string;
+  expense_date: string | null;
+  payee_name: string | null;
+  amount: number;
+}
+
+export interface CostBucketAcceptedQuote {
+  payeeName: string;
+  total: number;
+  quoteNumber: string;
+}
+
 export interface CostBucketLineItem {
   id: string;
   description: string;
@@ -29,6 +42,9 @@ export interface CostBucketLineItem {
   // Non-labor specific
   acceptedQuote?: { payeeName: string; total: number; quoteNumber: string };
   acceptedQuoteCount?: number;
+  // Drill-in detail (powers the Cost Analysis expandable row)
+  correlatedExpenses: CostBucketCorrelatedExpense[];
+  acceptedQuotes: CostBucketAcceptedQuote[];
   source: 'estimate' | 'change_order';
 }
 
@@ -366,6 +382,21 @@ function buildBuckets(
           target: li.estimatedCost ?? 0,
           spent: li.allocatedAmount ?? 0,
           committed: li.quotedCost ?? 0,
+          correlatedExpenses: ((li.correlatedExpenses ?? []) as Array<Record<string, unknown>>).map((e) => ({
+            id: String(e.id ?? ''),
+            expense_date: (e.expense_date as string | null) ?? null,
+            payee_name:
+              ((e.payees as { payee_name?: string } | null)?.payee_name as string | undefined) ??
+              (e.payee_name as string | undefined) ?? null,
+            amount: Number((e.amount as number | undefined) ?? (e.split_amount as number | undefined) ?? 0),
+          })),
+          acceptedQuotes: ((li.quotes ?? []) as Array<Record<string, unknown>>)
+            .filter((q) => q.status === 'accepted')
+            .map((q) => ({
+              payeeName: String(q.quotedBy ?? ''),
+              total: Number((q.total as number | undefined) ?? 0),
+              quoteNumber: String(q.quoteNumber ?? ''),
+            })),
           source: li.source ?? 'estimate',
         };
         if (isLabor) {

@@ -5,6 +5,8 @@ import {
   useProjectCostBuckets,
   CostBucket,
   CostBucketLineItem,
+  CostBucketCorrelatedExpense,
+  CostBucketAcceptedQuote,
   LaborCushionState,
 } from '@/hooks/useProjectCostBuckets';
 
@@ -47,6 +49,9 @@ export interface EFCLine {
   hours?: number;
   billingRate?: number;
   cushionAmount?: number;
+  // Drill-in detail for the expandable Cost Analysis row
+  correlatedExpenses: CostBucketCorrelatedExpense[];
+  acceptedQuotes: CostBucketAcceptedQuote[];
 }
 
 export interface EFCCategory {
@@ -142,6 +147,8 @@ export function useProjectEFC(projectId: string, project: Project): ProjectEFCRe
           hours: li.hours,
           billingRate: li.billingRate,
           cushionAmount: li.cushionAmount,
+          correlatedExpenses: li.correlatedExpenses ?? [],
+          acceptedQuotes: li.acceptedQuotes ?? [],
         };
       });
 
