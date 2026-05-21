@@ -38,191 +38,136 @@ export interface EnhancedExpense {
   splits?: ExpenseSplit[]; // Add splits property
 }
 
-export function suggestLineItemAllocation(expense: EnhancedExpense, lineItems: LineItemForMatching[]): string | undefined {
-  const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
-    [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
-    [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
-    [ExpenseCategory.MATERIALS]: [LineItemCategory.MATERIALS],
-    [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
-    [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
-  };
+const EXPENSE_TO_LINE_CATEGORY: Record<ExpenseCategory, LineItemCategory[]> = {
+  [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
+  [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
+  [ExpenseCategory.MATERIALS]: [LineItemCategory.MATERIALS],
+  [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
+  [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
+  [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
+  [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
+  [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
+  [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
+  [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
+  [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
+  [ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
+  [ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
+  [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
+};
 
-  const matchingCategories = categoryMap[expense.category] || [];
-  
-  // Filter to same project + matching category
-  const projectMatchingItems = lineItems.filter(item => 
-    item.project_id === expense.project_id && 
+export type AllocationReason =
+  | 'payee_quote_match'   // expense payee matches an accepted-quote / CO line vendor
+  | 'sole_category_line'  // exactly one line in the category — only place it can go
+  | 'name_keyword_match'; // a word from the line description appears in the payee name
+
+export interface AllocationSuggestion {
+  lineItemId: string;
+  confidence: number;
+  reason: AllocationReason;
+}
+
+/**
+ * Single source of truth for expense → line-item matching.
+ *
+ * Principle: HIGH PRECISION, LOW RECALL. Only return a suggestion when there is
+ * a defensible signal pointing at ONE line. When the category has multiple lines
+ * and nothing disambiguates them, return null — the caller surfaces a manual
+ * picker. We never make an arbitrary guess (the old behavior pointed ambiguous
+ * expenses at projectMatchingItems[0]), because a wrong allocation silently
+ * corrupts per-line actuals — worse than no allocation.
+ *
+ * Deliberately NO amount-similarity selector: a partial progress bill on a large
+ * line coincidentally matches a small line's total and would be mis-attributed.
+ */
+export function matchExpenseToLine(
+  expense: EnhancedExpense,
+  lineItems: LineItemForMatching[]
+): AllocationSuggestion | null {
+  const matchingCategories = EXPENSE_TO_LINE_CATEGORY[expense.category] || [];
+
+  const candidates = lineItems.filter(item =>
+    item.project_id === expense.project_id &&
     matchingCategories.includes(item.category)
   );
-  
-  if (projectMatchingItems.length === 0) {
-    return undefined;
-  }
-  
-  // PRIORITY 1: If expense has payee, try fuzzy match on quotes/change orders
+
+  if (candidates.length === 0) return null;
+
+  // TIER 1: payee fuzzy match against quote / change-order line items.
+  // The most specific signal — this exact vendor was committed to this line.
   if (expense.payee_name) {
-    const payeeLineItems = projectMatchingItems.filter(item => 
+    const payeeLineItems = candidates.filter(item =>
       (item.type === 'quote' || item.type === 'change_order') && item.payee_name
     );
-    
     if (payeeLineItems.length > 0) {
       const lineItemPayees: PartialPayee[] = payeeLineItems.map(item => ({
         id: item.id,
         payee_name: item.payee_name!,
         full_name: item.payee_name
       }));
-      
-      const fuzzyResult = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
-      
-      // If high confidence payee match, suggest that quote/CO line item
-      if (fuzzyResult.bestMatch && fuzzyResult.bestMatch.confidence >= 75) {
-        return fuzzyResult.bestMatch.payee.id; // This is the line item ID
+      const fuzzy = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
+      if (fuzzy.bestMatch && fuzzy.bestMatch.confidence >= 75) {
+        return {
+          lineItemId: fuzzy.bestMatch.payee.id,
+          confidence: fuzzy.bestMatch.confidence >= 90 ? 95 : 85,
+          reason: 'payee_quote_match'
+        };
       }
     }
   }
-  
-  // PRIORITY 2: Try amount similarity within project matches
-  const closestAmountMatch = projectMatchingItems.reduce((best, item) => {
-    const itemTotal = item.total || 0;
-    if (itemTotal === 0) return best;
-    
-    const percentDiff = Math.abs((expense.amount - itemTotal) / itemTotal) * 100;
-    
-    if (percentDiff < best.percentDiff) {
-      return { item, percentDiff };
-    }
-    return best;
-  }, { item: null as LineItemForMatching | null, percentDiff: Infinity });
-  
-  // If amount is within 10%, suggest that one
-  if (closestAmountMatch.item && closestAmountMatch.percentDiff <= 10) {
-    return closestAmountMatch.item.id;
+
+  // TIER 2: sole line in the category. If there's exactly one place the expense
+  // can go, that's near-certain regardless of other signals.
+  if (candidates.length === 1) {
+    return { lineItemId: candidates[0].id, confidence: 85, reason: 'sole_category_line' };
   }
-  
-  // PRIORITY 3: Fallback to first category match (prefer quotes > change orders > estimates)
-  const quoteMatch = projectMatchingItems.find(item => item.type === 'quote');
-  if (quoteMatch) return quoteMatch.id;
-  
-  const coMatch = projectMatchingItems.find(item => item.type === 'change_order');
-  if (coMatch) return coMatch.id;
-  
-  return projectMatchingItems[0].id; // Estimate fallback
+
+  // TIER 3: a >=4-char word from a line description appears in the payee name,
+  // and exactly one line matches that way ("Rebco Electric" -> "Electric").
+  if (expense.payee_name) {
+    const payeeLc = expense.payee_name.toLowerCase();
+    const kwMatches = candidates.filter(item =>
+      item.description
+        .toLowerCase()
+        .split(/\s+/)
+        .some(w => w.length >= 4 && payeeLc.includes(w))
+    );
+    if (kwMatches.length === 1) {
+      return { lineItemId: kwMatches[0].id, confidence: 65, reason: 'name_keyword_match' };
+    }
+  }
+
+  // Ambiguous — multiple candidate lines, no disambiguating signal. No guess.
+  return null;
 }
 
-export function calculateMatchConfidence(expense: EnhancedExpense, lineItems: LineItemForMatching[]): number {
-  let confidence = 0;
-  
-  const categoryMap: Record<ExpenseCategory, LineItemCategory[]> = {
-    [ExpenseCategory.LABOR]: [LineItemCategory.LABOR],
-    [ExpenseCategory.SUBCONTRACTOR]: [LineItemCategory.SUBCONTRACTOR],
-    [ExpenseCategory.MATERIALS]: [LineItemCategory.MATERIALS],
-    [ExpenseCategory.EQUIPMENT]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.PERMITS]: [LineItemCategory.PERMITS],
-    [ExpenseCategory.MANAGEMENT]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.TOOLS]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.SOFTWARE]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.VEHICLE_MAINTENANCE]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.GAS]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.MEALS]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.OFFICE_EXPENSES]: [LineItemCategory.MANAGEMENT],
-    [ExpenseCategory.VEHICLE_EXPENSES]: [LineItemCategory.EQUIPMENT],
-    [ExpenseCategory.OTHER]: [LineItemCategory.OTHER]
-  };
-
-  const matchingCategories = categoryMap[expense.category] || [];
-  
-  // Filter to matching category line items in same project
-  const projectMatchingItems = lineItems.filter(item => 
-    item.project_id === expense.project_id && 
+/**
+ * Candidate line items for an expense: same project, category-compatible.
+ * Used by the allocation sheet to populate the manual line picker.
+ */
+export function lineCandidatesForExpense(
+  expense: EnhancedExpense,
+  lineItems: LineItemForMatching[]
+): LineItemForMatching[] {
+  const matchingCategories = EXPENSE_TO_LINE_CATEGORY[expense.category] || [];
+  return lineItems.filter(item =>
+    item.project_id === expense.project_id &&
     matchingCategories.includes(item.category)
   );
-  
-  // Same project + same category (50 points)
-  if (projectMatchingItems.length > 0) {
-    confidence += 50;
-  }
-  
-  // Payee fuzzy matching (0-30 points) - only for quotes/change orders
-  if (expense.payee_name && projectMatchingItems.length > 0) {
-    const payeeLineItems = projectMatchingItems.filter(item => 
-      item.type === 'quote' || item.type === 'change_order'
-    );
-    
-    if (payeeLineItems.length > 0) {
-      // Build list of payees from line items
-      const lineItemPayees: PartialPayee[] = payeeLineItems
-        .filter(item => item.payee_name)
-        .map(item => ({
-          id: item.id,
-          payee_name: item.payee_name!,
-          full_name: item.payee_name
-        }));
-      
-      if (lineItemPayees.length > 0) {
-        const fuzzyResult = fuzzyMatchPayee(expense.payee_name, lineItemPayees);
-        
-        if (fuzzyResult.bestMatch) {
-          const matchConfidence = fuzzyResult.bestMatch.confidence;
-          if (matchConfidence >= 90) confidence += 30;
-          else if (matchConfidence >= 75) confidence += 20;
-          else if (matchConfidence >= 60) confidence += 10;
-        }
-      }
-    }
-  }
-  
-  // Amount similarity (0-15 points)
-  if (projectMatchingItems.length > 0) {
-    const closestAmountMatch = projectMatchingItems.reduce((best, item) => {
-      const itemTotal = item.total || 0;
-      if (itemTotal === 0) return best;
-      
-      const percentDiff = Math.abs((expense.amount - itemTotal) / itemTotal) * 100;
-      
-      if (percentDiff < best.percentDiff) {
-        return { item, percentDiff };
-      }
-      return best;
-    }, { item: null as LineItemForMatching | null, percentDiff: Infinity });
-    
-    if (closestAmountMatch.item) {
-      if (closestAmountMatch.percentDiff <= 5) confidence += 15;
-      else if (closestAmountMatch.percentDiff <= 10) confidence += 10;
-      else if (closestAmountMatch.percentDiff <= 20) confidence += 5;
-    }
-  }
-  
-  // Description keyword matching (0-5 points)
-  if (expense.description && projectMatchingItems.length > 0) {
-    const expenseWords = new Set(
-      expense.description
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((word: string) => word.length > 3 && !['the', 'and', 'for', 'with', 'from'].includes(word))
-    );
-    
-    const hasDescriptionMatch = projectMatchingItems.some(item => {
-      const itemWords = item.description
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((word: string) => word.length > 3);
-      
-      const commonWords = itemWords.filter((word: string) => expenseWords.has(word));
-      return commonWords.length > 0;
-    });
-    
-    if (hasDescriptionMatch) confidence += 5;
-  }
-  
-  return Math.min(confidence, 100);
+}
+
+/** Back-compat: returns the suggested line-item id, or undefined when ambiguous. */
+export function suggestLineItemAllocation(
+  expense: EnhancedExpense,
+  lineItems: LineItemForMatching[]
+): string | undefined {
+  return matchExpenseToLine(expense, lineItems)?.lineItemId;
+}
+
+/** Back-compat: returns the suggestion confidence (0 when there's no confident match). */
+export function calculateMatchConfidence(
+  expense: EnhancedExpense,
+  lineItems: LineItemForMatching[]
+): number {
+  return matchExpenseToLine(expense, lineItems)?.confidence ?? 0;
 }
 

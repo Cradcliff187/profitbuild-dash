@@ -20,6 +20,8 @@ export interface CostBucketLineItem {
   category: string;
   target: number;
   spent: number;
+  /** Summed cost of all accepted quotes on this line (the committed amount). 0 when none. */
+  committed: number;
   // Labor-specific
   hours?: number;
   billingRate?: number;
@@ -363,6 +365,7 @@ function buildBuckets(
           category: cat,
           target: li.estimatedCost ?? 0,
           spent: li.allocatedAmount ?? 0,
+          committed: li.quotedCost ?? 0,
           source: li.source ?? 'estimate',
         };
         if (isLabor) {

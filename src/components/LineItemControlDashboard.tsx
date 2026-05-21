@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
-import { CostBucketView } from '@/components/cost-tracking/CostBucketView';
+import { ProjectForecastView } from '@/components/cost-tracking/efc/ProjectForecastView';
 import { CostBucketSummaryStrip } from '@/components/cost-tracking/CostBucketSummaryStrip';
 import {
   DollarSign,
@@ -1060,7 +1060,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
   // Tab options for both mobile dropdown and desktop pill list — matches the
   // canonical pattern from src/pages/Expenses.tsx (MobileTabSelector + rounded-pill TabsList).
   const costTrackingTabs = [
-    { value: 'buckets', label: 'Buckets', icon: Layers },
+    { value: 'buckets', label: 'Forecast', icon: TrendingUp },
     { value: 'detail', label: 'Detail', icon: ClipboardList },
   ];
 
@@ -1108,7 +1108,7 @@ export function LineItemControlDashboard({ projectId, project }: LineItemControl
         </TabsList>
 
         <TabsContent value="buckets" className="mt-0">
-          <CostBucketView projectId={projectId} project={project} />
+          <ProjectForecastView projectId={projectId} project={project} />
         </TabsContent>
 
         <TabsContent value="detail" className="mt-0">
