@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, Wand2 } from 'lucide-react';
 import { Project } from '@/types/project';
+import { ExpenseCategory } from '@/types/expense';
 import { useProjectEFC } from '@/hooks/useProjectEFC';
 import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { ProjectPLHeader } from './ProjectPLHeader';
@@ -91,7 +92,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
           <EFCCategorySection
             key={cat.category}
             category={cat}
-            laborOpportunity={cat.category === 'labor_internal' ? efc.laborOpportunity : null}
+            laborOpportunity={cat.category === ExpenseCategory.LABOR ? efc.laborOpportunity : null}
             defaultOpen
             onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
           />
