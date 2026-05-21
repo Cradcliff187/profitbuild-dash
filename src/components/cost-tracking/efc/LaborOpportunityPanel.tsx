@@ -1,12 +1,7 @@
 import { cn, formatCurrency } from '@/lib/utils';
 import { Sparkles } from 'lucide-react';
 import { EFCLaborOpportunity } from '@/hooks/useProjectEFC';
-
-const ZONE: Record<EFCLaborOpportunity['zone'], { label: string; color: string; bar: string }> = {
-  under_est: { label: 'Cushion intact', color: 'text-success', bar: 'bg-success' },
-  in_cushion: { label: 'Cushion eroding', color: 'text-warning-foreground', bar: 'bg-warning' },
-  over_capacity: { label: 'Over capacity', color: 'text-destructive', bar: 'bg-destructive' },
-};
+import { CUSHION_ZONE } from './cushionZone';
 
 function cushionMessage(l: EFCLaborOpportunity): string {
   switch (l.zone) {
@@ -20,7 +15,7 @@ function cushionMessage(l: EFCLaborOpportunity): string {
 }
 
 export function LaborOpportunityPanel({ labor }: { labor: EFCLaborOpportunity }) {
-  const zone = ZONE[labor.zone];
+  const zone = CUSHION_ZONE[labor.zone];
   const hoursPct = labor.estHours > 0 ? Math.min(100, (labor.actualHours / labor.estHours) * 100) : 0;
 
   return (

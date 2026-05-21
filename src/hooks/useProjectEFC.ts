@@ -86,6 +86,13 @@ export interface ProjectEFCResult {
     projectedMargin: number;
     projectedMarginPct: number;
     marginDelta: number; // projectedMargin - plannedMargin (negative = compression)
+    // Labor cushion credited into the margin (eroding). marginWithOpp slides down
+    // toward projectedMargin as the cushion is consumed; equal when no/zero cushion.
+    marginWithOpp: number;
+    marginWithOppPct: number;
+    cushionRemaining: number;
+    cushionZone: EFCLaborOpportunity['zone'] | null;
+    hasCushion: boolean;
   };
   laborOpportunity: EFCLaborOpportunity | null;
   categories: EFCCategory[];
@@ -192,6 +199,15 @@ export function useProjectEFC(projectId: string, project: Project): ProjectEFCRe
         }
       : null;
 
+    // Credit the eroding labor cushion into a second, optimistic margin. Uses the
+    // already-computed laborOpportunity.remaining (intact = bakedIn, shrinks through
+    // the in_cushion zone, 0 once over_capacity) — no double-counting, since the
+    // labor line EFC only flips above plan once over_capacity, at which point
+    // remaining is 0 and the two margins converge.
+    const cushionRemaining = laborOpportunity?.remaining ?? 0;
+    const hasCushion = !!laborOpportunity && laborOpportunity.bakedIn > 0;
+    const marginWithOpp = projectedMargin + cushionRemaining;
+
     return {
       pl: {
         contract,
@@ -202,6 +218,11 @@ export function useProjectEFC(projectId: string, project: Project): ProjectEFCRe
         projectedMargin,
         projectedMarginPct: contract > 0 ? (projectedMargin / contract) * 100 : 0,
         marginDelta: projectedMargin - plannedMargin,
+        marginWithOpp,
+        marginWithOppPct: contract > 0 ? (marginWithOpp / contract) * 100 : 0,
+        cushionRemaining,
+        cushionZone: laborOpportunity?.zone ?? null,
+        hasCushion,
       },
       laborOpportunity,
       categories,
