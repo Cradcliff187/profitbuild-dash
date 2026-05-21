@@ -13,14 +13,17 @@ export function EFCCategorySection({
   laborOpportunity,
   defaultOpen,
   onAllocate,
+  onRecategorize,
 }: {
   category: EFCCategory;
   laborOpportunity: EFCLaborOpportunity | null;
   defaultOpen?: boolean;
   onAllocate?: (category: ExpenseCategory) => void;
+  onRecategorize?: (category: ExpenseCategory) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? false);
   const isLabor = category.category === ExpenseCategory.LABOR;
+  const hasLines = category.lines.length > 0;
   const over = category.expectedCost - category.subtotal.plan;
   const hasPlan = category.subtotal.plan > 0;
 
@@ -68,7 +71,9 @@ export function EFCCategorySection({
 
         <UnallocatedRow
           amount={category.unallocated}
-          onAllocate={onAllocate ? () => onAllocate(category.category) : undefined}
+          hasLines={hasLines}
+          onAllocate={hasLines && onAllocate ? () => onAllocate(category.category) : undefined}
+          onRecategorize={!hasLines && onRecategorize ? () => onRecategorize(category.category) : undefined}
         />
 
         {category.lines.length > 0 && (

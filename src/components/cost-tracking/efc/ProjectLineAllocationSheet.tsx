@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
   matchExpenseToLine,
@@ -61,10 +61,14 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
   const [isLoading, setIsLoading] = useState(false);
   const [isAllocating, setIsAllocating] = useState(false);
   const [rows, setRows] = useState<AllocRow[]>([]);
+  // Un-correlated expenses that were filtered out because their category has no
+  // matching estimate line (e.g. "Other"). They can't be allocated here — they
+  // need recategorizing — so the empty state should say so, not "All allocated".
+  const [noLineSpend, setNoLineSpend] = useState<{ count: number; amount: number }>({ count: 0, amount: 0 });
 
   useEffect(() => {
     if (open) loadData();
-    else setRows([]);
+    else { setRows([]); setNoLineSpend({ count: 0, amount: 0 }); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -168,6 +172,8 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
 
       // 6. Build rows for un-correlated, non-zero expenses (split parents excluded).
       const built: AllocRow[] = [];
+      let noLineCount = 0;
+      let noLineAmount = 0;
       for (const e of expenses) {
         if (e.is_split || correlatedIds.has(e.id) || Number(e.amount) === 0) continue;
 
@@ -182,7 +188,14 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
         };
 
         const candidates = lineCandidatesForExpense(enhanced, allLines);
-        if (candidates.length === 0) continue; // no line in this category — nothing to allocate to
+        if (candidates.length === 0) {
+          // Un-correlated, but its category has no line to attribute it to.
+          // Track it so the empty state can prompt a recategorize instead of
+          // misleadingly reporting "All allocated".
+          noLineCount += 1;
+          noLineAmount += Number(e.amount);
+          continue;
+        }
 
         const suggestion = matchExpenseToLine(enhanced, allLines);
         built.push({
@@ -198,6 +211,7 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
       // Suggested-and-checked first, then suggested-unchecked, then manual.
       built.sort((a, b) => b.confidence - a.confidence);
       setRows(built);
+      setNoLineSpend({ count: noLineCount, amount: noLineAmount });
     } catch (err) {
       console.error('[ProjectAllocate] load error:', err);
       toast.error('Failed to load expenses for allocation.');
@@ -280,13 +294,26 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
           {isLoading ? (
             <div className="flex items-center justify-center py-16"><BrandedLoader message="Finding matches…" size="md" /></div>
           ) : rows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-              <CheckCircle2 className="h-12 w-12 text-success mb-4" />
-              <h3 className="text-base font-semibold mb-1">All allocated</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Every expense on this project is attributed to a line, or there are no matching lines to attribute to.
-              </p>
-            </div>
+            noLineSpend.count > 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
+                <h3 className="text-base font-semibold mb-1">Nothing to allocate here</h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  {noLineSpend.count} {noLineSpend.count === 1 ? 'expense' : 'expenses'} totaling{' '}
+                  {formatCurrency(noLineSpend.amount)} {noLineSpend.count === 1 ? 'is' : 'are'} in a
+                  category with no matching estimate line (e.g. Other), so {noLineSpend.count === 1 ? 'it' : 'they'} can&apos;t
+                  be allocated. Recategorize {noLineSpend.count === 1 ? 'it' : 'them'} from the bucket to track against a line.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <CheckCircle2 className="h-12 w-12 text-success mb-4" />
+                <h3 className="text-base font-semibold mb-1">All allocated</h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Every expense on this project is attributed to a line.
+                </p>
+              </div>
+            )
           ) : (
             <div className="divide-y">
               {rows.map(row => (

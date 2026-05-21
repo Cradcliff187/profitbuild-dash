@@ -10,13 +10,29 @@ import { AlertTriangle } from 'lucide-react';
  */
 export function UnallocatedRow({
   amount,
+  hasLines = true,
   onAllocate,
+  onRecategorize,
 }: {
   amount: number;
+  /** Does this category have any estimate/CO lines to allocate to? */
+  hasLines?: boolean;
   onAllocate?: () => void;
+  onRecategorize?: () => void;
 }) {
   const isMobile = useIsMobile();
   if (amount <= 0) return null;
+
+  // A category with no lines (e.g. "Other") has nothing to allocate against —
+  // the only way to attribute this spend is to recategorize it into a category
+  // that has lines. Offering "Allocate to lines" there is a dead end (it opens
+  // a sheet that finds nothing), so swap the CTA for "Recategorize".
+  const recategorizeMode = !hasLines;
+  const btnClass = cn(
+    'border-amber-400 text-amber-800 hover:bg-amber-100',
+    isMobile ? 'h-11 w-full' : 'h-9 shrink-0',
+  );
+
   return (
     <div className="px-3 py-3 border-b last:border-b-0 bg-amber-50/60 border-l-2 border-l-amber-400">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -27,23 +43,23 @@ export function UnallocatedRow({
               {formatCurrency(amount)} not assigned to a line
             </div>
             <div className="text-xs text-amber-700">
-              Real spend in this category that isn&apos;t attributed to a specific line yet.
+              {recategorizeMode
+                ? "No estimate line in this category to allocate to. Recategorize these expenses to track them against a line."
+                : "Real spend in this category that isn't attributed to a specific line yet."}
             </div>
           </div>
         </div>
-        {onAllocate && (
-          <Button
-            size="sm"
-            variant="outline"
-            className={cn(
-              'border-amber-400 text-amber-800 hover:bg-amber-100',
-              isMobile ? 'h-11 w-full' : 'h-9 shrink-0',
+        {recategorizeMode
+          ? onRecategorize && (
+              <Button size="sm" variant="outline" className={btnClass} onClick={onRecategorize}>
+                Recategorize
+              </Button>
+            )
+          : onAllocate && (
+              <Button size="sm" variant="outline" className={btnClass} onClick={onAllocate}>
+                Allocate to lines
+              </Button>
             )}
-            onClick={onAllocate}
-          >
-            Allocate to lines
-          </Button>
-        )}
       </div>
     </div>
   );

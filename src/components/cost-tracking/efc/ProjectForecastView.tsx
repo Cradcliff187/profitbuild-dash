@@ -11,6 +11,7 @@ import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { ProjectPLHeader } from './ProjectPLHeader';
 import { EFCCategorySection } from './EFCCategorySection';
 import { ProjectLineAllocationSheet } from './ProjectLineAllocationSheet';
+import { RecategorizeOtherBucketSheet } from '../RecategorizeOtherBucketSheet';
 
 interface ProjectForecastViewProps {
   projectId: string;
@@ -27,6 +28,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
   const queryClient = useQueryClient();
   const efc = useProjectEFC(projectId, project);
   const [allocateOpen, setAllocateOpen] = useState(false);
+  const [recategorizeCategory, setRecategorizeCategory] = useState<ExpenseCategory | null>(null);
   const isMobile = useIsMobile();
 
   // Allocation only makes sense where expenses can be correlated — construction
@@ -102,6 +104,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
             laborOpportunity={cat.category === ExpenseCategory.LABOR ? efc.laborOpportunity : null}
             defaultOpen
             onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
+            onRecategorize={canAllocate ? (selected) => setRecategorizeCategory(selected) : undefined}
           />
         ))}
       </div>
@@ -113,6 +116,16 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
           open={allocateOpen}
           onOpenChange={setAllocateOpen}
           onAllocated={handleAllocated}
+        />
+      )}
+
+      {canAllocate && (
+        <RecategorizeOtherBucketSheet
+          projectId={projectId}
+          sourceCategory={recategorizeCategory ?? ExpenseCategory.OTHER}
+          open={recategorizeCategory !== null}
+          onOpenChange={(o) => { if (!o) setRecategorizeCategory(null); }}
+          onRecategorized={handleAllocated}
         />
       )}
     </div>
