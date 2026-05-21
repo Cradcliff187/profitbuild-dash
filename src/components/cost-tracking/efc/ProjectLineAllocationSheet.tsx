@@ -17,7 +17,7 @@ import {
   type LineItemForMatching,
   type EnhancedExpense,
 } from '@/utils/expenseAllocation';
-import { canCorrelateExpense } from '@/utils/expenseValidation';
+import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 import { LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { ProjectCategory, Project } from '@/types/project';
@@ -155,17 +155,21 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
 
       const allLines = [...estimateLines, ...quoteLines, ...coLines];
 
-      // 6. Build rows for un-correlated, non-zero, correlatable expenses.
+      // The Forecast view only surfaces the allocate action for projects whose
+      // expenses can be correlated — construction projects and the SYS-TEST
+      // sandbox (isProjectVisibleByCategory). All rows here share this one
+      // project, so allocatability is a single project-level check, not per-row.
+      // (canCorrelateExpense's per-row category check would reject the sandbox
+      // outright on its 'system' category, contradicting the view's gate.)
+      if (!isProjectVisibleByCategory(project)) {
+        setRows([]);
+        return;
+      }
+
+      // 6. Build rows for un-correlated, non-zero expenses (split parents excluded).
       const built: AllocRow[] = [];
       for (const e of expenses) {
         if (e.is_split || correlatedIds.has(e.id) || Number(e.amount) === 0) continue;
-        const validation = canCorrelateExpense({
-          is_split: e.is_split || false,
-          project_id: e.project_id,
-          project_number: e.projects?.project_number,
-          category: e.projects?.category as ProjectCategory | undefined,
-        });
-        if (!validation.isValid) continue;
 
         const enhanced: EnhancedExpense = {
           id: e.id, amount: Number(e.amount), expense_date: parseDateOnly(e.expense_date),

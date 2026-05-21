@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader2, FileText, Wand2 } from 'lucide-react';
 import { Project } from '@/types/project';
 import { ExpenseCategory } from '@/types/expense';
@@ -26,6 +27,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
   const queryClient = useQueryClient();
   const efc = useProjectEFC(projectId, project);
   const [allocateOpen, setAllocateOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Allocation only makes sense where expenses can be correlated — construction
   // projects (and the SYS-TEST sandbox). Overhead projects have category locks.
@@ -80,7 +82,12 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
 
       {canAllocate && efc.totalUnallocated > 0 && (
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" className="h-9" onClick={() => setAllocateOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className={isMobile ? 'h-11' : 'h-9'}
+            onClick={() => setAllocateOpen(true)}
+          >
             <Wand2 className="h-4 w-4 mr-2" />
             Allocate expenses
           </Button>

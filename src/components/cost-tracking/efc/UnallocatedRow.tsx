@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AlertTriangle } from 'lucide-react';
 
 /**
@@ -14,6 +15,7 @@ export function UnallocatedRow({
   amount: number;
   onAllocate?: () => void;
 }) {
+  const isMobile = useIsMobile();
   if (amount <= 0) return null;
   return (
     <div className="px-3 py-3 border-b last:border-b-0 bg-amber-50/60 border-l-2 border-l-amber-400">
@@ -33,7 +35,10 @@ export function UnallocatedRow({
           <Button
             size="sm"
             variant="outline"
-            className="h-9 border-amber-400 text-amber-800 hover:bg-amber-100 shrink-0"
+            className={cn(
+              'border-amber-400 text-amber-800 hover:bg-amber-100',
+              isMobile ? 'h-11 w-full' : 'h-9 shrink-0',
+            )}
             onClick={onAllocate}
           >
             Allocate to lines
