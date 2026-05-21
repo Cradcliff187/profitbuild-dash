@@ -434,27 +434,18 @@ The `expenses` table is growing past 1,000 rows (1,278 at time of writing). **Po
 
 **Admin-only exception (partially resolved Apr 16, 2026; regression caught Apr 18)**: `BulkExpenseAllocationSheet` applies server-side `.eq('is_split', false)` + `.range(0, 9999)` + `.order('expense_date', desc)` to its candidates query. The `is_split` + ordering fixes are real wins. However, `.range(0, 9999)` does NOT actually raise the server cap in this project (see Gotcha #23 correction) — the candidate list silently truncates at 1,000 rows. At 1,288 non-split expenses today the sheet is missing ~288 candidate rows. Flagged as a Medium Priority fix: loop pagination in the query (the pattern `ExpenseExportModal` now uses), or push an RPC that returns only un-correlated expenses server-side.
 
-### 13. Cost Bucket Views on Cost Tracking (Apr 16, 2026)
+### 13. Cost Bucket Views on Cost Tracking (Apr 16, 2026 — SUPERSEDED May 21, 2026 by Rule 28)
 
-The Cost Tracking page (`/projects/:id/control`) uses a **tab toggle between two views**, both sharing a single hook:
-
-| Tab | Component | Role |
-|---|---|---|
-| **Buckets** (default) | [CostBucketView](src/components/cost-tracking/CostBucketView.tsx) | Per-category rollup (Labor, Materials, Other, etc.) with collapsible rows showing line-item detail. Replaces the dense 12-column table as the default front door. |
-| **Detail** | [CostBucketSummaryStrip](src/components/cost-tracking/CostBucketSummaryStrip.tsx) + existing dense table | Compact bucket strip pinned above the unchanged [LineItemControlDashboard](src/components/LineItemControlDashboard.tsx) table for power-user drill-in (per-line correlation, quote management). |
-
-**Data source**: [useProjectCostBuckets](src/hooks/useProjectCostBuckets.ts) composes `useLineItemControl` (line items + correlations + quotes) with three supplementary reads: per-category spend from `expenses` + `expense_splits` (Rule 12 pattern), `estimate_financial_summary` (cushion config), and `estimate_line_items` (labor_hours, billing_rate, labor_cushion_amount). TanStack Query for cache + reactivity.
-
-**Dynamic labor cushion**: the Labor bucket header is cushion-aware via a `LaborCushionState` derivation computed client-side from actual hours vs estimate. Three zones with color coding:
-- 🟢 `under_est` — cushion intact (actual ≤ est hours)
-- 🟡 `in_cushion` — eroding (estHours < actual ≤ capacityHours), remaining = `bakedIn − (actual − estHours) × actual_cost_rate`
-- 🔴 `over_capacity` — cushion gone, excess past capacity = real cost overrun
-
-Per-line cushion annotations on labor rows are static (sourced from `estimate_line_items.labor_cushion_amount`) because per-line actual hours require correlations which are rarely set today.
-
-**Visual alignment**: tab toggle uses the canonical Expenses-page pattern (`MobileTabSelector` dropdown on mobile, rounded-pill `bg-muted/50 p-1` with orange active state on desktop). Expanded bucket headers get `border-l-2 border-orange-500` per `docs/design/VISUAL_HIERARCHY.md`.
-
-**"Other" bucket as data hygiene signal**: when expenses are categorized as `other` with no matching estimate line items (common pattern for CSV imports), the bucket renders an amber warning with a recategorize CTA. Example seen on 225-078: $2,664 sat in `other` with $0 target.
+> **Superseded.** The Buckets/Detail **tab toggle** and its components —
+> `CostBucketView`, `CostBucketSummaryStrip`, `BucketHeaderRow`, `BucketEmptyState`, and the
+> 1635-line `LineItemControlDashboard` table — were **deleted** when Cost Tracking was merged
+> into a single **Cost Analysis** page (PR #99). See **Rule 28** for the current model.
+>
+> Still true and unchanged: the `useProjectCostBuckets` → `useLineItemControl` data chain, and
+> the dynamic **labor cushion** `LaborCushionState` zones (🟢 `under_est` intact / 🟡
+> `in_cushion` eroding, `remaining = bakedIn − (actual − estHours) × actual_cost_rate` / 🔴
+> `over_capacity`). The "Other" bucket's recategorize-CTA data-hygiene signal also survives
+> (now via `UnallocatedRow` + `RecategorizeOtherBucketSheet` on the unified page).
 
 ### 14. Global Mobile Action Bar (Apr 16, 2026; Note button migrated to NoteComposer Apr 18)
 
@@ -876,6 +867,67 @@ When a new estimate version is created via the `create_estimate_version()` RPC, 
 - Do NOT add a "one accepted quote per estimate_line_item" guard at the data layer assuming it must hold. After re-pointing, it IS possible for two quotes that were each accepted on different versions of the same line to converge on the same new line. A live data-hygiene issue on 225-037 (A&B Flooring + Grey Street both accepted on v2's Flooring line, $19,672 quoted vs $10,688 estimate) demonstrates this. Resolution is a PM-level decision (reject one), not a code change.
 - Don't assume the source estimate's line `id`s remain valid after versioning — they do (the source isn't touched), but `quote_line_items` rows now point at the NEW estimate's line ids. If you're debugging "why did this quote's FK move", check the parent estimate's `parent_estimate_id` chain — the quote followed a newer version via this RPC, which is correct.
 
+### 28. Cost Analysis page — EFC model, single Cost Tracking surface (May 21, 2026, PR #99)
+
+Cost Tracking (`/projects/:id/control`) is **one progressive-disclosure page** — the old
+Forecast/Detail tab split is gone. [ProjectControlRoute](src/components/project-routes/ProjectControlRoute.tsx)
+renders [ProjectForecastView](src/components/cost-tracking/efc/ProjectForecastView.tsx) directly (no tabs).
+Supersedes Rule 13. **Same data source, no DB/backend change** — it's a UI reframe over the
+existing `useLineItemControl → useProjectCostBuckets` chain.
+
+**Expected Final Cost (EFC) model** — [useProjectEFC](src/hooks/useProjectEFC.ts) composes
+`useProjectCostBuckets`:
+- Per line: `EFC = max(actual, committed, plan)` — `actual` = allocated expense cost
+  (correlations; **quote correlations resolve to their estimate line** via `useLineItemControl`),
+  `committed` = Σ accepted-quote cost, `plan` = estimate/CO line cost. Never under-projects.
+- Per category: `expectedCost = max(categorySpend, Σ lineEFC)` — unallocated spend counts, never
+  lost or double-counted.
+- Project Expected Cost = Σ category expectedCost; **Projected Margin = Contract − Expected Cost**.
+
+**Labor cushion as a 2nd margin** (continues Rule 13's cushion concept):
+`pl.marginWithOpp = projectedMargin + laborOpportunity.remaining`. The header shows BOTH
+**Projected Margin** (labor costed at the rate-we-gave = `cost_per_unit`) and **Margin + Labor
+Opp** (credits the eroding cushion = `(cost_per_unit − actual_cost_rate) × hours`, i.e.
+`estimate_financial_summary.total_labor_cushion`). The cushion is **NOT** in the projected
+margin — it's the gap up to `max_gross_profit_potential`, realized only if labor lands at the
+actual rate; as hours are consumed `remaining` shrinks (zone under_est→in_cushion→over_capacity)
+so marginWithOpp slides down to meet projectedMargin. Header is **always 4-across** on desktop
+when a cushion exists (`grid-cols-4`); 3-col with no Margin+Opp card when there's no cushion.
+Shared zone→{label,color} map: [cushionZone.ts](src/components/cost-tracking/efc/cushionZone.ts)
+`CUSHION_ZONE`, used by both `ProjectPLHeader` and `LaborOpportunityPanel` so they never drift.
+
+**Page anatomy** (top → bottom, all in `src/components/cost-tracking/efc/`):
+1. `ProjectPLHeader` — Contract · Expected Cost · Projected Margin · Margin + Labor Opp.
+2. `CostAnalysisActionStrip` — "Things to do" chips derived from EFC data (N lines over budget ·
+   $over; N external lines with no quote; $X unassigned) + **By Risk / By Category** sort +
+   **Allocate** + **Export CSV** ([costAnalysisExport.ts](src/components/cost-tracking/efc/costAnalysisExport.ts)).
+   Folds the old Detail tab's attention banner, risk grouping, and CSV export.
+3. `EFCCategorySection` → `EFCLineRow` (expandable). Row expand = the old Detail drawer's drill-in:
+   accepted quote, allocated-expense list, Est/Quoted/Allocated/Remaining variance.
+   `correlatedExpenses` + `acceptedQuotes` are threaded onto `CostBucketLineItem` → `EFCLine`
+   (don't refetch in the row).
+4. `LaborOpportunityPanel` inline on the Labor section; `UnallocatedRow` → **Allocate** (lines
+   exist) or **Recategorize** (zero-line categories like Other → `RecategorizeOtherBucketSheet`).
+
+**Allocation** — `ProjectLineAllocationSheet` + the SHARED matcher
+[expenseAllocation.ts](src/utils/expenseAllocation.ts) `matchExpenseToLine` (also used by
+`ExpenseAllocationSheet` + `BulkExpenseAllocationSheet`). **SUGGESTS only, never silent-writes**
+(tiers: payee→accepted-quote 95, sole-category-line 85, payee↔description keyword 65; ambiguous →
+manual pick). Gate: `isProjectVisibleByCategory(project)` — construction + the SYS-TEST sandbox;
+overhead gets no Allocate (category-locked).
+
+**Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
+`CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
+
+**Common pitfalls**:
+- Don't reintroduce a tab toggle — it's one page. **By Risk / By Category** sorts in place (By
+  Risk floats overrun lines up + categories by overage).
+- `expenseAllocation.ts` is financials-critical and shared by 3 surfaces — re-validate all three
+  if you touch it. Allocations must stay human-confirmed (never silent-write).
+- `marginWithOpp` uses `remaining` (eroding), not `bakedIn` (original) — don't swap them, or it
+  stops decreasing as the cushion is eaten.
+- Mobile: header is margin-leads stacked; line rows tap-to-expand; ≥44px touch targets.
+
 ---
 
 ## TypeScript Configuration
@@ -1276,5 +1328,4 @@ Issues identified during codebase audit, validated, and prioritized for future w
 |-------|-------|-------|
 | 26 edge functions with wildcard CORS (`*`) — **DO NOT pick up without explicit user go-ahead** | All functions except `quickbooks-callback` | ⚠️ User has flagged this as high-risk: a CORS misconfig on `send-auth-email` / `forgot-password` takes the login flow down in production. Before attempting: (1) agree on a staging test plan, (2) change one function at a time, (3) verify the real email actually sends from `rcgwork.com` before moving to the next, (4) have the revert command ready. Priority targets when we do this: the 4 no-JWT functions `send-auth-email`, `forgot-password`, `send-receipt-notification`, `send-training-notification`. Wildcard CORS alone isn't exploitable but it widens the blast radius of other vulnerabilities. |
 | `console.log` cleanup | 132 across 38 files | Mix of intentional logging and debug leftovers. Needs triage to distinguish. |
-| **Mobile drill-in pattern for bucket line items** | `src/components/cost-tracking/CostBucketView.tsx` | Line items currently expand inline inside the bucket card. On narrow screens a bottom sheet could give more vertical real estate per line item (more context visible, tap-friendly). Deferred until a real UX pain point surfaces — the inline expansion is acceptable at current scale. |
 | **`get_allocatable_expense_candidates(...)` RPC** | `src/components/BulkExpenseAllocationSheet.tsx` | Architectural successor to commits `f2442c3` + `47267da`. Today the bulk-allocate sheet eagerly fetches 1,288 expenses + 492 correlations + 82 estimates + nested line items + 31 quotes + nested line items + 2 change orders + nested line items, then dedups + matches client-side. Even with pagination it's a ~2-3 sec load on fast network, ~5-8 sec on mobile, pegging the main thread for ~800ms during Jaro-Winkler matching. The actual answer the modal needs is < 800 candidate rows. Plan: RPC returns only un-correlated allocatable rows + payee/project joins; matching algorithm stays client-side (where the cost smell isn't). Eliminates the truncation class entirely. ~80-150 lines PL/pgSQL + ~50 lines refactor. |
