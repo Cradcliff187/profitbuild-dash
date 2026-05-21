@@ -1,8 +1,11 @@
 # Cost Tracking Redesign — Pass 1 Plan
 
-**Status**: Draft (May 20, 2026)
-**Branch**: `feat/cost-tracking-efc-redesign`
-**Surface**: `/projects/:id/control` — both Buckets and Detail tabs
+**Status**: ✅ SHIPPED May 21, 2026 — PR #99 (squash `0a5abf0`). Implemented + extended beyond
+Pass 1: EFC model, **labor cushion as a 2nd margin**, and the Forecast/Detail tabs **merged into
+one Cost Analysis page** (action strip + sort + export + per-line drill-in). See CLAUDE.md **Rule
+28** for the as-built reference. The plan below is preserved as the original design record.
+**Branch**: `feat/cost-tracking-efc-redesign` (merged to `main`)
+**Surface**: `/projects/:id/control` — **single Cost Analysis page** (Buckets/Detail tabs retired)
 
 ---
 
