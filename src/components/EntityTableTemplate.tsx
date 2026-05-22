@@ -10,6 +10,8 @@ import { CompletePagination } from '@/components/ui/complete-pagination';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { usePagination } from '@/hooks/usePagination';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
+import { NoResultsState } from '@/components/ui/no-results-state';
 
 interface Column {
   key: string;
@@ -176,13 +178,9 @@ export const EntityTableTemplate: React.FC<EntityTableTemplateProps> = ({
         </CardHeader>
         <CardContent>
           {data.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {emptyMessage}
-            </div>
+            <EmptyState title={emptyMessage} />
           ) : displayedData.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {noResultsMessage}
-            </div>
+            <NoResultsState title={noResultsMessage} />
           ) : (
             <div className="h-[calc(100vh-280px)] min-h-[600px] w-full overflow-auto rounded-md border">
                 <Table className="min-w-[800px] w-full">

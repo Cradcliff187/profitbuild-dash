@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Eye, Trash2, MoreHorizontal, ExternalLink } from "lucide-react";
+import { Eye, Trash2, MoreHorizontal, ExternalLink, FileText } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -175,12 +176,11 @@ export const BidsTableView = ({
     return (
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="text-center py-12">
-            <p className="text-xs text-muted-foreground mb-2">No bids found</p>
-            <p className="text-xs text-muted-foreground">
-              Create your first bid to get started
-            </p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="No bids found"
+            description="Create your first bid to get started"
+          />
         </CardContent>
       </Card>
     );

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown, ChevronRight, Eye, Edit, Trash2, ChevronsUpDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronRight, Eye, Edit, Trash2, ChevronsUpDown, LucideIcon } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ interface FinancialTableTemplateProps<T> {
   isGrouped?: boolean;
   className?: string;
   emptyMessage?: string;
-  emptyIcon?: React.ReactNode;
+  emptyIcon?: LucideIcon;
   showActions?: boolean;
   actionsLabel?: string;
   sortable?: boolean;
@@ -395,12 +396,7 @@ export function FinancialTableTemplate<T>({
   };
 
   if ((isGrouped ? (sortedData as FinancialTableGroup<T>[]).length === 0 : (sortedData as T[]).length === 0)) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        {emptyIcon && <div className="mb-4 flex justify-center">{emptyIcon}</div>}
-        <p>{emptyMessage}</p>
-      </div>
-    );
+    return <EmptyState icon={emptyIcon} title={emptyMessage} />;
   }
 
   return (

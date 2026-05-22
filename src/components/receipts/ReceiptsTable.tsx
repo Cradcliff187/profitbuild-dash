@@ -1,4 +1,6 @@
 import React from 'react';
+import { Receipt } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableRow } from '@/components/ui/table';
 import { CompletePagination } from '@/components/ui/complete-pagination';
@@ -82,8 +84,8 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({
             <TableBody>
               {receipts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={visibleColumns.length + 1} className="text-center py-6 text-xs text-muted-foreground">
-                    No receipts found
+                  <TableCell colSpan={visibleColumns.length + 1}>
+                    <EmptyState variant="compact" icon={Receipt} title="No receipts found" />
                   </TableCell>
                 </TableRow>
               ) : (

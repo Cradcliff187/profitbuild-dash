@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -201,15 +203,15 @@ export function ProjectReceiptsView({ projectId }: ProjectReceiptsViewProps) {
       </div>
 
       {filteredReceipts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-          <Receipt className="mb-3 h-12 w-12 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No receipts found</p>
-          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-            {searchQuery || statusFilter !== 'all' 
-              ? 'Try adjusting your search or filters'
-              : 'Capture receipts from the field to track expenses'}
-          </p>
-        </div>
+        searchQuery || statusFilter !== 'all' ? (
+          <NoResultsState title="No receipts found" description="Try adjusting your search or filters" />
+        ) : (
+          <EmptyState
+            icon={Receipt}
+            title="No receipts found"
+            description="Capture receipts from the field to track expenses"
+          />
+        )
       ) : (
         <>
           {/* Mobile Cards */}

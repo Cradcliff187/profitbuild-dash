@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Label } from '@/components/ui/label';
 import { LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { formatQuantityWithUnit } from '@/utils/units';
@@ -276,9 +277,12 @@ export const LineItemTable: React.FC<LineItemTableProps> = ({
   return (
     <div className="space-y-4">
       {lineItems.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No line items yet. Click "Add Line Item" to get started.</p>
-        </div>
+        <EmptyState
+          variant="compact"
+          icon={Plus}
+          title="No line items yet"
+          description='Click "Add Line Item" to get started.'
+        />
       ) : (
         <div className="border rounded-md overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
           <div className="min-w-[800px]">

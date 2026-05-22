@@ -18,6 +18,8 @@ import { formatCurrency } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 import { usePagination } from '@/hooks/usePagination';
 import { CompletePagination } from '@/components/ui/complete-pagination';
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { useIsMobile } from '@/hooks/use-mobile';
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
@@ -351,27 +353,14 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
         <CardContent className="p-3 sm:p-4">
           {/* Change Orders List */}
           {changeOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-              <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">No change orders found</p>
-              <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-                Create change orders to track project modifications and cost impacts.
-              </p>
-              {onCreateNew && (
-                <Button onClick={onCreateNew} className="mt-4" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Change Order
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No change orders found"
+              description="Create change orders to track project modifications and cost impacts."
+              action={onCreateNew ? { label: "Create Change Order", onClick: onCreateNew, icon: Plus } : undefined}
+            />
           ) : filteredChangeOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-              <Search className="mb-3 h-12 w-12 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">No change orders match your search</p>
-              <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-                Try adjusting your search or filter criteria.
-              </p>
-            </div>
+            <NoResultsState title="No change orders match your search" />
           ) : (
             <>
               {/* Mobile Cards */}

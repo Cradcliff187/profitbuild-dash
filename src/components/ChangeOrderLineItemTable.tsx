@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChangeOrderLineItemInput } from '@/types/changeOrder';
@@ -174,10 +175,12 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
       )}
 
       {lineItems.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground border border-dashed rounded-md">
-          <p className="text-sm">No line items yet. Click "Add Line Item" to get started.</p>
-          <p className="text-xs mt-1">Line items are required to document the work being performed.</p>
-        </div>
+        <EmptyState
+          variant="compact"
+          icon={Plus}
+          title="No line items yet"
+          description='Click "Add Line Item" to get started. Line items are required to document the work being performed.'
+        />
       ) : isMobile ? (
         // Mobile Card Layout
         <div className="space-y-2">

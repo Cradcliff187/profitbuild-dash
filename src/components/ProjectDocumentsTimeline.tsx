@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -359,26 +361,18 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
             </Select>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-          <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No documents found</p>
-          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-            Try adjusting your search or filter criteria.
-          </p>
-        </div>
+        <NoResultsState title="No documents found" />
       </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-        <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">No documents or media found</p>
-        <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-          Upload documents to quickly share drawings, permits, licenses, or receipts with the team.
-        </p>
-      </div>
+      <EmptyState
+        icon={FileText}
+        title="No documents or media found"
+        description="Upload documents to quickly share drawings, permits, licenses, or receipts with the team."
+      />
     );
   }
 

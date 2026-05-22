@@ -3,8 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { Mic, MicOff, Send, Loader2, Trash2, User } from 'lucide-react';
+import { Mic, MicOff, Send, Loader2, Trash2, User, MessageSquare } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
@@ -262,10 +263,13 @@ export function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimeli
       {/* Notes Timeline */}
       <div className="space-y-3">
         {notes.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              No notes yet. Add your first note above.
-            </p>
+          <Card className="p-8">
+            <EmptyState
+              variant="compact"
+              icon={MessageSquare}
+              title="No notes yet"
+              description="Add your first note above."
+            />
           </Card>
         ) : (
           notes.map((note) => (

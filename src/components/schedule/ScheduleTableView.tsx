@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ColumnSelector } from '@/components/ui/column-selector';
-import { ArrowUpDown, CheckCircle2 } from 'lucide-react';
+import { ArrowUpDown, CheckCircle2, CalendarClock } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { NoResultsState } from '@/components/ui/no-results-state';
 import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
 import { cn } from '@/lib/utils';
@@ -268,11 +270,12 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
             <TableBody>
               {filteredAndSortedTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={visibleColumns.length}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    {searchQuery ? 'No phases match your search' : 'No tasks scheduled'}
+                  <TableCell colSpan={visibleColumns.length}>
+                    {searchQuery ? (
+                      <NoResultsState variant="compact" title="No phases match your search" />
+                    ) : (
+                      <EmptyState variant="compact" icon={CalendarClock} title="No tasks scheduled" />
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (

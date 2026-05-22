@@ -8,6 +8,7 @@ import { BidPhotoLightbox } from './BidPhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { EmptyState } from './ui/empty-state';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
@@ -171,22 +172,18 @@ export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
 
       {/* Media Display */}
       {filteredMedia.length === 0 ? (
-        <Card className="p-12 text-center">
-          <div className="flex justify-center mb-4">
-            {activeTab === 'photos' ? (
-              <ImageIcon className="h-12 w-12 text-muted-foreground" />
-            ) : activeTab === 'videos' ? (
-              <VideoIcon className="h-12 w-12 text-muted-foreground" />
-            ) : (
-              <ImageIcon className="h-12 w-12 text-muted-foreground" />
-            )}
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No media found</h3>
-          <p className="text-sm text-muted-foreground">
-            {activeTab === 'all' && 'Use the buttons above to capture photos or videos'}
-            {activeTab === 'photos' && 'No photos captured yet'}
-            {activeTab === 'videos' && 'No videos captured yet'}
-          </p>
+        <Card className="p-12">
+          <EmptyState
+            icon={activeTab === 'videos' ? VideoIcon : ImageIcon}
+            title="No media found"
+            description={
+              activeTab === 'all'
+                ? 'Use the buttons above to capture photos or videos'
+                : activeTab === 'photos'
+                ? 'No photos captured yet'
+                : 'No videos captured yet'
+            }
+          />
         </Card>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

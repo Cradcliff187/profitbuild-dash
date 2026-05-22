@@ -16,6 +16,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from 'sonner';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface ReceiptData {
   id: string;
@@ -287,10 +288,7 @@ export const ReceiptsList = () => {
 
       {/* Receipts List */}
       {filteredAndSortedReceipts.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Receipt className="h-12 w-12 mx-auto mb-4 opacity-20" />
-          <p className="text-sm">No receipts found</p>
-        </div>
+        <EmptyState icon={Receipt} title="No receipts found" />
       ) : (
         <div className="divide-y border rounded-lg overflow-hidden">
           {filteredAndSortedReceipts.map((receipt) => (

@@ -1,7 +1,8 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Eye, CheckCircle, XCircle, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Edit, Trash2, ChevronDown, Receipt } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -134,11 +135,7 @@ const ReceiptsCardViewComponent: React.FC<ReceiptsCardViewProps> = ({
             </CardContent>
           </Card>
         ) : receipts.length === 0 ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center text-xs text-muted-foreground">No receipts found</div>
-            </CardContent>
-          </Card>
+          <EmptyState variant="compact" icon={Receipt} title="No receipts found" />
         ) : (
           receipts.map((receipt) => {
             const isExpanded = expandedCards.has(receipt.id);

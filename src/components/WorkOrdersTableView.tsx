@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle } from "lucide-react";
+import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle, ClipboardList } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
@@ -282,12 +283,11 @@ export const WorkOrdersTableView = ({
     return (
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="text-center py-12">
-            <p className="text-xs text-muted-foreground mb-2">No work orders found</p>
-            <p className="text-xs text-muted-foreground">
-              Create your first work order to get started
-            </p>
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            title="No work orders found"
+            description="Create your first work order to get started"
+          />
         </CardContent>
       </Card>
     );

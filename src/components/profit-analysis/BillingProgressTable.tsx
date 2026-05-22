@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, FileText } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectStatusBadge } from '@/components/ui/status-badge';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -130,7 +131,7 @@ export function BillingProgressTable({ data, isLoading, onSelectProject }: Props
   if (!data || data.length === 0) {
     return (
       <Card className="p-4">
-        <p className="text-muted-foreground text-center py-8">No projects found</p>
+        <EmptyState icon={FileText} title="No projects found" />
       </Card>
     );
   }

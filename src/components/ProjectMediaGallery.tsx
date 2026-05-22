@@ -9,6 +9,8 @@ import { MediaReportBuilderModal } from './MediaReportBuilderModal';
 import { MediaCommentBadge } from './MediaCommentBadge';
 import { TimelineStoryView } from './TimelineStoryView';
 import { BrandedLoader } from './ui/branded-loader';
+import { EmptyState } from './ui/empty-state';
+import { NoResultsState } from './ui/no-results-state';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -463,13 +465,12 @@ export function ProjectMediaGallery({
 
   if (allMedia.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center px-4">
-        <ImageIcon className="h-10 w-10 text-muted-foreground mb-2" />
-        <p className="text-xs font-medium text-muted-foreground">No media yet</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Use the camera buttons to capture photos and videos
-        </p>
-      </div>
+      <EmptyState
+        variant="compact"
+        icon={ImageIcon}
+        title="No media yet"
+        description="Use the camera buttons to capture photos and videos."
+      />
     );
   }
 
@@ -631,10 +632,7 @@ export function ProjectMediaGallery({
 
           {/* Media Grid */}
           {filteredAndSortedMedia.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Search className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">No media found</p>
-            </div>
+            <NoResultsState title="No media found" />
           ) : (
             <div className="space-y-6">
               {Object.entries(groupedMedia).map(([dateLabel, items]) => (
@@ -776,12 +774,9 @@ export function ProjectMediaGallery({
           {isLoading ? (
             <BrandedLoader message="Loading timeline..." />
           ) : filteredAndSortedMedia.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock4 className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">No media to display</p>
-            </div>
+            <NoResultsState title="No media to display" />
           ) : (
-            <TimelineStoryView 
+            <TimelineStoryView
               media={filteredAndSortedMedia}
               onMediaClick={setSelectedMedia}
             />
