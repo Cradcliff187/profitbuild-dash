@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, MoreHorizontal, Building2, Edit, Eye, Archive, Calendar, Clock, AlertTriangle, Filter, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ProjectStatusSelector } from "@/components/ProjectStatusSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1372,11 +1373,12 @@ export const ProjectsTableView = ({
                 <TableBody>
                   {sortedProjects.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={visibleColumns.length + (onSelectOne ? 1 : 0)} className="h-24 text-center">
-                        <div className="flex flex-col items-center gap-2 py-8">
-                          <Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                          <p className="text-sm text-muted-foreground">No projects found. Create your first project to get started.</p>
-                        </div>
+                      <TableCell colSpan={visibleColumns.length + (onSelectOne ? 1 : 0)} className="p-4">
+                        <EmptyState
+                          icon={Building2}
+                          title="No projects found"
+                          description="Create your first project to get started."
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (

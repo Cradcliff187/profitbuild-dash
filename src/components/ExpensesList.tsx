@@ -52,6 +52,8 @@ import { useExpensesQuery, ExpensesQueryFilters } from '@/hooks/useExpensesQuery
 import { useExpenseAllocationStatus } from '@/hooks/useExpenseAllocationStatus';
 import { invalidateExpenseCaches } from '@/utils/expenseCaches';
 import { Loader2 } from 'lucide-react';
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { format } from 'date-fns';
 import { parseDateOnly } from '@/utils/dateUtils';
@@ -2316,11 +2318,17 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
         {/* Expenses Table */}
         {displayData.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            {filteredExpenses.length === 0 
-              ? "No expenses found. Add your first expense to get started."
-              : "No expenses match your current filters."}
-          </div>
+          filteredExpenses.length === 0 ? (
+            <EmptyState
+              icon={Receipt}
+              title="No expenses found"
+              description="Add your first expense to get started."
+            />
+          ) : (
+            <NoResultsState
+              title="No expenses match your filters"
+            />
+          )
         ) : isMobile ? (
           // Mobile Card View
           <div className="space-y-2 w-full max-w-full min-w-0 overflow-x-hidden">
