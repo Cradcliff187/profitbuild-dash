@@ -773,6 +773,7 @@ This is intentional friction so future page authors don't silently lose mobile a
 - AppLayout role-based redirects (admin should not be bounced to `/time-tracker`)
 - Default status filter on `/projects` (admins want unfiltered)
 - Hide "+ New Project" FAB (admins still create projects)
+- `useSmartNavigation` project-card routing (May 22, 2026) — tapping a project card on mobile (`MobileListCard` in `ProjectsList`) routes admin/manager users to `/projects/:id` (full detail) and field-worker-only users to `/field-media/:id`. Originally gated on `isFieldWorker`, so an admin who also held the field role was sent to `/field-media/:id` instead of project details. Now `isFieldWorkerOnly`. Field-only users never reach this path on `/projects` anyway — they get the slim card → `handleViewDetails` → `/projects/:id/schedule` (matching the Time Tracker FAB). The same hook also drives the post-capture nav on `FieldPhotoCapture`/`FieldVideoCapture`, so admin+field now lands on `/projects/:id` there too.
 
 `isFieldWorker` (informational — adapt UI for any user with the role):
 - The back-arrow on mobile project header routes to `/time-tracker` if `isFieldWorker` is true (more useful than `/projects` for them, even if they're an admin)
