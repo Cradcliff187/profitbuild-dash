@@ -1,14 +1,13 @@
 import { useProjectContext } from "@/components/ProjectDetailView";
-import { ProjectForecastView } from "@/components/cost-tracking/efc/ProjectForecastView";
+import { CostOverview } from "@/components/cost-tracking/efc/CostOverview";
 
 /**
- * Cost Tracking → the single Cost Analysis page. The old Forecast/Detail tab
- * split (and the dense LineItemControlDashboard table) was retired in favor of
- * one progressive-disclosure page: P&L header → action strip → expandable
- * per-line category sections.
+ * Cost Tracking → Overview. A KPI strip over a flat, scannable table of every
+ * cost line; each line drills into its own detail page (CostLineDetailRoute at
+ * /projects/:id/control/:lineId). Replaced the old expandable Cost Analysis page.
  */
 export function ProjectControlRoute() {
   const { project } = useProjectContext();
 
-  return <ProjectForecastView projectId={project.id} project={project} />;
+  return <CostOverview projectId={project.id} project={project} />;
 }
