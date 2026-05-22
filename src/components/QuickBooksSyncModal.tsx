@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RefreshCw, Calendar, CheckCircle, AlertCircle, Loader2, Eye, CheckCircle2, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
@@ -577,7 +578,7 @@ export const QuickBooksSyncModal: React.FC<QuickBooksSyncModalProps> = ({
     <div className="space-y-6">
       <ImportStepper currentStep="preview" />
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+        <BrandedLoader size="lg" message="" />
         <div className="text-center">
           <h3 className="text-lg font-medium mb-2">Importing transactions...</h3>
           <p className="text-sm text-gray-600">

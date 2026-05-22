@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import type { Json } from '@/integrations/supabase/types';
 import { 
   parseTransactionCSV, 
@@ -1589,10 +1590,7 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
             )}
             
             {isUploading && (
-              <div className="text-center py-4">
-                <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                <p className="text-sm text-gray-600">Analyzing transactions...</p>
-              </div>
+              <BrandedLoader size="md" message="Analyzing transactions..." className="py-4" />
             )}
 
             {errors.length > 0 && (

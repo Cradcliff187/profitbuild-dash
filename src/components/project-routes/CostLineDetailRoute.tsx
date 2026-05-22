@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 import { useProjectContext } from "@/components/ProjectDetailView";
 import { useProjectEFC } from "@/hooks/useProjectEFC";
 import { CostLineDetail } from "@/components/cost-tracking/efc/CostLineDetail";
@@ -31,9 +32,8 @@ export function CostLineDetailRoute() {
   if (efc.isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-16">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">Loading line…</span>
+        <CardContent className="py-16">
+          <BrandedLoader size="lg" message="Loading line…" />
         </CardContent>
       </Card>
     );

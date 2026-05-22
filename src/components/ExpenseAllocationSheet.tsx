@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Building, CheckCircle, DollarSign, Zap, User, AlertTriangle, X } from 'lucide-react';
@@ -438,9 +439,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
         
         <ScrollArea className="flex-1 px-6 py-4" data-sheet-content>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
+            <BrandedLoader size="md" className="py-12" />
           ) : expense ? (
             <div className="space-y-4">
               {/* Expense Details */}

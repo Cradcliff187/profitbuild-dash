@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download } from 'lucide-react';
+import { FileText, Image, Video, Receipt, FileCheck, Filter, MoreHorizontal, Printer, Download } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -326,9 +327,7 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      </div>
+      <BrandedLoader size="md" className="py-8" />
     );
   }
 
