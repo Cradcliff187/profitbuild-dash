@@ -45,21 +45,23 @@ function MoneyCell({ label, value, muted, bold }: { label: string; value: number
 
 interface EmployeeRollup {
   payeeName: string;
-  entries: number;
+  hours: number;
   amount: number;
 }
 
-/** Collapse labor time entries into one row per employee, highest spend first. */
+const fmtHours = (h: number) => h.toLocaleString(undefined, { maximumFractionDigits: 1 });
+
+/** Collapse labor time entries into one row per employee, most hours first. */
 function rollupByEmployee(expenses: EFCLine['correlatedExpenses']): EmployeeRollup[] {
   const byPayee = new Map<string, EmployeeRollup>();
   for (const e of expenses) {
     const payeeName = e.payee_name || 'Unknown';
-    const row = byPayee.get(payeeName) ?? { payeeName, entries: 0, amount: 0 };
-    row.entries += 1;
+    const row = byPayee.get(payeeName) ?? { payeeName, hours: 0, amount: 0 };
+    row.hours += e.hours ?? 0;
     row.amount += e.amount ?? 0;
     byPayee.set(payeeName, row);
   }
-  return Array.from(byPayee.values()).sort((a, b) => b.amount - a.amount);
+  return Array.from(byPayee.values()).sort((a, b) => b.hours - a.hours);
 }
 
 /** The drill-in that replaces the old Detail-tab drawer: quote, allocated expenses, variance. */
@@ -100,9 +102,7 @@ function LineDetail({ line }: { line: EFCLine }) {
                   <div key={r.payeeName} className="flex items-center justify-between bg-card border rounded p-2">
                     <span className="truncate">
                       <span className="text-foreground">{r.payeeName}</span>
-                      <span className="text-muted-foreground">
-                        {' · '}{r.entries} {r.entries === 1 ? 'entry' : 'entries'}
-                      </span>
+                      <span className="text-muted-foreground">{' · '}{fmtHours(r.hours)} hrs</span>
                     </span>
                     <span className="font-medium tabular-nums shrink-0 ml-2">{formatCurrency(r.amount)}</span>
                   </div>

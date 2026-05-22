@@ -19,6 +19,7 @@ export interface CostBucketCorrelatedExpense {
   expense_date: string | null;
   payee_name: string | null;
   amount: number;
+  hours: number | null;
 }
 
 export interface CostBucketAcceptedQuote {
@@ -389,6 +390,7 @@ function buildBuckets(
               ((e.payees as { payee_name?: string } | null)?.payee_name as string | undefined) ??
               (e.payee_name as string | undefined) ?? null,
             amount: Number((e.amount as number | undefined) ?? (e.split_amount as number | undefined) ?? 0),
+            hours: e.hours == null ? null : Number(e.hours),
           })),
           acceptedQuotes: (li.quotes ?? [])
             .filter((q) => q.status === 'accepted')

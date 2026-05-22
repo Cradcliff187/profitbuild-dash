@@ -324,6 +324,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                   expenses (
                     id,
                     amount,
+                    hours,
                     description,
                     expense_date,
                     category,
@@ -366,6 +367,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                     expenses!inner (
                       id,
                       amount,
+                      hours,
                       description,
                       expense_date,
                       category,
@@ -532,9 +534,16 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
           if (corr.expense_split_id && corr.expense_splits) {
             // Split allocation - use split data and access parent expense through nested join
             const parentExpense = corr.expense_splits?.expenses;
+            // Prorate the parent's hours by this split's share of the parent amount
+            // (labor amount = hours × rate, so the amount fraction is the hours fraction).
+            const splitAmount = Number(corr.expense_splits.split_amount ?? 0);
+            const parentAmount = Number(parentExpense?.amount ?? 0);
+            const parentHours = Number(parentExpense?.hours ?? 0);
+            const proratedHours = parentAmount > 0 ? parentHours * (splitAmount / parentAmount) : 0;
             expenseDataToUse = {
               id: corr.expense_splits.id,
               amount: corr.expense_splits.split_amount,  // Use split amount!
+              hours: proratedHours,
               description: `${parentExpense?.description || 'Split'} (${corr.expense_splits.projects?.project_name || 'Unknown'})`,
               expense_date: parentExpense?.expense_date,
               category: parentExpense?.category,
