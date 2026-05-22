@@ -633,113 +633,17 @@ useEffect(() => {
     try {
       
       if (initialEstimate) {
-        // Check if this is an approved estimate - if so, create a new version instead of editing
-        if (initialEstimate.status === 'approved') {
-          // Create new version using the RPC function
-          const { data: newVersionId, error: versionError } = await supabase
-            .rpc('create_estimate_version', {
-              source_estimate_id: initialEstimate.id
-            });
-
-          if (versionError) throw versionError;
-
-          // Now update the new version with our changes.
-          // Gotcha #26: when targetStatus === 'approved', status + is_current_version
-          // must be written atomically here (same .update() call).
-          const { data: estimateData, error: updateError } = await supabase
-            .from('estimates')
-            .update({
-              date_created: date.toISOString().split('T')[0],
-              total_amount: totalAmount,
-              total_cost: calculateTotalCost(),
-              notes: notes.trim() || null,
-              valid_until: validUntil?.toISOString().split('T')[0],
-              contingency_percent: contingencyPercent,
-              discount_type: discountType,
-              discount_value: discountValue,
-              status: targetStatus,
-              is_current_version: true,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', newVersionId)
-            .select()
-            .single();
-
-          if (updateError) throw updateError;
-
-          // Delete default line items from new version
-          const { error: deleteError } = await supabase
-            .from('estimate_line_items')
-            .delete()
-            .eq('estimate_id', newVersionId);
-
-          if (deleteError) {
-            console.error('Failed to delete line items for new version:', deleteError);
-            throw new Error(`Cannot create estimate version: ${deleteError.message}`);
-          }
-
-          // Insert updated line items for new version
-          const lineItemsData = validLineItems.map((item, index) => ({
-            estimate_id: newVersionId,
-            category: item.category,
-            description: item.description.trim(),
-            quantity: item.quantity,
-            price_per_unit: item.pricePerUnit,
-            unit: item.unit || null,
-            sort_order: index,
-            cost_per_unit: item.costPerUnit || 0,
-            markup_percent: item.markupPercent,
-            markup_amount: item.markupAmount,
-            labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
-            billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
-            actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
-          }));
-
-          const { error: lineItemsError } = await supabase
-            .from('estimate_line_items')
-            .insert(lineItemsData)
-            .select('id, estimate_id, category, description, quantity, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
-
-          if (lineItemsError) throw lineItemsError;
-
-          const newVersionEstimate: Estimate = {
-            ...initialEstimate,
-            id: newVersionId,
-            date_created: new Date(estimateData.date_created),
-            total_amount: estimateData.total_amount,
-            notes: estimateData.notes,
-            valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
-            contingency_percent: estimateData.contingency_percent,
-            contingency_used: 0, // Keep for type compatibility, but set to 0 for new versions
-            updated_at: new Date(estimateData.updated_at),
-            lineItems: validLineItems,
-            version_number: estimateData.version_number,
-            is_current_version: true,
-            status: targetStatus
-          };
-
-          // Refresh labor cushion after saving
-          await supabase.rpc('refresh_estimate_labor_cushion', {
-            p_estimate_id: newVersionId
-          });
-
-          if (targetStatus === 'approved') {
-            await approveEstimateSideEffects(initialEstimate.project_id, totalAmount);
-          }
-
-          onSave(newVersionEstimate);
-
-          const versionToastLabel = targetStatus === 'approved'
-            ? `Version v${estimateData.version_number} approved and set as contract.`
-            : targetStatus === 'sent'
-              ? `New version v${estimateData.version_number} sent.`
-              : `New estimate version v${estimateData.version_number} created as draft.`;
-          toast.success("New Version Created", { id: toastId, description: versionToastLabel });
-
-        } else {
-          // Regular editing for non-approved estimates.
-          // Gotcha #26: when targetStatus === 'approved', is_current_version must be
-          // written atomically in this same .update() call.
+        // In-place edit for ANY status, including approved (product decision,
+        // May 22 2026). The "Edit" button always edits the SAME estimate row in
+        // place and never creates a version — use the separate "New Version"
+        // button to explicitly create a version. Editing an approved estimate
+        // keeps its id; saving it as approved re-syncs projects.contracted_amount
+        // via approveEstimateSideEffects below. Trade-off accepted by the user:
+        // no snapshot of the prior approved figure is retained, and AIA SOVs are
+        // not auto-regenerated (Rule 8/26 — currently zero AIA projects affected).
+        // Gotcha #26: when targetStatus === 'approved', is_current_version must be
+        // written atomically in this same .update() call.
+        {
           const { data: estimateData, error: estimateError } = await supabase
             .from('estimates')
             .update({
