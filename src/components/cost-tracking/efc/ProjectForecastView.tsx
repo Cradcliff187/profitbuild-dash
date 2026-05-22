@@ -100,7 +100,6 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
             key={cat.category}
             category={cat}
             laborOpportunity={cat.category === ExpenseCategory.LABOR ? efc.laborOpportunity : null}
-            defaultOpen
             onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
             onRecategorize={canAllocate ? (selected) => setRecategorizeCategory(selected) : undefined}
           />
