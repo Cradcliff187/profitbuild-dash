@@ -1,5 +1,6 @@
 import { cn, formatCurrency } from '@/lib/utils';
 import { ProjectEFCResult } from '@/hooks/useProjectEFC';
+import { fmtHours } from './lineDisplay';
 
 const fmtPct = (n: number) => `${n.toFixed(1)}%`;
 
@@ -11,12 +12,29 @@ interface Tile {
   subClass?: string;
 }
 
+const LG_COLS: Record<number, string> = {
+  3: 'lg:grid-cols-3',
+  4: 'lg:grid-cols-4',
+  5: 'lg:grid-cols-5',
+  6: 'lg:grid-cols-6',
+};
+
 /**
  * The headline KPI strip for the Cost Tracking Overview: Contract, Expected
- * Final Cost (with overage), Projected Margin, Labor Opportunity (cushion), and
- * an Issues count. All values come from useProjectEFC — no extra query.
+ * Final Cost (with overage), Projected Margin, Labor Opportunity (the cushion,
+ * shown as hours used / hours of cushion left), Margin + Opp (margin once the
+ * cushion is credited), and an Issues count. All values come from useProjectEFC
+ * — no extra query.
  */
-export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; issuesCount: number }) {
+export function CostKpiStrip({
+  pl,
+  laborOpportunity,
+  issuesCount,
+}: {
+  pl: ProjectEFCResult['pl'];
+  laborOpportunity: ProjectEFCResult['laborOpportunity'];
+  issuesCount: number;
+}) {
   const over = pl.expectedCost - pl.plannedCost;
   const marginPositive = pl.projectedMargin >= 0;
 
@@ -37,13 +55,31 @@ export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; 
     },
   ];
 
-  if (pl.hasCushion) {
+  if (pl.hasCushion && laborOpportunity) {
+    // Hours used (actual logged) and hours of cushion left before labor turns
+    // into a real overrun — capacity (estimate + cushion) minus hours used.
+    const hoursUsed = laborOpportunity.actualHours;
+    const hoursLeft = Math.max(0, laborOpportunity.capacityHours - hoursUsed);
+    const hoursSub =
+      laborOpportunity.capacityHours > 0
+        ? `${fmtHours(hoursUsed)}h used · ${fmtHours(hoursLeft)}h left`
+        : `${fmtHours(hoursUsed)}h used`;
+
     tiles.push({
       label: 'Labor Opp',
       value: `+${formatCurrency(pl.cushionRemaining)}`,
       valueClass: 'text-success',
-      sub: 'Cushion',
-      subClass: 'text-success',
+      sub: hoursSub,
+      subClass: 'text-muted-foreground',
+    });
+
+    const oppMarginPositive = pl.marginWithOpp >= 0;
+    tiles.push({
+      label: 'Margin + Opp',
+      value: formatCurrency(pl.marginWithOpp),
+      valueClass: oppMarginPositive ? 'text-success' : 'text-destructive',
+      sub: fmtPct(pl.marginWithOppPct),
+      subClass: oppMarginPositive ? 'text-success' : 'text-destructive',
     });
   }
 
@@ -59,7 +95,7 @@ export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; 
     <div
       className={cn(
         'grid gap-2 sm:gap-3 grid-cols-2',
-        tiles.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+        LG_COLS[tiles.length] ?? 'lg:grid-cols-4',
       )}
     >
       {tiles.map((t) => (
