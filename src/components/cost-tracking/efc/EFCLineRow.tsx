@@ -8,15 +8,23 @@ import { EFCLine } from '@/hooks/useProjectEFC';
 import { parseDateOnly } from '@/utils/dateUtils';
 import { StatusPill } from './StatusPill';
 
+const fmtHours = (h: number) => h.toLocaleString(undefined, { maximumFractionDigits: 1 });
+
 function lineCaption(line: EFCLine): string | null {
   if (line.isLabor && line.hours != null && line.hours > 0) {
-    // actual is allocated COST; derive used hours with the cost rate (plan/hours),
-    // not the billing rate — billing rate would understate hours used.
+    // Show ACTUAL paid hours logged against the line (sum of the correlated time
+    // entries) vs the estimated hours — the truthful measure of how far the labor
+    // has progressed. Only fall back to cost-equivalent hours (spend ÷ estimate
+    // rate) when no hours were logged, e.g. lump-sum labor with no time entries.
+    // (Dollars are already shown in the SPENT/PLAN columns; mixing dollars into a
+    // field labeled "hrs" is what made 45.5 logged hours read as "26 of 64".)
+    const loggedHrs = line.correlatedExpenses.reduce((s, e) => s + (e.hours ?? 0), 0);
     const costRate = line.plan / line.hours;
-    const usedHrs = costRate > 0 ? line.actual / costRate : 0;
-    const remaining = Math.max(0, line.hours - usedHrs);
-    if (line.actual <= 0) return `${line.hours.toFixed(0)} hrs budgeted, not started`;
-    return `${usedHrs.toFixed(0)} of ${line.hours.toFixed(0)} hrs used · ${remaining.toFixed(0)} to go`;
+    const usedHrs = loggedHrs > 0 ? loggedHrs : costRate > 0 ? line.actual / costRate : 0;
+    if (line.actual <= 0 && usedHrs <= 0) return `${fmtHours(line.hours)} hrs budgeted, not started`;
+    const over = usedHrs - line.hours;
+    if (over > 0.05) return `${fmtHours(usedHrs)} of ${fmtHours(line.hours)} hrs used · ${fmtHours(over)} over`;
+    return `${fmtHours(usedHrs)} of ${fmtHours(line.hours)} hrs used · ${fmtHours(Math.max(0, -over))} to go`;
   }
   switch (line.status) {
     case 'overrun':
@@ -43,9 +51,31 @@ function MoneyCell({ label, value, muted, bold }: { label: string; value: number
   );
 }
 
+interface EmployeeRollup {
+  payeeName: string;
+  hours: number;
+  amount: number;
+}
+
+/** Collapse labor time entries into one row per employee, most hours first. */
+function rollupByEmployee(expenses: EFCLine['correlatedExpenses']): EmployeeRollup[] {
+  const byPayee = new Map<string, EmployeeRollup>();
+  for (const e of expenses) {
+    const payeeName = e.payee_name || 'Unknown';
+    const row = byPayee.get(payeeName) ?? { payeeName, hours: 0, amount: 0 };
+    row.hours += e.hours ?? 0;
+    row.amount += e.amount ?? 0;
+    byPayee.set(payeeName, row);
+  }
+  return Array.from(byPayee.values()).sort((a, b) => b.hours - a.hours);
+}
+
 /** The drill-in that replaces the old Detail-tab drawer: quote, allocated expenses, variance. */
 function LineDetail({ line }: { line: EFCLine }) {
   const remaining = Math.max(0, Math.max(line.committed, line.plan) - line.actual);
+  // Labor lines aggregate many time entries per worker — show one row per
+  // employee instead of every entry. Non-labor lines list each expense.
+  const employeeRollup = line.isLabor ? rollupByEmployee(line.correlatedExpenses) : null;
   return (
     <div className="px-3 pb-3 pl-9 bg-muted/20 border-b text-xs space-y-3">
       {!line.isLabor && (
@@ -67,24 +97,49 @@ function LineDetail({ line }: { line: EFCLine }) {
       )}
 
       <div className={cn(line.isLabor && 'pt-3')}>
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-          Allocated expenses ({line.correlatedExpenses.length})
-        </div>
-        {line.correlatedExpenses.length > 0 ? (
-          <div className="space-y-1">
-            {line.correlatedExpenses.map((e, i) => (
-              <div key={e.id || i} className="flex items-center justify-between bg-card border rounded p-2">
-                <span className="text-muted-foreground truncate">
-                  {e.expense_date ? format(parseDateOnly(e.expense_date), 'MMM d, yyyy') : '—'}
-                  {' · '}
-                  <span className="text-foreground">{e.payee_name || 'Unknown'}</span>
-                </span>
-                <span className="font-medium tabular-nums shrink-0 ml-2">{formatCurrency(e.amount)}</span>
+        {employeeRollup ? (
+          <>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+              Labor by employee ({employeeRollup.length})
+            </div>
+            {employeeRollup.length > 0 ? (
+              <div className="space-y-1">
+                {employeeRollup.map((r) => (
+                  <div key={r.payeeName} className="flex items-center justify-between bg-card border rounded p-2">
+                    <span className="truncate">
+                      <span className="text-foreground">{r.payeeName}</span>
+                      <span className="text-muted-foreground">{' · '}{fmtHours(r.hours)} hrs</span>
+                    </span>
+                    <span className="font-medium tabular-nums shrink-0 ml-2">{formatCurrency(r.amount)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="text-muted-foreground italic">No labor logged yet</div>
+            )}
+          </>
         ) : (
-          <div className="text-muted-foreground italic">No expenses allocated yet</div>
+          <>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+              Allocated expenses ({line.correlatedExpenses.length})
+            </div>
+            {line.correlatedExpenses.length > 0 ? (
+              <div className="space-y-1">
+                {line.correlatedExpenses.map((e, i) => (
+                  <div key={e.id || i} className="flex items-center justify-between bg-card border rounded p-2">
+                    <span className="text-muted-foreground truncate">
+                      {e.expense_date ? format(parseDateOnly(e.expense_date), 'MMM d, yyyy') : '—'}
+                      {' · '}
+                      <span className="text-foreground">{e.payee_name || 'Unknown'}</span>
+                    </span>
+                    <span className="font-medium tabular-nums shrink-0 ml-2">{formatCurrency(e.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted-foreground italic">No expenses allocated yet</div>
+            )}
+          </>
         )}
       </div>
 

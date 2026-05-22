@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Download, AlertTriangle, CheckCircle2, Wand2 } from 'lucide-react';
 import { EFCCategory } from '@/hooks/useProjectEFC';
 
-export type CostAnalysisSort = 'risk' | 'category';
-
 interface Chip {
   label: string;
   tone: 'danger' | 'warn' | 'note' | 'good';
@@ -20,21 +18,17 @@ const TONE: Record<Chip['tone'], string> = {
 
 /**
  * "Things to do" strip — derives action chips from the EFC data (the old Detail
- * tab's attention banner, reborn), plus the Sort (By Risk / By Category) control
- * and CSV export. Keeps the page actionable without a separate tab.
+ * tab's attention banner, reborn), plus CSV export and the Allocate action.
+ * Keeps the page actionable without a separate tab.
  */
 export function CostAnalysisActionStrip({
   categories,
   totalUnallocated,
-  sort,
-  onSortChange,
   onExport,
   onAllocate,
 }: {
   categories: EFCCategory[];
   totalUnallocated: number;
-  sort: CostAnalysisSort;
-  onSortChange: (s: CostAnalysisSort) => void;
   onExport: () => void;
   /** When provided (and there's unassigned spend), shows the primary Allocate action. */
   onAllocate?: () => void;
@@ -71,18 +65,6 @@ export function CostAnalysisActionStrip({
     return out;
   }, [categories, totalUnallocated]);
 
-  const sortBtn = (value: CostAnalysisSort, label: string) => (
-    <button
-      onClick={() => onSortChange(value)}
-      className={cn(
-        'px-3 h-8 text-xs font-medium rounded-md transition-colors',
-        sort === value ? 'bg-orange-500 text-white' : 'text-muted-foreground hover:bg-muted',
-      )}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div className="flex items-center gap-2 flex-wrap rounded-lg border bg-card px-3 py-2.5">
       <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -95,10 +77,6 @@ export function CostAnalysisActionStrip({
         </span>
       ))}
       <span className="flex-1" />
-      <div className="flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
-        {sortBtn('risk', 'By Risk')}
-        {sortBtn('category', 'By Category')}
-      </div>
       {onAllocate && totalUnallocated > 0 && (
         <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={onAllocate}>
           <Wand2 className="h-4 w-4" />

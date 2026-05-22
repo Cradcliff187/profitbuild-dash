@@ -1,18 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText } from 'lucide-react';
 import { Project } from '@/types/project';
 import { ExpenseCategory } from '@/types/expense';
-import { useProjectEFC, EFCLine } from '@/hooks/useProjectEFC';
+import { useProjectEFC } from '@/hooks/useProjectEFC';
 import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { invalidateExpenseCaches } from '@/utils/expenseCaches';
 import { ProjectPLHeader } from './ProjectPLHeader';
 import { EFCCategorySection } from './EFCCategorySection';
 import { ProjectLineAllocationSheet } from './ProjectLineAllocationSheet';
 import { RecategorizeOtherBucketSheet } from '../RecategorizeOtherBucketSheet';
-import { CostAnalysisActionStrip, CostAnalysisSort } from './CostAnalysisActionStrip';
+import { CostAnalysisActionStrip } from './CostAnalysisActionStrip';
 import { exportCostAnalysisCsv } from './costAnalysisExport';
 
 interface ProjectForecastViewProps {
@@ -20,38 +20,22 @@ interface ProjectForecastViewProps {
   project: Project;
 }
 
-const STATUS_RANK: Record<EFCLine['status'], number> = { overrun: 0, in_progress: 1, committed: 2, plan: 3 };
-
 /**
  * Cost Analysis — the single Cost Tracking page (replaces the old Forecast/Detail
  * tabs). Leads with the projected P&L, then a "things to do" action strip with
- * sort + export, then per-category sections with expandable per-line drill-in,
- * a labor opportunity panel, and unallocated/recategorize affordances.
+ * export, then per-category sections (in their natural category order) with
+ * expandable per-line drill-in, a labor opportunity panel, and
+ * unallocated/recategorize affordances.
  */
 export function ProjectForecastView({ projectId, project }: ProjectForecastViewProps) {
   const queryClient = useQueryClient();
   const efc = useProjectEFC(projectId, project);
   const [allocateOpen, setAllocateOpen] = useState(false);
   const [recategorizeCategory, setRecategorizeCategory] = useState<ExpenseCategory | null>(null);
-  const [sort, setSort] = useState<CostAnalysisSort>('risk');
 
   // Allocation only makes sense where expenses can be correlated — construction
   // projects (and the SYS-TEST sandbox). Overhead projects have category locks.
   const canAllocate = isProjectVisibleByCategory(project);
-
-  // Sort: By Risk = categories by overage desc, lines overrun-first then variance
-  // desc. By Category = the hook's natural order (internal-first, then by target).
-  const orderedCategories = useMemo(() => {
-    if (sort === 'category') return efc.categories;
-    return efc.categories
-      .map((c) => ({
-        ...c,
-        lines: [...c.lines].sort(
-          (a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status] || b.variance - a.variance,
-        ),
-      }))
-      .sort((a, b) => (b.expectedCost - b.subtotal.plan) - (a.expectedCost - a.subtotal.plan));
-  }, [efc.categories, sort]);
 
   const handleAllocated = () => {
     queryClient.invalidateQueries({ queryKey: ['project-cost-buckets', projectId] });
@@ -106,19 +90,16 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
       <CostAnalysisActionStrip
         categories={efc.categories}
         totalUnallocated={efc.totalUnallocated}
-        sort={sort}
-        onSortChange={setSort}
         onExport={() => exportCostAnalysisCsv(project, efc.categories)}
         onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
       />
 
       <div className="space-y-2">
-        {orderedCategories.map((cat) => (
+        {efc.categories.map((cat) => (
           <EFCCategorySection
             key={cat.category}
             category={cat}
             laborOpportunity={cat.category === ExpenseCategory.LABOR ? efc.laborOpportunity : null}
-            defaultOpen
             onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
             onRecategorize={canAllocate ? (selected) => setRecategorizeCategory(selected) : undefined}
           />
