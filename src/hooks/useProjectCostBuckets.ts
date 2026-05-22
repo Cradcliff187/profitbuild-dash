@@ -390,11 +390,11 @@ function buildBuckets(
               (e.payee_name as string | undefined) ?? null,
             amount: Number((e.amount as number | undefined) ?? (e.split_amount as number | undefined) ?? 0),
           })),
-          acceptedQuotes: ((li.quotes ?? []) as Array<Record<string, unknown>>)
+          acceptedQuotes: (li.quotes ?? [])
             .filter((q) => q.status === 'accepted')
             .map((q) => ({
               payeeName: String(q.quotedBy ?? ''),
-              total: Number((q.total as number | undefined) ?? 0),
+              total: Number(q.total ?? 0),
               quoteNumber: String(q.quoteNumber ?? ''),
             })),
           source: li.source ?? 'estimate',
