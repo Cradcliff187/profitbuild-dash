@@ -49,6 +49,8 @@ import { TimePeriodFilter } from "./ui/time-period-filter";
 import { ALL_TIME_PERIOD, TimePeriodValue } from "@/utils/timePeriodPresets";
 import { usePagination } from '@/hooks/usePagination';
 import { useExpensesQuery, ExpensesQueryFilters } from '@/hooks/useExpensesQuery';
+import { useExpenseAllocationStatus } from '@/hooks/useExpenseAllocationStatus';
+import { invalidateExpenseCaches } from '@/utils/expenseCaches';
 import { Loader2 } from 'lucide-react';
 import { CompletePagination } from '@/components/ui/complete-pagination';
 import { format } from 'date-fns';
@@ -144,9 +146,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [payees, setPayees] = useState<any[]>([]);
-    const [expenseMatches, setExpenseMatches] = useState<
-      Record<string, { matched: boolean; type?: "estimate" | "quote" | "change_order" }>
-    >({});
     const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
     const [expenseToReassign, setExpenseToReassign] = useState<Expense | null>(null);
     const [splitDialogOpen, setSplitDialogOpen] = useState(false);
@@ -193,22 +192,24 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     // Property-scoped mode uses the prop as-is; global mode uses the paginated hook results.
     const effectiveExpenses: Expense[] = expenses ?? expensesQuery.data;
 
-    // Unified refresh (Gotcha #27). Multiple TanStack caches hang off the
-    // expenses surface; a single mutation needs to invalidate every one that
-    // could display stale numbers:
-    //   - onRefresh(): project-scoped parent state (e.g. project-detail pages)
-    //     and the global /expenses page's estimate list.
-    //   - ['expenses-search']: useExpensesQuery (global mode table).
-    //   - ['expenses-unapproved-count']: tab badge + sidebar count.
-    //   - ['expense-dashboard-stats' | '-category-rollup' | '-recent']:
-    //     ExpenseDashboard via useExpenseDashboardData (server-aggregated).
+    // Allocation (line-item correlation) status, keyed on the rows actually
+    // displayed. Sourced via TanStack so it invalidates with the rest of the
+    // expenses fanout — never the stale prop the old useEffect read by mistake.
+    const displayedExpenseIds = useMemo(
+      () => effectiveExpenses.map((e) => e.id).filter(Boolean),
+      [effectiveExpenses],
+    );
+    const expenseMatches = useExpenseAllocationStatus(displayedExpenseIds);
+
+    // Unified refresh (Gotcha #27). onRefresh() covers project-scoped parent
+    // state; invalidateExpenseCaches() is the single source of truth for every
+    // TanStack cache hanging off the expenses surface (search table, badges,
+    // dashboard rollups, allocation status). expensesQuery.refetch() forces the
+    // global table to repaginate from page 1.
     const refreshAll = () => {
       onRefresh();
       if (isGlobalMode) expensesQuery.refetch();
-      queryClient.invalidateQueries({ queryKey: ["expenses-unapproved-count"] });
-      queryClient.invalidateQueries({ queryKey: ["expense-dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["expense-category-rollup"] });
-      queryClient.invalidateQueries({ queryKey: ["expense-dashboard-recent"] });
+      invalidateExpenseCaches(queryClient);
     };
 
 
@@ -451,57 +452,12 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       fetchPayees();
     }, []);
 
-    // Load expense line item matches and splits
+    // Allocation status is owned by useExpenseAllocationStatus above. Split
+    // detail is still loaded here (split parents only ever appear in
+    // project-scoped mode; the global expenses_search view excludes them).
     useEffect(() => {
-      const fetchExpenseMatches = async () => {
-        const expenseIds = expenses.map((e) => e.id).filter(Boolean);
-        if (expenseIds.length === 0) return;
-
-        const BATCH_SIZE = 100;
-
-        try {
-          // Batch into chunks to avoid URL length limits on .in() queries
-          const allCorrelations: any[] = [];
-          for (let i = 0; i < expenseIds.length; i += BATCH_SIZE) {
-            const batch = expenseIds.slice(i, i + BATCH_SIZE);
-            const { data, error } = await supabase
-              .from("expense_line_item_correlations")
-              .select("expense_id, correlation_type, estimate_line_item_id, quote_id, change_order_line_item_id")
-              .in("expense_id", batch);
-
-            if (error) throw error;
-            if (data) allCorrelations.push(...data);
-          }
-
-          const matches: Record<string, { matched: boolean; type?: "estimate" | "quote" | "change_order" }> = {};
-          expenses.forEach((expense) => {
-            const correlation = allCorrelations.find((c) => c.expense_id === expense.id);
-            if (correlation) {
-              // Determine type based on which ID field is populated
-              let type: "estimate" | "quote" | "change_order" = "estimate";
-              if (correlation.quote_id) {
-                type = "quote";
-              } else if (correlation.change_order_line_item_id) {
-                type = "change_order";
-              } else if (correlation.estimate_line_item_id) {
-                type = "estimate";
-              }
-              matches[expense.id] = { matched: true, type };
-            } else {
-              matches[expense.id] = { matched: false };
-            }
-          });
-
-          setExpenseMatches(matches);
-        } catch (error) {
-          console.error("Error fetching expense matches:", error);
-        }
-      };
-
       const fetchExpenseSplits = async () => {
-        if (expenses.length === 0) return;
-
-        const splitExpenseIds = expenses
+        const splitExpenseIds = effectiveExpenses
           .filter((e) => e.is_split && e.id)
           .map((e) => e.id);
         if (splitExpenseIds.length === 0) return;
@@ -514,7 +470,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         }
       };
 
-      fetchExpenseMatches();
       fetchExpenseSplits();
     }, [effectiveExpenses]);
 

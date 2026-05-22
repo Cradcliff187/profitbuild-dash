@@ -27,6 +27,7 @@ import { ColumnSelector } from "@/components/ui/column-selector";
 import { MobileResponsiveHeader } from "@/components/ui/mobile-responsive-header";
 import { parseDateOnly } from "@/utils/dateUtils";
 import { isProjectVisibleByCategory } from "@/utils/sandboxPreferences";
+import { invalidateExpenseCaches } from "@/utils/expenseCaches";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuickBooksSync } from '@/hooks/useQuickBooksSync';
 import { useUnapprovedExpensesCount } from '@/hooks/useUnapprovedExpensesCount';
@@ -294,16 +295,11 @@ const Expenses = () => {
     }
   };
 
-  // Fanout invalidation for any expense mutation done on this page.
-  // Mirrors ExpensesList.refreshAll (Gotcha #27) so direct writes outside
-  // that component (e.g. expense form save here) still propagate to every
-  // query keyed off the expenses surface.
+  // Fanout invalidation for any expense mutation done on this page (e.g. expense
+  // form save here, the bulk allocation sheet). Delegates to the shared helper
+  // so this page can't drift from ExpensesList.refreshAll (Gotcha #27).
   const invalidateExpenseQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ["expenses-search"] });
-    queryClient.invalidateQueries({ queryKey: ["expenses-unapproved-count"] });
-    queryClient.invalidateQueries({ queryKey: ["expense-dashboard-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["expense-category-rollup"] });
-    queryClient.invalidateQueries({ queryKey: ["expense-dashboard-recent"] });
+    invalidateExpenseCaches(queryClient);
   };
 
   const handleSaveExpense = (_expense: Expense) => {
@@ -688,7 +684,10 @@ const Expenses = () => {
       <BulkExpenseAllocationSheet
         open={showBulkAllocate}
         onOpenChange={setShowBulkAllocate}
-        onSuccess={fetchData}
+        onSuccess={() => {
+          invalidateExpenseQueries();
+          fetchData();
+        }}
       />
 
       {/* Mobile FAB */}
