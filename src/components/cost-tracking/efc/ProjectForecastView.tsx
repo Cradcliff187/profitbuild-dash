@@ -7,6 +7,7 @@ import { Project } from '@/types/project';
 import { ExpenseCategory } from '@/types/expense';
 import { useProjectEFC, EFCLine } from '@/hooks/useProjectEFC';
 import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
+import { invalidateExpenseCaches } from '@/utils/expenseCaches';
 import { ProjectPLHeader } from './ProjectPLHeader';
 import { EFCCategorySection } from './EFCCategorySection';
 import { ProjectLineAllocationSheet } from './ProjectLineAllocationSheet';
@@ -55,7 +56,10 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
   const handleAllocated = () => {
     queryClient.invalidateQueries({ queryKey: ['project-cost-buckets', projectId] });
     queryClient.invalidateQueries({ queryKey: ['project-data', projectId] });
-    queryClient.invalidateQueries({ queryKey: ['expenses-search'] });
+    // Every expenses-derived cache — including the All Expenses "Allocated"
+    // column (expense-allocation-status) and the dashboard "unallocated" stat —
+    // so allocating here reflects everywhere without a reload.
+    invalidateExpenseCaches(queryClient);
     efc.refetch();
   };
 
