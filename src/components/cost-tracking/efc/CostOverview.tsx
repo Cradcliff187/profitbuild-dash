@@ -1,48 +1,42 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Download, Wand2 } from 'lucide-react';
 import { Project } from '@/types/project';
 import { ExpenseCategory } from '@/types/expense';
 import { useProjectEFC } from '@/hooks/useProjectEFC';
 import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { invalidateExpenseCaches } from '@/utils/expenseCaches';
-import { ProjectPLHeader } from './ProjectPLHeader';
-import { EFCCategorySection } from './EFCCategorySection';
+import { CostKpiStrip } from './CostKpiStrip';
+import { CostLineTable } from './CostLineTable';
 import { ProjectLineAllocationSheet } from './ProjectLineAllocationSheet';
 import { RecategorizeOtherBucketSheet } from '../RecategorizeOtherBucketSheet';
-import { CostAnalysisActionStrip } from './CostAnalysisActionStrip';
 import { exportCostAnalysisCsv } from './costAnalysisExport';
 
-interface ProjectForecastViewProps {
-  projectId: string;
-  project: Project;
-}
-
 /**
- * Cost Analysis — the single Cost Tracking page (replaces the old Forecast/Detail
- * tabs). Leads with the projected P&L, then a "things to do" action strip with
- * export, then per-category sections (in their natural category order) with
- * expandable per-line drill-in, a labor opportunity panel, and
- * unallocated/recategorize affordances.
+ * Cost Tracking — Overview. A KPI strip over a flat, scannable table of every
+ * cost line grouped by category. Each line drills into its own detail page
+ * (CostLineDetailRoute). Replaces the old expandable Cost Analysis page.
  */
-export function ProjectForecastView({ projectId, project }: ProjectForecastViewProps) {
+export function CostOverview({ projectId, project }: { projectId: string; project: Project }) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const efc = useProjectEFC(projectId, project);
   const [allocateOpen, setAllocateOpen] = useState(false);
   const [recategorizeCategory, setRecategorizeCategory] = useState<ExpenseCategory | null>(null);
 
-  // Allocation only makes sense where expenses can be correlated — construction
-  // projects (and the SYS-TEST sandbox). Overhead projects have category locks.
   const canAllocate = isProjectVisibleByCategory(project);
+
+  const issuesCount = useMemo(
+    () => efc.categories.reduce((n, c) => n + c.lines.filter((l) => l.status === 'overrun').length, 0),
+    [efc.categories],
+  );
 
   const handleAllocated = () => {
     queryClient.invalidateQueries({ queryKey: ['project-cost-buckets', projectId] });
     queryClient.invalidateQueries({ queryKey: ['project-data', projectId] });
-    // Every expenses-derived cache — including the All Expenses "Allocated"
-    // column (expense-allocation-status) and the dashboard "unallocated" stat —
-    // so allocating here reflects everywhere without a reload.
     invalidateExpenseCaches(queryClient);
     efc.refetch();
   };
@@ -52,7 +46,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
       <Card>
         <CardContent className="flex items-center justify-center py-16">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">Loading cost analysis…</span>
+          <span className="ml-2 text-sm text-muted-foreground">Loading cost tracking…</span>
         </CardContent>
       </Card>
     );
@@ -62,7 +56,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
     return (
       <Card className="border-destructive">
         <CardContent className="py-6 space-y-3">
-          <div className="text-sm text-destructive">Failed to load cost analysis: {efc.error}</div>
+          <div className="text-sm text-destructive">Failed to load cost tracking: {efc.error}</div>
           <Button variant="outline" size="sm" onClick={efc.refetch}>Try again</Button>
         </CardContent>
       </Card>
@@ -76,7 +70,7 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
           <FileText className="h-8 w-8 text-muted-foreground mb-3" />
           <p className="text-sm font-medium">No cost activity yet</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-            Add an estimate or log expenses against this project to see the cost analysis here.
+            Add an estimate or log expenses against this project to see cost tracking here.
           </p>
         </CardContent>
       </Card>
@@ -85,26 +79,30 @@ export function ProjectForecastView({ projectId, project }: ProjectForecastViewP
 
   return (
     <div className="space-y-3">
-      <ProjectPLHeader pl={efc.pl} />
-
-      <CostAnalysisActionStrip
-        categories={efc.categories}
-        totalUnallocated={efc.totalUnallocated}
-        onExport={() => exportCostAnalysisCsv(project, efc.categories)}
-        onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
-      />
-
-      <div className="space-y-2">
-        {efc.categories.map((cat) => (
-          <EFCCategorySection
-            key={cat.category}
-            category={cat}
-            laborOpportunity={cat.category === ExpenseCategory.LABOR ? efc.laborOpportunity : null}
-            onAllocate={canAllocate ? () => setAllocateOpen(true) : undefined}
-            onRecategorize={canAllocate ? (selected) => setRecategorizeCategory(selected) : undefined}
-          />
-        ))}
+      <div className="flex items-center justify-end gap-2">
+        {canAllocate && efc.totalUnallocated > 0 && (
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setAllocateOpen(true)}>
+            <Wand2 className="h-4 w-4" />
+            Allocate
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => exportCostAnalysisCsv(project, efc.categories)}
+        >
+          <Download className="h-4 w-4" />
+          Export
+        </Button>
       </div>
+
+      <CostKpiStrip pl={efc.pl} issuesCount={issuesCount} />
+
+      <CostLineTable
+        categories={efc.categories}
+        onLineClick={(lineId) => navigate(`/projects/${projectId}/control/${lineId}`)}
+      />
 
       {canAllocate && (
         <ProjectLineAllocationSheet
