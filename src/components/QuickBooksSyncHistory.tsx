@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -117,12 +118,7 @@ export const QuickBooksSyncHistory: React.FC<QuickBooksSyncHistoryProps> = ({
 
         <div className="flex-1 overflow-y-auto">
           {isLoading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <RefreshCw className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Loading sync history...</p>
-              </div>
-            </div>
+            <BrandedLoader size="md" message="Loading sync history..." className="py-12" />
           )}
 
           {error && (

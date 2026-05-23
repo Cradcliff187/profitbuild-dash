@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ExpenseCategory, EXPENSE_CATEGORY_DISPLAY } from "@/types/expense";
 import { formatCurrency } from "@/lib/utils";
 import { parseDateOnly } from "@/utils/dateUtils";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 export interface RecategorizeOtherBucketSheetProps {
   projectId: string;
@@ -161,10 +162,7 @@ export function RecategorizeOtherBucketSheet({
 
         <div className="flex-1 overflow-y-auto py-4 space-y-3">
           {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading expenses…
-            </div>
+            <BrandedLoader size="sm" message="Loading expenses…" className="py-6" />
           )}
 
           {error && (

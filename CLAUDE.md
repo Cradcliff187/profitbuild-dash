@@ -868,47 +868,53 @@ When a new estimate version is created via the `create_estimate_version()` RPC, 
 - Do NOT add a "one accepted quote per estimate_line_item" guard at the data layer assuming it must hold. After re-pointing, it IS possible for two quotes that were each accepted on different versions of the same line to converge on the same new line. A live data-hygiene issue on 225-037 (A&B Flooring + Grey Street both accepted on v2's Flooring line, $19,672 quoted vs $10,688 estimate) demonstrates this. Resolution is a PM-level decision (reject one), not a code change.
 - Don't assume the source estimate's line `id`s remain valid after versioning — they do (the source isn't touched), but `quote_line_items` rows now point at the NEW estimate's line ids. If you're debugging "why did this quote's FK move", check the parent estimate's `parent_estimate_id` chain — the quote followed a newer version via this RPC, which is correct.
 
-### 28. Cost Analysis page — EFC model, single Cost Tracking surface (May 21, 2026, PR #99)
+### 28. Cost Tracking — Overview list + per-line detail page (May 22, 2026, PR #105)
 
-Cost Tracking (`/projects/:id/control`) is **one progressive-disclosure page** — the old
-Forecast/Detail tab split is gone. [ProjectControlRoute](src/components/project-routes/ProjectControlRoute.tsx)
-renders [ProjectForecastView](src/components/cost-tracking/efc/ProjectForecastView.tsx) directly (no tabs).
-Supersedes Rule 13. **Same data source, no DB/backend change** — it's a UI reframe over the
-existing `useLineItemControl → useProjectCostBuckets` chain.
+Cost Tracking (`/projects/:id/control`) is a **two-level model** — the single expandable "Cost
+Analysis" page (PR #99) was **replaced**. **Same data, no DB/backend change** — both surfaces are
+pure derivations over `useProjectEFC → useProjectCostBuckets → useLineItemControl`. Supersedes
+Rule 13 and the prior single-page Rule 28. **Full, authoritative calc/measure reference:
+[docs/COST_TRACKING_CALCS.md](docs/COST_TRACKING_CALCS.md)** — read it before touching any number here.
 
-**Expected Final Cost (EFC) model** — [useProjectEFC](src/hooks/useProjectEFC.ts) composes
-`useProjectCostBuckets`:
-- Per line: `EFC = max(actual, committed, plan)` — `actual` = allocated expense cost
-  (correlations; **quote correlations resolve to their estimate line** via `useLineItemControl`),
-  `committed` = Σ accepted-quote cost, `plan` = estimate/CO line cost. Never under-projects.
+**Two surfaces** (components in `src/components/cost-tracking/efc/`):
+- **Overview** — `/control` → [ProjectControlRoute](src/components/project-routes/ProjectControlRoute.tsx)
+  → [CostOverview](src/components/cost-tracking/efc/CostOverview.tsx): a KPI strip
+  ([CostKpiStrip](src/components/cost-tracking/efc/CostKpiStrip.tsx): Contract · EFC + overage ·
+  Projected Margin % · Labor Opp/cushion · Issues = # overrun lines) over a flat, category-grouped
+  table ([CostLineTable](src/components/cost-tracking/efc/CostLineTable.tsx)) with a colored status
+  border, compact subtitle, status pill, and the +Δ for overruns. Each line row navigates to its
+  detail page. Allocate + Export retained (no By Risk/By Category toggle — it lists by category).
+- **Per-line detail** — `/control/:lineId` → [CostLineDetailRoute](src/components/project-routes/CostLineDetailRoute.tsx)
+  (looks the line up in the already-loaded `useProjectEFC` data — **no extra query**; mirrors
+  `QuoteViewRoute`, Rule 16) → [CostLineDetail](src/components/cost-tracking/efc/CostLineDetail.tsx):
+  header + Over-budget badge, 4 KPI tiles (Plan/Spent/EFC/Variance), a budget-vs-actual bar,
+  derived flags (no accepted quote; largest single overrun + % of project overage), Contract &
+  Vendor cards, and an Overview / detail tab set. **Labor lines roll up by employee in paid hours**
+  (`expenses.hours`, Gotcha #17); external lines list their invoices & bills (correlated expenses).
+  Allocate reachable from both.
+
+**EFC model** (unchanged since PR #99; lives in [useProjectEFC](src/hooks/useProjectEFC.ts)):
+- Per line: `EFC = max(actual, committed, plan)` — actual = allocated expense cost (correlations;
+  **quote correlations resolve to their estimate line**), committed = Σ accepted-quote cost, plan =
+  estimate/CO line cost. Never under-projects.
 - Per category: `expectedCost = max(categorySpend, Σ lineEFC)` — unallocated spend counts, never
   lost or double-counted.
-- Project Expected Cost = Σ category expectedCost; **Projected Margin = Contract − Expected Cost**.
+- Project: Expected Cost = Σ category expectedCost; **Projected Margin = Contract − Expected Cost**.
+- **Margin + Labor Opp** = projectedMargin + `laborOpportunity.remaining` (the eroding cushion;
+  `bakedIn = estimate_financial_summary.total_labor_cushion`, shrinks as actual hours exceed the
+  estimate: zone under_est→in_cushion→over_capacity). The cushion is **NOT** in the projected margin.
 
-**Labor cushion as a 2nd margin** (continues Rule 13's cushion concept):
-`pl.marginWithOpp = projectedMargin + laborOpportunity.remaining`. The header shows BOTH
-**Projected Margin** (labor costed at the rate-we-gave = `cost_per_unit`) and **Margin + Labor
-Opp** (credits the eroding cushion = `(cost_per_unit − actual_cost_rate) × hours`, i.e.
-`estimate_financial_summary.total_labor_cushion`). The cushion is **NOT** in the projected
-margin — it's the gap up to `max_gross_profit_potential`, realized only if labor lands at the
-actual rate; as hours are consumed `remaining` shrinks (zone under_est→in_cushion→over_capacity)
-so marginWithOpp slides down to meet projectedMargin. Header is **always 4-across** on desktop
-when a cushion exists (`grid-cols-4`); 3-col with no Margin+Opp card when there's no cushion.
-Shared zone→{label,color} map: [cushionZone.ts](src/components/cost-tracking/efc/cushionZone.ts)
-`CUSHION_ZONE`, used by both `ProjectPLHeader` and `LaborOpportunityPanel` so they never drift.
+**Presentation helpers** — [lineDisplay.ts](src/components/cost-tracking/efc/lineDisplay.ts):
+`lineDisplayStatus` refines the 4-state `EFCLineStatus` into 5 — a fully-billed, at-or-under-budget
+line reads **"On plan"** (green) instead of amber "In prog". `lineSubtitle` (incl. labor "X of Y
+hrs · Z to go" from **actual logged paid hours**, not cost÷rate), `lineVendor`, `rollupByEmployee`.
 
-**Page anatomy** (top → bottom, all in `src/components/cost-tracking/efc/`):
-1. `ProjectPLHeader` — Contract · Expected Cost · Projected Margin · Margin + Labor Opp.
-2. `CostAnalysisActionStrip` — "Things to do" chips derived from EFC data (N lines over budget ·
-   $over; N external lines with no quote; $X unassigned) + **By Risk / By Category** sort +
-   **Allocate** + **Export CSV** ([costAnalysisExport.ts](src/components/cost-tracking/efc/costAnalysisExport.ts)).
-   Folds the old Detail tab's attention banner, risk grouping, and CSV export.
-3. `EFCCategorySection` → `EFCLineRow` (expandable). Row expand = the old Detail drawer's drill-in:
-   accepted quote, allocated-expense list, Est/Quoted/Allocated/Remaining variance.
-   `correlatedExpenses` + `acceptedQuotes` are threaded onto `CostBucketLineItem` → `EFCLine`
-   (don't refetch in the row).
-4. `LaborOpportunityPanel` inline on the Labor section; `UnallocatedRow` → **Allocate** (lines
-   exist) or **Recategorize** (zero-line categories like Other → `RecategorizeOtherBucketSheet`).
+**NOT the reporting margin.** The page's "Projected Margin" / "EFC" are **frontend EFC derivations**,
+distinct from the KPI catalog's `adjusted_est_margin` (the DB-view reportable forecast margin the
+AI assistant + reports use). Do not conflate them. The EFC measures are **intentionally NOT in
+`src/lib/kpi-definitions`** — they are per-project page derivations, not SQL-queryable columns, and
+adding them would mislead the SQL-generating AI assistant. See COST_TRACKING_CALCS.md
+§"Relationship to the KPI catalog".
 
 **Allocation** — `ProjectLineAllocationSheet` + the SHARED matcher
 [expenseAllocation.ts](src/utils/expenseAllocation.ts) `matchExpenseToLine` (also used by
@@ -917,17 +923,27 @@ Shared zone→{label,color} map: [cushionZone.ts](src/components/cost-tracking/e
 manual pick). Gate: `isProjectVisibleByCategory(project)` — construction + the SYS-TEST sandbox;
 overhead gets no Allocate (category-locked).
 
-**Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
-`CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
+**Replaced in PR #105** (deleted, −806 lines): `ProjectForecastView`, `EFCCategorySection`,
+`EFCLineRow`, `CostAnalysisActionStrip`, `ProjectPLHeader`, `LaborOpportunityPanel`, `UnallocatedRow`,
+`StatusPill`, `cushionZone`. New: `CostOverview`, `CostKpiStrip`, `CostLineTable`, `CostLineDetail`,
+`lineDisplay`, `CostLineDetailRoute`.
+
+**Deferred (need new data — not in v1)**: cost codes (no column on `estimate_line_items`), per-line
+documents (`project_documents` is project-scoped), Paid/Pending payment status (`expenses.approval_status`
+is approval, not payment), per-line activity feed.
 
 **Common pitfalls**:
-- Don't reintroduce a tab toggle — it's one page. **By Risk / By Category** sorts in place (By
-  Risk floats overrun lines up + categories by overage).
-- `expenseAllocation.ts` is financials-critical and shared by 3 surfaces — re-validate all three
-  if you touch it. Allocations must stay human-confirmed (never silent-write).
-- `marginWithOpp` uses `remaining` (eroding), not `bakedIn` (original) — don't swap them, or it
-  stops decreasing as the cushion is eaten.
-- Mobile: header is margin-leads stacked; line rows tap-to-expand; ≥44px touch targets.
+- `expenseAllocation.ts` is financials-critical and shared by 3 surfaces — re-validate all three if
+  you touch it. Allocations must stay human-confirmed (never silent-write).
+- `marginWithOpp` uses `remaining` (eroding), not `bakedIn` (original) — don't swap, or it stops
+  decreasing as the cushion is consumed.
+- Labor "hours" everywhere = **paid hours** (`expenses.hours`), not `gross_hours`. The line subtitle
+  + per-employee rollup show actual logged paid hours, NOT cost÷rate (don't revert — that mislabeled
+  dollars as hours and overstated remaining capacity; see COST_TRACKING_CALCS.md).
+- The line detail looks the line up in `useProjectEFC.categories` by id — don't add a per-line
+  fetch. Both estimate and change-order lines resolve there.
+- New PWA build: if the page shows the old UI after a deploy, it's the service-worker cache, not a
+  bad deploy — Settings → App Updates → "Force update (clear cache & reload)" (Gotcha #46).
 
 ---
 

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Download, Wand2 } from 'lucide-react';
+import { FileText, Download, Wand2 } from 'lucide-react';
+import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Project } from '@/types/project';
 import { ExpenseCategory } from '@/types/expense';
 import { useProjectEFC } from '@/hooks/useProjectEFC';
@@ -44,9 +45,8 @@ export function CostOverview({ projectId, project }: { projectId: string; projec
   if (efc.isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-16">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">Loading cost tracking…</span>
+        <CardContent className="py-16">
+          <BrandedLoader size="lg" message="Loading cost tracking…" />
         </CardContent>
       </Card>
     );
