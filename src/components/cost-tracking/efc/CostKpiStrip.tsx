@@ -12,10 +12,13 @@ interface Tile {
   subClass?: string;
 }
 
+// Tiles must stay wide enough for the largest value (~"($30,091.87)") — the
+// project layout's sidebars eat width, so 6-across only fits a wide desktop.
+// Laptop falls back to 3-across (2 rows); mobile to 2-across.
 const GRID_COLS: Record<number, string> = {
-  4: 'lg:grid-cols-4',
-  5: 'lg:grid-cols-5',
-  6: 'lg:grid-cols-6',
+  4: 'xl:grid-cols-4',
+  5: 'lg:grid-cols-3 2xl:grid-cols-5',
+  6: 'lg:grid-cols-3 2xl:grid-cols-6',
 };
 
 /**
@@ -88,7 +91,7 @@ export function CostKpiStrip({
   });
 
   return (
-    <div className={cn('grid gap-2 sm:gap-3 grid-cols-2 md:grid-cols-3', GRID_COLS[tiles.length] ?? 'lg:grid-cols-4')}>
+    <div className={cn('grid gap-2 sm:gap-3 grid-cols-2', GRID_COLS[tiles.length] ?? 'xl:grid-cols-4')}>
       {tiles.map((t) => (
         <div key={t.label} className="rounded-lg border bg-card px-3 py-2.5">
           <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t.label}</div>
