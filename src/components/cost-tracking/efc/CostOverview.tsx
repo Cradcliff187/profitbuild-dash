@@ -97,7 +97,7 @@ export function CostOverview({ projectId, project }: { projectId: string; projec
         </Button>
       </div>
 
-      <CostKpiStrip pl={efc.pl} issuesCount={issuesCount} />
+      <CostKpiStrip pl={efc.pl} laborOpportunity={efc.laborOpportunity} issuesCount={issuesCount} />
 
       <CostLineTable
         categories={efc.categories}

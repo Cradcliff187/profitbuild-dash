@@ -2,6 +2,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { ProjectEFCResult } from '@/hooks/useProjectEFC';
 
 const fmtPct = (n: number) => `${n.toFixed(1)}%`;
+const fmtHours = (h: number) => h.toLocaleString(undefined, { maximumFractionDigits: 1 });
 
 interface Tile {
   label: string;
@@ -11,14 +12,35 @@ interface Tile {
   subClass?: string;
 }
 
+// Tiles must stay wide enough for the largest value (~"($30,091.87)") — the
+// project layout's sidebars eat width, so 6-across only fits a wide desktop.
+// Laptop falls back to 3-across (2 rows); mobile to 2-across.
+const GRID_COLS: Record<number, string> = {
+  4: 'xl:grid-cols-4',
+  5: 'lg:grid-cols-3 2xl:grid-cols-5',
+  6: 'lg:grid-cols-3 2xl:grid-cols-6',
+};
+
 /**
  * The headline KPI strip for the Cost Tracking Overview: Contract, Expected
- * Final Cost (with overage), Projected Margin, Labor Opportunity (cushion), and
- * an Issues count. All values come from useProjectEFC — no extra query.
+ * Final Cost (with overage), Projected Margin, and an Issues count — plus, when
+ * the project carries a labor cushion, two more tiles: "Margin + Labor Opp" (the
+ * better margin once the eroding cushion is credited) and "Labor Opp" (the
+ * cushion dollars, with hours used / remaining as the sub-line). All values come
+ * from useProjectEFC — no extra query. See docs/COST_TRACKING_CALCS.md §4, §6.
  */
-export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; issuesCount: number }) {
+export function CostKpiStrip({
+  pl,
+  laborOpportunity,
+  issuesCount,
+}: {
+  pl: ProjectEFCResult['pl'];
+  laborOpportunity: ProjectEFCResult['laborOpportunity'];
+  issuesCount: number;
+}) {
   const over = pl.expectedCost - pl.plannedCost;
   const marginPositive = pl.projectedMargin >= 0;
+  const oppPositive = pl.marginWithOpp >= 0;
 
   const tiles: Tile[] = [
     { label: 'Contract', value: formatCurrency(pl.contract) },
@@ -29,7 +51,7 @@ export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; 
       subClass: over > 0.005 ? 'text-destructive' : 'text-muted-foreground',
     },
     {
-      label: 'Margin',
+      label: 'Projected Margin',
       value: formatCurrency(pl.projectedMargin),
       valueClass: marginPositive ? 'text-success' : 'text-destructive',
       sub: fmtPct(pl.projectedMarginPct),
@@ -38,12 +60,25 @@ export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; 
   ];
 
   if (pl.hasCushion) {
+    // The improved margin once the labor cushion is credited (always ≥ Projected Margin).
+    tiles.push({
+      label: 'Margin + Labor Opp',
+      value: formatCurrency(pl.marginWithOpp),
+      valueClass: oppPositive ? 'text-success' : 'text-destructive',
+      sub: fmtPct(pl.marginWithOppPct),
+      subClass: oppPositive ? 'text-success' : 'text-destructive',
+    });
+
+    // The cushion itself, described in HOURS: used of estimated · remaining.
+    const hoursSub = laborOpportunity
+      ? `${fmtHours(laborOpportunity.actualHours)} of ${fmtHours(laborOpportunity.estHours)} hrs · ${fmtHours(laborOpportunity.hoursRemaining)} left`
+      : undefined;
     tiles.push({
       label: 'Labor Opp',
       value: `+${formatCurrency(pl.cushionRemaining)}`,
       valueClass: 'text-success',
-      sub: 'Cushion',
-      subClass: 'text-success',
+      sub: hoursSub,
+      subClass: 'text-muted-foreground',
     });
   }
 
@@ -56,12 +91,7 @@ export function CostKpiStrip({ pl, issuesCount }: { pl: ProjectEFCResult['pl']; 
   });
 
   return (
-    <div
-      className={cn(
-        'grid gap-2 sm:gap-3 grid-cols-2',
-        tiles.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
-      )}
-    >
+    <div className={cn('grid gap-2 sm:gap-3 grid-cols-2', GRID_COLS[tiles.length] ?? 'xl:grid-cols-4')}>
       {tiles.map((t) => (
         <div key={t.label} className="rounded-lg border bg-card px-3 py-2.5">
           <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t.label}</div>
