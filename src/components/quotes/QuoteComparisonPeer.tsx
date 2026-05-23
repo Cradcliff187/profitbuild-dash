@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
@@ -114,15 +115,12 @@ export function QuoteComparisonPeer({
       {/* Per-line leaderboards */}
       {linesWithPeers.length === 0 && soloLines.length > 0 && (
         <Card>
-          <CardContent className="p-8 text-center space-y-2">
-            <XCircle className="h-8 w-8 mx-auto text-muted-foreground/60" />
-            <p className="text-sm font-medium">No competing bids yet</p>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              No other quote in this project references the {soloLines.length}{" "}
-              line {soloLines.length === 1 ? "item" : "items"} this quote
-              covers. Invite more vendors to bid on the same scope to enable
-              comparison.
-            </p>
+          <CardContent className="p-8">
+            <EmptyState
+              icon={XCircle}
+              title="No competing bids yet"
+              description={`No other quote in this project references the ${soloLines.length} line ${soloLines.length === 1 ? "item" : "items"} this quote covers. Invite more vendors to bid on the same scope to enable comparison.`}
+            />
           </CardContent>
         </Card>
       )}

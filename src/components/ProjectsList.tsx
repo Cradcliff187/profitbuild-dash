@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Building2, Edit, Trash2, Plus, Filter, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle, Calculator, Copy, MoreHorizontal, FileText, Info, Eye, ArrowUpDown, ChevronRight, Navigation } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRoles } from "@/contexts/RoleContext";
 import { format } from "date-fns";
@@ -459,21 +460,12 @@ export const ProjectsList = ({
 
   if (projects.length === 0) {
     return (
-      <Card className="compact-card">
-        <CardContent className="p-6 text-center">
-          <div className="text-muted-foreground mb-4">
-            <Building2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium">No projects found</p>
-            <p className="text-xs mt-1">
-              Create your first project to start tracking construction work
-            </p>
-          </div>
-          <Button onClick={onCreateNew} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Create First Project
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Building2}
+        title="No projects found"
+        description="Create your first project to start tracking construction work."
+        action={{ label: "Create First Project", onClick: onCreateNew, icon: Plus }}
+      />
     );
   }
 

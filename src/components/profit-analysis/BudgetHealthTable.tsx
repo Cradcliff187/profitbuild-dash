@@ -11,7 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, FileText } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectStatusBadge } from '@/components/ui/status-badge';
 import { formatCurrency } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -60,7 +61,7 @@ export function BudgetHealthTable({ data, isLoading, onSelectProject }: Props) {
   if (!data || data.length === 0) {
     return (
       <Card className="p-4">
-        <p className="text-muted-foreground text-center py-8">No projects found</p>
+        <EmptyState icon={FileText} title="No projects found" />
       </Card>
     );
   }

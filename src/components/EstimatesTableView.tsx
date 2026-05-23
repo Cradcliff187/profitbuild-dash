@@ -601,7 +601,7 @@ export const EstimatesTableView = ({ estimates, onEdit, onDelete, onView, onCrea
         getItemId={(estimate) => estimate.id}
         className="bg-card shadow-sm"
         emptyMessage="No estimates found"
-        emptyIcon={<FileText className="h-16 w-16 text-muted-foreground opacity-50" />}
+        emptyIcon={FileText}
         showActions={false}
       />
     </div>

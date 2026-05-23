@@ -672,7 +672,7 @@ export const QuotesTableView = ({
         getItemId={(quote) => quote.id}
         className="bg-card shadow-sm"
         emptyMessage="No quotes found"
-        emptyIcon={<FileText className="h-16 w-16 text-muted-foreground opacity-50" />}
+        emptyIcon={FileText}
         showActions={false}
       />
 

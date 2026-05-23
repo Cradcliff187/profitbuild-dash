@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import { EmptyState } from "@/components/ui/empty-state";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -223,7 +224,7 @@ const AllRevenuesLineItemsReport = () => {
             {revenues.length === 0 ? (
               <Card className="w-full">
                 <CardContent className="py-8">
-                  <p className="text-center text-muted-foreground">No revenues found</p>
+                  <EmptyState icon={DollarSign} title="No revenues found" />
                 </CardContent>
               </Card>
             ) : (
@@ -341,8 +342,8 @@ const AllRevenuesLineItemsReport = () => {
               <TableBody>
                 {revenues.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                      No revenues found
+                    <TableCell colSpan={9}>
+                      <EmptyState variant="compact" icon={DollarSign} title="No revenues found" />
                     </TableCell>
                   </TableRow>
                 ) : (

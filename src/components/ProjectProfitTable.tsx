@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUpDown, TrendingUp, TrendingDown, FileText } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { markProjectAsSynced, resetProjectSyncStatus } from '@/utils/syncUtils';
 import { toast } from "sonner";
@@ -217,8 +218,8 @@ export default function ProjectProfitTable({
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    No projects found
+                  <TableCell colSpan={7}>
+                    <EmptyState variant="compact" icon={FileText} title="No projects found" />
                   </TableCell>
                 </TableRow>
               ) : (

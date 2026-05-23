@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin } from "lucide-react";
+import { AlertTriangle, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -533,11 +535,15 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
         )}
 
         {filteredPayees.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              {payees.length === 0 ? "No payees found. Add your first payee to get started." : "No payees match your current filters."}
-            </CardContent>
-          </Card>
+          payees.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No payees found"
+              description="Add your first payee to get started."
+            />
+          ) : (
+            <NoResultsState title="No payees match your filters" />
+          )
         ) : (
           <div className="space-y-2">
             {filteredPayees.map((payee) => {

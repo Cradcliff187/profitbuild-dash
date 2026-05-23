@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ProjectRevenue } from "@/types/revenue";
@@ -987,11 +989,15 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
 
       {/* Revenues Table */}
       {sortedRevenues.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          {filteredRevenues.length === 0 
-            ? "No invoices found. Add your first invoice to get started."
-            : "No invoices match your current filters."}
-        </div>
+        filteredRevenues.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="No invoices found"
+            description="Add your first invoice to get started."
+          />
+        ) : (
+          <NoResultsState title="No invoices match your filters" />
+        )
       ) : isMobile ? (
         // Mobile Card View
         <div className="space-y-2">
@@ -1282,10 +1288,12 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                 <TableBody>
                   {paginatedRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={(isColumnVisible('checkbox') ? 1 : 0) + orderedColumns.filter(col => isColumnVisible(col.key) && col.key !== 'checkbox').length} className="text-center text-muted-foreground py-8">
-                        {searchTerm || filterProjects.length > 0 || filterClients.length > 0
-                          ? "No invoices match your filters"
-                          : "No invoices found"}
+                      <TableCell colSpan={(isColumnVisible('checkbox') ? 1 : 0) + orderedColumns.filter(col => isColumnVisible(col.key) && col.key !== 'checkbox').length}>
+                        {searchTerm || filterProjects.length > 0 || filterClients.length > 0 ? (
+                          <NoResultsState variant="compact" title="No invoices match your filters" />
+                        ) : (
+                          <EmptyState variant="compact" icon={FileText} title="No invoices found" />
+                        )}
                       </TableCell>
                     </TableRow>
                   ) : (

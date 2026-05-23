@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Building2 } from "lucide-react";
+import { Plus, Upload, MoreHorizontal, Eye, Edit2, Trash2, ChevronDown, Mail, Phone, MapPin, Building2, Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -333,11 +335,15 @@ export const ClientsList = forwardRef<ClientsListRef, ClientsListProps>(({ showF
         )}
 
         {filteredClients.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              {clients.length === 0 ? "No clients found. Add your first client to get started." : "No clients match your current filters."}
-            </CardContent>
-          </Card>
+          clients.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No clients found"
+              description="Add your first client to get started."
+            />
+          ) : (
+            <NoResultsState title="No clients match your filters" />
+          )
         ) : (
           <div className="space-y-2">
             {filteredClients.map((client) => {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Filter, FileText, Download, Trash2, Eye } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
+import { EmptyState } from "@/components/ui/empty-state";
+import { NoResultsState } from "@/components/ui/no-results-state";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -152,15 +154,15 @@ export function ContractsListView({ projectId, projectNumber }: ContractsListVie
       </div>
 
       {filteredContracts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-          <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No contracts found</p>
-          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-            {searchQuery || statusFilter !== 'all'
-              ? 'Try adjusting your search or filters'
-              : 'Generate a Subcontractor Project Agreement from an accepted quote.'}
-          </p>
-        </div>
+        searchQuery || statusFilter !== 'all' ? (
+          <NoResultsState title="No contracts found" description="Try adjusting your search or filters" />
+        ) : (
+          <EmptyState
+            icon={FileText}
+            title="No contracts found"
+            description="Generate a Subcontractor Project Agreement from an accepted quote."
+          />
+        )
       ) : (
           <>
             {/* Contract Cards - shown on all screen sizes */}

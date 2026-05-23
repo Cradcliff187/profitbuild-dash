@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MobileTabSelector } from "@/components/ui/mobile-tab-selector";
 import { Edit, Plus, FileText, GitCompare, FileStack } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { EstimateForm } from "@/components/EstimateForm";
 import { EstimateStatusSelector } from "@/components/EstimateStatusSelector";
 import { QuotesList } from "@/components/QuotesList";
@@ -69,18 +70,17 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
   if (estimates.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4" />
-            No Estimate
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">This project doesn't have an estimate yet.</p>
-          <Button onClick={() => navigate(`/projects/${projectId}/estimates/new`)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Estimate
-          </Button>
+        <CardContent className="p-6">
+          <EmptyState
+            icon={FileText}
+            title="No Estimate"
+            description="This project doesn't have an estimate yet."
+            action={{
+              label: "Create Estimate",
+              onClick: () => navigate(`/projects/${projectId}/estimates/new`),
+              icon: Plus,
+            }}
+          />
         </CardContent>
       </Card>
     );
@@ -174,8 +174,12 @@ export const ProjectEstimatesView = ({ projectId, estimates, quotes, onRefresh }
             </div>
           ) : (
             <Card>
-              <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                No current estimate available
+              <CardContent className="p-6">
+                <EmptyState
+                  variant="compact"
+                  icon={FileText}
+                  title="No current estimate available"
+                />
               </CardContent>
             </Card>
           )}

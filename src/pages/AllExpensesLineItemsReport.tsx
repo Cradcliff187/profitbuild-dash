@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Receipt, ChevronDown } from "lucide-react";
+import { Receipt, ChevronDown, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import { EmptyState } from "@/components/ui/empty-state";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -209,7 +210,7 @@ const AllExpensesLineItemsReport = () => {
             {expenses.length === 0 ? (
               <Card className="w-full">
                 <CardContent className="py-8">
-                  <p className="text-center text-muted-foreground">No expenses found</p>
+                  <EmptyState icon={DollarSign} title="No expenses found" />
                 </CardContent>
               </Card>
             ) : (
@@ -335,8 +336,8 @@ const AllExpensesLineItemsReport = () => {
               <TableBody>
                 {expenses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                      No expenses found
+                    <TableCell colSpan={10}>
+                      <EmptyState variant="compact" icon={DollarSign} title="No expenses found" />
                     </TableCell>
                   </TableRow>
                 ) : (

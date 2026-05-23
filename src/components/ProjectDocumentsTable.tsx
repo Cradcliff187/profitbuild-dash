@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DocumentLeadingIcon } from "@/utils/documentFileType";
 import { useDocumentPreview } from "@/hooks/useDocumentPreview";
 import { DocumentPreviewModals } from "@/components/documents/DocumentPreviewModals";
@@ -190,13 +191,11 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
       </div>
 
       {filteredDocuments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10 py-12 text-center">
-          <FileText className="mb-3 h-12 w-12 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No documents found</p>
-          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-            Upload documents to quickly share drawings, permits, licenses, or receipts with the team.
-          </p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No documents found"
+          description="Upload documents to quickly share drawings, permits, licenses, or receipts with the team."
+        />
       ) : (
         <>
           {/* Document Cards - shown on all screen sizes */}
