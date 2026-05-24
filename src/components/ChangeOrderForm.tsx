@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,6 +18,10 @@ import { ChangeOrderLineItemInput, CHANGE_ORDER_LINE_ITEM_TEMPLATE } from "@/typ
 import { Database } from "@/integrations/supabase/types";
 import { formatCurrency } from "@/lib/utils";
 import { DiscountInput, computeDiscountAmount } from "@/components/forms/DiscountInput";
+import { useInternalLaborRates } from "@/hooks/useCompanySettings";
+import { createLaborLineItemDefaults } from "@/utils/laborCalculations";
+
+const LABOR_CATEGORY = 'labor_internal';
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
 
@@ -41,6 +46,8 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   const [changeOrderNumber, setChangeOrderNumber] = useState("");
   const [contingencyRemaining, setContingencyRemaining] = useState<number>(0);
   const [lineItems, setLineItems] = useState<ChangeOrderLineItemInput[]>([]);
+  const { data: laborRates } = useInternalLaborRates();
+  const queryClient = useQueryClient();
   const [discountType, setDiscountType] = useState<'percent' | 'fixed' | null>(
     (changeOrder?.discount_type as 'percent' | 'fixed' | null | undefined) ?? null
   );
@@ -120,6 +127,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             sort_order: item.sort_order,
             payee_id: item.payee_id,
             payee_name: item.payees?.payee_name,
+            labor_hours: item.labor_hours != null ? Number(item.labor_hours) : null,
+            billing_rate_per_hour: item.billing_rate_per_hour != null ? Number(item.billing_rate_per_hour) : null,
+            actual_cost_rate_per_hour: item.actual_cost_rate_per_hour != null ? Number(item.actual_cost_rate_per_hour) : null,
           })));
         } else {
           // If editing but no line items, add one to get started
@@ -162,7 +172,35 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
   const handleUpdateLineItem = (index: number, field: keyof ChangeOrderLineItemInput, value: any) => {
     const updated = [...lineItems];
-    updated[index] = { ...updated[index], [field]: value };
+    const item = { ...updated[index], [field]: value };
+
+    // Labor-cushion handling — mirrors EstimateForm.updateLineItem so a CO's labor
+    // lines carry the same hours/billing-rate/actual-cost-rate the estimate does.
+    // The DB generates labor_cushion_amount from these on save.
+    if (field === 'category') {
+      if (value === LABOR_CATEGORY && laborRates) {
+        const defaults = createLaborLineItemDefaults(laborRates, item.quantity || 1, 25);
+        item.unit = 'HR';
+        item.cost_per_unit = defaults.costPerUnit;        // billing rate (includes cushion)
+        item.price_per_unit = defaults.pricePerUnit;       // billing rate + markup
+        item.labor_hours = defaults.laborHours;
+        item.billing_rate_per_hour = defaults.billingRatePerHour;
+        item.actual_cost_rate_per_hour = defaults.actualCostRatePerHour;
+      } else if (value !== LABOR_CATEGORY) {
+        // Leaving labor — clear labor inputs so no stale cushion lingers.
+        item.labor_hours = null;
+        item.billing_rate_per_hour = null;
+        item.actual_cost_rate_per_hour = null;
+      }
+    }
+
+    if (item.category === LABOR_CATEGORY) {
+      // Hours track quantity; billing rate tracks cost/unit (cost = billing rate for labor).
+      if (field === 'quantity') item.labor_hours = item.quantity;
+      if (field === 'cost_per_unit') item.billing_rate_per_hour = item.cost_per_unit;
+    }
+
+    updated[index] = item;
     setLineItems(updated);
   };
 
@@ -444,6 +482,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           price_per_unit: item.price_per_unit,
           sort_order: index,
           payee_id: item.payee_id,
+          labor_hours: item.category === LABOR_CATEGORY ? (item.labor_hours ?? item.quantity ?? null) : null,
+          billing_rate_per_hour: item.category === LABOR_CATEGORY ? (item.billing_rate_per_hour ?? item.cost_per_unit ?? null) : null,
+          actual_cost_rate_per_hour: item.category === LABOR_CATEGORY ? (item.actual_cost_rate_per_hour ?? null) : null,
         }));
 
         const { error: liError } = await supabase
@@ -495,6 +536,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           price_per_unit: item.price_per_unit,
           sort_order: index,
           payee_id: item.payee_id,
+          labor_hours: item.category === LABOR_CATEGORY ? (item.labor_hours ?? item.quantity ?? null) : null,
+          billing_rate_per_hour: item.category === LABOR_CATEGORY ? (item.billing_rate_per_hour ?? item.cost_per_unit ?? null) : null,
+          actual_cost_rate_per_hour: item.category === LABOR_CATEGORY ? (item.actual_cost_rate_per_hour ?? null) : null,
         }));
 
         const { error: liError } = await supabase
@@ -505,6 +549,11 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
         toast.success("Change order created successfully");
       }
+
+      // Refresh the labor cushion + cost buckets so CO labor flows into the
+      // project cushion immediately (Gotcha #27 — cost-buckets is a separate key
+      // from project-data).
+      queryClient.invalidateQueries({ queryKey: ['project-cost-buckets'] });
 
       onSuccess();
     } catch (error) {

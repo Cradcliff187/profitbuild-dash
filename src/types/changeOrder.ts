@@ -14,6 +14,12 @@ export interface ChangeOrderLineItemInput {
   sort_order?: number;
   payee_id?: string | null;
   payee_name?: string;
+  // Labor-cushion inputs (only meaningful on `labor_internal` lines). The DB
+  // derives change_order_line_items.labor_cushion_amount as a GENERATED column
+  // from these — mirrors estimate_line_items. Null on non-labor lines.
+  labor_hours?: number | null;
+  billing_rate_per_hour?: number | null;
+  actual_cost_rate_per_hour?: number | null;
 }
 
 export const CHANGE_ORDER_LINE_ITEM_TEMPLATE: ChangeOrderLineItemInput = {

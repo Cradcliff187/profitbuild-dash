@@ -9,12 +9,96 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChangeOrderLineItemInput } from '@/types/changeOrder';
 import { CATEGORY_DISPLAY_MAP } from '@/types/estimate';
 import { PayeeSelector } from '@/components/PayeeSelector';
 import { getCategoryDotClasses } from '@/utils/categoryColors';
+import { useInternalLaborRates } from '@/hooks/useCompanySettings';
+
+const LABOR_CATEGORY = 'labor_internal';
+
+/**
+ * Compact labor-cushion editor shown on `labor_internal` lines. Hours track the
+ * line quantity; billing rate is the line's cost/unit (cost = billing rate for
+ * labor); actual cost rate is editable and defaults from company settings. The
+ * cushion = hours × (billing − actual) is display-only here — the DB stores it
+ * as a GENERATED column on save.
+ */
+const LaborCushionControl: React.FC<{
+  item: ChangeOrderLineItemInput;
+  index: number;
+  onUpdateLineItem: (index: number, field: keyof ChangeOrderLineItemInput, value: any) => void;
+  fallbackActualRate: number;
+}> = ({ item, index, onUpdateLineItem, fallbackActualRate }) => {
+  const hours = item.labor_hours ?? item.quantity ?? 0;
+  const billing = item.billing_rate_per_hour ?? item.cost_per_unit ?? 0;
+  const actual = item.actual_cost_rate_per_hour ?? fallbackActualRate ?? 0;
+  const cushion = hours * (billing - actual);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium',
+            cushion >= 0
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+              : 'bg-destructive/10 text-destructive'
+          )}
+        >
+          Labor cushion: {formatCurrency(cushion)}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 space-y-3">
+        <div>
+          <p className="text-xs font-semibold">Internal Labor Cushion</p>
+          <p className="text-[11px] text-muted-foreground">
+            Banked when your crew works at the actual rate instead of the billed rate.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Hours</Label>
+            <div className="h-8 flex items-center rounded-md border bg-muted/40 px-2 text-xs font-mono">
+              {hours.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Billing $/hr</Label>
+            <Input
+              type="number"
+              value={billing}
+              onChange={(e) => onUpdateLineItem(index, 'cost_per_unit', parseFloat(e.target.value) || 0)}
+              className="h-8 text-xs font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Actual $/hr</Label>
+            <Input
+              type="number"
+              value={actual}
+              onChange={(e) => onUpdateLineItem(index, 'actual_cost_rate_per_hour', parseFloat(e.target.value) || 0)}
+              className="h-8 text-xs font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Cushion</Label>
+            <div className={cn(
+              'h-8 flex items-center rounded-md border px-2 text-xs font-mono font-semibold',
+              cushion >= 0 ? 'text-success' : 'text-destructive'
+            )}>
+              {formatCurrency(cushion)}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 interface ChangeOrderLineItemTableProps {
   lineItems: ChangeOrderLineItemInput[];
@@ -118,6 +202,8 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
   showContingencyGuidance,
 }) => {
   const isMobile = useIsMobile();
+  const { data: laborRates } = useInternalLaborRates();
+  const fallbackActualRate = laborRates?.actual_cost_per_hour ?? 0;
 
   const calculateMarkupPercent = (item: ChangeOrderLineItemInput): number => {
     if (item.cost_per_unit <= 0) return 0;
@@ -258,6 +344,14 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                       placeholder="Description"
                       className="h-8 text-sm"
                     />
+                    {item.category === LABOR_CATEGORY && (
+                      <LaborCushionControl
+                        item={item}
+                        index={index}
+                        onUpdateLineItem={onUpdateLineItem}
+                        fallbackActualRate={fallbackActualRate}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -396,6 +490,14 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                         value={item.description}
                         onChange={(value) => onUpdateLineItem(index, 'description', value)}
                       />
+                      {item.category === LABOR_CATEGORY && (
+                        <LaborCushionControl
+                          item={item}
+                          index={index}
+                          onUpdateLineItem={onUpdateLineItem}
+                          fallbackActualRate={fallbackActualRate}
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="p-2 text-right">
                       <EditableCell
