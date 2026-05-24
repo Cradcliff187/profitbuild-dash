@@ -269,14 +269,19 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
     if (fetchError) throw fetchError;
     if (!newLineItems?.length) return;
 
-    // 2. Regenerate auto-quote
+    // 2. Regenerate auto-quote — only when a payee is assigned to a line item.
+    // quotes.payee_id is NOT NULL, so a payee-less CO cannot have an auto-quote;
+    // the CO cost still reaches cost tracking via the line-item plan tier and the
+    // SOV entries below, so we skip the quote here and let it be created on a later
+    // edit once a payee is set.
+    const autoQuotePayeeId = newLineItems.find((li) => li.payee_id)?.payee_id ?? null;
     const { data: project } = await supabase
       .from('projects')
       .select('project_number')
       .eq('id', projectId)
       .single();
 
-    if (project) {
+    if (project && autoQuotePayeeId) {
       const { data: existingQuotes } = await supabase
         .from('quotes')
         .select('quote_number')
@@ -291,7 +296,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
         .insert({
           project_id: projectId,
           estimate_id: null,
-          payee_id: newLineItems[0]?.payee_id || null,
+          payee_id: autoQuotePayeeId,
           quote_number: quoteNumber,
           status: 'accepted',
           date_received: new Date().toISOString().split('T')[0],
