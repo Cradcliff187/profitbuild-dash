@@ -929,6 +929,69 @@ overhead gets no Allocate (category-locked).
   stops decreasing as the cushion is eaten.
 - Mobile: header is margin-leads stacked; line rows tap-to-expand; ≥44px touch targets.
 
+### 29. Document & Media Classification (May 24, 2026, PR #113)
+
+Editing a document's name/type/description used to be reachable ONLY from the `Drawings` / `Permits`
+/ `Licenses` sub-tabs of the Documents Hub (`ProjectDocumentsTable` → `DocumentDetailsSheet`, admin/
+manager only). The Hub **defaults to the `All` sub-tab**, which renders a different component
+([`ProjectDocumentsTimeline`](src/components/ProjectDocumentsTimeline.tsx)) — so `'other'`-typed docs
+(the bulk Drive imports) were unreachable by the editor on the web. Now:
+
+- **`ProjectDocumentsTimeline`** surfaces an **"Edit details"** row-menu item (both mobile + desktop
+  blocks), gated `isAdmin || isManager` and only for `item.type === 'document'` (the full
+  `project_documents` row already rides on `item.metadata`). Reuses `DocumentDetailsSheet` — do NOT
+  rebuild an editor. The sheet now also invalidates `['project-documents-timeline', projectId]`.
+- **Document-type taxonomy** — `project_documents.document_type` is **free-text in the DB** (not an
+  enum), and edge functions already wrote values the TS `DocumentType` union never declared (`invoice`
+  from `generate-invoice`, `aia-g702`/`aia-g703` from the AIA PDF export). The union + `DOCUMENT_TYPE_LABELS`
+  + Lucide icon/color maps in [src/types/document.ts](src/types/document.ts) / [src/utils/documentFileType.ts](src/utils/documentFileType.ts)
+  now cover all of them. The editor dropdown iterates a curated `ASSIGNABLE_DOCUMENT_TYPES`
+  (drawing/permit/license/contract/specification/report/**invoice**/**quote**/other) — AIA types get
+  labels so they render correctly but are **never hand-assignable** (system-generated). The Select also
+  always includes the doc's *current* type so a non-assignable (AIA) doc still displays its label.
+  `QuoteAttachmentUpload` now writes `document_type: 'quote'` going forward (no backfill).
+- **Image/video classification** — new nullable `project_media.category` column (8-value construction
+  taxonomy: `progress / before / after / issue / materials / site / safety / other`; CHECK-constrained,
+  NULL = unclassified). New [`MediaDetailsSheet`](src/components/media/MediaDetailsSheet.tsx) (file name
+  + caption + category) wired into `PhotoLightbox` / `VideoLightbox` for admin/manager on
+  `source !== 'note'` media (field workers keep the existing caption-only flow; note-sourced media stays
+  non-editable per Rule 20). `ProjectMediaGallery` gained category **filter pills** + a per-item badge.
+  `updateMediaMetadata` extended to write `file_name` + `category`.
+
+**Common pitfalls**: don't put the editor back behind only the type-filtered sub-tabs — `'other'`/
+invoice docs only live in `All`. Keep `DocumentType` and its label/icon `Record`s in lockstep (they're
+full `Record<DocumentType,…>`, so a missing key fails `type-check` loudly — that's the safety net).
+
+### 30. Labor Cushion on Approved Change Orders (May 24, 2026, PR #114)
+
+A change order is an incremental estimate, and the labor-cushion model (Rules 13/28) now treats it as
+one. **No DB change was required** — `change_order_line_items` already carried the cushion columns
+symmetrically with `estimate_line_items`, and `labor_cushion_amount` is a **`GENERATED ALWAYS`** column
+(`labor_hours × (billing_rate_per_hour − actual_cost_rate_per_hour)` for `labor_internal` lines). Only
+the form inputs and the project rollup were ever wired (estimate-only). Now:
+
+- **[ChangeOrderForm](src/components/ChangeOrderForm.tsx)** — for `labor_internal` lines, auto-populates
+  billing/actual rates from `useInternalLaborRates` via `createLaborLineItemDefaults` (mirrors
+  `EstimateForm.updateLineItem`), tracks `labor_hours = quantity` and `billing_rate = cost_per_unit`,
+  and persists the three input columns. The generated column derives the cushion on write.
+- **[ChangeOrderLineItemTable](src/components/ChangeOrderLineItemTable.tsx)** — compact per-line cushion
+  popover (hours / billing $/hr / actual $/hr / live cushion) on labor lines, desktop + mobile.
+- **[useProjectCostBuckets](src/hooks/useProjectCostBuckets.ts)** `fetchLaborCushionRaw` — folds
+  **APPROVED**-CO labor into the cushion denominators: `estHours += coHours`, `bakedIn += coCushion`,
+  capacity recomputed from combined estimate+CO components (`combinedHours + combinedCushion /
+  effectiveActualRate`). `fetchEstimateLineItemMeta` also merges approved-CO labor so CO labor rows show
+  their own cushion in Cost Analysis. CO approve/save invalidates `['project-cost-buckets']`.
+
+**Why it's a correctness fix, not just upside**: the cushion's `actualHours` is project-wide (every
+`labor_internal` expense), but `estHours`/`capacity`/`bakedIn` were estimate-only — so labor added via a
+CO and then worked made the model read a false overrun and erode the cushion. Folding approved-CO labor
+into the denominator fixes that.
+
+**Scope**: approved COs only (drafts aren't real scope — mirrors `contracted_amount`). Estimate-screen
+KPIs reading `estimate_financial_summary` (e.g. `max_gross_profit_potential`) remain estimate-only; this
+targets the **project** cushion in Cost Analysis. The cushion erosion math itself
+(`computeLaborCushionState`) is unchanged.
+
 ---
 
 ## TypeScript Configuration
@@ -1221,6 +1284,14 @@ Use this list when doing periodic documentation reviews:
 57. **`create_estimate_version` re-points quote FKs — assumptions changed (PR [#97](https://github.com/Cradcliff187/profitbuild-dash/pull/97), May 20, 2026)** — See Architectural Rule 27 for the full mechanism. If you're investigating "the quote I accepted is pointing to a different `estimate_line_item_id` than I expected", check the `parent_estimate_id` chain — the quote may have correctly followed a newer estimate version via the RPC's re-point step. Conversely, "this quote line still points to a superseded estimate version" used to be the silent-orphan bug class pre-May-20 — the four pre-existing orphans (225-012 ×3, 225-037 ×1) were repaired the same day; if you see a NEW one, suspect: (a) a path that creates new estimate versions WITHOUT calling `create_estimate_version()` (verify the call chain), or (b) the quote was created against a line that was later dropped from the next version (resolvable only manually). **Don't add a "one accepted quote per `estimate_line_item_id`" uniqueness constraint** — after re-point, two quotes accepted on different historical versions of the same line legitimately converge on one new line. The 225-037 Flooring case (A&B + Grey Street both accepted on v2 line, $19,672 quoted on $10,688 estimate) demonstrates this — it's a PM data-hygiene call, not a code class to enforce away. **Don't assume `sort_order` is unique within an estimate** — the pairing algorithm uses `(sort_order, id)` ordering and "first occurrence wins" deterministically, which is correct but only because the algorithm is iterative; a naive set-based JOIN-on-sort_order would pair randomly within a collision group.
 
 58. **"Edit" edits an estimate in place for ALL statuses, including approved — it never versions (PR [#108](https://github.com/Cradcliff187/profitbuild-dash/pull/108), May 22, 2026)** — Product decision. Before this, `EstimateForm.handleSave` had a branch (`if (initialEstimate.status === 'approved')`) that ran `create_estimate_version` whenever you edited an approved estimate, so the project Estimates tab's **Edit** button (which targets `currentEstimate`, and `currentEstimate` prioritizes the approved estimate — [ProjectEstimatesView.tsx:40](src/components/ProjectEstimatesView.tsx:40)) silently created a new version on every save. Edit and the separate **New Version** button were therefore identical on any project with an approved estimate. The approved-version branch was removed; editing now always updates the same row in place (draft/sent already did). **Edit = change in place, New Version = explicitly create a copy.** New Version still routes through the create path (no `initialEstimate` → `create_estimate_version`, Rule 27), so versioning is unaffected. **Calc chain verified intact on in-place approved edits** (SYS-TEST sandbox): the in-place save body is unchanged code — it writes the estimate + diff-updates line items (firing the `compute_estimate_totals` / contingency / margin triggers, Rule 26 + Gotcha #26), calls `refresh_estimate_labor_cushion`, and on an Approve-save calls `approveEstimateSideEffects(projectId, totalAmount)` (the SAME call the old version path used) which writes `projects.contracted_amount`. Verified contingency %, project contingency $/remaining, contracted $, and labor cushion all recompute. **Accepted trade-offs** (user signed off): editing an approved estimate keeps no snapshot of the prior approved figure, and AIA SOVs are NOT auto-regenerated to match (Rule 8/26 — zero AIA projects affected at ship time). **Pitfall**: don't "restore" the version-on-approved guardrail thinking it's a missing safety net — it was deliberately removed; the guardrail's intent (don't silently mutate the contract baseline) is now the user's call, and `approveEstimateSideEffects` keeps `contracted_amount` correct regardless.
+
+59. **`project_documents.document_type` is free-text, not an enum — the DB holds values the TS union didn't (PR [#113](https://github.com/Cradcliff187/profitbuild-dash/pull/113), May 24, 2026)** — Edge functions write `document_type` directly: `generate-invoice` writes `'invoice'` (62 rows live), the AIA PDF export writes `'aia-g702'`/`'aia-g703'`. None were in the `DocumentType` TS union or `DOCUMENT_TYPE_LABELS`, so they rendered with a fallback label and weren't selectable in the editor. Fixed by widening the union + label/icon maps (Rule 29). **Keep them in sync**: `DOCUMENT_TYPE_LABELS` (types/document.ts), `DOCUMENT_TYPE_ICONS`, and `DOCUMENT_TYPE_LUCIDE_ICONS`/`DOCUMENT_TYPE_ICON_COLORS` (documentFileType.ts) are all full `Record<DocumentType, …>` — adding a union member without adding it to every Record fails `type-check`, which is the intended guardrail. The editor's assignable set is the *curated* `ASSIGNABLE_DOCUMENT_TYPES` (excludes the system-generated AIA types), NOT all of `DOCUMENT_TYPE_LABELS` — when adding a new doc type, decide whether it's hand-assignable. **Don't move the document editor back behind only the type-filtered sub-tabs** (Drawings/Permits/Licenses) — `'other'`/invoice docs live only in the `All` timeline (Rule 29).
+
+60. **`PayeeSelector`'s popover was locked to the trigger width — unreadable in narrow cells (PR [#113](https://github.com/Cradcliff187/profitbuild-dash/pull/113), May 24, 2026)** — The `PopoverContent` had `style={{ width: 'var(--radix-popover-trigger-width)' }}`. In the Change Order line-item table the Payee trigger is a ~110px column, so the dropdown clipped payee names + type badges down to "Mate"/"Subc"/"Othe". Fixed by `w-[var(--radix-popover-trigger-width)] min-w-[260px] max-w-[calc(100vw-1.5rem)]` (CSS `min-width` wins over `width`, so it matches the trigger in wide forms but expands to a readable 260px in tight cells; max-w prevents mobile overflow). Single shared fix — benefits every `PayeeSelector` caller. If you add a cmdk/Popover picker in a tight cell, don't pin its content to trigger width.
+
+61. **Change-order approval auto-quote requires a payee — approval without one used to half-fail (PR [#113](https://github.com/Cradcliff187/profitbuild-dash/pull/113), May 24, 2026)** — `ChangeOrdersList.handleApprove` flips the CO to `approved` (Step 1, commits), then inserts an "auto-quote" recording the committed cost. `quotes.payee_id` is **NOT NULL**, but the insert used `lineItems[0]?.payee_id || null` — so a CO whose lines had no payee threw a constraint error AFTER the status was already committed (CO approved, but error toast + no quote). Fixed: the auto-quote (and its `quote_line_items`) is created only when a line item carries a payee (`lineItems.find(li => li.payee_id)`); otherwise approval succeeds cleanly and the quote is generated later on edit once a payee is set. **No cost is lost** — the CO's cost still reaches cost tracking via the EFC `plan` tier (Rule 28) and billing via the SOV trigger (Rule 8), both independent of the quote. Same guard applied to `ChangeOrderForm.regenerateApprovedCOReferences` (the approved-CO edit path). Don't "fix" this by making `quotes.payee_id` nullable — many consumers assume a quote has a payee.
+
+62. **`change_order_line_items.labor_cushion_amount` is a `GENERATED ALWAYS` column — set the inputs, never the cushion (PR [#114](https://github.com/Cradcliff187/profitbuild-dash/pull/114), May 24, 2026)** — Both `estimate_line_items` and `change_order_line_items` carry `labor_cushion_amount` as a generated column: `CASE WHEN category='labor_internal' AND labor_hours IS NOT NULL THEN labor_hours*COALESCE(billing_rate_per_hour,0) − labor_hours*COALESCE(actual_cost_rate_per_hour,0) ELSE 0 END`. This is why applying the labor cushion to change orders (Rule 30) needed **zero DB changes** — the column already existed and auto-computes the moment the three input columns (`labor_hours`/`billing_rate_per_hour`/`actual_cost_rate_per_hour`) are written. Never write `labor_cushion_amount` from app code (it's read-only / would error); write the inputs. When debugging "why is a CO's cushion 0", check whether the three input columns are populated — on a CO they're only set when the line is `labor_internal` and the form captured them (Rule 30). **PO# note (same PR)**: `customer_po_number` now shows on the project Overview (`ProjectOperationalDashboard`, desktop cells + mobile, only when set). Work orders route to `/projects/:id` and render this same Overview, so it covers "work order details" too — and PO is already editable for both via `ProjectEditForm` (which `WorkOrderEditSheet` wraps).
 
 ---
 
