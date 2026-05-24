@@ -1,31 +1,25 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { 
-  AlertCircle, 
-  Clock, 
-  FileText, 
+import {
+  AlertCircle,
+  Clock,
+  FileText,
   FileEdit,
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
   Camera,
   Video,
   Receipt,
   FileIcon,
-  Calendar,
-  DollarSign,
-  FileSignature,
-  ChevronRight
+  ChevronRight,
+  Check,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { formatCurrency, cn } from '@/lib/utils';
-import { getMarginThresholdStatus, getThresholdStatusColor } from '@/utils/thresholdUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { calculateScheduleStatus, getExpiringQuotes, getProjectScheduleDates } from '@/utils/projectDashboard';
-import { getContingencyColor } from '@/utils/financialColors';
 import type { Project } from '@/types/project';
 import type { Estimate } from '@/types/estimate';
 import type { Quote } from '@/types/quote';
@@ -50,7 +44,6 @@ export function ProjectOperationalDashboard({
   project,
   estimates,
   quotes,
-  expenses,
   changeOrders,
   pendingTimeEntries,
   pendingReceipts,
@@ -58,11 +51,12 @@ export function ProjectOperationalDashboard({
   documentCount
 }: ProjectOperationalDashboardProps) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   // State for schedule dates loaded from line items if needed
-  const [scheduleDates, setScheduleDates] = useState<{ start: Date | null; end: Date | null }>({ 
-    start: null, 
-    end: null 
+  const [scheduleDates, setScheduleDates] = useState<{ start: Date | null; end: Date | null }>({
+    start: null,
+    end: null
   });
 
   // Data freshness tracking
@@ -126,100 +120,7 @@ export function ProjectOperationalDashboard({
     }
   }, [project.id, project.status]);
 
-  // Labor cushion data from estimate_financial_summary
-  const [laborCushion, setLaborCushion] = useState<{
-    cushionHoursCapacity: number | null;
-    totalLaborCapacity: number | null;
-    totalLaborHours: number | null;
-    scheduleBufferPercent: number | null;
-  } | null>(null);
-
-  useEffect(() => {
-    async function fetchCushionData() {
-      if (!project.id) return;
-
-      // Step 1: Find the current version estimate for this project.
-      // Prefer is_current_version = true; fall back to most recent approved.
-      let estimateId: string | null = null;
-
-      const { data: currentEstimate } = await supabase
-        .from('estimates')
-        .select('id')
-        .eq('project_id', project.id)
-        .eq('is_current_version', true)
-        .limit(1)
-        .maybeSingle();
-
-      if (currentEstimate) {
-        estimateId = currentEstimate.id;
-      } else {
-        // Fallback: most recent approved estimate
-        const { data: approvedEstimate } = await supabase
-          .from('estimates')
-          .select('id')
-          .eq('project_id', project.id)
-          .eq('status', 'approved')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (approvedEstimate) {
-          estimateId = approvedEstimate.id;
-        }
-      }
-
-      if (!estimateId) return;
-
-      // Step 2: Fetch financial summary for the resolved estimate
-      const { data, error } = await supabase
-        .from('estimate_financial_summary')
-        .select('cushion_hours_capacity, total_labor_capacity, total_labor_hours, schedule_buffer_percent')
-        .eq('estimate_id', estimateId)
-        .maybeSingle();
-
-      if (error) { console.error('Failed to load labor cushion data:', error); return; }
-      if (data) {
-        setLaborCushion({
-          cushionHoursCapacity: data.cushion_hours_capacity,
-          totalLaborCapacity: data.total_labor_capacity,
-          totalLaborHours: data.total_labor_hours,
-          scheduleBufferPercent: data.schedule_buffer_percent,
-        });
-      }
-    }
-
-    if (['approved', 'in_progress'].includes(project.status)) {
-      fetchCushionData();
-    }
-  }, [project.id, project.status]);
-
-  // Actual hours from time entries (expenses.category = 'labor_internal')
-  // project.actual_hours may not be populated, so aggregate from source.
-  const [actualHoursFromEntries, setActualHoursFromEntries] = useState<number | null>(null);
-
-  useEffect(() => {
-    async function fetchActualHours() {
-      if (!project.id) return;
-
-      const { data, error: hoursError } = await supabase
-        .from('expenses')
-        .select('hours')
-        .eq('project_id', project.id)
-        .eq('category', 'labor_internal');
-
-      if (hoursError) { console.error('Failed to load actual hours:', hoursError); return; }
-      if (data) {
-        const total = data.reduce((sum, entry) => sum + (entry.hours ?? 0), 0);
-        setActualHoursFromEntries(total);
-      }
-    }
-
-    if (['approved', 'in_progress'].includes(project.status)) {
-      fetchActualHours();
-    }
-  }, [project.id, project.status]);
-
-  // Owner name for reference card
+  // Owner name for the identity strip
   const [ownerName, setOwnerName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -236,56 +137,59 @@ export function ProjectOperationalDashboard({
     fetchOwner();
   }, [project.owner_id]);
 
-  // Calculate operational metrics
+  // Calculate operational metrics. `label` is the full desktop line; `short` is the
+  // condensed token used in the mobile single-line summary.
   const needsAttention = useMemo(() => {
-    const items = [];
-    
+    const items: Array<{
+      type: string;
+      label: string;
+      short: string;
+      icon: typeof Clock;
+      onClick: () => void;
+    }> = [];
+
     if (pendingTimeEntries > 0) {
       items.push({
         type: 'time_entries',
-        label: 'Pending Time Entries',
-        count: pendingTimeEntries,
-        color: 'orange',
+        label: `${pendingTimeEntries} pending time ${pendingTimeEntries === 1 ? 'entry' : 'entries'}`,
+        short: `${pendingTimeEntries} pending time`,
         icon: Clock,
         onClick: () => navigate('/time-entries?status=pending')
       });
     }
-    
+
     if (pendingReceipts > 0) {
       items.push({
         type: 'receipts',
-        label: 'Pending Receipts',
-        count: pendingReceipts,
-        color: 'blue',
+        label: `${pendingReceipts} pending ${pendingReceipts === 1 ? 'receipt' : 'receipts'}`,
+        short: `${pendingReceipts} receipts`,
         icon: FileText,
         onClick: () => navigate(`/time-entries?tab=receipts&project=${project.id}`)
       });
     }
-    
+
     const pendingCOs = changeOrders.filter(co => co.status === 'pending');
     if (pendingCOs.length > 0) {
       items.push({
         type: 'change_orders',
-        label: 'Pending Change Orders',
-        count: pendingCOs.length,
-        color: 'purple',
+        label: `${pendingCOs.length} pending change ${pendingCOs.length === 1 ? 'order' : 'orders'}`,
+        short: `${pendingCOs.length} pending COs`,
         icon: FileEdit,
         onClick: () => navigate(`/projects/${project.id}/changes`)
       });
     }
-    
+
     const expiringQuotes = getExpiringQuotes(quotes, 7);
     if (expiringQuotes.length > 0) {
       items.push({
         type: 'expiring_quotes',
-        label: 'Expiring Quotes (7 days)',
-        count: expiringQuotes.length,
-        color: 'red',
+        label: `${expiringQuotes.length} expiring ${expiringQuotes.length === 1 ? 'quote' : 'quotes'} (7 days)`,
+        short: `${expiringQuotes.length} expiring quotes`,
         icon: AlertTriangle,
         onClick: () => navigate(`/projects/${project.id}#quotes`)
       });
     }
-    
+
     // DNE Warning — check if expenses approaching do_not_exceed
     if (project.do_not_exceed && project.do_not_exceed > 0) {
       const totalExpenses = (project as any).total_expenses ?? 0;
@@ -295,14 +199,13 @@ export function ProjectOperationalDashboard({
         items.push({
           type: 'dne_warning',
           label: `DNE: ${formatCurrency(remaining)} of ${formatCurrency(project.do_not_exceed)} remaining (${utilizationPct.toFixed(0)}% used)`,
-          count: 1,
-          color: utilizationPct >= 95 ? 'red' : 'orange',
+          short: `DNE ${utilizationPct.toFixed(0)}% used`,
           icon: AlertTriangle,
           onClick: () => navigate(`/projects/${project.id}/expenses`),
         });
       }
     }
-    
+
     // Contingency Warning
     const contingencyAmount = project.contingency_amount ?? 0;
     const contingencyRemaining = project.contingency_remaining ?? 0;
@@ -311,23 +214,21 @@ export function ProjectOperationalDashboard({
       if (remainingPct <= 25) {
         items.push({
           type: 'contingency_warning',
-          label: `Contingency: ${formatCurrency(contingencyRemaining)} left (${remainingPct.toFixed(0)}%)`,
-          count: 1,
-          color: remainingPct <= 10 ? 'red' : 'orange',
+          label: `Contingency ${remainingPct.toFixed(0)}% remaining`,
+          short: `contingency ${remainingPct.toFixed(0)}%`,
           icon: AlertTriangle,
           onClick: () => navigate(`/projects/${project.id}/changes`),
         });
       }
     }
-    
+
     // Data Freshness Warning — only for active projects with stale data
     if (['in_progress', 'approved'].includes(project.status)) {
       if (dataFreshness.lastExpenseDays !== null && dataFreshness.lastExpenseDays > 14) {
         items.push({
           type: 'stale_expenses',
           label: `No material/sub expenses in ${dataFreshness.lastExpenseDays} days`,
-          count: 1,
-          color: 'orange',
+          short: 'stale expenses',
           icon: Clock,
           onClick: () => navigate(`/projects/${project.id}/expenses`),
         });
@@ -336,14 +237,13 @@ export function ProjectOperationalDashboard({
         items.push({
           type: 'stale_time',
           label: `No time entries in ${dataFreshness.lastTimeDays} days`,
-          count: 1,
-          color: 'orange',
+          short: 'stale time',
           icon: Clock,
           onClick: () => navigate('/time-entries'),
         });
       }
     }
-    
+
     return items;
   }, [pendingTimeEntries, pendingReceipts, changeOrders, quotes, project, navigate, dataFreshness]);
 
@@ -356,11 +256,11 @@ export function ProjectOperationalDashboard({
     const pending = changeOrders.filter(co => co.status === 'pending').length;
     const approved = changeOrders.filter(co => co.status === 'approved');
     const rejected = changeOrders.filter(co => co.status === 'rejected').length;
-    
+
     const totalRevenue = approved.reduce((sum, co) => sum + (co.client_amount || 0), 0);
     const totalCosts = approved.reduce((sum, co) => sum + (co.cost_impact || 0), 0);
     const netImpact = totalRevenue - totalCosts;
-    
+
     return {
       pending,
       approvedCount: approved.length,
@@ -371,623 +271,273 @@ export function ProjectOperationalDashboard({
     };
   }, [changeOrders]);
 
-  const financialDisplay = useMemo(() => {
-    const status = project.status;
-    const currentEstimate = estimates?.find(e => e.is_current_version);
+  // ---- Derived display values ----
+  const isClosed = project.status === 'complete' || project.status === 'cancelled';
+  const showChangeOrders = changeOrders.length > 0;
 
-    if (status === 'estimating') {
-      const estimateValue = currentEstimate?.total_amount ?? 0;
-      const estimatedCosts = currentEstimate?.total_cost ?? 0;
-      const estimatedMargin = estimateValue - estimatedCosts;
-      const estimatedMarginPct = estimateValue > 0 ? (estimatedMargin / estimateValue) * 100 : 0;
-      
-      // If project has adjusted values from quotes/COs, use those
-      const contractValue = project.contracted_amount ?? 0;
-      const adjustedEstCosts = project.adjusted_est_costs ?? 0;
-      const adjustedMargin = project.adjusted_est_margin ?? 0;
-      const adjustedMarginPct = contractValue > 0 ? (adjustedMargin / contractValue) * 100 : 0;
-      
-      if (contractValue > 0 || adjustedEstCosts > 0) {
-        return {
-          label1: 'Estimate Value',
-          value1: contractValue || estimateValue,
-          label2: 'Estimated Costs',
-          value2: adjustedEstCosts || estimatedCosts,
-          marginLabel: 'Est. Margin',
-          marginValue: adjustedMargin || estimatedMargin,
-          marginPct: adjustedMarginPct || estimatedMarginPct,
-          showBudgetStatus: false,
-          showVariance: false,
-        };
-      }
-      
-      // Fallback: pure estimate view
-      return {
-        label1: 'Estimate Value',
-        value1: estimateValue,
-        label2: 'Estimated Costs',
-        value2: estimatedCosts,
-        marginLabel: 'Estimated Margin',
-        marginValue: estimatedMargin,
-        marginPct: estimatedMarginPct,
-        showBudgetStatus: false,
-        showVariance: false,
-      };
+  // Date format: omit the year unless it's a different calendar year than today.
+  const fmtDate = (d?: Date | string | null) => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return format(date, date.getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy');
+  };
+
+  // Whole-dollar money (no cents), matching the headline-financial style of the design.
+  const money0 = (v?: number | string | null) => '$' + Math.round(Number(v) || 0).toLocaleString('en-US');
+  const signedMoney0 = (v?: number | string | null) => {
+    const n = Number(v) || 0;
+    return (n >= 0 ? '+' : '-') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+  };
+  const abbrevSigned = (v?: number | string | null) => {
+    const n = Number(v) || 0;
+    const sign = n >= 0 ? '+' : '-';
+    const abs = Math.abs(n);
+    return abs >= 1000 ? `${sign}$${(abs / 1000).toFixed(1).replace(/\.0$/, '')}k` : `${sign}$${Math.round(abs)}`;
+  };
+
+  const currentEstimate = estimates?.find(e => e.is_current_version);
+  const totalInvoiced = Number((project as any).total_invoiced) || 0;
+  const actualMargin = Number(project.actual_margin) || 0;
+  const finalMarginPct = totalInvoiced > 0 ? (actualMargin / totalInvoiced) * 100 : 0;
+  const finalMarginText = `${signedMoney0(actualMargin)} (${finalMarginPct.toFixed(1)}%)`;
+  const finalMarginClass = actualMargin >= 0 ? 'text-success' : 'text-destructive';
+
+  const moneyLabel = project.status === 'estimating' ? 'Estimate' : 'Contract';
+  const moneyValue = project.status === 'estimating'
+    ? (Number(currentEstimate?.total_amount) ? money0(currentEstimate!.total_amount) : '—')
+    : (Number(project.contracted_amount) ? money0(project.contracted_amount) : '—');
+
+  // Desktop identity meta cells (mobile shows only the money rows below).
+  type MetaCell = { label: string; value: string; valueClassName?: string };
+  const desktopCells: MetaCell[] = ([
+    { label: 'Owner', value: ownerName ?? '—' },
+    { label: 'Start', value: fmtDate(project.start_date) },
+    { label: 'End', value: fmtDate(project.end_date) },
+    { label: moneyLabel, value: moneyValue, valueClassName: 'font-medium' },
+    project.project_type === 'work_order'
+      ? { label: 'DNE', value: Number(project.do_not_exceed) ? money0(project.do_not_exceed) : '—', valueClassName: 'font-medium' }
+      : null,
+    isClosed
+      ? { label: 'Final margin', value: finalMarginText, valueClassName: cn('font-medium', finalMarginClass) }
+      : null,
+  ].filter(Boolean) as MetaCell[]);
+
+  // Schedule pulse display
+  let scheduleBig = 'No schedule set';
+  let scheduleSub = '';
+  let scheduleMobile = 'Not set';
+  if (scheduleStatus) {
+    if (isClosed) {
+      scheduleBig = `Finished ${fmtDate(scheduleDates.end)}`;
+      scheduleMobile = `Finished ${fmtDate(scheduleDates.end)}`;
+    } else {
+      const pct = scheduleStatus.percentComplete.toFixed(0);
+      scheduleBig = `${pct}% elapsed`;
+      scheduleSub = scheduleStatus.isOverdue
+        ? `Overdue by ${Math.abs(scheduleStatus.remainingDays)} days`
+        : `${scheduleStatus.remainingDays} days remaining`;
+      scheduleMobile = scheduleStatus.isOverdue
+        ? `${pct}% · ${Math.abs(scheduleStatus.remainingDays)}d over`
+        : `${pct}% · ${scheduleStatus.remainingDays}d left`;
     }
+  }
 
-    if (status === 'complete' || status === 'cancelled') {
-      const totalInvoiced = (project as any).total_invoiced ?? 0;
-      const totalExpenses = (project as any).total_expenses ?? 0;
-      const actualMargin = project.actual_margin ?? 0;
-      const actualMarginPct = totalInvoiced > 0 ? (actualMargin / totalInvoiced) * 100 : 0;
-      const originalMargin = project.original_margin ?? 0;
-      const varianceAmount = actualMargin - originalMargin;
-      const variancePct = originalMargin !== 0
-        ? ((actualMargin - originalMargin) / Math.abs(originalMargin)) * 100
-        : 0;
-      return {
-        label1: 'Total Invoiced',
-        value1: totalInvoiced,
-        label2: 'Total Expenses',
-        value2: totalExpenses,
-        marginLabel: 'Actual Margin',
-        marginValue: actualMargin,
-        marginPct: actualMarginPct,
-        showBudgetStatus: true,
-        showVariance: true,
-        varianceAmount,
-        variancePct,
-        originalMargin,
-      };
-    }
+  // Change orders pulse display
+  const coParts: string[] = [];
+  if (changeOrderSummary.pending > 0) coParts.push(`${changeOrderSummary.pending} pending`);
+  if (changeOrderSummary.approvedCount > 0) coParts.push(`${changeOrderSummary.approvedCount} approved`);
+  const coCountsLabel = coParts.length > 0 ? coParts.join(' · ') : `${changeOrders.length} total`;
+  const coNetClass = changeOrderSummary.netImpact >= 0 ? 'text-success' : 'text-destructive';
 
-    return {
-      label1: 'Contract Value',
-      value1: project.contracted_amount ?? 0,
-      label2: 'Adjusted Est. Costs',
-      value2: project.adjusted_est_costs ?? 0,
-      marginLabel: 'Adj. Est. Margin',
-      marginValue: project.adjusted_est_margin ?? 0,
-      marginPct: project.margin_percentage ?? 0,
-      showBudgetStatus: true,
-      showVariance: false,
-    };
-  }, [project, estimates, expenses]);
+  const showDocumentation = project.status !== 'estimating'
+    || mediaCounts.photos > 0 || mediaCounts.videos > 0 || pendingReceipts > 0 || documentCount > 0;
 
-  const marginStatus = getMarginThresholdStatus(
-    project.margin_percentage,
-    project.minimum_margin_threshold,
-    project.target_margin
-  );
-
-  const originalMarginPercent = project.original_margin && project.contracted_amount
-    ? (project.original_margin / project.contracted_amount) * 100
-    : null;
-
-  const marginDelta = project.margin_percentage && originalMarginPercent
-    ? project.margin_percentage - originalMarginPercent
-    : null;
+  const docItems = [
+    { key: 'photos', icon: Camera, count: mediaCounts.photos, label: 'photos', cls: 'text-blue-600', onClick: () => navigate(`/projects/${project.id}/documents?tab=photos`) },
+    { key: 'videos', icon: Video, count: mediaCounts.videos, label: 'videos', cls: 'text-purple-600', onClick: () => navigate(`/projects/${project.id}/documents?tab=videos`) },
+    { key: 'receipts', icon: Receipt, count: pendingReceipts, label: 'receipts', cls: 'text-green-600', onClick: () => navigate(`/time-entries?tab=receipts&project=${project.id}`) },
+    { key: 'docs', icon: FileIcon, count: documentCount, label: 'docs', cls: 'text-orange-600', onClick: () => navigate(`/projects/${project.id}/documents`) },
+  ];
 
   return (
     <div className="space-y-3">
-      {/* Project Reference Card */}
-      {(project.start_date || project.end_date || project.customer_po_number || project.do_not_exceed || ownerName) && (
-        <Card className="p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <FileSignature className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Project Details
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            {ownerName && (
-              <>
-                <span className="text-muted-foreground text-xs">Owner</span>
-                <span className="font-medium text-xs">{ownerName}</span>
-              </>
-            )}
-            {project.start_date && (
-              <>
-                <span className="text-muted-foreground text-xs">Start</span>
-                <span className="font-medium text-xs">{format(new Date(project.start_date), 'MMM d, yyyy')}</span>
-              </>
-            )}
-            {project.end_date && (
-              <>
-                <span className="text-muted-foreground text-xs">End</span>
-                <span className="font-medium text-xs">{format(new Date(project.end_date), 'MMM d, yyyy')}</span>
-              </>
-            )}
-            {project.customer_po_number && (
-              <>
-                <span className="text-muted-foreground text-xs">Customer PO</span>
-                <span className="font-mono font-medium text-xs">{project.customer_po_number}</span>
-              </>
-            )}
-            {project.do_not_exceed != null && project.do_not_exceed > 0 && (
-              <>
-                <span className="text-muted-foreground text-xs">DNE Cap</span>
-                <span className="font-mono font-medium text-xs">{formatCurrency(project.do_not_exceed)}</span>
-              </>
-            )}
-          </div>
-        </Card>
-      )}
+      {/* Key facts — identity (number/name/status) is already in the page header/breadcrumb */}
+      <Card className="p-3">
+        {project.address && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-1.5 text-sm text-foreground hover:text-primary active:text-primary transition-colors mb-3 pb-3 border-b"
+          >
+            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+            <span className="flex-1 leading-snug">{project.address}</span>
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground" />
+          </a>
+        )}
 
-      {/* Financial Summary */}
-      <Card className="border-t-[3px] border-t-primary">
-        <CardHeader className="p-3 pb-2">
-          <h3 className="text-sm font-semibold tracking-tight">Financial Summary</h3>
-        </CardHeader>
-        <CardContent className="p-3 pt-0">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">{financialDisplay.label1}</div>
-              <div className="text-base sm:text-xl font-bold">{formatCurrency(financialDisplay.value1)}</div>
+        {isMobile ? (
+          <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xs text-muted-foreground">{moneyLabel}</span>
+              <span className="text-sm font-medium">{moneyValue}</span>
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">{financialDisplay.label2}</div>
-              <div className="text-base sm:text-xl font-bold text-foreground">
-                {formatCurrency(financialDisplay.value2)}
+            {isClosed && (
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs text-muted-foreground">Final margin</span>
+                <span className={cn("text-sm font-medium", finalMarginClass)}>{finalMarginText}</span>
               </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">
-                {project.status !== 'estimating' ? 'Original Margin' : 'Est. Margin %'}
-              </div>
-              <div className="text-base sm:text-xl font-bold text-foreground">
-                {project.status !== 'estimating'
-                  ? formatCurrency(project.original_margin ?? 0)
-                  : financialDisplay.marginPct
-                    ? `${financialDisplay.marginPct.toFixed(1)}%`
-                    : '—'}
-              </div>
-              {project.status !== 'estimating' && originalMarginPercent != null && (
-                <div className="text-xs text-muted-foreground">
-                  {originalMarginPercent.toFixed(1)}%
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">{financialDisplay.marginLabel}</div>
-              <div
-                className="text-base sm:text-xl font-bold flex items-center gap-1"
-                style={{ color: project.status === 'estimating' ? 'inherit' : getThresholdStatusColor(marginStatus) }}
-              >
-                {formatCurrency(financialDisplay.marginValue)}
-                {project.status !== 'estimating' && marginDelta !== null && (
-                  marginDelta >= 0
-                    ? <TrendingUp className="h-4 w-4 text-green-600" />
-                    : <TrendingDown className="h-4 w-4 text-destructive" />
-                )}
-              </div>
-              <div className="text-xs flex items-center gap-1">
-                <span>{financialDisplay.marginPct.toFixed(1)}%</span>
-                {project.status !== 'estimating' && marginDelta !== null && (
-                  <span className={marginDelta >= 0 ? 'text-green-600' : 'text-destructive'}>
-                    ({marginDelta >= 0 ? '+' : ''}{marginDelta.toFixed(1)}%)
-                  </span>
-                )}
-              </div>
-            </div>
+            )}
           </div>
-          {financialDisplay.showVariance && (
-            <div className="mt-3 pt-3 border-t flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">vs Original Margin</span>
-              <span className={cn(
-                "font-semibold",
-                (financialDisplay.varianceAmount ?? 0) >= 0 ? "text-green-600" : "text-destructive"
-              )}>
-                {(financialDisplay.varianceAmount ?? 0) >= 0 ? '+' : ''}
-                {formatCurrency(financialDisplay.varianceAmount ?? 0)}
-                <span className="text-xs ml-1">
-                  ({(financialDisplay.variancePct ?? 0) >= 0 ? '+' : ''}{(financialDisplay.variancePct ?? 0).toFixed(1)}%)
-                </span>
-              </span>
-            </div>
-          )}
-          {/* Navigation to Cost Tracking */}
-          {project.status !== 'estimating' && (
-            <button
-              onClick={() => navigate(`/projects/${project.id}/control`)}
-              className="mt-3 pt-2 border-t text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
-            >
-              View Cost Tracking
-              <ChevronRight className="h-3 w-3" />
-            </button>
-          )}
-        </CardContent>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-4 gap-y-2">
+            {desktopCells.map((cell) => (
+              <div key={cell.label}>
+                <div className="text-[11px] text-muted-foreground">{cell.label}</div>
+                <div className={cn("text-sm", cell.valueClassName)}>{cell.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
-      {/* Contingency (budget metrics now live in Cost Tracking > Buckets) */}
-      {financialDisplay.showBudgetStatus
-        && project.status !== 'cancelled'
-        && (project.contingency_amount ?? 0) > 0 && (
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-tight">Contingency</h3>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-muted-foreground">Remaining</span>
-              <span
-                className={getContingencyColor(
-                  ((project.contingency_remaining ?? 0) /
-                    (project.contingency_amount ?? 0)) *
-                    100
-                )}
-              >
-                {formatCurrency(project.contingency_remaining ?? 0)} of {formatCurrency(project.contingency_amount ?? 0)}
+      {/* Needs Attention (slot #2) — or "Closed clean" for completed projects */}
+      {needsAttention.length > 0 ? (
+        <Card className="border-l-4 border-l-destructive bg-destructive/5">
+          <CardContent className="p-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <span className="text-sm font-semibold text-destructive">
+                Needs attention · {needsAttention.length}
               </span>
             </div>
-            <Progress
-              value={
-                ((project.contingency_remaining ?? 0) /
-                  (project.contingency_amount ?? 0)) *
-                100
-              }
-              className="h-1.5"
-            />
-            <button
-              onClick={() => navigate(`/projects/${project.id}/control`)}
-              className="mt-3 pt-2 border-t text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
-            >
-              View Cost Tracking
-              <ChevronRight className="h-3 w-3" />
-            </button>
+            {isMobile ? (
+              <div className="text-xs text-destructive/90">
+                {needsAttention.map(i => i.short).join(' · ')}
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {needsAttention.map((item) => (
+                  <button
+                    key={item.type}
+                    onClick={item.onClick}
+                    className="block w-full text-left text-sm text-destructive/90 hover:text-destructive hover:underline"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Needs Attention Section */}
-      {needsAttention.length > 0 && project.status !== 'cancelled' && (
-        <Card className="border-l-4 border-l-destructive bg-destructive/5">
-          <CardHeader className="p-3 pb-2">
+      ) : project.status === 'complete' ? (
+        <Card className="border-l-4 border-l-success bg-success/5">
+          <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <h3 className="text-sm font-semibold tracking-tight">Needs Attention</h3>
-              <Badge variant="destructive" className="h-5 text-xs">{needsAttention.length}</Badge>
+              <Check className="h-4 w-4 text-success shrink-0" />
+              <span className="text-sm font-medium text-success">Closed clean</span>
             </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-1">
-            {needsAttention.map((item) => {
-              const Icon = item.icon;
+            {!isMobile && (
+              <div className="text-xs text-muted-foreground mt-0.5 ml-6">No outstanding items</div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Schedule + Change Orders pulses */}
+      <div className={cn(
+        isMobile
+          ? "space-y-2"
+          : cn("grid gap-3", showChangeOrders ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")
+      )}>
+        {/* Schedule pulse */}
+        <Card className="p-3">
+          <button
+            onClick={() => navigate(`/projects/${project.id}/schedule`)}
+            className="w-full flex items-center justify-between text-left gap-2"
+          >
+            {isMobile ? (
+              <>
+                <span className="text-sm font-semibold">Schedule</span>
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  {scheduleMobile}
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                    Schedule
+                  </div>
+                  <div className="text-base font-bold">{scheduleBig}</div>
+                  {scheduleSub && (
+                    <div className={cn("text-xs", scheduleStatus?.isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                      {scheduleSub}
+                    </div>
+                  )}
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </>
+            )}
+          </button>
+        </Card>
+
+        {/* Change Orders pulse */}
+        {showChangeOrders && (
+          <Card className="p-3">
+            <button
+              onClick={() => navigate(`/projects/${project.id}/changes`)}
+              className="w-full flex items-center justify-between text-left gap-2"
+            >
+              {isMobile ? (
+                <>
+                  <span className="text-sm font-semibold">Change orders</span>
+                  <span className="flex items-center gap-1.5 text-sm">
+                    <span className="text-muted-foreground">{coCountsLabel} · </span>
+                    <span className={coNetClass}>{abbrevSigned(changeOrderSummary.netImpact)}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                      Change orders
+                    </div>
+                    <div className="text-base font-bold">{coCountsLabel}</div>
+                    <div className={cn("text-xs", coNetClass)}>{signedMoney0(changeOrderSummary.netImpact)} net</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </>
+              )}
+            </button>
+          </Card>
+        )}
+      </div>
+
+      {/* Documentation — inline counts */}
+      {showDocumentation && (
+        <Card className="p-3">
+          <div className={cn(
+            "flex items-center",
+            isMobile ? "justify-between" : "flex-wrap gap-x-6 gap-y-2"
+          )}>
+            {docItems.map((d) => {
+              const Icon = d.icon;
               return (
                 <button
-                  key={item.type}
-                  onClick={item.onClick}
-                  className="w-full flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors text-left h-8"
+                  key={d.key}
+                  onClick={d.onClick}
+                  className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
                 >
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">{item.label}</span>
-                  </div>
-                  <Badge variant="outline" className="h-5 text-xs">{item.count}</Badge>
+                  <Icon className={cn("h-4 w-4 shrink-0", d.cls)} />
+                  <span className="text-sm font-medium">{d.count}</span>
+                  {!isMobile && <span className="text-sm text-muted-foreground">{d.label}</span>}
                 </button>
               );
             })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Labor + Schedule */}
-      {(() => {
-        // Effective estimated hours: project.estimated_hours may never be populated,
-        // so fall back to laborCushion.totalLaborHours from the current estimate.
-        const effectiveEstimatedHours = (project.estimated_hours ?? 0) > 0
-          ? (project.estimated_hours ?? 0)
-          : (laborCushion?.totalLaborHours ?? 0);
-        // Effective actual hours: project.actual_hours may never be populated,
-        // so fall back to aggregated time entry hours.
-        const effectiveActualHours = (project.actual_hours ?? 0) > 0
-          ? (project.actual_hours ?? 0)
-          : (actualHoursFromEntries ?? 0);
-        const showLabor = ['approved', 'in_progress'].includes(project.status) && effectiveEstimatedHours > 0;
-        const showSchedule = project.status !== 'estimating' || !!scheduleDates.start || !!scheduleDates.end;
-
-        if (!showLabor && !showSchedule) return null;
-
-        return (
-          <div className={cn(
-            "grid gap-3",
-            showLabor && showSchedule
-              ? "grid-cols-1 md:grid-cols-2"
-              : "grid-cols-1"
-          )}>
-            {/* Labor — enhanced with cushion visibility */}
-            {showLabor && (
-              <Card className="p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Labor
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {/* Hours breakdown — 3-tier display */}
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Estimated Hours</span>
-                      <span className="font-mono font-semibold">
-                        {effectiveEstimatedHours.toFixed(0)}h
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Actual Hours</span>
-                      <span className={cn(
-                        "font-mono font-semibold",
-                        effectiveActualHours <= effectiveEstimatedHours
-                          ? "text-foreground"
-                          : laborCushion?.totalLaborCapacity && effectiveActualHours <= laborCushion.totalLaborCapacity
-                            ? "text-yellow-600"
-                            : laborCushion?.totalLaborCapacity && effectiveActualHours > laborCushion.totalLaborCapacity
-                              ? "text-red-600"
-                              : "text-foreground"
-                      )}>
-                        {effectiveActualHours.toFixed(0)}h
-                      </span>
-                    </div>
-
-                    <Separator className="my-1" />
-
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Scheduled Remaining</span>
-                      <span className="font-mono font-semibold">
-                        {Math.max(0, effectiveEstimatedHours - effectiveActualHours).toFixed(0)}h
-                      </span>
-                    </div>
-
-                    {/* Cushion buffer — only if data available */}
-                    {laborCushion?.cushionHoursCapacity != null && laborCushion.cushionHoursCapacity > 0 && (
-                      <div className="flex justify-between text-yellow-600">
-                        <span>+ Cushion Buffer</span>
-                        <span className="font-mono font-semibold">
-                          +{laborCushion.cushionHoursCapacity.toFixed(0)}h
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Total remaining capacity */}
-                    {laborCushion?.totalLaborCapacity != null && laborCushion.totalLaborCapacity > 0 && (
-                      <>
-                        <Separator className="my-1" />
-                        <div className="flex justify-between font-semibold">
-                          <span>Total Capacity Remaining</span>
-                          <span className="font-mono">
-                            {Math.max(0, laborCushion.totalLaborCapacity - effectiveActualHours).toFixed(0)}h
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Progress bar — use total capacity as denominator when available */}
-                  {(() => {
-                    const denominator = laborCushion?.totalLaborCapacity ?? effectiveEstimatedHours;
-                    const actual = effectiveActualHours;
-                    const pct = denominator > 0 ? (actual / denominator) * 100 : 0;
-                    const estimatedPct = denominator > 0 ? (effectiveEstimatedHours / denominator) * 100 : 0;
-
-                    const inCushionZone = actual > effectiveEstimatedHours && laborCushion?.totalLaborCapacity;
-                    const overCapacity = laborCushion?.totalLaborCapacity && actual > laborCushion.totalLaborCapacity;
-
-                    return (
-                      <div className="space-y-1">
-                        <div className="relative">
-                          <Progress
-                            value={Math.min(pct, 100)}
-                            className={cn(
-                              "h-2",
-                              overCapacity
-                                ? "[&>div]:bg-destructive"
-                                : inCushionZone
-                                  ? "[&>div]:bg-yellow-500"
-                                  : "[&>div]:bg-primary"
-                            )}
-                          />
-                          {/* Estimated hours marker when cushion exists */}
-                          {laborCushion?.totalLaborCapacity && laborCushion.totalLaborCapacity > effectiveEstimatedHours && (
-                            <div
-                              className="absolute top-0 h-2 w-px bg-foreground/40"
-                              style={{ left: `${estimatedPct}%` }}
-                              title={`Estimated: ${effectiveEstimatedHours.toFixed(0)}h`}
-                            />
-                          )}
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>
-                            {pct.toFixed(0)}% of {laborCushion?.totalLaborCapacity ? 'capacity' : 'estimate'} used
-                          </span>
-                          {laborCushion?.scheduleBufferPercent != null && (
-                            <span>{laborCushion.scheduleBufferPercent.toFixed(0)}% buffer</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Data freshness */}
-                  {dataFreshness.lastTimeDays !== null && (
-                    <div className="text-xs text-muted-foreground">
-                      Last time entry:{' '}
-                      {dataFreshness.lastTimeDays === 0
-                        ? 'Today'
-                        : `${dataFreshness.lastTimeDays}d ago`}
-                    </div>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {/* Schedule */}
-            {showSchedule && (
-              <Card>
-                <CardHeader className="p-3 pb-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold tracking-tight">Schedule</h3>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  {scheduleStatus ? (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Start</span>
-                        <span>{scheduleDates.start ? new Date(scheduleDates.start).toLocaleDateString() : 'Not set'}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">End</span>
-                        <span>{scheduleDates.end ? new Date(scheduleDates.end).toLocaleDateString() : 'Not set'}</span>
-                      </div>
-                      {scheduleStatus.totalDays > 0 && (
-                        <Progress value={scheduleStatus.percentComplete} className="h-1.5" />
-                      )}
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground">
-                          {scheduleStatus.percentComplete.toFixed(0)}% elapsed
-                        </span>
-                        <span className={`text-xs font-medium ${
-                          scheduleStatus.isComplete ? 'text-success' :
-                          scheduleStatus.isOverdue ? 'text-destructive' : ''
-                        }`}>
-                          {scheduleStatus.isComplete
-                            ? 'Completed'
-                            : scheduleStatus.isOverdue
-                              ? `Overdue by ${Math.abs(scheduleStatus.remainingDays)} days`
-                              : `${scheduleStatus.remainingDays} days remaining`
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground">No schedule dates set</div>
-                  )}
-                  {/* Navigate to Schedule page */}
-                  <button
-                    onClick={() => navigate(`/projects/${project.id}/schedule`)}
-                    className="mt-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-                  >
-                    View Schedule
-                    <ChevronRight className="h-3 w-3" />
-                  </button>
-                </CardContent>
-              </Card>
-            )}
           </div>
-        );
-      })()}
-
-      {/* Change Orders */}
-      {changeOrders.length > 0 && (
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-tight">Change Orders</h3>
-              <Badge variant="outline" className="h-5 text-xs">{changeOrders.length} total</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-2">
-            <div className="flex gap-2">
-              {changeOrderSummary.pending > 0 && (
-                <Badge variant="outline" className="text-xs text-orange-600">
-                  {changeOrderSummary.pending} Pending
-                </Badge>
-              )}
-              {changeOrderSummary.approvedCount > 0 && (
-                <Badge variant="outline" className="text-xs text-green-600">
-                  {changeOrderSummary.approvedCount} Approved
-                </Badge>
-              )}
-              {changeOrderSummary.rejected > 0 && (
-                <Badge variant="outline" className="text-xs text-destructive">
-                  {changeOrderSummary.rejected} Rejected
-                </Badge>
-              )}
-            </div>
-            {changeOrderSummary.approvedCount > 0 && (
-              <div className="space-y-1 pt-1 border-t">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Approved Revenue:</span>
-                  <span className="font-medium">{formatCurrency(changeOrderSummary.totalRevenue)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Approved Costs:</span>
-                  <span className="font-medium">{formatCurrency(changeOrderSummary.totalCosts)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Net Impact:</span>
-                  <span className={`font-semibold ${
-                    changeOrderSummary.netImpact >= 0 ? 'text-green-600' : 'text-destructive'
-                  }`}>
-                    {formatCurrency(changeOrderSummary.netImpact)}
-                  </span>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => navigate(`/projects/${project.id}/changes`)}
-              className="mt-2 pt-2 border-t text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 w-full"
-            >
-              View Change Orders
-              <ChevronRight className="h-3 w-3" />
-            </button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Documentation */}
-      {(project.status !== 'estimating' || mediaCounts.photos > 0 || mediaCounts.videos > 0 || pendingReceipts > 0 || documentCount > 0) && (
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <h3 className="text-sm font-semibold tracking-tight">Documentation</h3>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => navigate(`/projects/${project.id}/documents?tab=photos`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <Camera className="h-4 w-4 text-blue-600" />
-                <div>
-                  <div className="text-sm font-medium">{mediaCounts.photos}</div>
-                  <div className="text-xs text-muted-foreground">Photos</div>
-                </div>
-              </button>
-              <button
-                onClick={() => navigate(`/projects/${project.id}/documents?tab=videos`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <Video className="h-4 w-4 text-purple-600" />
-                <div>
-                  <div className="text-sm font-medium">{mediaCounts.videos}</div>
-                  <div className="text-xs text-muted-foreground">Videos</div>
-                </div>
-              </button>
-              <button
-                onClick={() => navigate(`/time-entries?tab=receipts&project=${project.id}`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <Receipt className="h-4 w-4 text-green-600" />
-                <div>
-                  <div className="text-sm font-medium">{pendingReceipts}</div>
-                  <div className="text-xs text-muted-foreground">Pending Receipts</div>
-                </div>
-              </button>
-              <button
-                onClick={() => navigate(`/projects/${project.id}/documents`)}
-                className="flex items-center gap-2 p-2 rounded hover:bg-muted text-left transition-colors"
-              >
-                <FileIcon className="h-4 w-4 text-orange-600" />
-                <div>
-                  <div className="text-sm font-medium">{documentCount}</div>
-                  <div className="text-xs text-muted-foreground">Documents</div>
-                </div>
-              </button>
-            </div>
-          </CardContent>
         </Card>
       )}
 

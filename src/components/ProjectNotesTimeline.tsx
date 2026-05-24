@@ -4,11 +4,6 @@ import { toZonedTime } from 'date-fns-tz';
 import { StickyNote } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from '@/components/ui/resizable';
 import { useProjectNotes } from '@/hooks/useProjectNotes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { NoteCard } from '@/components/notes/NoteCard';
@@ -153,26 +148,22 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
       </div>
     );
   } else {
+    // Desktop: vertical thread — composer pinned at the top, newest-first feed
+    // below (notes are ordered created_at desc, so a submitted note appears
+    // right under the composer). Replaces the old horizontal resizable split,
+    // which wasn't how best-in-class comment feeds (Slack/Linear/GitHub) lay out.
     mainContent = (
-      <ResizablePanelGroup direction="horizontal" className="min-h-[300px] rounded-lg border">
-        <ResizablePanel defaultSize={60} minSize={40}>
-          <div className="h-full flex flex-col">
-            <div className="p-2 border-b bg-muted/30">
-              <h4 className="text-xs font-semibold">Recent Notes</h4>
-            </div>
-            {renderNotesList('default', 'max-h-[280px]')}
-          </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={40} minSize={30}>
-          <div className="h-full bg-muted/20">
+      <div className="flex flex-col rounded-lg border overflow-hidden">
+        {!hideComposer && (
+          <div className="border-b bg-muted/20 shrink-0">
             <NoteComposer
               projectId={projectId}
               placeholder="Type note... @ to tag"
             />
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        )}
+        {renderNotesList('default', 'max-h-[440px]')}
+      </div>
     );
   }
 
