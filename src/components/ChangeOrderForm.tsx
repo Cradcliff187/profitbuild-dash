@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Upload } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ChangeOrderLineItemTable } from "@/components/ChangeOrderLineItemTable";
+import { ImportEstimateModal } from "@/components/estimates/ImportEstimateModal";
 import { ChangeOrderLineItemInput, CHANGE_ORDER_LINE_ITEM_TEMPLATE } from "@/types/changeOrder";
 
 import { Database } from "@/integrations/supabase/types";
@@ -24,6 +25,19 @@ import { createLaborLineItemDefaults } from "@/utils/laborCalculations";
 const LABOR_CATEGORY = 'labor_internal';
 
 type ChangeOrder = Database['public']['Tables']['change_orders']['Row'];
+
+// Shape emitted by convertToEstimateLineItems (the estimate import modal's output).
+interface ImportedLineItem {
+  category: string;
+  description: string;
+  quantity?: number;
+  unit?: string;
+  costPerUnit?: number;
+  pricePerUnit?: number;
+  laborHours?: number | null;
+  billingRatePerHour?: number | null;
+  actualCostRatePerHour?: number | null;
+}
 
 // Updated schema - removed client_amount and cost_impact (auto-calculated from line items)
 const changeOrderSchema = z.object({
@@ -46,6 +60,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   const [changeOrderNumber, setChangeOrderNumber] = useState("");
   const [contingencyRemaining, setContingencyRemaining] = useState<number>(0);
   const [lineItems, setLineItems] = useState<ChangeOrderLineItemInput[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
   const { data: laborRates } = useInternalLaborRates();
   const queryClient = useQueryClient();
   const [discountType, setDiscountType] = useState<'percent' | 'fixed' | null>(
@@ -210,6 +225,34 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
   const handleAddLineItem = () => {
     setLineItems([...lineItems, { ...CHANGE_ORDER_LINE_ITEM_TEMPLATE }]);
+  };
+
+  // Reuses the estimate import modal. The modal emits estimate-shaped (camelCase)
+  // line items; translate them to the change-order snake_case shape. Drop any
+  // blank starter rows first so the imported set isn't blocked by the
+  // empty-description validation on save.
+  const handleImportItems = (items: ImportedLineItem[]) => {
+    const mapped: ChangeOrderLineItemInput[] = items.map((item, i) => {
+      const isLabor = item.category === LABOR_CATEGORY;
+      return {
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity ?? 1,
+        unit: item.unit ?? 'EA',
+        cost_per_unit: item.costPerUnit ?? 0,
+        price_per_unit: item.pricePerUnit ?? 0,
+        sort_order: lineItems.length + i,
+        payee_id: null,
+        labor_hours: isLabor ? (item.laborHours ?? null) : null,
+        billing_rate_per_hour: isLabor ? (item.billingRatePerHour ?? null) : null,
+        actual_cost_rate_per_hour: isLabor ? (item.actualCostRatePerHour ?? null) : null,
+      };
+    });
+    setLineItems(prev => [
+      ...prev.filter(li => li.description && li.description.trim() !== ''),
+      ...mapped,
+    ]);
+    toast.success("Items Imported", { description: `Added ${mapped.length} line items to change order` });
   };
 
   const validateLineItems = (): boolean => {
@@ -651,7 +694,19 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
             {/* Line Items Section */}
             <div className="space-y-2">
-              <FormLabel className="text-xs font-semibold">Line Items <span className="text-destructive">*</span></FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-xs font-semibold">Line Items <span className="text-destructive">*</span></FormLabel>
+                <Button
+                  type="button"
+                  onClick={() => setShowImportModal(true)}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2 text-xs"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Import File
+                </Button>
+              </div>
               <ChangeOrderLineItemTable
                 lineItems={lineItems}
                 onUpdateLineItem={handleUpdateLineItem}
@@ -805,6 +860,13 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           </Button>
         </div>
       </div>
+
+      {/* Import Modal — reuses the estimate import flow */}
+      <ImportEstimateModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportItems}
+      />
     </div>
   );
 };
