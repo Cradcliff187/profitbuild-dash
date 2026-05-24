@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download } from 'lucide-react';
+import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,9 @@ import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DOCUMENT_TYPE_LABELS } from '@/types/document';
-import type { DocumentType } from '@/types/document';
+import type { DocumentType, ProjectDocument } from '@/types/document';
+import { useRoles } from '@/contexts/RoleContext';
+import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsSheet';
 
 interface ProjectDocumentsTimelineProps {
   projectId: string;
@@ -37,6 +39,9 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TimelineItem['type'] | 'all'>('all');
   const preview = useDocumentPreview();
+  const { isAdmin, isManager } = useRoles();
+  const canEdit = isAdmin || isManager;
+  const [documentToEdit, setDocumentToEdit] = useState<ProjectDocument | null>(null);
   
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['project-documents-timeline', projectId],
@@ -500,6 +505,15 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                           Print
                         </DropdownMenuItem>
                       )}
+                      {canEdit && item.type === 'document' && (
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          setDocumentToEdit(item.metadata as ProjectDocument);
+                        }}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit details
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -595,6 +609,15 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                           Print
                         </DropdownMenuItem>
                       )}
+                      {canEdit && item.type === 'document' && (
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          setDocumentToEdit(item.metadata as ProjectDocument);
+                        }}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit details
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -606,6 +629,12 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
 
       {/* Preview Modals */}
       <DocumentPreviewModals preview={preview} />
+
+      <DocumentDetailsSheet
+        document={documentToEdit}
+        open={!!documentToEdit}
+        onOpenChange={(o) => !o && setDocumentToEdit(null)}
+      />
     </div>
   );
 }

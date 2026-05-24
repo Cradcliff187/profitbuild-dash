@@ -112,7 +112,7 @@ export function QuoteAttachmentUpload({
         .from('project_documents')
         .insert({
           project_id: projectId,
-          document_type: 'other',
+          document_type: 'quote',
           file_name: file.name,
           file_url: publicUrl,
           file_size: file.size,

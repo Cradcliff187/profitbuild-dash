@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { X, ChevronLeft, ChevronRight, MapPin, Clock, Smartphone, Trash2, MessageSquare } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, MapPin, Clock, Smartphone, Trash2, MessageSquare, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -10,9 +10,11 @@ import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
 import { formatDeviceLabel } from '@/utils/formatDeviceLabel';
 import { toast } from 'sonner';
 import { QuickCaptionModal } from './QuickCaptionModal';
+import { MediaDetailsSheet } from './media/MediaDetailsSheet';
 import { MediaCommentsList } from './MediaCommentsList';
 import { MediaCommentForm } from './MediaCommentForm';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useRoles } from '@/contexts/RoleContext';
 
 interface PhotoLightboxProps {
   photo: ProjectMedia;
@@ -25,7 +27,10 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showCaptionModal, setShowCaptionModal] = useState(false);
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState(photo);
+  const { isAdmin, isManager } = useRoles();
+  const canEdit = isAdmin || isManager;
   
   const currentIndex = allPhotos.findIndex((p) => p.id === photo.id);
   const hasPrevious = currentIndex > 0;
@@ -119,15 +124,27 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
           <div className="flex gap-1.5">
             {currentPhoto.source !== 'note' && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCaptionModal(true)}
-                  className="h-8 gap-1.5"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="hidden sm:inline">Caption</span>
-                </Button>
+                {canEdit ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDetailsSheet(true)}
+                    className="h-8 gap-1.5"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    <span className="hidden sm:inline">Edit details</span>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCaptionModal(true)}
+                    className="h-8 gap-1.5"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="hidden sm:inline">Caption</span>
+                  </Button>
+                )}
                 <Button
                   variant="destructive"
                   size="sm"
@@ -287,6 +304,13 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
           onSave={handleSaveCaption}
         />
       </ErrorBoundary>
+
+      <MediaDetailsSheet
+        media={currentPhoto}
+        open={showDetailsSheet}
+        onOpenChange={setShowDetailsSheet}
+        onSaved={(updated) => updated && setCurrentPhoto(updated)}
+      />
     </>
   );
 }

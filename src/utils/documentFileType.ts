@@ -11,6 +11,8 @@ import {
   FileSpreadsheet,
   Presentation,
   File,
+  FileSignature,
+  Landmark,
 } from 'lucide-react';
 import type { DocumentType } from '@/types/document';
 import { cn } from '@/lib/utils';
@@ -26,6 +28,10 @@ export const DOCUMENT_TYPE_LUCIDE_ICONS: Record<DocumentType, React.ComponentTyp
   contract: FileCheck,
   specification: FileText,
   report: FileSpreadsheet,
+  invoice: Receipt,
+  quote: FileSignature,
+  'aia-g702': Landmark,
+  'aia-g703': Landmark,
   other: File,
 };
 
@@ -37,6 +43,10 @@ export const DOCUMENT_TYPE_ICON_COLORS: Record<DocumentType, string> = {
   contract: 'text-purple-600',
   specification: 'text-slate-600',
   report: 'text-cyan-600',
+  invoice: 'text-emerald-600',
+  quote: 'text-indigo-600',
+  'aia-g702': 'text-rose-600',
+  'aia-g703': 'text-rose-600',
   other: 'text-muted-foreground',
 };
 

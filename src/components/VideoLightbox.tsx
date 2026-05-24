@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import { QuickCaptionModal } from './QuickCaptionModal';
+import { MediaDetailsSheet } from './media/MediaDetailsSheet';
 import { MediaCommentsList } from './MediaCommentsList';
 import { MediaCommentForm } from './MediaCommentForm';
 import { deleteProjectMedia, updateMediaMetadata } from '@/utils/projectMedia';
@@ -14,6 +15,7 @@ import { formatFileSize } from '@/utils/videoUtils';
 import { toast } from 'sonner';
 import type { ProjectMedia } from '@/types/project';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useRoles } from '@/contexts/RoleContext';
 
 interface VideoLightboxProps {
   video: ProjectMedia;
@@ -25,8 +27,11 @@ interface VideoLightboxProps {
 export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLightboxProps) {
   const [currentVideo, setCurrentVideo] = useState(video);
   const [showCaptionModal, setShowCaptionModal] = useState(false);
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { isAdmin, isManager } = useRoles();
+  const canEditDetails = (isAdmin || isManager) && currentVideo.source !== 'note';
 
   const currentIndex = allVideos.findIndex(v => v.id === currentVideo.id);
   const hasPrevious = currentIndex > 0;
@@ -226,11 +231,11 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowCaptionModal(true)}
+                  onClick={() => (canEditDetails ? setShowDetailsSheet(true) : setShowCaptionModal(true))}
                   className="text-white hover:bg-white/10 h-7 px-2"
                 >
                   <Edit3 className="h-3 w-3 mr-1" />
-                  Edit
+                  {canEditDetails ? 'Edit details' : 'Edit'}
                 </Button>
               </div>
               <p className="text-sm text-white/80">
@@ -311,6 +316,13 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
           onSave={handleSaveCaption}
         />
       </ErrorBoundary>
+
+      <MediaDetailsSheet
+        media={currentVideo}
+        open={showDetailsSheet}
+        onOpenChange={setShowDetailsSheet}
+        onSaved={(updated) => updated && setCurrentVideo(updated)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

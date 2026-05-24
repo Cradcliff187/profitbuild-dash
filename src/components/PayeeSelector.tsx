@@ -193,9 +193,8 @@ export function PayeeSelector({
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="z-[100] p-0 bg-background border shadow-md"
+            className="z-[100] p-0 bg-background border shadow-md w-[var(--radix-popover-trigger-width)] min-w-[260px] max-w-[calc(100vw-1.5rem)]"
             align="start"
-            style={{ width: 'var(--radix-popover-trigger-width)' }}
           >
             <Command>
               <CommandInput placeholder="Search payees..." />

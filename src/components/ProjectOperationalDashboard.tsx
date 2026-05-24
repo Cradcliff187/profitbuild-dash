@@ -311,6 +311,9 @@ export function ProjectOperationalDashboard({
   type MetaCell = { label: string; value: string; valueClassName?: string };
   const desktopCells: MetaCell[] = ([
     { label: 'Owner', value: ownerName ?? '—' },
+    project.customer_po_number
+      ? { label: 'PO #', value: project.customer_po_number }
+      : null,
     { label: 'Start', value: fmtDate(project.start_date) },
     { label: 'End', value: fmtDate(project.end_date) },
     { label: moneyLabel, value: moneyValue, valueClassName: 'font-medium' },
@@ -378,6 +381,12 @@ export function ProjectOperationalDashboard({
 
         {isMobile ? (
           <div className="space-y-1.5">
+            {project.customer_po_number && (
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs text-muted-foreground">PO #</span>
+                <span className="text-sm font-medium">{project.customer_po_number}</span>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-xs text-muted-foreground">{moneyLabel}</span>
               <span className="text-sm font-medium">{moneyValue}</span>

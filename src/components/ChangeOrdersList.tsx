@@ -155,76 +155,90 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
 
       if (lineItemsError) throw lineItemsError;
 
-      // Step 3: Get project data for quote number generation
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('project_number')
-        .eq('id', projectId)
-        .single();
+      // The auto-quote records the CO's committed cost against a vendor. quotes.payee_id
+      // is NOT NULL, so we can only create it when a line item carries a payee. A CO can
+      // legitimately be approved before a payee is chosen — in that case we skip the quote
+      // (its cost still reaches cost tracking via the line-item plan tier and the SOV) and
+      // let the quote be generated on a later edit once a payee is assigned.
+      const autoQuotePayeeId = lineItems?.find((li) => li.payee_id)?.payee_id ?? null;
+      let autoQuoteNumber: string | null = null;
 
-      if (projectError) throw projectError;
+      if (autoQuotePayeeId) {
+        // Get project data for quote number generation
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .select('project_number')
+          .eq('id', projectId)
+          .single();
 
-      // Step 4: Generate quote number (PROJECT-QTE-00-XX for change orders)
-      const { data: existingQuotes, error: quotesError } = await supabase
-        .from('quotes')
-        .select('quote_number')
-        .eq('project_id', projectId)
-        .like('quote_number', `${project.project_number}-QTE-00-%`);
+        if (projectError) throw projectError;
 
-      if (quotesError) throw quotesError;
+        // Generate quote number (PROJECT-QTE-00-XX for change orders)
+        const { data: existingQuotes, error: quotesError } = await supabase
+          .from('quotes')
+          .select('quote_number')
+          .eq('project_id', projectId)
+          .like('quote_number', `${project.project_number}-QTE-00-%`);
 
-      const nextSequence = (existingQuotes?.length || 0) + 1;
-      const quoteNumber = `${project.project_number}-QTE-00-${String(nextSequence).padStart(2, '0')}`;
+        if (quotesError) throw quotesError;
 
-      // Step 5: Create quote entry
-      const { data: newQuote, error: quoteError } = await supabase
-        .from('quotes')
-        .insert({
-          project_id: projectId,
-          estimate_id: null,
-          payee_id: lineItems?.[0]?.payee_id || null,
-          quote_number: quoteNumber,
-          status: 'accepted',
-          date_received: new Date().toISOString().split('T')[0],
-          accepted_date: new Date().toISOString(),
-          total_amount: changeOrder.client_amount || 0,
-          notes: `Auto-generated quote for ${changeOrder.change_order_number}`,
-          includes_labor: true,
-          includes_materials: true,
-        })
-        .select()
-        .single();
+        const nextSequence = (existingQuotes?.length || 0) + 1;
+        autoQuoteNumber = `${project.project_number}-QTE-00-${String(nextSequence).padStart(2, '0')}`;
 
-      if (quoteError) throw quoteError;
+        // Create quote entry
+        const { data: newQuote, error: quoteError } = await supabase
+          .from('quotes')
+          .insert({
+            project_id: projectId,
+            estimate_id: null,
+            payee_id: autoQuotePayeeId,
+            quote_number: autoQuoteNumber,
+            status: 'accepted',
+            date_received: new Date().toISOString().split('T')[0],
+            accepted_date: new Date().toISOString(),
+            total_amount: changeOrder.client_amount || 0,
+            notes: `Auto-generated quote for ${changeOrder.change_order_number}`,
+            includes_labor: true,
+            includes_materials: true,
+          })
+          .select()
+          .single();
 
-      // Step 6: Create quote line items from change order line items
-      if (lineItems && lineItems.length > 0) {
-        const quoteLineItems = lineItems.map((item, index) => ({
-          quote_id: newQuote.id,
-          change_order_line_item_id: item.id,
-          category: item.category,
-          description: item.description,
-          quantity: item.quantity || 1,
-          unit: item.unit,
-          rate: item.price_per_unit || 0,
-          cost_per_unit: item.cost_per_unit || 0,
-          sort_order: item.sort_order || index,
-        }));
+        if (quoteError) throw quoteError;
 
-        const { error: lineItemsInsertError } = await supabase
-          .from('quote_line_items')
-          .insert(quoteLineItems);
+        // Create quote line items from change order line items
+        if (lineItems && lineItems.length > 0) {
+          const quoteLineItems = lineItems.map((item, index) => ({
+            quote_id: newQuote.id,
+            change_order_line_item_id: item.id,
+            category: item.category,
+            description: item.description,
+            quantity: item.quantity || 1,
+            unit: item.unit,
+            rate: item.price_per_unit || 0,
+            cost_per_unit: item.cost_per_unit || 0,
+            sort_order: item.sort_order || index,
+          }));
 
-        if (lineItemsInsertError) throw lineItemsInsertError;
+          const { error: lineItemsInsertError } = await supabase
+            .from('quote_line_items')
+            .insert(quoteLineItems);
+
+          if (lineItemsInsertError) throw lineItemsInsertError;
+        }
       }
 
-      setChangeOrders(prev => prev.map(co => 
-        co.id === changeOrder.id 
+      setChangeOrders(prev => prev.map(co =>
+        co.id === changeOrder.id
           ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: user.id }
           : co
       ));
-      
-      toast.success("Change Order Approved", { description: `${changeOrder.change_order_number} approved and quote ${quoteNumber} created automatically.` });
+
+      toast.success("Change Order Approved", {
+        description: autoQuoteNumber
+          ? `${changeOrder.change_order_number} approved and quote ${autoQuoteNumber} created automatically.`
+          : `${changeOrder.change_order_number} approved. Assign a payee to a line item and save to generate the cost quote.`,
+      });
     } catch (error) {
       console.error('Error approving change order:', error);
       toast.error(error instanceof Error ? error.message : "Failed to approve change order.");
