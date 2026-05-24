@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, CheckCircle, X, MoreHorizontal, Link as LinkIcon, Plus, FileText, Search, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +48,7 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
   const [statusFilter, setStatusFilter] = useState<ChangeOrderStatus | 'all'>('all');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
   const fetchChangeOrders = async () => {
@@ -233,6 +235,10 @@ export const ChangeOrdersList: React.FC<ChangeOrdersListProps> = ({
           ? { ...co, status: 'approved', approved_date: new Date().toISOString().split('T')[0], approved_by: user.id }
           : co
       ));
+
+      // Approved COs now contribute their labor to the project cushion — refresh
+      // cost buckets so the "Margin + Labor Opp" tile reflects it (Gotcha #27).
+      queryClient.invalidateQueries({ queryKey: ['project-cost-buckets'] });
 
       toast.success("Change Order Approved", {
         description: autoQuoteNumber

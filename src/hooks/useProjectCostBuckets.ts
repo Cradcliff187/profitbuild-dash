@@ -198,14 +198,25 @@ async function fetchLaborCushionRaw(projectId: string): Promise<LaborCushionRaw 
     estimateId = approvedEstimate?.id ?? null;
   }
 
-  if (!estimateId) return null;
-
-  const [summaryRes, laborViewRes] = await Promise.all([
+  const [summaryRes, coLaborRes, laborViewRes] = await Promise.all([
+    estimateId
+      ? supabase
+          .from('estimate_financial_summary')
+          .select('total_labor_hours, total_labor_cushion, total_labor_actual_cost')
+          .eq('estimate_id', estimateId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null } as const),
+    // Approved change orders are incremental estimates: their internal-labor lines
+    // carry the same baked-in cushion and add to the project's labor scope. Fold
+    // them into the cushion denominators so labor added via CO doesn't read as
+    // estimate overrun (actual hours below are project-wide and already include
+    // CO work). Draft/pending/rejected COs are not yet real scope, so approved-only.
     supabase
-      .from('estimate_financial_summary')
-      .select('total_labor_hours, total_labor_cushion, total_labor_capacity')
-      .eq('estimate_id', estimateId)
-      .maybeSingle(),
+      .from('change_order_line_items')
+      .select('labor_hours, labor_cushion_amount, actual_cost_rate_per_hour, change_orders!inner(project_id, status)')
+      .eq('category', 'labor_internal')
+      .eq('change_orders.project_id', projectId)
+      .eq('change_orders.status', 'approved'),
     // Note: internal_labor_hours_by_project lives in `reporting` schema; PostgREST
     // exposes only the `public` schema by default. The project has historically
     // not exposed reporting via PostgREST, so we query `expenses` directly for
@@ -232,10 +243,40 @@ async function fetchLaborCushionRaw(projectId: string): Promise<LaborCushionRaw 
     0
   );
 
+  // Estimate-side labor totals (zeros when the project has no estimate yet).
+  const estHours = Number(summaryRes.data?.total_labor_hours ?? 0);
+  const estCushion = Number(summaryRes.data?.total_labor_cushion ?? 0);
+  const estActualCost = Number(summaryRes.data?.total_labor_actual_cost ?? 0);
+
+  // Approved-CO labor contributions.
+  const coRows = (coLaborRes.data ?? []) as Array<{
+    labor_hours: number | null;
+    labor_cushion_amount: number | null;
+    actual_cost_rate_per_hour: number | null;
+  }>;
+  const coHours = coRows.reduce((s, r) => s + Number(r.labor_hours ?? 0), 0);
+  const coCushion = coRows.reduce((s, r) => s + Number(r.labor_cushion_amount ?? 0), 0);
+  const coActualCost = coRows.reduce(
+    (s, r) => s + Number(r.labor_hours ?? 0) * Number(r.actual_cost_rate_per_hour ?? 0),
+    0
+  );
+
+  const combinedHours = estHours + coHours;
+  if (combinedHours <= 0) return null;
+
+  const combinedCushion = estCushion + coCushion;
+  const combinedActualCost = estActualCost + coActualCost;
+  // Capacity = estimated hours + however many overage hours the cushion can absorb
+  // at the effective actual rate. Recomputed from combined components (matches the
+  // estimate_financial_summary view's own formula, extended to include CO labor).
+  const effectiveActualRate = combinedActualCost > 0 ? combinedActualCost / combinedHours : 0;
+  const combinedCapacity =
+    effectiveActualRate > 0 ? combinedHours + combinedCushion / effectiveActualRate : combinedHours;
+
   return {
-    totalLaborHours: Number(summaryRes.data?.total_labor_hours ?? 0),
-    totalLaborCushion: Number(summaryRes.data?.total_labor_cushion ?? 0),
-    totalLaborCapacity: Number(summaryRes.data?.total_labor_capacity ?? 0),
+    totalLaborHours: combinedHours,
+    totalLaborCushion: combinedCushion,
+    totalLaborCapacity: combinedCapacity,
     actualHours,
     actualCost,
   };
@@ -469,16 +510,39 @@ async function fetchEstimateLineItemMeta(projectId: string): Promise<Map<string,
   }
 
   const map = new Map<string, LineItemMeta>();
-  if (!estimateId) return map;
 
-  const { data, error } = await supabase
-    .from('estimate_line_items')
-    .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount')
-    .eq('estimate_id', estimateId);
+  if (estimateId) {
+    const { data, error } = await supabase
+      .from('estimate_line_items')
+      .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount')
+      .eq('estimate_id', estimateId);
 
-  if (error || !data) return map;
+    if (!error && data) {
+      for (const row of data) {
+        map.set(row.id, {
+          laborHours: row.labor_hours != null ? Number(row.labor_hours) : null,
+          billingRatePerHour: row.billing_rate_per_hour != null ? Number(row.billing_rate_per_hour) : null,
+          laborCushionAmount: row.labor_cushion_amount != null ? Number(row.labor_cushion_amount) : null,
+        });
+      }
+    }
+  }
 
-  for (const row of data) {
+  // Approved-CO labor lines surface their own cushion in the bucket rows too —
+  // their bucket line id is the change_order_line_items id.
+  const { data: coData } = await supabase
+    .from('change_order_line_items')
+    .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount, change_orders!inner(project_id, status)')
+    .eq('category', 'labor_internal')
+    .eq('change_orders.project_id', projectId)
+    .eq('change_orders.status', 'approved');
+
+  for (const row of (coData ?? []) as Array<{
+    id: string;
+    labor_hours: number | null;
+    billing_rate_per_hour: number | null;
+    labor_cushion_amount: number | null;
+  }>) {
     map.set(row.id, {
       laborHours: row.labor_hours != null ? Number(row.labor_hours) : null,
       billingRatePerHour: row.billing_rate_per_hour != null ? Number(row.billing_rate_per_hour) : null,
