@@ -106,6 +106,28 @@ export const PROJECT_STATUSES = [
   { value: 'cancelled', label: 'Cancelled' }
 ] as const;
 
+// Photo/video classification. NULL/undefined = unclassified.
+export type MediaCategory =
+  | 'progress'
+  | 'before'
+  | 'after'
+  | 'issue'
+  | 'materials'
+  | 'site'
+  | 'safety'
+  | 'other';
+
+export const MEDIA_CATEGORY_LABELS: Record<MediaCategory, string> = {
+  progress: 'Progress',
+  before: 'Before',
+  after: 'After',
+  issue: 'Issue / Defect',
+  materials: 'Materials',
+  site: 'Site Conditions',
+  safety: 'Safety',
+  other: 'Other',
+};
+
 // Project Media interface for photos/videos with location metadata
 export interface ProjectMedia {
   id: string;
@@ -117,6 +139,7 @@ export interface ProjectMedia {
   file_size: number;
   caption?: string;
   description?: string;
+  category?: MediaCategory | null;
   taken_at?: string;
   latitude?: number;
   longitude?: number;

@@ -2177,6 +2177,7 @@ export type Database = {
         Row: {
           altitude: number | null
           caption: string | null
+          category: string | null
           created_at: string
           description: string | null
           device_model: string | null
@@ -2200,6 +2201,7 @@ export type Database = {
         Insert: {
           altitude?: number | null
           caption?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
           device_model?: string | null
@@ -2223,6 +2225,7 @@ export type Database = {
         Update: {
           altitude?: number | null
           caption?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
           device_model?: string | null
@@ -4532,4 +4535,3 @@ export const Constants = {
     },
   },
 } as const
-

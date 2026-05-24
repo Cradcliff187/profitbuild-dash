@@ -25,7 +25,8 @@ import { formatFileSize, formatDuration } from '@/utils/videoUtils';
 import { getPendingCount } from '@/utils/syncQueue';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { ProjectMedia } from '@/types/project';
+import type { ProjectMedia, MediaCategory } from '@/types/project';
+import { MEDIA_CATEGORY_LABELS } from '@/types/project';
 
 type ViewMode = 'grid' | 'list';
 type SortBy = 'date-desc' | 'date-asc' | 'caption' | 'duration-desc' | 'duration-asc';
@@ -63,6 +64,7 @@ export function ProjectMediaGallery({
   const [selectedMedia, setSelectedMedia] = useState<ProjectMedia | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortBy, setSortBy] = useState<SortBy>('date-desc');
+  const [categoryFilter, setCategoryFilter] = useState<MediaCategory | 'all'>('all');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -88,10 +90,24 @@ export function ProjectMediaGallery({
     return allMedia;
   }, [allMedia, activeTab]);
 
+  // Count media per category (within the active tab) for the filter pills
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<MediaCategory, number>();
+    tabFilteredMedia.forEach((m) => {
+      if (m.category) counts.set(m.category, (counts.get(m.category) || 0) + 1);
+    });
+    return counts;
+  }, [tabFilteredMedia]);
+
   // Filter and sort media
   const filteredAndSortedMedia = useMemo(() => {
+    const categoryFiltered =
+      categoryFilter === 'all'
+        ? tabFilteredMedia
+        : tabFilteredMedia.filter((m) => m.category === categoryFilter);
+
     // Apply sorting
-    const sorted = [...tabFilteredMedia].sort((a, b) => {
+    const sorted = [...categoryFiltered].sort((a, b) => {
       switch (sortBy) {
         case 'date-desc':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -109,7 +125,7 @@ export function ProjectMediaGallery({
     });
 
     return sorted;
-  }, [tabFilteredMedia, sortBy]);
+  }, [tabFilteredMedia, sortBy, categoryFilter]);
 
   // Group media by date
   const groupedMedia = useMemo(() => {
@@ -629,6 +645,33 @@ export function ProjectMediaGallery({
             )
           )}
 
+          {/* Category filter pills */}
+          {categoryCounts.size > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Button
+                variant={categoryFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 rounded-full px-3 text-xs"
+                onClick={() => setCategoryFilter('all')}
+              >
+                All
+              </Button>
+              {(Object.keys(MEDIA_CATEGORY_LABELS) as MediaCategory[])
+                .filter((c) => categoryCounts.has(c))
+                .map((c) => (
+                  <Button
+                    key={c}
+                    variant={categoryFilter === c ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7 rounded-full px-3 text-xs"
+                    onClick={() => setCategoryFilter(categoryFilter === c ? 'all' : c)}
+                  >
+                    {MEDIA_CATEGORY_LABELS[c]} ({categoryCounts.get(c)})
+                  </Button>
+                ))}
+            </div>
+          )}
+
           {/* Media Grid */}
           {filteredAndSortedMedia.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -676,6 +719,13 @@ export function ProjectMediaGallery({
 
                           {/* Comment Count Badge */}
                           <MediaCommentBadge count={commentCounts.get(item.id) || 0} />
+
+                          {/* Category Badge */}
+                          {item.category && (
+                            <Badge className="absolute bottom-2 left-2 z-10 text-xs bg-primary/90 text-primary-foreground border-0">
+                              {MEDIA_CATEGORY_LABELS[item.category]}
+                            </Badge>
+                          )}
 
                           {/* Thumbnail/Image */}
                           {item.file_type === 'image' ? (

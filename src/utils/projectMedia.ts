@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { ProjectMedia } from "@/types/project";
+import type { ProjectMedia, MediaCategory } from "@/types/project";
 import { generateStoragePath, validateMediaFile } from "./mediaMetadata";
 
 export interface UploadProjectMediaParams {
@@ -360,9 +360,11 @@ export async function getProjectMediaList(
 export async function updateMediaMetadata(
   mediaId: string,
   updates: {
+    file_name?: string;
     caption?: string;
     description?: string;
     location_name?: string;
+    category?: MediaCategory | null;
   }
 ): Promise<{ data: ProjectMedia | null; error: Error | null }> {
   try {

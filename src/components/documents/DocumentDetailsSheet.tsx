@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DocumentLeadingIcon } from "@/utils/documentFileType";
 import { toast } from "sonner";
-import { DOCUMENT_TYPE_LABELS } from "@/types/document";
+import { DOCUMENT_TYPE_LABELS, ASSIGNABLE_DOCUMENT_TYPES } from "@/types/document";
 import type { DocumentType, ProjectDocument } from "@/types/document";
 
 interface DocumentDetailsSheetProps {
@@ -72,6 +72,7 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
       queryClient.invalidateQueries({ queryKey: ["project-documents", projectId] });
       queryClient.invalidateQueries({ queryKey: ["field-documents", projectId] });
       queryClient.invalidateQueries({ queryKey: ["project-docs-count", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-documents-timeline", projectId] });
 
       toast.success("Document updated");
       onSaved?.();
@@ -139,9 +140,11 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
+                    {Array.from(
+                      new Set<DocumentType>([...ASSIGNABLE_DOCUMENT_TYPES, document.document_type])
+                    ).map((key) => (
                       <SelectItem key={key} value={key}>
-                        {label}
+                        {DOCUMENT_TYPE_LABELS[key]}
                       </SelectItem>
                     ))}
                   </SelectContent>
