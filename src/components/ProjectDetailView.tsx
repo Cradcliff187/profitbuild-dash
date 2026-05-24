@@ -212,6 +212,11 @@ export const ProjectDetailView = () => {
   const currentSection = location.pathname.split("/").pop() || "";
   const navigationGroups = getNavigationGroups({ isFieldWorker });
 
+  // Overview route = /projects/:id with no section segment. The Overview page's
+  // own card renders the full address + map link, so the header drops it there
+  // to avoid a duplicate (cut-off) copy.
+  const isOverviewRoute = !location.pathname.split("/").filter(Boolean)[2];
+
   const isActive = (sectionUrl: string) => {
     if (sectionUrl === "" && currentSection === projectId) return true;
     return currentSection === sectionUrl;
@@ -406,28 +411,28 @@ export const ProjectDetailView = () => {
                 {project.project_name}
               </h1>
 
-              {/* Row 3: Client Name [ · Address (map link) ] */}
+              {/* Row 3: Client Name */}
               <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                 <span className="text-sm text-muted-foreground truncate min-w-0">
                   {project.client_name}
                 </span>
-                {project.address && (
-                  <>
-                    <span className="text-muted-foreground/50 shrink-0">·</span>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground active:text-foreground transition-colors min-w-0"
-                      title={project.address}
-                    >
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      <span className="truncate max-w-[120px]">{project.address}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
-                    </a>
-                  </>
-                )}
               </div>
+
+              {/* Row 4: Address (map link) — full width, wraps (no truncation).
+                  Hidden on the Overview route, whose card renders the address. */}
+              {project.address && !isOverviewRoute && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-1 mt-0.5 text-xs text-muted-foreground active:text-foreground transition-colors"
+                  title={project.address}
+                >
+                  <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
+                  <span className="flex-1 leading-snug">{project.address}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 mt-0.5 opacity-50" />
+                </a>
+              )}
             </div>
 
             {/* Edit Project — direct icon button. Used to be wrapped in a
@@ -749,8 +754,8 @@ export const ProjectDetailView = () => {
                     {project.client_name}
                   </span>
                 </div>
-                {project.address && (
-                  <a 
+                {project.address && !isOverviewRoute && (
+                  <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
