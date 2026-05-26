@@ -760,7 +760,7 @@ useEffect(() => {
           });
 
           if (targetStatus === 'approved') {
-            await approveEstimateSideEffects(initialEstimate.project_id, totalAmount);
+            await approveEstimateSideEffects(initialEstimate.project_id, initialEstimate.id);
           }
 
           onSave(updatedEstimate);
@@ -893,7 +893,7 @@ useEffect(() => {
           });
 
           if (targetStatus === 'approved') {
-            await approveEstimateSideEffects(projectId, totalAmount);
+            await approveEstimateSideEffects(projectId, newVersionId);
           }
 
           onSave(newEstimate);
@@ -1018,7 +1018,7 @@ useEffect(() => {
             // INSERT-path: sync_contract_on_estimate_status trigger is UPDATE-only,
             // so the project.contracted_amount update + status advance must happen
             // explicitly via this helper.
-            await approveEstimateSideEffects(projectId, totalAmount);
+            await approveEstimateSideEffects(projectId, createdEstimate.id);
           }
 
           onSave(newEstimate);
