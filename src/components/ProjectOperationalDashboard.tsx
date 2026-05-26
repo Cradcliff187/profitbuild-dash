@@ -307,6 +307,17 @@ export function ProjectOperationalDashboard({
     ? (Number(currentEstimate?.total_amount) ? money0(currentEstimate!.total_amount) : '—')
     : (Number(project.contracted_amount) ? money0(project.contracted_amount) : '—');
 
+  // Contingency — sits beside Contract. Same display rule as the existing
+  // contingency warning: only surfaced when the approved estimate carries one.
+  const contingencyTotal = Number(project.contingency_amount) || 0;
+  const contingencyRemaining = Number(project.contingency_remaining) || 0;
+  const contingencyUsed = Math.max(contingencyTotal - contingencyRemaining, 0);
+  const contingencyUsedPct = contingencyTotal > 0 ? (contingencyUsed / contingencyTotal) * 100 : 0;
+  const hasContingency = contingencyTotal > 0;
+  const contingencyUsedText = `${money0(contingencyUsed)} (${contingencyUsedPct.toFixed(0)}%)`;
+  // Flag red only in the critical state (≤25% remaining), matching the warning threshold.
+  const contingencyUsedClass = hasContingency && contingencyUsedPct >= 75 ? 'text-destructive' : undefined;
+
   // Desktop identity meta cells (mobile shows only the money rows below).
   type MetaCell = { label: string; value: string; valueClassName?: string };
   const desktopCells: MetaCell[] = ([
@@ -317,6 +328,12 @@ export function ProjectOperationalDashboard({
     { label: 'Start', value: fmtDate(project.start_date) },
     { label: 'End', value: fmtDate(project.end_date) },
     { label: moneyLabel, value: moneyValue, valueClassName: 'font-medium' },
+    hasContingency
+      ? { label: 'Contingency', value: money0(contingencyTotal), valueClassName: 'font-medium' }
+      : null,
+    hasContingency
+      ? { label: 'Contingency used', value: contingencyUsedText, valueClassName: cn('font-medium', contingencyUsedClass) }
+      : null,
     project.project_type === 'work_order'
       ? { label: 'DNE', value: Number(project.do_not_exceed) ? money0(project.do_not_exceed) : '—', valueClassName: 'font-medium' }
       : null,
@@ -391,6 +408,18 @@ export function ProjectOperationalDashboard({
               <span className="text-xs text-muted-foreground">{moneyLabel}</span>
               <span className="text-sm font-medium">{moneyValue}</span>
             </div>
+            {hasContingency && (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">Contingency</span>
+                  <span className="text-sm font-medium">{money0(contingencyTotal)}</span>
+                </div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">Contingency used</span>
+                  <span className={cn("text-sm font-medium", contingencyUsedClass)}>{contingencyUsedText}</span>
+                </div>
+              </>
+            )}
             {isClosed && (
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-xs text-muted-foreground">Final margin</span>
