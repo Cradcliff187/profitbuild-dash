@@ -43,7 +43,6 @@ interface ImportedLineItem {
 const changeOrderSchema = z.object({
   description: z.string().min(1, "Description is required"),
   reason_for_change: z.string().min(1, "Reason for change is required"),
-  contingency_billed_to_client: z.coerce.number().min(0, "Contingency amount must be positive").default(0),
 });
 
 type ChangeOrderFormData = z.infer<typeof changeOrderSchema>;
@@ -79,7 +78,6 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
     defaultValues: {
       description: changeOrder?.description || "",
       reason_for_change: changeOrder?.reason_for_change || "",
-      contingency_billed_to_client: changeOrder?.contingency_billed_to_client || 0,
     },
   });
 
@@ -142,6 +140,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             sort_order: item.sort_order,
             payee_id: item.payee_id,
             payee_name: item.payees?.payee_name,
+            funded_by_contingency: item.funded_by_contingency ?? false,
             labor_hours: item.labor_hours != null ? Number(item.labor_hours) : null,
             billing_rate_per_hour: item.billing_rate_per_hour != null ? Number(item.billing_rate_per_hour) : null,
             actual_cost_rate_per_hour: item.actual_cost_rate_per_hour != null ? Number(item.actual_cost_rate_per_hour) : null,
@@ -173,16 +172,22 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
     initializeData();
   }, [projectId, changeOrder]);
 
-  // Calculate totals from line items
+  // Calculate totals from line items.
+  // Contingency-funded lines bill $0 to the client (excluded from additivePrice)
+  // and draw their COST from the reserve (contingencyDraw). Additive lines bill
+  // their price as normal. See the contingency draw-down model.
   const calculateTotals = () => {
-    const totalCost = lineItems.reduce((sum, item) => 
-      sum + (item.quantity * item.cost_per_unit), 0);
-    const totalPrice = lineItems.reduce((sum, item) => 
-      sum + (item.quantity * item.price_per_unit), 0);
-    const margin = totalPrice - totalCost;
-    const marginPercent = totalPrice > 0 ? (margin / totalPrice) * 100 : 0;
-    
-    return { totalCost, totalPrice, margin, marginPercent };
+    let totalCost = 0;
+    let additivePrice = 0;
+    let contingencyDraw = 0;
+    for (const item of lineItems) {
+      const cost = item.quantity * item.cost_per_unit;
+      const price = item.quantity * item.price_per_unit;
+      totalCost += cost;
+      if (item.funded_by_contingency) contingencyDraw += cost;
+      else additivePrice += price;
+    }
+    return { totalCost, additivePrice, contingencyDraw };
   };
 
   const handleUpdateLineItem = (index: number, field: keyof ChangeOrderLineItemInput, value: any) => {
@@ -350,12 +355,17 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
     if (fetchError) throw fetchError;
     if (!newLineItems?.length) return;
 
-    // 2. Regenerate auto-quote — only when a payee is assigned to a line item.
+    // Contingency-funded lines are not client-billable: they don't get a quote
+    // (no client commitment to track) and don't appear on the SOV. Only additive
+    // lines flow into the auto-quote and Schedule of Values.
+    const additiveLineItems = newLineItems.filter((li) => !li.funded_by_contingency);
+
+    // 2. Regenerate auto-quote — only when a payee is assigned to an additive line.
     // quotes.payee_id is NOT NULL, so a payee-less CO cannot have an auto-quote;
     // the CO cost still reaches cost tracking via the line-item plan tier and the
     // SOV entries below, so we skip the quote here and let it be created on a later
     // edit once a payee is set.
-    const autoQuotePayeeId = newLineItems.find((li) => li.payee_id)?.payee_id ?? null;
+    const autoQuotePayeeId = additiveLineItems.find((li) => li.payee_id)?.payee_id ?? null;
     const { data: project } = await supabase
       .from('projects')
       .select('project_number')
@@ -393,7 +403,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
       if (quoteError) throw quoteError;
 
       if (newQuote) {
-        const quoteLineItems = newLineItems.map((item, index) => ({
+        const quoteLineItems = additiveLineItems.map((item, index) => ({
           quote_id: newQuote.id,
           change_order_line_item_id: item.id,
           category: item.category,
@@ -436,7 +446,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
       let itemNum = itemCountData ? (itemCountData as unknown[]).length || 0 : 0;
 
-      const sovEntries = newLineItems.map((item) => {
+      const sovEntries = additiveLineItems.map((item) => {
         currentSort++;
         itemNum++;
         return {
@@ -450,10 +460,12 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
         };
       });
 
-      const { error: sovInsertError } = await supabase
-        .from('sov_line_items')
-        .insert(sovEntries);
-      if (sovInsertError) throw sovInsertError;
+      if (sovEntries.length > 0) {
+        const { error: sovInsertError } = await supabase
+          .from('sov_line_items')
+          .insert(sovEntries);
+        if (sovInsertError) throw sovInsertError;
+      }
 
       // Increase SOV contract sum by the new CO total
       const { data: currentSov } = await supabase
@@ -476,7 +488,22 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   const onSubmit = async (data: ChangeOrderFormData) => {
     if (!validateLineItems()) return;
 
-    const { totalCost, totalPrice, margin } = calculateTotals();
+    const { totalCost, additivePrice, contingencyDraw } = calculateTotals();
+    const discountAmt = computeDiscountAmount(discountType, discountValue, additivePrice);
+    const clientAmount = Math.max(0, additivePrice - discountAmt);
+    const margin = clientAmount - totalCost;
+
+    // Over-draw guard. For an approved CO being edited, add back its own current
+    // draw (already netted out of contingencyRemaining) to get true availability.
+    const availableForThisCO =
+      contingencyRemaining +
+      (changeOrder?.status === 'approved' ? (changeOrder.contingency_drawdown || 0) : 0);
+    if (contingencyDraw > availableForThisCO + 0.005) {
+      toast.error("Exceeds available contingency", {
+        description: `This change order draws ${formatCurrency(contingencyDraw)} from contingency, but only ${formatCurrency(availableForThisCO)} is available.`,
+      });
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -496,9 +523,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             description: data.description,
             reason_for_change: data.reason_for_change,
             cost_impact: totalCost,
-            client_amount: totalPrice,
+            client_amount: clientAmount,
             margin_impact: margin,
-            contingency_billed_to_client: data.contingency_billed_to_client,
+            contingency_drawdown: contingencyDraw,
             discount_type: discountType,
             discount_value: discountValue,
           })
@@ -525,6 +552,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           price_per_unit: item.price_per_unit,
           sort_order: index,
           payee_id: item.payee_id,
+          funded_by_contingency: item.funded_by_contingency ?? false,
           labor_hours: item.category === LABOR_CATEGORY ? (item.labor_hours ?? item.quantity ?? null) : null,
           billing_rate_per_hour: item.category === LABOR_CATEGORY ? (item.billing_rate_per_hour ?? item.cost_per_unit ?? null) : null,
           actual_cost_rate_per_hour: item.category === LABOR_CATEGORY ? (item.actual_cost_rate_per_hour ?? null) : null,
@@ -538,7 +566,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
 
         // For approved COs: regenerate the auto-quote and SOV entries
         if (isApproved) {
-          await regenerateApprovedCOReferences(changeOrder.id, totalPrice);
+          await regenerateApprovedCOReferences(changeOrder.id, clientAmount);
           toast.success("Approved change order updated", {
             description: "Line items, associated quote, and SOV entries have been refreshed.",
           });
@@ -555,9 +583,9 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             description: data.description,
             reason_for_change: data.reason_for_change,
             cost_impact: totalCost,
-            client_amount: totalPrice,
+            client_amount: clientAmount,
             margin_impact: margin,
-            contingency_billed_to_client: data.contingency_billed_to_client,
+            contingency_drawdown: contingencyDraw,
             discount_type: discountType,
             discount_value: discountValue,
             status: 'pending',
@@ -579,6 +607,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
           price_per_unit: item.price_per_unit,
           sort_order: index,
           payee_id: item.payee_id,
+          funded_by_contingency: item.funded_by_contingency ?? false,
           labor_hours: item.category === LABOR_CATEGORY ? (item.labor_hours ?? item.quantity ?? null) : null,
           billing_rate_per_hour: item.category === LABOR_CATEGORY ? (item.billing_rate_per_hour ?? item.cost_per_unit ?? null) : null,
           actual_cost_rate_per_hour: item.category === LABOR_CATEGORY ? (item.actual_cost_rate_per_hour ?? null) : null,
@@ -615,9 +644,14 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
   };
 
   const totals = calculateTotals();
-  const billedAmount = form.watch("contingency_billed_to_client") || 0;
-  const contingencyAfterBilling = contingencyRemaining - billedAmount;
-  const showWarning = billedAmount > contingencyRemaining;
+  const renderDiscountAmt = computeDiscountAmount(discountType, discountValue, totals.additivePrice);
+  const renderClientAmount = Math.max(0, totals.additivePrice - renderDiscountAmt);
+  // Editing an approved CO: add back its own current draw (already netted out of
+  // contingencyRemaining) to show true availability for this CO.
+  const availableForThisCO =
+    contingencyRemaining +
+    (changeOrder?.status === 'approved' ? (changeOrder.contingency_drawdown || 0) : 0);
+  const overDraw = totals.contingencyDraw > availableForThisCO + 0.005;
 
   return (
     <div className="flex flex-col h-full">
@@ -712,8 +746,6 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                 onUpdateLineItem={handleUpdateLineItem}
                 onRemoveLineItem={handleRemoveLineItem}
                 onAddLineItem={handleAddLineItem}
-                contingencyRemaining={contingencyRemaining}
-                showContingencyGuidance={billedAmount > 0}
               />
             </div>
 
@@ -721,8 +753,7 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
             <Card className="p-2 bg-muted/30">
               <h4 className="text-xs font-medium mb-1.5">Change Order Totals</h4>
               {(() => {
-                const discountAmt = computeDiscountAmount(discountType, discountValue, totals.totalPrice);
-                const clientAmountAfterDiscount = Math.max(0, totals.totalPrice - discountAmt);
+                const clientAmountAfterDiscount = renderClientAmount;
                 const marginAfterDiscount = clientAmountAfterDiscount - totals.totalCost;
                 const marginPctAfterDiscount = clientAmountAfterDiscount > 0
                   ? (marginAfterDiscount / clientAmountAfterDiscount) * 100
@@ -734,17 +765,23 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
                       <span className="font-mono font-semibold">{formatCurrency(totals.totalCost)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal:</span>
-                      <span className="font-mono font-semibold">{formatCurrency(totals.totalPrice)}</span>
+                      <span className="text-muted-foreground">Billable subtotal:</span>
+                      <span className="font-mono font-semibold">{formatCurrency(totals.additivePrice)}</span>
                     </div>
                     <div className="col-span-2">
                       <DiscountInput
                         type={discountType}
                         value={discountValue}
-                        subtotal={totals.totalPrice}
+                        subtotal={totals.additivePrice}
                         onChange={handleDiscountChange}
                       />
                     </div>
+                    {totals.contingencyDraw > 0 && (
+                      <div className="col-span-2 flex justify-between text-blue-700 dark:text-blue-300">
+                        <span>Drawn from contingency (cost):</span>
+                        <span className="font-mono font-semibold">{formatCurrency(totals.contingencyDraw)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-medium">
                       <span>Client Amount:</span>
                       <span className="font-mono font-semibold">{formatCurrency(clientAmountAfterDiscount)}</span>
@@ -764,76 +801,31 @@ export const ChangeOrderForm = ({ projectId, changeOrder, onSuccess, onCancel }:
               })()}
             </Card>
 
-            {/* Contingency Billing Section */}
-            <FormField
-              control={form.control}
-              name="contingency_billed_to_client"
-              render={({ field }) => (
-                <div className="space-y-1.5 border rounded-lg p-2 bg-blue-50 dark:bg-blue-950/20">
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-xs font-semibold">Bill Contingency to Client (Optional)</FormLabel>
-                    <span className="text-[11px] text-muted-foreground">
-                      Available: {formatCurrency(contingencyRemaining)}
-                    </span>
-                  </div>
-
-                  <FormItem>
-                    <FormLabel className="text-[11px]">Amount to Bill</FormLabel>
-                    <div className="flex gap-1.5">
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          className="h-8 text-xs"
-                          {...field}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
-                            field.onChange(value);
-                          }}
-                        />
-                      </FormControl>
-                      {contingencyRemaining > 0 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => field.onChange(contingencyRemaining)}
-                          className="h-8 text-xs px-2"
-                        >
-                          Bill All
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Convert unused contingency to earned revenue
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-
-                  {billedAmount > 0 && (
-                    <div className={`text-[11px] space-y-0.5 p-1.5 rounded ${showWarning ? 'bg-destructive/10 text-destructive' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
-                      <p className="font-medium">💰 Billing Impact:</p>
-                      <p>• Converts {formatCurrency(billedAmount)} from reserved → earned revenue</p>
-                      <p>• Reduces available contingency to {formatCurrency(Math.max(contingencyAfterBilling, 0))}</p>
-                      <p>• Net contract increase: {formatCurrency(totals.totalPrice)} (Change Order) + {formatCurrency(billedAmount)} (Contingency) = {formatCurrency(totals.totalPrice + billedAmount)}</p>
-                      {billedAmount >= totals.totalPrice ? (
-                        <p className="text-blue-700 dark:text-blue-300 font-medium">
-                          ℹ️ The contingency covers the full cost of this change order.
-                        </p>
-                      ) : (
-                        <p className="text-blue-700 dark:text-blue-300 font-medium">
-                          ℹ️ The contingency covers part of this change order's cost.
-                        </p>
-                      )}
-                      {showWarning && (
-                        <p className="font-semibold">⚠️ Exceeds available contingency!</p>
-                      )}
-                    </div>
-                  )}
+            {/* Contingency Reserve Summary */}
+            {(availableForThisCO > 0 || totals.contingencyDraw > 0) && (
+              <div className="space-y-1.5 border rounded-lg p-2 bg-blue-50 dark:bg-blue-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold">Contingency Reserve</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Available: {formatCurrency(availableForThisCO)}
+                  </span>
                 </div>
-              )}
-            />
+                <p className="text-[11px] text-muted-foreground">
+                  Toggle <strong>"Fund from contingency"</strong> on a line item to draw its cost from
+                  the reserve instead of billing the client. Those lines do not increase the contract.
+                </p>
+                {totals.contingencyDraw > 0 && (
+                  <div className={`text-[11px] space-y-0.5 p-1.5 rounded ${overDraw ? 'bg-destructive/10 text-destructive' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                    <p>• This change order draws {formatCurrency(totals.contingencyDraw)} from contingency (at cost)</p>
+                    <p>• Reserve after approval: {formatCurrency(Math.max(availableForThisCO - totals.contingencyDraw, 0))}</p>
+                    <p>• Client billing (additive): {formatCurrency(renderClientAmount)}</p>
+                    {overDraw && (
+                      <p className="font-semibold">⚠️ Draw exceeds available contingency — reduce it before saving.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
           </form>
         </Form>

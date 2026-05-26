@@ -351,6 +351,7 @@ export type Database = {
           dependencies: Json | null
           description: string
           duration_days: number | null
+          funded_by_contingency: boolean
           id: string
           is_milestone: boolean | null
           labor_cushion_amount: number | null
@@ -378,6 +379,7 @@ export type Database = {
           dependencies?: Json | null
           description: string
           duration_days?: number | null
+          funded_by_contingency?: boolean
           id?: string
           is_milestone?: boolean | null
           labor_cushion_amount?: number | null
@@ -405,6 +407,7 @@ export type Database = {
           dependencies?: Json | null
           description?: string
           duration_days?: number | null
+          funded_by_contingency?: boolean
           id?: string
           is_milestone?: boolean | null
           labor_cushion_amount?: number | null
@@ -447,6 +450,7 @@ export type Database = {
           change_order_number: string
           client_amount: number | null
           contingency_billed_to_client: number | null
+          contingency_drawdown: number
           cost_impact: number | null
           created_at: string | null
           description: string
@@ -469,6 +473,7 @@ export type Database = {
           change_order_number: string
           client_amount?: number | null
           contingency_billed_to_client?: number | null
+          contingency_drawdown?: number
           cost_impact?: number | null
           created_at?: string | null
           description: string
@@ -491,6 +496,7 @@ export type Database = {
           change_order_number?: string
           client_amount?: number | null
           contingency_billed_to_client?: number | null
+          contingency_drawdown?: number
           cost_impact?: number | null
           created_at?: string | null
           description?: string
