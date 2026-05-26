@@ -992,6 +992,73 @@ KPIs reading `estimate_financial_summary` (e.g. `max_gross_profit_potential`) re
 targets the **project** cushion in Cost Analysis. The cushion erosion math itself
 (`computeLaborCushionState`) is unchanged.
 
+### 31. Contingency Draw-Down Model on Change Orders (May 26, 2026, PR #117)
+
+A change-order line can be **funded from the project contingency reserve** instead of billed to the
+client. Replaces the old "bill contingency to client" (re-bill) behavior. Funding is **per-line**, so one
+CO can mix additive scope and contingency-funded scope.
+
+**The two behaviors of a contingency-funded line:**
+1. Its **COST draws the reserve down** (`contingency_remaining -= line cost`).
+2. It is **NOT billed to the client** — it does **not** raise `contracted_amount` (client_amount += $0 for that line).
+
+Its cost still hits the books (`cost_impact`, `adjusted_est_costs`), so project margin drops by the cost —
+which is exactly the economic meaning of spending the reserve. Additive lines behave as before (bill their
+price, raise the contract).
+
+**Schema** (migration `20260526181236_contingency_drawdown_model`, applied to production; local file is a
+placeholder per the migration rules):
+- `change_order_line_items.funded_by_contingency` (bool, default false)
+- `change_orders.contingency_drawdown` (numeric, default 0) — the rolled-up cost drawn from the reserve.
+
+**Triggers / functions (all per Rule 1 — math lives in Postgres):**
+- `sync_change_order_totals()` (on `change_order_line_items`) and `sync_change_order_totals_for_id(uuid)`
+  (called by the discount-change trigger) — **must stay in lockstep**. Both now compute: `client_amount` =
+  Σ additive-line price − discount (**additive-only**; contingency lines contribute $0); `cost_impact` =
+  Σ all-line cost; `contingency_drawdown` = Σ contingency-line cost. **Discount applies only to additive
+  billing.**
+- `calculate_contingency_remaining(uuid)` is the **single source of truth**: `contingency_amount −
+  Σ(approved-CO contingency_drawdown)`, clamped `≥ 0`. Reserve from the approved current-version estimate
+  (fallback: most recent approved).
+- `calculate_project_margins()` **delegates** reserve math to `calculate_contingency_remaining()` — it no
+  longer computes it inline. This **eliminated a dual-writer bug**: previously `calculate_project_margins`
+  (full reserve) and `update_contingency_remaining` (reserve − billed) wrote `projects.contingency_remaining`
+  with different formulas, and last-writer-won, so draw-down never stuck. See Gotcha #26.
+- `add_change_order_to_sov()` **omits** contingency-funded lines from the SOV and never raises
+  `original_contract_sum` for them (contingency work is not client-billable).
+- The BEFORE trigger `calculate_change_order_margin_impact` (sets `margin_impact = client_amount −
+  cost_impact`) is unchanged and stays consistent because `client_amount` is now additive-only.
+
+**Frontend:**
+- [ChangeOrderLineItemTable](src/components/ChangeOrderLineItemTable.tsx): per-line **"Fund from
+  contingency"** checkbox (desktop + mobile); totals are model-aware (additive client price vs. contingency
+  cost draw); contingency lines show their drawn **cost** (not price) as the line total.
+- [ChangeOrderForm](src/components/ChangeOrderForm.tsx): the old "Bill Contingency to Client" amount input
+  is **gone**, replaced by a read-only reserve summary + **over-draw validation** (blocks save when Σ
+  contingency-line cost > available reserve; for an approved CO being edited it adds that CO's own current
+  draw back before comparing). Persists `funded_by_contingency` per line and `contingency_drawdown` on the CO.
+- [ChangeOrdersList](src/components/ChangeOrdersList.tsx): "Remaining Contingency" reads
+  `projects.contingency_remaining` directly (the prior `− totalContingencyBilled` double-subtraction is
+  removed); the per-CO column now shows `contingency_drawdown`.
+- Project Overview header (`ProjectOperationalDashboard`) shows **Contingency** / **Contingency used** cells
+  (gated on `contingency_amount > 0`), shipped in the same PR.
+
+**Deprecated, do not use for new logic:** `change_orders.contingency_billed_to_client` and
+`change_orders.includes_contingency`. Both columns still exist (legacy data) but are **read by no
+calculation** anymore. KPI definitions in `src/lib/kpi-definitions/` still name them — a follow-up should add
+a `contingency_drawdown` KPI and run `npm run sync:edge-kpis`.
+
+**Common pitfalls:**
+- Don't write `client_amount`/`cost_impact`/`contingency_drawdown` and expect them to stick from the
+  frontend alone — the line-item sync trigger recomputes them on every line change. Write the line items
+  (with `funded_by_contingency`); the triggers own the roll-up.
+- Don't re-introduce a "bill contingency to client" amount field. The model is per-line funding now, not a
+  CO-level dollar amount.
+- `calculate_contingency_remaining` clamps at 0, so the frontend over-draw guard is the real protection
+  against drawing more than the reserve holds — keep it.
+- A contingency-funded line with price > 0 still bills $0; the price is informational only. Don't sum
+  `total_price` for client billing — sum additive lines only (the trigger already does).
+
 ---
 
 ## TypeScript Configuration
@@ -1164,6 +1231,7 @@ Use this list when doing periodic documentation reviews:
     - The frontend reads `projects.contingency_amount` and `projects.contingency_remaining` directly — no view indirection needed for this field. This is deliberate per Architectural Rule 1.
     - **Common pitfall**: when debugging contingency display issues, don't assume the frontend is stale — check if `projects.contingency_amount` is NULL first. Backfill with: `UPDATE projects p SET contingency_amount = e.contingency_amount, contingency_remaining = calculate_contingency_remaining(p.id) FROM estimates e WHERE e.project_id = p.id AND e.status = 'approved' AND e.is_current_version = true;` (safe to re-run).
     - **When adding sync for other estimate-derived columns** (e.g. if another `projects` field ends up NULL despite the estimate having data), follow this same polymorphic trigger pattern rather than creating a new one. Future-proofing: the `guard` condition (`status = 'approved' AND is_current_version = true`) is the important invariant to preserve.
+    - **UPDATE (May 26, 2026, PR #117 — Rule 31):** `calculate_contingency_remaining()` is now the SINGLE source of truth: `contingency_amount − Σ(approved-CO contingency_drawdown)`, clamped ≥ 0. The prior **dual-writer bug** is fixed — `calculate_project_margins()` used to recompute `contingency_remaining` inline (always full reserve) and would overwrite whatever `update_contingency_remaining` wrote, so contingency draw-down never stuck (225-007 disagreed $3,250 vs $0). `calculate_project_margins` now **delegates** to `calculate_contingency_remaining()`, so both writers agree. The backfill SQL above is still valid but the `calculate_contingency_remaining(p.id)` it calls now subtracts approved-CO draw-down.
 
 27. **Direct Supabase writes bypass TanStack Query invalidation (Apr 18, 2026)** — Any `supabase.from(X).update/delete/insert(...)` fired from a component that does NOT go through TanStack Query's mutation layer (`useMutation`) leaves every active `useQuery` / `useInfiniteQuery` against table X serving stale cached data until the next natural refetch (focus, remount, or staleTime expiry). Symptom: write succeeds (toast confirms, DB is correct) but the UI still shows the pre-write state. Users reach for F5. Two canonical fixes shipped today:
     - **`ExpensesList.refreshAll()`** — helper inside `src/components/ExpensesList.tsx` that calls both `onRefresh()` (parent state for Dashboard/Export) and `expensesQuery.refetch()` (the `['expenses-search', filters]` key in global mode). Wired into all 6 mutation sites: bulk actions, row delete, approve/reject, allocation, reassign, split. Fixed the "bulk update category doesn't refresh until F5" complaint.
