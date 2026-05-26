@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -105,9 +106,30 @@ interface ChangeOrderLineItemTableProps {
   onUpdateLineItem: (index: number, field: keyof ChangeOrderLineItemInput, value: any) => void;
   onRemoveLineItem: (index: number) => void;
   onAddLineItem: () => void;
-  contingencyRemaining: number;
-  showContingencyGuidance: boolean;
 }
+
+/** Per-line "Fund from contingency" toggle. When on, the line's COST draws down
+ *  the reserve and it bills the client $0 (does not raise the contract). */
+const ContingencyToggle: React.FC<{
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}> = ({ checked, onChange }) => (
+  <label
+    className={cn(
+      'mt-1 inline-flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium',
+      checked
+        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
+        : 'text-muted-foreground'
+    )}
+  >
+    <Checkbox
+      checked={checked}
+      onCheckedChange={(c) => onChange(c === true)}
+      className="h-3 w-3"
+    />
+    Fund from contingency
+  </label>
+);
 
 const getCategoryAbbrev = (category: string): string => {
   switch (category) {
@@ -198,8 +220,6 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
   onUpdateLineItem,
   onRemoveLineItem,
   onAddLineItem,
-  contingencyRemaining,
-  showContingencyGuidance,
 }) => {
   const isMobile = useIsMobile();
   const { data: laborRates } = useInternalLaborRates();
@@ -223,16 +243,24 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
     return calculateTotalPrice(item) - totalCost;
   };
 
+  // Model-aware: contingency-funded lines bill $0 to the client (excluded from
+  // additivePrice) and draw their COST from the reserve (contingencyDraw).
   const totals = lineItems.reduce(
-    (acc, item) => ({
-      totalCost: acc.totalCost + calculateTotalCost(item),
-      totalPrice: acc.totalPrice + calculateTotalPrice(item),
-    }),
-    { totalCost: 0, totalPrice: 0 }
+    (acc, item) => {
+      const cost = calculateTotalCost(item);
+      const price = calculateTotalPrice(item);
+      const isContingency = !!item.funded_by_contingency;
+      return {
+        totalCost: acc.totalCost + cost,
+        additivePrice: acc.additivePrice + (isContingency ? 0 : price),
+        contingencyDraw: acc.contingencyDraw + (isContingency ? cost : 0),
+      };
+    },
+    { totalCost: 0, additivePrice: 0, contingencyDraw: 0 }
   );
 
-  const totalMargin = totals.totalPrice - totals.totalCost;
-  const marginPercent = totals.totalPrice > 0 ? (totalMargin / totals.totalPrice) * 100 : 0;
+  const totalMargin = totals.additivePrice - totals.totalCost;
+  const marginPercent = totals.additivePrice > 0 ? (totalMargin / totals.additivePrice) * 100 : 0;
 
   return (
     <div className="space-y-3">
@@ -248,16 +276,6 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
           </div>
         </div>
       </div>
-
-      {showContingencyGuidance && (
-        <div className="text-xs p-2 rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-          <p className="font-medium text-blue-700 dark:text-blue-300">💡 Using Contingency</p>
-          <p className="text-blue-600 dark:text-blue-400 mt-1">
-            Add line items below to specify what work is being done. The contingency will help cover the costs.
-            Available contingency: {formatCurrency(contingencyRemaining)}
-          </p>
-        </div>
-      )}
 
       {lineItems.length === 0 ? (
         <div className="text-center py-6 text-muted-foreground border border-dashed rounded-md">
@@ -352,6 +370,12 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                         fallbackActualRate={fallbackActualRate}
                       />
                     )}
+                    <div>
+                      <ContingencyToggle
+                        checked={!!item.funded_by_contingency}
+                        onChange={(c) => onUpdateLineItem(index, 'funded_by_contingency', c)}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -385,8 +409,16 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Total</Label>
-                    <div className="text-sm font-semibold font-mono">{formatCurrency(calculateTotalPrice(item))}</div>
+                    <Label className="text-xs text-muted-foreground">
+                      {item.funded_by_contingency ? 'Contingency draw' : 'Total'}
+                    </Label>
+                    {item.funded_by_contingency ? (
+                      <div className="text-sm font-semibold font-mono text-blue-700 dark:text-blue-300">
+                        {formatCurrency(calculateTotalCost(item))}
+                      </div>
+                    ) : (
+                      <div className="text-sm font-semibold font-mono">{formatCurrency(calculateTotalPrice(item))}</div>
+                    )}
                   </div>
                 </div>
 
@@ -498,6 +530,12 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                           fallbackActualRate={fallbackActualRate}
                         />
                       )}
+                      <div>
+                        <ContingencyToggle
+                          checked={!!item.funded_by_contingency}
+                          onChange={(c) => onUpdateLineItem(index, 'funded_by_contingency', c)}
+                        />
+                      </div>
                     </TableCell>
                     <TableCell className="p-2 text-right">
                       <EditableCell
@@ -550,7 +588,13 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                       </div>
                     </TableCell>
                     <TableCell className="p-2 text-right font-mono text-xs font-semibold">
-                      {formatCurrency(calculateTotalPrice(item))}
+                      {item.funded_by_contingency ? (
+                        <span className="text-blue-700 dark:text-blue-300" title="Drawn from contingency (cost); bills client $0">
+                          {formatCurrency(calculateTotalCost(item))}
+                        </span>
+                      ) : (
+                        formatCurrency(calculateTotalPrice(item))
+                      )}
                     </TableCell>
                     <TableCell className="p-2">
                       <AlertDialog>
@@ -600,10 +644,21 @@ export const ChangeOrderLineItemTable: React.FC<ChangeOrderLineItemTableProps> =
                     Margin: {marginPercent.toFixed(1)}%
                   </TableCell>
                   <TableCell className="p-2 text-right font-mono text-xs font-bold">
-                    {formatCurrency(totals.totalPrice)}
+                    {formatCurrency(totals.additivePrice)}
                   </TableCell>
                   <TableCell className="p-2"></TableCell>
                 </TableRow>
+                {totals.contingencyDraw > 0 && (
+                  <TableRow className="bg-blue-50/60 dark:bg-blue-950/20">
+                    <TableCell colSpan={8} className="p-2 text-right text-[11px] text-blue-700 dark:text-blue-300">
+                      Drawn from contingency (cost, not billed to client):
+                    </TableCell>
+                    <TableCell className="p-2 text-right font-mono text-xs font-semibold text-blue-700 dark:text-blue-300">
+                      {formatCurrency(totals.contingencyDraw)}
+                    </TableCell>
+                    <TableCell className="p-2"></TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
