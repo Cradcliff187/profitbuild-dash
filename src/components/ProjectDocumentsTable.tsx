@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRoles } from "@/contexts/RoleContext";
 import { DocumentDetailsSheet } from "@/components/documents/DocumentDetailsSheet";
+import { deleteProjectDocument } from "@/utils/projectDocumentDelete";
 import { format, differenceInDays, parseISO } from "date-fns";
 import type { ProjectDocument, DocumentType } from "@/types/document";
 import { DOCUMENT_TYPE_LABELS } from "@/types/document";
@@ -105,28 +106,21 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
   const handleDelete = async () => {
     if (!documentToDelete) return;
 
-    try {
-      const filePath = documentToDelete.file_url.split("/project-documents/")[1];
+    const { error } = await deleteProjectDocument(documentToDelete);
 
-      await supabase.storage.from("project-documents").remove([filePath]);
-
-      const { error } = await supabase.from("project_documents").delete().eq("id", documentToDelete.id);
-
-      if (error) throw error;
-
-      toast.success("Document deleted", { description: "Document removed successfully" });
-
-      refetch();
-      onDocumentDeleted?.();
-    } catch (error) {
+    if (error) {
       if (import.meta.env.DEV) {
         console.error("Delete error:", error);
       }
-      toast.error("Delete failed", { description: error instanceof Error ? error.message : "Failed to delete document" });
-    } finally {
-      setDeleteDialogOpen(false);
-      setDocumentToDelete(null);
+      toast.error("Delete failed", { description: error.message || "Failed to delete document" });
+    } else {
+      toast.success("Document deleted", { description: "Document removed successfully" });
+      refetch();
+      onDocumentDeleted?.();
     }
+
+    setDeleteDialogOpen(false);
+    setDocumentToDelete(null);
   };
 
   const getExpirationWarning = (expiresAt?: string) => {

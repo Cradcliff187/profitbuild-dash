@@ -2,12 +2,22 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download, Pencil } from 'lucide-react';
+import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,6 +25,8 @@ import { DOCUMENT_TYPE_LABELS } from '@/types/document';
 import type { DocumentType, ProjectDocument } from '@/types/document';
 import { useRoles } from '@/contexts/RoleContext';
 import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsSheet';
+import { deleteProjectDocument } from '@/utils/projectDocumentDelete';
+import { toast } from 'sonner';
 
 interface ProjectDocumentsTimelineProps {
   projectId: string;
@@ -42,6 +54,27 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
   const { isAdmin, isManager } = useRoles();
   const canEdit = isAdmin || isManager;
   const [documentToEdit, setDocumentToEdit] = useState<ProjectDocument | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!documentToDelete) return;
+    setIsDeleting(true);
+    const { error } = await deleteProjectDocument(documentToDelete);
+    setIsDeleting(false);
+
+    if (error) {
+      toast.error("Delete failed", { description: error.message || "Failed to delete document" });
+      return;
+    }
+
+    toast.success("Document deleted", { description: "Document removed successfully" });
+    queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-documents', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['field-documents', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-docs-count', projectId] });
+    setDocumentToDelete(null);
+  };
   
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['project-documents-timeline', projectId],
@@ -514,6 +547,18 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                           Edit details
                         </DropdownMenuItem>
                       )}
+                      {canEdit && item.type === 'document' && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDocumentToDelete(item.metadata as ProjectDocument);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -618,6 +663,18 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                           Edit details
                         </DropdownMenuItem>
                       )}
+                      {canEdit && item.type === 'document' && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDocumentToDelete(item.metadata as ProjectDocument);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -635,6 +692,30 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
         open={!!documentToEdit}
         onOpenChange={(o) => !o && setDocumentToEdit(null)}
       />
+
+      <AlertDialog open={!!documentToDelete} onOpenChange={(o) => !o && !isDeleting && setDocumentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{documentToDelete?.file_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
