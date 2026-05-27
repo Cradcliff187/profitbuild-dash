@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
-import { DocumentLeadingIcon } from "@/utils/documentFileType";
+import { DocumentLeadingIcon, getDocumentDisplayDescription } from "@/utils/documentFileType";
 import { useDocumentPreview } from "@/hooks/useDocumentPreview";
 import { DocumentPreviewModals } from "@/components/documents/DocumentPreviewModals";
 import { toast } from "sonner";
@@ -209,7 +209,7 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                   ? `${DOCUMENT_TYPE_LABELS[doc.document_type] ?? 'Document'} • ${projectNumber}`
                   : doc.file_name
                 }
-                subtitle={doc.description || doc.file_name}
+                subtitle={getDocumentDisplayDescription(doc.description) ?? doc.file_name}
                 badge={{
                   label: DOCUMENT_TYPE_LABELS[doc.document_type] ?? 'Document',
                   className: '',

@@ -51,6 +51,20 @@ export const DOCUMENT_TYPE_ICON_COLORS: Record<DocumentType, string> = {
 };
 
 // ============================================================================
+// DISPLAY DESCRIPTION
+// ============================================================================
+
+// Bulk Drive imports store a "Migrated from Drive: <id>" marker in the
+// description column — noise to users. Returns a meaningful, user-facing
+// description, or null when the description is just the migration marker so
+// callers can fall back to the file name.
+export function getDocumentDisplayDescription(description?: string | null): string | null {
+  if (!description) return null;
+  if (description.startsWith('Migrated from Drive:')) return null;
+  return description;
+}
+
+// ============================================================================
 // FILE TYPE DETECTION (for preview routing)
 // ============================================================================
 

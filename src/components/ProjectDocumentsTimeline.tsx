@@ -26,6 +26,7 @@ import type { DocumentType, ProjectDocument } from '@/types/document';
 import { useRoles } from '@/contexts/RoleContext';
 import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsSheet';
 import { deleteProjectDocument } from '@/utils/projectDocumentDelete';
+import { getDocumentDisplayDescription } from '@/utils/documentFileType';
 import { toast } from 'sonner';
 
 interface ProjectDocumentsTimelineProps {
@@ -217,9 +218,9 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
             ? (hasQuote ? `${typeLabel} • ${projectNumber} • ${payeeName}` : `${typeLabel} • ${projectNumber}`)
             : `${typeLabel} • ${d.file_name}`;
           // When quote-linked: show 'Contract' for actual contracts, 'Quote Document' for quote attachments
-          const subtitle = hasQuote 
+          const subtitle = hasQuote
             ? (d.document_type === 'contract' ? 'Contract' : 'Quote Document')
-            : (d.description || d.file_name);
+            : (getDocumentDisplayDescription(d.description) ?? d.file_name);
           timelineItems.push({
             id: d.id,
             type: 'document',
