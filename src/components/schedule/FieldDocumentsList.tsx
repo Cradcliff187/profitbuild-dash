@@ -21,7 +21,7 @@ import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsShee
 import { deleteProjectDocument } from '@/utils/projectDocumentDelete';
 import { useRoles } from '@/contexts/RoleContext';
 import { DOCUMENT_TYPE_LABELS, type DocumentType, type ProjectDocument } from '@/types/document';
-import { DOCUMENT_TYPE_LUCIDE_ICONS, DOCUMENT_TYPE_ICON_COLORS } from '@/utils/documentFileType';
+import { DOCUMENT_TYPE_LUCIDE_ICONS, DOCUMENT_TYPE_ICON_COLORS, getDocumentDisplayDescription } from '@/utils/documentFileType';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -76,6 +76,7 @@ function DocumentCard({
 }) {
   const Icon = DOCUMENT_TYPE_LUCIDE_ICONS[doc.document_type] || FileText;
   const iconColor = DOCUMENT_TYPE_ICON_COLORS[doc.document_type] || 'text-muted-foreground';
+  const displayDescription = getDocumentDisplayDescription(doc.description);
 
   return (
     <Card className="p-3 hover:bg-muted/30 active:bg-muted/50 transition-colors">
@@ -86,8 +87,8 @@ function DocumentCard({
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{doc.file_name}</p>
-          {doc.description && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{doc.description}</p>
+          {displayDescription && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{displayDescription}</p>
           )}
           <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
             <Badge variant="outline" className="text-[9px] h-4 px-1">
