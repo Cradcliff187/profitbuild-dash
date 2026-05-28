@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isIOSDevice } from '@/utils/platform';
 
 export interface ScheduleColumnConfig {
   key: string;
@@ -37,7 +38,7 @@ export const useScheduleTableColumns = (projectId: string) => {
   });
 
   function getDefaultColumns(): string[] {
-    const isMobile = window.innerWidth < 768;
+    const isMobile = window.innerWidth < 768 || isIOSDevice();
     if (isMobile) {
       // Mobile: name, start, end, status
       return ['name', 'start', 'end', 'status'];
