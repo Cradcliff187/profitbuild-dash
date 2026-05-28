@@ -46,6 +46,38 @@ type TimelineItem = {
   metadata?: any;
 };
 
+/** Renders a thumbnail image, falling back to a type icon if the src is missing or fails to load. */
+function TimelineThumbnail({
+  src,
+  alt,
+  fallback,
+  rounded,
+}: {
+  src?: string;
+  alt: string;
+  fallback: React.ReactNode;
+  rounded: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className={`w-10 h-10 flex items-center justify-center bg-muted ${rounded}`}>
+        {fallback}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={`w-10 h-10 object-cover ${rounded}`}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDocumentsTimelineProps) {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -90,38 +122,23 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
         .order('taken_at', { ascending: false });
 
       if (media && media.length > 0) {
-        // Batch generate signed URLs for all media files
-        const mediaPaths = media
-          .map((m) => m.file_url)
-          .filter((path): path is string => !!path && !path.startsWith('http'));
-
-        const { data: signedUrlsData } = mediaPaths.length > 0
-          ? await supabase.storage
-              .from('project-media')
-              .createSignedUrls(mediaPaths, 604800) // 7 days
-          : { data: null };
-
-        // Build path → signedUrl lookup map
-        const signedUrlMap = new Map<string, string>();
-        if (signedUrlsData) {
-          signedUrlsData.forEach((item) => {
-            if (item.signedUrl && item.path) {
-              signedUrlMap.set(item.path, item.signedUrl);
-            }
-          });
-        }
-
-        // Also generate signed URLs for video thumbnails if any exist
+        // project-media is a PUBLIC bucket — resolve full file URLs via getPublicUrl.
+        // Public URLs never expire and need no auth round-trip, so they render reliably
+        // on mobile and don't silently rot after a signed-URL TTL. Video thumbnails live
+        // in the PRIVATE project-media-thumbnails bucket and still require signing.
         const videoThumbnailPaths = media
           .filter((m) => m.file_type === 'video' && m.thumbnail_url)
           .map((m) => `thumbnails/${m.id}.jpg`);
 
         const thumbnailUrlMap = new Map<string, string>();
         if (videoThumbnailPaths.length > 0) {
-          const { data: thumbSignedUrls } = await supabase.storage
+          const { data: thumbSignedUrls, error: thumbSignError } = await supabase.storage
             .from('project-media-thumbnails')
             .createSignedUrls(videoThumbnailPaths, 604800);
 
+          if (thumbSignError) {
+            console.error('Failed to sign video thumbnail URLs', thumbSignError);
+          }
           if (thumbSignedUrls) {
             thumbSignedUrls.forEach((item) => {
               if (item.signedUrl && item.path) {
@@ -132,16 +149,18 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
         }
 
         media.forEach((m) => {
-          // Resolve the signed URL for this media item
-          const signedFileUrl = m.file_url?.startsWith('http')
+          // Resolve the public URL for this media item
+          const publicFileUrl = m.file_url?.startsWith('http')
             ? m.file_url // Already a full URL (defensive)
-            : signedUrlMap.get(m.file_url) || m.file_url;
+            : m.file_url
+              ? supabase.storage.from('project-media').getPublicUrl(m.file_url).data.publicUrl
+              : '';
 
-          // For thumbnails: use video thumbnail if available, otherwise use signed file URL
-          let resolvedThumbnailUrl = signedFileUrl;
+          // For thumbnails: use the signed video thumbnail if available, otherwise the public file URL
+          let resolvedThumbnailUrl = publicFileUrl;
           if (m.file_type === 'video' && m.thumbnail_url) {
             const thumbPath = `thumbnails/${m.id}.jpg`;
-            resolvedThumbnailUrl = thumbnailUrlMap.get(thumbPath) || signedFileUrl;
+            resolvedThumbnailUrl = thumbnailUrlMap.get(thumbPath) || publicFileUrl;
           }
 
           timelineItems.push({
@@ -150,8 +169,8 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
             timestamp: new Date(m.taken_at || m.created_at),
             title: m.description || m.file_name,
             thumbnailUrl: resolvedThumbnailUrl,
-            fileUrl: signedFileUrl,
-            metadata: { ...m, file_url: signedFileUrl }, // Pass signed URL through metadata too
+            fileUrl: publicFileUrl,
+            metadata: { ...m, file_url: publicFileUrl }, // Pass resolved URL through metadata too
           });
         });
       }
@@ -465,17 +484,12 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     <div className="flex-shrink-0">
-                      {item.thumbnailUrl ? (
-                        <img
-                          src={item.thumbnailUrl}
-                          alt={item.title}
-                          className="w-10 h-10 object-cover rounded-md"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-md">
-                          {getIcon(item.type)}
-                        </div>
-                      )}
+                      <TimelineThumbnail
+                        src={item.thumbnailUrl}
+                        alt={item.title}
+                        fallback={getIcon(item.type)}
+                        rounded="rounded-md"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5 min-w-0">
@@ -584,17 +598,12 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                 >
                   {/* Icon/Thumbnail */}
                   <div className="flex-shrink-0">
-                    {item.thumbnailUrl ? (
-                      <img
-                        src={item.thumbnailUrl}
-                        alt={item.title}
-                        className="w-10 h-10 object-cover rounded"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 flex items-center justify-center bg-muted rounded">
-                        {getIcon(item.type)}
-                      </div>
-                    )}
+                    <TimelineThumbnail
+                      src={item.thumbnailUrl}
+                      alt={item.title}
+                      fallback={getIcon(item.type)}
+                      rounded="rounded"
+                    />
                   </div>
 
                   {/* Content */}
