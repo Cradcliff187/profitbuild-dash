@@ -14,18 +14,33 @@
  * - Conversation-aware error recovery (v4)
  * - Suggested follow-up questions (v4)
  *
- * @version 5.1.0 — Added SQL validation layer (generate → validate → fix → execute)
+ * @version 5.2.0 — Tiered models (frontier SQL gen + cheap narration), deterministic
+ *                   pg_trgm entity resolution, and empty-result auto-retry that
+ *                   broadens with fuzzy matching before giving up.
  *
  * VERSION PINNING: Keep these exact versions so deployment sticks.
  * - supabase-js: https://esm.sh/@supabase/supabase-js@2.57.4 (do not use @2 or @latest)
  * - deno std: https://deno.land/std@0.168.0/http/server.ts
- * - AI model: gpt-4o-mini via OpenAI API (OPENAI_API_KEY secret)
+ * - AI models (OpenAI, OPENAI_API_KEY secret): SQL generation uses a frontier-tier
+ *   model (SQL_MODEL, default gpt-4o); narration uses a cheap model (NARRATION_MODEL,
+ *   default gpt-4o-mini). Both overridable via AI_REPORT_SQL_MODEL / AI_REPORT_NARRATION_MODEL secrets.
  *   Switched from Lovable AI Gateway / google/gemini-3-flash-preview in v5.0.0
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import { KPI_CONTEXT } from "./kpi-context.generated.ts";
+
+// ============================================================================
+// MODEL TIERS
+// ============================================================================
+// SQL generation is a hard reasoning task (schema grounding, join paths,
+// aggregation semantics) — use a frontier-tier model. Narration (turning a
+// result set into prose) is easy — keep it on a cheap model. Both are
+// overridable via edge-function secrets so the model can be tuned without a
+// code change / redeploy.
+const SQL_MODEL = Deno.env.get("AI_REPORT_SQL_MODEL") || "gpt-4o";
+const NARRATION_MODEL = Deno.env.get("AI_REPORT_NARRATION_MODEL") || "gpt-4o-mini";
 
 // ============================================================================
 // STRUCTURED LOGGING
@@ -285,7 +300,7 @@ Generate ONLY the corrected SQL. Use the available columns listed above. Do not 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: SQL_MODEL,
         messages: [
           { role: "system", content: "You are a SQL expert. Fix the invalid column references using ONLY the available columns listed. Return just the corrected SQL, nothing else." },
           ...conversationHistory.slice(-2),
@@ -501,12 +516,39 @@ Use these to provide context like "that's healthy" or "below target" - but only 
 - **Subcontractors:** \`payees WHERE payee_type = 'subcontractor' AND is_internal = false\`
 - **Time entries:** \`expenses WHERE category = 'labor_internal'\`
 
-## NAME MATCHING
+## NAME / ENTITY MATCHING (read carefully — this is where most failures happen)
 
-ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
-- Johnny, John, Jonathan → \`ILIKE '%john%'\`
-- Mike, Michael → \`ILIKE '%mik%'\` or \`ILIKE '%michael%'\`
-- Bob, Robert → \`ILIKE '%bob%'\` OR \`ILIKE '%robert%'\`
+People, payees/vendors, and projects are referenced by imperfect names. Be forgiving:
+
+1. **Reuse entities already resolved in this conversation.** If an earlier turn returned a real
+   name (e.g. "Vennefron Signs & Custom Apparel") or an id, USE THAT EXACT VALUE — do NOT
+   re-derive a filter from the user's possibly-misspelled spelling. A follow-up like "what project
+   are those expenses on?" refers to the entity already found. Losing that context is the #1 bug.
+
+2. **Fuzzy-match, don't substring-match.** Plain \`ILIKE '%term%'\` fails on a single typo
+   ("Venefron" never matches "Vennefron"). Trigram matching IS available (pg_trgm). For any
+   proper-noun search prefer word-similarity, which tolerates typos and matches against any word
+   in a longer name:
+       SELECT ... FROM payees
+       WHERE word_similarity('Venefron', payee_name) > 0.3
+       ORDER BY word_similarity('Venefron', payee_name) DESC
+   You may add \`OR payee_name ILIKE '%Venefron%'\` as an extra widener. Never use exact \`=\` for a name.
+
+3. **Resolve once, then join by id.** For "spend by project for vendor X", first resolve the vendor
+   (fuzzy), then aggregate \`expenses\` joined to \`projects\` on that payee's id — don't repeat the
+   name filter on a join.
+
+4. **Nicknames:** Johnny/John/Jonathan → \`word_similarity('john', name) > 0.3\`; Mike/Michael → mik;
+   Bob/Robert → match either.
+
+Example — "what project numbers are the expenses for vendor 'Venefron'?":
+  SELECT p.project_number, p.project_name, COUNT(*) AS expense_count, SUM(e.amount) AS total_spent
+  FROM expenses e
+  JOIN payees pay ON pay.id = e.payee_id
+  JOIN projects p ON p.id = e.project_id
+  WHERE word_similarity('Venefron', pay.payee_name) > 0.3
+  GROUP BY p.project_number, p.project_name
+  ORDER BY total_spent DESC
 
 ## TIME CALCULATIONS
 
@@ -792,7 +834,7 @@ Otherwise respond with:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: SQL_MODEL,
         messages: [
           { role: "system", content: "You are a SQL expert. Generate simpler, working queries when the original fails." },
           ...conversationHistory.slice(-4).map((msg: any) => ({
@@ -911,7 +953,7 @@ Respond with JSON:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: NARRATION_MODEL,
         messages: [
           { role: "system", content: "You are an expert at analyzing why database queries return no results. Provide helpful suggestions for users." },
           { role: "user", content: emptyAnalysisPrompt }
@@ -968,6 +1010,132 @@ Respond with JSON:
       suggestions: ["Try rephrasing your question"],
       alternativeQuestion: "Show me recent projects"
     };
+  }
+}
+
+// ============================================================================
+// DETERMINISTIC ENTITY RESOLUTION (pg_trgm) — used on empty results
+// ============================================================================
+
+interface EntityMatch { kind: string; name: string; id: string; score: number; }
+interface ResolvedTerm { term: string; matches: EntityMatch[]; }
+
+/**
+ * When a query returns 0 rows, the most common cause is a mistyped proper noun.
+ * Extract the name-search terms from the SQL (the ILIKE '%...%' patterns) and
+ * fuzzy-resolve each against the real entity tables (payees / projects) via
+ * pg_trgm word_similarity. Deterministic — the database decides the truth, not
+ * the model. Returns the closest real matches so the retry can use exact names.
+ */
+async function resolveEntityTerms(sql: string, supabase: any): Promise<ResolvedTerm[]> {
+  const terms = new Set<string>();
+  const re = /\bI?LIKE\s+'%?([^'%]{2,60})%?'/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(sql)) !== null) {
+    const t = m[1].trim();
+    if (t.length >= 2) terms.add(t);
+  }
+  if (terms.size === 0) return [];
+
+  const resolved: ResolvedTerm[] = [];
+  for (const term of Array.from(terms).slice(0, 4)) {
+    // Sanitize for inlining: escape single quotes, strip anything that isn't a
+    // plausible name char. The query still runs through execute_ai_query's
+    // SELECT-only guard as defense-in-depth.
+    const safe = term.replace(/'/g, "''").replace(/[^\w &.\-,]/g, ' ').trim();
+    if (safe.length < 2) continue;
+
+    const q = `SELECT kind, name, id, score FROM (
+      SELECT 'payee' AS kind, payee_name AS name, id::text AS id, round(word_similarity('${safe}', payee_name)::numeric, 3) AS score FROM payees WHERE word_similarity('${safe}', payee_name) > 0.3
+      UNION ALL
+      SELECT 'project' AS kind, project_name AS name, id::text AS id, round(word_similarity('${safe}', project_name)::numeric, 3) AS score FROM projects WHERE word_similarity('${safe}', project_name) > 0.3
+      UNION ALL
+      SELECT 'project_number' AS kind, project_number AS name, id::text AS id, round(word_similarity('${safe}', project_number)::numeric, 3) AS score FROM projects WHERE word_similarity('${safe}', project_number) > 0.3
+    ) s ORDER BY score DESC LIMIT 6`;
+
+    try {
+      const { data, error } = await supabase.rpc('execute_ai_query', { p_query: q });
+      if (!error && data?.data?.length) {
+        resolved.push({ term, matches: data.data });
+      }
+    } catch (_) {
+      // best-effort — a resolution failure must not break the main flow
+    }
+  }
+  return resolved;
+}
+
+/**
+ * One broadened retry before we tell the user "no data". Feeds the model the
+ * fuzzy-resolved real entities + the original SQL, and asks it to rewrite using
+ * exact names/ids, trigram matching, and relaxed date filters. Returns the
+ * execute_ai_query result on success.
+ */
+async function retryEmptyWithResolvedEntities(
+  originalSql: string,
+  userQuery: string,
+  resolved: ResolvedTerm[],
+  apiKey: string,
+  supabase: any,
+  conversationHistory: Array<{ role: string; content: string }> = []
+): Promise<{ success: boolean; data?: any; sql?: string }> {
+  const resolvedText = resolved.length
+    ? resolved.map(r =>
+        `- You searched "${r.term}". Closest real matches:\n` +
+        r.matches.map(mm => `    • ${mm.kind}: "${mm.name}" (id ${mm.id}, similarity ${mm.score})`).join('\n')
+      ).join('\n')
+    : '(No close entity matches found by fuzzy search — relax filters instead.)';
+
+  const prompt = `Your SQL returned 0 rows. Before we tell the user "no data", rewrite it so it returns the relevant data.
+
+Original SQL:
+${originalSql}
+
+User's question: "${userQuery}"
+
+Fuzzy entity resolution against the REAL database:
+${resolvedText}
+
+Rules for the rewrite:
+1. If a match above is clearly what the user meant, filter by its EXACT name (or its id) instead of the original search term.
+2. Reuse any exact entity names already established earlier in this conversation.
+3. Replace exact/substring name filters with trigram matching: WHERE word_similarity('term', col) > 0.3.
+4. If a date range may be too narrow, widen or remove it.
+5. Single SELECT (or WITH) only. Return ONLY the SQL — no commentary, no markdown.`;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: SQL_MODEL,
+        messages: [
+          { role: "system", content: "You are a SQL expert. Rewrite the failed query to return relevant data using the resolved entities. Return only SQL." },
+          ...conversationHistory.slice(-4),
+          { role: "user", content: prompt }
+        ],
+      }),
+    });
+
+    if (!response.ok) return { success: false };
+
+    const data = await response.json();
+    let content = data.choices?.[0]?.message?.content?.trim() || '';
+    const sqlMatch = content.match(/```(?:sql)?\n?([\s\S]*?)```/);
+    if (sqlMatch) content = sqlMatch[1].trim();
+
+    if (!/^(SELECT|WITH)\b/i.test(content)) return { success: false };
+
+    const { data: retryResult, error } = await supabase.rpc('execute_ai_query', { p_query: content });
+    if (error) return { success: false };
+
+    return { success: true, data: retryResult, sql: content };
+  } catch (error) {
+    console.error('Empty-result entity retry failed:', error);
+    return { success: false };
   }
 }
 
@@ -1142,7 +1310,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: SQL_MODEL,
         messages,
         tools,
         tool_choice: "auto",
@@ -1324,7 +1492,7 @@ Give a helpful response explaining that the original query had issues but we fou
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "gpt-4o-mini",
+                model: NARRATION_MODEL,
                 messages: [
                   { role: "system", content: generateAnswerSystemPrompt() },
                   ...conversationHistory.slice(-6),
@@ -1417,9 +1585,9 @@ Give a helpful response explaining that the original query had issues but we fou
       });
     }
 
-    const reportData = queryResult?.data || [];
-    const rowCount = queryResult?.row_count || 0;
-    const truncated = queryResult?.truncated || false;
+    let reportData = queryResult?.data || [];
+    let rowCount = queryResult?.row_count || 0;
+    let truncated = queryResult?.truncated || false;
 
     // Update log with actual results
     logQuery({
@@ -1433,6 +1601,43 @@ Give a helpful response explaining that the original query had issues but we fou
       executionTimeMs: Date.now() - queryStartTime
     });
 
+    // ========================================================================
+    // EMPTY-RESULT AUTO-RETRY — a valid query returning 0 rows is usually a
+    // mistyped name or an over-narrow filter, NOT "no such data". Resolve the
+    // search terms against the real entity tables (pg_trgm) and try once more
+    // with exact names / relaxed filters before giving up.
+    // ========================================================================
+    let emptyRetryNote = '';
+    if (rowCount === 0) {
+      try {
+        const resolved = await resolveEntityTerms(sqlQuery, supabase);
+        const retry = await retryEmptyWithResolvedEntities(
+          sqlQuery, query, resolved, OPENAI_API_KEY, supabase, conversationHistory
+        );
+        if (retry.success && (retry.data?.row_count || 0) > 0) {
+          reportData = retry.data.data || [];
+          rowCount = retry.data.row_count || 0;
+          truncated = retry.data.truncated || false;
+          sqlQuery = retry.sql || sqlQuery;
+          emptyRetryNote = 'The original search matched nothing, so I broadened it (fuzzy name match / relaxed filters) and found results.';
+
+          logQuery({
+            timestamp: new Date().toISOString(),
+            userQuery: query,
+            sqlQuery: sqlQuery,
+            queryIntent: queryCategory,
+            kpisUsed: kpisUsed,
+            status: 'retry_success',
+            rowCount: rowCount,
+            executionTimeMs: Date.now() - queryStartTime,
+            retryAttempted: true
+          });
+        }
+      } catch (e) {
+        console.error('Empty-result auto-retry failed:', e);
+      }
+    }
+
     // Interpret results — consolidated answer + insights + follow-ups in ONE AI call
     let answerPrompt = 'User asked: "' + query + '"\n\n' +
       'SQL executed: ' + sqlQuery + '\n' +
@@ -1441,7 +1646,8 @@ Give a helpful response explaining that the original query had issues but we fou
         ? 'Data (first 20):\n' + JSON.stringify(reportData.slice(0, 20), null, 2)
         : 'No results found.'
       ) + '\n\n' +
-      'Give a helpful, conversational response. Use specific numbers from the data.';
+      'Give a helpful, conversational response. Use specific numbers from the data.' +
+      (emptyRetryNote ? '\n\nNOTE: ' + emptyRetryNote + ' Briefly tell the user you interpreted their search loosely (e.g. corrected a likely typo), then present the results confidently.' : '');
 
     // If no results, analyze why and add suggestions
     if (rowCount === 0) {
@@ -1499,7 +1705,7 @@ FOLLOW_UPS: ["question 1", "question 2", "question 3"]
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: NARRATION_MODEL,
           messages: [
             { role: "system", content: generateAnswerSystemPrompt() },
             ...conversationHistory.slice(-6),

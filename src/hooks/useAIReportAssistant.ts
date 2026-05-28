@@ -62,6 +62,23 @@ function buildDataSummary(data: any[], rowCount: number): string {
     }
   }
 
+  // Add sample values for short text columns so resolved entities (payee names,
+  // project numbers, employee names) carry into the next turn's context. This is
+  // what lets a follow-up reuse the exact resolved name (e.g. "Vennefron Signs &
+  // Custom Apparel") instead of the user's original misspelling.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
+  for (const col of columns) {
+    const stringValues = data
+      .map(row => row[col])
+      .filter((v): v is string => typeof v === 'string' && v.length > 0 && v.length <= 60 && !UUID_RE.test(v));
+
+    if (stringValues.length > 0) {
+      const distinct = Array.from(new Set(stringValues));
+      const sample = distinct.slice(0, 5).map(v => `"${v}"`).join(', ');
+      parts.push(`${col} values: ${sample}${distinct.length > 5 ? `, …(${distinct.length} total)` : ''}`);
+    }
+  }
+
   return parts.join('; ');
 }
 
