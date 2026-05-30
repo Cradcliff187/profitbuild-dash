@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { createReceiptSignedUrl } from '@/utils/receiptUrls';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Per-user last-picked construction project, remembered across capture sessions.
 const LAST_PROJECT_STORAGE_KEY = (userId?: string) =>
@@ -43,6 +44,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   initialProjectId
 }) => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
@@ -93,27 +95,26 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
     }
 
     // No initialProjectId → try last-used construction project from localStorage.
+    // Uses the in-memory auth user (`useAuth`) instead of `supabase.auth.getUser()`.
+    // getUser() is a network round-trip that holds the supabase-js auth lock, which
+    // serialized the payee/project data queries behind it on every modal open (they
+    // each need an access token through that same lock). Reading user.id from context
+    // is synchronous and lets those queries fire immediately in parallel.
     // `projects` is in the dep array so this retries once the useQuery resolves.
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const key = LAST_PROJECT_STORAGE_KEY(user?.id);
-        if (!key) return;
-        const lastId = localStorage.getItem(key);
-        if (!lastId || cancelled) return;
-        const project = projects.find(p => p.id === lastId);
-        if (project && project.category === 'construction' &&
-            (project.status === 'approved' || project.status === 'in_progress')) {
-          setSelectedProjectId(lastId);
-        }
-      } catch {
-        // localStorage / auth failures are non-fatal
+    try {
+      const key = LAST_PROJECT_STORAGE_KEY(user?.id);
+      if (!key) return;
+      const lastId = localStorage.getItem(key);
+      if (!lastId) return;
+      const project = projects.find(p => p.id === lastId);
+      if (project && project.category === 'construction' &&
+          (project.status === 'approved' || project.status === 'in_progress')) {
+        setSelectedProjectId(lastId);
       }
-    })();
-
-    return () => { cancelled = true; };
-  }, [open, initialProjectId, projects]);
+    } catch {
+      // localStorage failures are non-fatal
+    }
+  }, [open, initialProjectId, projects, user?.id]);
 
   const filteredProjects = useMemo(() => {
     if (!projectSearchQuery.trim()) return projects;
@@ -186,11 +187,13 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       return;
     }
 
+    if (!user) {
+      toast.error('You must be signed in to save a receipt');
+      return;
+    }
+
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
       // Convert data URL to blob
       const response = await fetch(capturedPhoto);
       const blob = await response.blob();

@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -83,6 +82,7 @@ export function PayeeSelector({
   isMobile = false,
 }: PayeeSelectorProps) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const { data: payees = [], isLoading } = useQuery({
@@ -139,6 +139,27 @@ export function PayeeSelector({
     });
   }, [payees, sortByUsage, usageStats]);
 
+  // The vendor list can run 200+ rows. Rendering them all into the cmdk popover
+  // (each with badges) costs hundreds of ms on mobile and makes cmdk re-score
+  // every item on each keystroke. We disable cmdk's built-in filter
+  // (`shouldFilter={false}` below) and run a cheap token-substring filter here,
+  // then cap how many rows actually render. Typing narrows the list, so any
+  // vendor stays reachable — only the DOM weight is bounded.
+  const RENDER_CAP = 50;
+  const filteredPayees = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return orderedPayees;
+    const tokens = q.split(/\s+/);
+    return orderedPayees.filter((p) => {
+      const haystack = `${p.payee_name} ${p.email ?? ''} ${formatPayeeType(
+        p.payee_type as PayeeType
+      )}`.toLowerCase();
+      return tokens.every((t) => haystack.includes(t));
+    });
+  }, [orderedPayees, search]);
+  const visiblePayees = filteredPayees.slice(0, RENDER_CAP);
+  const hiddenCount = filteredPayees.length - visiblePayees.length;
+
   const handleSelect = (payee: Payee) => {
     onValueChange(payee.id, payee.payee_name, payee);
     setOpen(false);
@@ -166,7 +187,7 @@ export function PayeeSelector({
       )}
 
       <div className="flex gap-2">
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(''); }}>
           <PopoverTrigger asChild>
             <Button
               type="button"
@@ -196,42 +217,46 @@ export function PayeeSelector({
             className="z-[100] p-0 bg-background border shadow-md w-[var(--radix-popover-trigger-width)] min-w-[260px] max-w-[calc(100vw-1.5rem)]"
             align="start"
           >
-            <Command>
-              <CommandInput placeholder="Search payees..." />
+            <Command shouldFilter={false}>
+              <CommandInput placeholder="Search payees..." value={search} onValueChange={setSearch} />
               <CommandList>
                 {isLoading ? (
                   <div className="py-6 text-center text-sm text-muted-foreground">Loading payees…</div>
+                ) : visiblePayees.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No payees found.</div>
                 ) : (
-                  <>
-                    <CommandEmpty>No payees found.</CommandEmpty>
-                    <CommandGroup>
-                      {orderedPayees.map((payee) => (
-                        <CommandItem
-                          key={payee.id}
-                          value={`${payee.payee_name} ${payee.email ?? ''} ${formatPayeeType(payee.payee_type as PayeeType)}`}
-                          onSelect={() => handleSelect(payee)}
-                        >
-                          <Check className={cn('mr-2 h-4 w-4 shrink-0', value === payee.id ? 'opacity-100' : 'opacity-0')} />
-                          <span className="flex items-center justify-between w-full gap-2 min-w-0">
-                            <span className="truncate">{payee.payee_name}</span>
-                            <span className="flex items-center gap-1 shrink-0">
-                              <Badge
-                                variant={getPayeeTypeBadgeVariant(payee.payee_type as PayeeType)}
-                                className="h-4 text-[10px] px-1"
-                              >
-                                {formatPayeeType(payee.payee_type as PayeeType)}
+                  <CommandGroup>
+                    {visiblePayees.map((payee) => (
+                      <CommandItem
+                        key={payee.id}
+                        value={payee.id}
+                        onSelect={() => handleSelect(payee)}
+                      >
+                        <Check className={cn('mr-2 h-4 w-4 shrink-0', value === payee.id ? 'opacity-100' : 'opacity-0')} />
+                        <span className="flex items-center justify-between w-full gap-2 min-w-0">
+                          <span className="truncate">{payee.payee_name}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            <Badge
+                              variant={getPayeeTypeBadgeVariant(payee.payee_type as PayeeType)}
+                              className="h-4 text-[10px] px-1"
+                            >
+                              {formatPayeeType(payee.payee_type as PayeeType)}
+                            </Badge>
+                            {payee.is_internal && (
+                              <Badge variant="outline" className="h-4 text-[10px] px-1">
+                                Int
                               </Badge>
-                              {payee.is_internal && (
-                                <Badge variant="outline" className="h-4 text-[10px] px-1">
-                                  Int
-                                </Badge>
-                              )}
-                            </span>
+                            )}
                           </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </>
+                        </span>
+                      </CommandItem>
+                    ))}
+                    {hiddenCount > 0 && (
+                      <div className="px-2 py-2 text-center text-xs text-muted-foreground">
+                        Showing {visiblePayees.length} of {filteredPayees.length} — keep typing to narrow.
+                      </div>
+                    )}
+                  </CommandGroup>
                 )}
               </CommandList>
             </Command>

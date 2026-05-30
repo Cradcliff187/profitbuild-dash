@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { receiptQueryKeys } from '@/hooks/useReceiptsData';
@@ -33,6 +33,11 @@ interface ReceiptData {
 type FilterType = 'all' | 'unassigned' | 'thisWeek' | 'thisMonth';
 type SortType = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
+// How many receipt rows to mount at once. The list grows by this much each time
+// the bottom sentinel scrolls into view, so the page never renders hundreds of
+// rows (and their thumbnails) up front.
+const PAGE_SIZE = 24;
+
 export const ReceiptsList = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +49,8 @@ export const ReceiptsList = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<ReceiptData | null>(null);
   const [reassigningReceiptIds, setReassigningReceiptIds] = useState<string[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const { data: receipts = [], isLoading: loading } = useQuery({
     queryKey: ['field-receipts'],
@@ -135,6 +142,38 @@ export const ReceiptsList = () => {
     () => receipts.filter((r) => r.project_number === 'SYS-000').length,
     [receipts]
   );
+
+  // Render only a growing window of the filtered list. Search/filter/sort still
+  // run over the full in-memory set (and bulk "select all" still targets it) —
+  // only the rendered slice is bounded, so the tab doesn't mount hundreds of rows
+  // and thumbnails up front.
+  const visibleReceipts = useMemo(
+    () => filteredAndSortedReceipts.slice(0, visibleCount),
+    [filteredAndSortedReceipts, visibleCount]
+  );
+  const hasMore = visibleCount < filteredAndSortedReceipts.length;
+
+  // Reset the window whenever the filtered set changes (new search/filter/sort).
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, filter, sortBy]);
+
+  // Grow the window as the sentinel nears the viewport.
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((c) => c + PAGE_SIZE);
+        }
+      },
+      { rootMargin: '600px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, visibleReceipts.length]);
 
   const handleDelete = async (receiptId: string) => {
     if (!confirm('Are you sure you want to delete this receipt?')) return;
@@ -292,8 +331,9 @@ export const ReceiptsList = () => {
           <p className="text-sm">No receipts found</p>
         </div>
       ) : (
+        <>
         <div className="divide-y border rounded-lg overflow-hidden">
-          {filteredAndSortedReceipts.map((receipt) => (
+          {visibleReceipts.map((receipt) => (
             <div key={receipt.id}>
               {/* Compact Row */}
               <div
@@ -432,6 +472,12 @@ export const ReceiptsList = () => {
             </div>
           ))}
         </div>
+        {hasMore && (
+          <div ref={loadMoreRef} className="py-4 text-center text-xs text-muted-foreground">
+            Showing {visibleReceipts.length} of {filteredAndSortedReceipts.length}…
+          </div>
+        )}
+        </>
       )}
 
       {/* Floating Add Button */}
