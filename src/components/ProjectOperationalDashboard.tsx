@@ -54,9 +54,16 @@ export function ProjectOperationalDashboard({
   const isMobile = useIsMobile();
 
   // State for schedule dates loaded from line items if needed
-  const [scheduleDates, setScheduleDates] = useState<{ start: Date | null; end: Date | null }>({
+  const [scheduleDates, setScheduleDates] = useState<{
+    start: Date | null;
+    end: Date | null;
+    startSource: 'project' | 'schedule' | null;
+    endSource: 'project' | 'schedule' | null;
+  }>({
     start: null,
-    end: null
+    end: null,
+    startSource: null,
+    endSource: null
   });
 
   // Data freshness tracking
@@ -319,14 +326,22 @@ export function ProjectOperationalDashboard({
   const contingencyUsedClass = hasContingency && contingencyUsedPct >= 75 ? 'text-destructive' : undefined;
 
   // Desktop identity meta cells (mobile shows only the money rows below).
-  type MetaCell = { label: string; value: string; valueClassName?: string };
+  type MetaCell = { label: string; value: string; valueClassName?: string; hint?: string };
   const desktopCells: MetaCell[] = ([
     { label: 'Owner', value: ownerName ?? '—' },
     project.customer_po_number
       ? { label: 'PO #', value: project.customer_po_number }
       : null,
-    { label: 'Start', value: fmtDate(project.start_date) },
-    { label: 'End', value: fmtDate(project.end_date) },
+    {
+      label: 'Start',
+      value: fmtDate(scheduleDates.start),
+      hint: scheduleDates.startSource === 'schedule' ? 'from schedule' : undefined,
+    },
+    {
+      label: 'End',
+      value: fmtDate(scheduleDates.end),
+      hint: scheduleDates.endSource === 'schedule' ? 'from schedule' : undefined,
+    },
     { label: moneyLabel, value: moneyValue, valueClassName: 'font-medium' },
     hasContingency
       ? { label: 'Contingency', value: money0(contingencyTotal), valueClassName: 'font-medium' }
@@ -432,7 +447,12 @@ export function ProjectOperationalDashboard({
             {desktopCells.map((cell) => (
               <div key={cell.label}>
                 <div className="text-[11px] text-muted-foreground">{cell.label}</div>
-                <div className={cn("text-sm", cell.valueClassName)}>{cell.value}</div>
+                <div className={cn("text-sm", cell.valueClassName)}>
+                  {cell.value}
+                  {cell.hint && (
+                    <span className="ml-1 text-[10px] text-muted-foreground/70">· {cell.hint}</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

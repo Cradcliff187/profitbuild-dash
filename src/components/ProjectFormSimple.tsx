@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { ClientSelector } from "@/components/ClientSelector";
 import { generateProjectNumber } from "@/types/project";
 import { toast } from "sonner";
@@ -26,7 +27,12 @@ const formSchema = z.object({
   minimum_margin_threshold: z.number().min(0).max(100),
   target_margin: z.number().min(0).max(100),
   owner_id: z.string().optional(),
-});
+  start_date: z.date().optional(),
+  end_date: z.date().optional(),
+}).refine(
+  (data) => !data.start_date || !data.end_date || data.end_date >= data.start_date,
+  { message: "End date must be on or after the start date", path: ["end_date"] }
+);
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -70,6 +76,8 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
       minimum_margin_threshold: 10,
       target_margin: 20,
       owner_id: "",
+      start_date: undefined,
+      end_date: undefined,
     },
   });
 
@@ -112,6 +120,8 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
           minimum_margin_threshold: data.minimum_margin_threshold,
           target_margin: data.target_margin,
           owner_id: data.owner_id || null,
+          start_date: data.start_date ? data.start_date.toISOString().split('T')[0] : null,
+          end_date: data.end_date ? data.end_date.toISOString().split('T')[0] : null,
         })
         .select()
         .single();
@@ -225,6 +235,45 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
             </FormItem>
           )}
         />
+
+        {/* Start / End dates (optional) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="start_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Start Date</FormLabel>
+                <FormControl>
+                  <DatePickerPopover
+                    value={field.value}
+                    onSelect={field.onChange}
+                    placeholder="Pick a start date"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="end_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>End Date</FormLabel>
+                <FormControl>
+                  <DatePickerPopover
+                    value={field.value}
+                    onSelect={field.onChange}
+                    placeholder="Pick an end date"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {/* Three column grid for selects */}
         <div className="grid grid-cols-3 gap-3">
