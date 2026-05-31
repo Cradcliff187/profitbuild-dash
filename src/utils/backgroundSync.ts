@@ -91,7 +91,47 @@ const syncClockOut = async (operation: QueuedOperation) => {
     }
   }
 
-  // Insert the expense
+  // Prefer CLOSING the active-timer placeholder that clock-in created
+  // (start_time set, end_time NULL) rather than inserting a second row.
+  // Clock-in inserts a placeholder immediately; the online clock-out path
+  // finds and updates it. The offline path used to blind-insert, which
+  // orphaned the placeholder forever as a phantom "0h" active timer (it kept
+  // showing as clocked-in and polluted the approval queue + cost rollups)
+  // while also creating a duplicate completed row. Match the online behavior.
+  if (payload.payee_id && payload.start_time) {
+    const { data: placeholder } = await supabase
+      .from('expenses')
+      .select('id')
+      .eq('payee_id', payload.payee_id)
+      .eq('start_time', payload.start_time)
+      .is('end_time', null)
+      .maybeSingle();
+
+    if (placeholder) {
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({
+          end_time: payload.end_time,
+          amount: payload.amount,
+          lunch_taken: payload.lunch_taken,
+          lunch_duration_minutes: payload.lunch_duration_minutes,
+          updated_by: payload.updated_by ?? payload.user_id,
+          // Stamp local_id so a retry (if markAsSynced didn't land) is caught
+          // by the dedup check above instead of inserting a duplicate.
+          local_id: payload.local_id ?? null,
+          synced_at: new Date().toISOString(),
+        })
+        .eq('id', placeholder.id);
+
+      if (updateError) throw updateError;
+
+      console.log('💾 Clock out synced (closed placeholder):', placeholder.id);
+      return;
+    }
+  }
+
+  // Fallback: no placeholder found (e.g. the clock-in also happened offline),
+  // so insert the completed entry.
   const { data, error } = await supabase
     .from('expenses')
     .insert({
@@ -104,7 +144,7 @@ const syncClockOut = async (operation: QueuedOperation) => {
 
   if (error) throw error;
 
-  console.log('💾 Clock out synced:', data?.id);
+  console.log('💾 Clock out synced (inserted):', data?.id);
 };
 
 const syncEditEntry = async (operation: QueuedOperation) => {
