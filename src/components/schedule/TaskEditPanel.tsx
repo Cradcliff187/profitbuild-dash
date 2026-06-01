@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { parseDateOnly, formatDateOnly } from '@/utils/scheduleNotes';
 
 interface TaskEditPanelProps {
   task: ScheduleTask;
@@ -55,14 +56,14 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
   // Update end date when single start/duration changes
   useEffect(() => {
     if (phases.length === 0) {
-      const start = new Date(singleStartDate);
+      const start = parseDateOnly(singleStartDate);
       const end = new Date(start);
       end.setDate(end.getDate() + singleDuration - 1);
-      
+
       setEditedTask(prev => ({
         ...prev,
         start: singleStartDate,
-        end: end.toISOString().split('T')[0]
+        end: formatDateOnly(end)
       }));
     }
   }, [singleStartDate, singleDuration, phases.length]);
@@ -74,20 +75,20 @@ export default function TaskEditPanel({ task, allTasks, onClose, onSave }: TaskE
     // Default to starting after last phase
     let startDate: string;
     if (lastPhase) {
-      const lastEnd = new Date(lastPhase.end_date);
+      const lastEnd = parseDateOnly(lastPhase.end_date);
       lastEnd.setDate(lastEnd.getDate() + 1);
-      startDate = lastEnd.toISOString().split('T')[0];
+      startDate = formatDateOnly(lastEnd);
     } else {
       startDate = singleStartDate;
     }
-    
-    const endDate = new Date(startDate);
+
+    const endDate = parseDateOnly(startDate);
     endDate.setDate(endDate.getDate() + 6); // 7 days default
-    
+
     setPhases([...phases, {
       phase_number: newPhaseNumber,
       start_date: startDate,
-      end_date: endDate.toISOString().split('T')[0],
+      end_date: formatDateOnly(endDate),
       duration_days: 7,
       description: ''
     }]);

@@ -6,6 +6,7 @@ import { ChevronDown, CheckCircle2, StickyNote, AlertCircle } from 'lucide-react
 import { ScheduleTask, SchedulePhase } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { NoteComposer } from '@/components/notes/NoteComposer';
+import { parseDateOnly } from '@/utils/scheduleNotes';
 
 interface FieldTaskCardProps {
   task: ScheduleTask;
@@ -17,20 +18,20 @@ interface FieldTaskCardProps {
 // --- Helpers ---
 
 function isToday(dateStr: string): boolean {
-  return new Date(dateStr).toDateString() === new Date().toDateString();
+  return parseDateOnly(dateStr).toDateString() === new Date().toDateString();
 }
 
 function isDateInRange(start: string, end: string): boolean {
   const today = new Date();
-  return today >= new Date(start) && today <= new Date(end);
+  return today >= parseDateOnly(start) && today <= parseDateOnly(end);
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return parseDateOnly(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function calculateDuration(start: string, end: string): number {
-  return Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.ceil((parseDateOnly(end).getTime() - parseDateOnly(start).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 }
 
 function extractScheduleNotes(scheduleNotes?: string): string | undefined {

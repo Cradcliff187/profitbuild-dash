@@ -24,6 +24,39 @@ export function isSchedulableCategory(category?: string | null): boolean {
   return !!category && (SCHEDULABLE_CATEGORIES as readonly string[]).includes(category);
 }
 
+/**
+ * Parse a date-only value (`'YYYY-MM-DD'`, as stored in the `date` columns
+ * `scheduled_start_date` / `scheduled_end_date` / `need_by_date` /
+ * `expected_delivery_date`) into a LOCAL-midnight Date.
+ *
+ * `new Date('2026-06-01')` parses as UTC midnight, which in any negative-offset
+ * timezone renders as the PREVIOUS day — so a task saved for Jun 1 showed on the
+ * Gantt as "May 31". Splitting the parts and using the `new Date(y, m, d)`
+ * constructor anchors to local midnight so the displayed day matches the stored
+ * day regardless of the viewer's timezone. ISO strings that carry a time
+ * component fall through to the native parser.
+ */
+export function parseDateOnly(dateStr: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  return new Date(dateStr);
+}
+
+/**
+ * Format a Date to `'YYYY-MM-DD'` using its LOCAL calendar day. Counterpart to
+ * parseDateOnly — use this instead of `date.toISOString().split('T')[0]` when
+ * persisting a date-only value, because toISOString converts to UTC and can
+ * roll the day forward/back across the midnight boundary.
+ */
+export function formatDateOnly(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export interface ParsedScheduleNotes {
   phases?: SchedulePhase[];
   completed?: boolean;

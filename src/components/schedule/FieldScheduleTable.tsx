@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScheduleTask } from '@/types/schedule';
 import { FieldTaskSection } from './FieldTaskSection';
+import { parseDateOnly } from '@/utils/scheduleNotes';
 
 interface FieldScheduleTableProps {
   tasks: ScheduleTask[];
@@ -11,11 +12,11 @@ interface FieldScheduleTableProps {
 
 function isDateInRange(start: string, end: string): boolean {
   const today = new Date();
-  return today >= new Date(start) && today <= new Date(end);
+  return today >= parseDateOnly(start) && today <= parseDateOnly(end);
 }
 
 function isThisWeek(dateStr: string): boolean {
-  const date = new Date(dateStr);
+  const date = parseDateOnly(dateStr);
   const today = new Date();
   const weekFromNow = new Date();
   weekFromNow.setDate(today.getDate() + 7);

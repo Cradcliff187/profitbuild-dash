@@ -17,7 +17,7 @@ import { useProgressTracking } from './hooks/useProgressTracking';
 import { ScheduleTask, ScheduleWarning } from '@/types/schedule';
 import { ScheduleExportModal } from './ScheduleExportModal';
 import { getCategoryHexColor } from '@/utils/categoryColors';
-import { isSchedulableCategory, parseScheduleNotes } from '@/utils/scheduleNotes';
+import { isSchedulableCategory, parseScheduleNotes, parseDateOnly, formatDateOnly } from '@/utils/scheduleNotes';
 import { useProjectMaterials } from '@/hooks/useProjectMaterials';
 import { ProjectMaterialsList } from '@/components/materials/ProjectMaterialsList';
 import { Package } from 'lucide-react';
@@ -62,7 +62,7 @@ export default function ProjectScheduleView({
 
   // Helper functions for task name date formatting
   const formatShortDate = (date: Date | string): string => {
-    const d = typeof date === 'string' ? new Date(date) : date;
+    const d = typeof date === 'string' ? parseDateOnly(date) : date;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
@@ -308,7 +308,7 @@ export default function ProjectScheduleView({
 
   const convertToGanttTasks = (scheduleTasks: ScheduleTask[]): Task[] => {
     const formatShortDate = (dateStr: string): string => {
-      const date = new Date(dateStr);
+      const date = parseDateOnly(dateStr);
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric'
@@ -320,8 +320,8 @@ export default function ProjectScheduleView({
       if (task.has_multiple_phases && task.phases) {
         // Create sub-tasks for each phase
         return task.phases.map((phase: any, phaseIdx: number) => {
-          const start = new Date(phase.start_date);
-          const end = new Date(phase.end_date);
+          const start = parseDateOnly(phase.start_date);
+          const end = parseDateOnly(phase.end_date);
           const phaseName = `${task.name} - Phase ${phase.phase_number}${phase.description ? `: ${phase.description}` : ''}`;
           const taskNameWithDates = `${phaseName} (${formatShortDate(phase.start_date)} - ${formatShortDate(phase.end_date)})`;
 
@@ -343,8 +343,8 @@ export default function ProjectScheduleView({
         });
       } else {
         // Single phase - render normally
-        const start = new Date(task.start);
-        const end = new Date(task.end);
+        const start = parseDateOnly(task.start);
+        const end = parseDateOnly(task.end);
         const taskNameWithDates = `${task.name} (${formatShortDate(task.start)} - ${formatShortDate(task.end)})`;
 
         return [{
@@ -413,8 +413,8 @@ export default function ProjectScheduleView({
         : 'estimate_line_items';
 
       const duration = Math.ceil((task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      const newStart = task.start.toISOString().split('T')[0];
-      const newEnd = task.end.toISOString().split('T')[0];
+      const newStart = formatDateOnly(task.start);
+      const newEnd = formatDateOnly(task.end);
       
       console.log('💾 Saving to database:', { newStart, newEnd, duration });
 
@@ -436,8 +436,8 @@ export default function ProjectScheduleView({
         });
 
         // Recalculate overall task start/end from all phases
-        const allStarts = updatedPhases.map((p: any) => new Date(p.start_date));
-        const allEnds = updatedPhases.map((p: any) => new Date(p.end_date));
+        const allStarts = updatedPhases.map((p: any) => parseDateOnly(p.start_date));
+        const allEnds = updatedPhases.map((p: any) => parseDateOnly(p.end_date));
         const overallStart = new Date(Math.min(...allStarts.map(d => d.getTime())));
         const overallEnd = new Date(Math.max(...allEnds.map(d => d.getTime())));
         
@@ -458,8 +458,8 @@ export default function ProjectScheduleView({
           existingNotes = scheduleTask.schedule_notes;
         }
 
-        updateData.scheduled_start_date = overallStart.toISOString().split('T')[0];
-        updateData.scheduled_end_date = overallEnd.toISOString().split('T')[0];
+        updateData.scheduled_start_date = formatDateOnly(overallStart);
+        updateData.scheduled_end_date = formatDateOnly(overallEnd);
         updateData.duration_days = overallDuration; // Use overall span, not phase duration
         updateData.schedule_notes = JSON.stringify({
           phases: updatedPhases,
@@ -619,7 +619,7 @@ export default function ProjectScheduleView({
     const milestones: Task[] = materials
       .filter((m) => m.isLongLead && m.expectedDeliveryDate)
       .map((m) => {
-        const date = new Date(m.expectedDeliveryDate as string);
+        const date = parseDateOnly(m.expectedDeliveryDate as string);
         return {
           start: date,
           end: date,

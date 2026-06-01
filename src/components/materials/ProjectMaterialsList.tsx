@@ -7,6 +7,7 @@ import { Package, Pencil, Truck, AlertTriangle, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRoles } from '@/contexts/RoleContext';
 import { useProjectMaterials, ProjectMaterial } from '@/hooks/useProjectMaterials';
+import { parseDateOnly } from '@/utils/scheduleNotes';
 import { PROCUREMENT_STATUS_META } from './procurementMeta';
 import { MaterialProcurementSheet } from './MaterialProcurementSheet';
 
@@ -16,7 +17,7 @@ interface ProjectMaterialsListProps {
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return parseDateOnly(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatCurrency(amount: number): string {
@@ -33,7 +34,7 @@ function daysUntil(dateStr?: string | null): number | null {
   if (!dateStr) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
+  const target = parseDateOnly(dateStr);
   target.setHours(0, 0, 0, 0);
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
