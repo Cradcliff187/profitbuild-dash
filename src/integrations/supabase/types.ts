@@ -351,14 +351,18 @@ export type Database = {
           dependencies: Json | null
           description: string
           duration_days: number | null
+          expected_delivery_date: string | null
           funded_by_contingency: boolean
           id: string
+          is_long_lead: boolean
           is_milestone: boolean | null
           labor_cushion_amount: number | null
           labor_hours: number | null
           markup_amount: number | null
+          need_by_date: string | null
           payee_id: string | null
           price_per_unit: number | null
+          procurement_status: string
           quantity: number | null
           schedule_notes: string | null
           scheduled_end_date: string | null
@@ -379,14 +383,18 @@ export type Database = {
           dependencies?: Json | null
           description: string
           duration_days?: number | null
+          expected_delivery_date?: string | null
           funded_by_contingency?: boolean
           id?: string
+          is_long_lead?: boolean
           is_milestone?: boolean | null
           labor_cushion_amount?: number | null
           labor_hours?: number | null
           markup_amount?: number | null
+          need_by_date?: string | null
           payee_id?: string | null
           price_per_unit?: number | null
+          procurement_status?: string
           quantity?: number | null
           schedule_notes?: string | null
           scheduled_end_date?: string | null
@@ -407,14 +415,18 @@ export type Database = {
           dependencies?: Json | null
           description?: string
           duration_days?: number | null
+          expected_delivery_date?: string | null
           funded_by_contingency?: boolean
           id?: string
+          is_long_lead?: boolean
           is_milestone?: boolean | null
           labor_cushion_amount?: number | null
           labor_hours?: number | null
           markup_amount?: number | null
+          need_by_date?: string | null
           payee_id?: string | null
           price_per_unit?: number | null
+          procurement_status?: string
           quantity?: number | null
           schedule_notes?: string | null
           scheduled_end_date?: string | null
@@ -870,13 +882,17 @@ export type Database = {
           description: string
           duration_days: number | null
           estimate_id: string
+          expected_delivery_date: string | null
           id: string
+          is_long_lead: boolean
           is_milestone: boolean | null
           labor_cushion_amount: number | null
           labor_hours: number | null
           markup_amount: number | null
           markup_percent: number | null
+          need_by_date: string | null
           price_per_unit: number
+          procurement_status: string
           quantity: number | null
           quickbooks_item_id: string | null
           schedule_notes: string | null
@@ -898,13 +914,17 @@ export type Database = {
           description: string
           duration_days?: number | null
           estimate_id: string
+          expected_delivery_date?: string | null
           id?: string
+          is_long_lead?: boolean
           is_milestone?: boolean | null
           labor_cushion_amount?: number | null
           labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
+          need_by_date?: string | null
           price_per_unit?: number
+          procurement_status?: string
           quantity?: number | null
           quickbooks_item_id?: string | null
           schedule_notes?: string | null
@@ -926,13 +946,17 @@ export type Database = {
           description?: string
           duration_days?: number | null
           estimate_id?: string
+          expected_delivery_date?: string | null
           id?: string
+          is_long_lead?: boolean
           is_milestone?: boolean | null
           labor_cushion_amount?: number | null
           labor_hours?: number | null
           markup_amount?: number | null
           markup_percent?: number | null
+          need_by_date?: string | null
           price_per_unit?: number
+          procurement_status?: string
           quantity?: number | null
           quickbooks_item_id?: string | null
           schedule_notes?: string | null
@@ -4279,6 +4303,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_linked_payee: {
+        Args: { _payee_id: string; _user_id: string }
         Returns: boolean
       }
       log_activity: {
