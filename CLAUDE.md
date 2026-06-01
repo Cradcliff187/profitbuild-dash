@@ -1059,6 +1059,45 @@ a `contingency_drawdown` KPI and run `npm run sync:edge-kpis`.
 - A contingency-funded line with price > 0 still bills $0; the price is informational only. Don't sum
   `total_price` for client billing — sum additive lines only (the trigger already does).
 
+### 32. Schedule = work only; Materials live on a Procurement surface (Jun 1, 2026)
+
+The Gantt / field schedule is a projection of `estimate_line_items` (approved current estimate) +
+`change_order_line_items` (approved COs) — there is **no `schedule_tasks` table**. Scheduling state
+(phases, single-task completion, task notes) is stored as JSON in the `schedule_notes` text column.
+
+**Schedulable categories** — only WORK categories become Gantt/field tasks:
+[`SCHEDULABLE_CATEGORIES`](src/utils/scheduleNotes.ts) = `subcontractors`, `labor_internal`,
+`permits`, `equipment`, `other`. **`materials` and `management` are excluded**: materials are
+procurement (not a work duration), and management is assumed-present overhead. The filter is applied
+in **both** loaders (`useScheduleTasks` for mobile field schedule, `ProjectScheduleView` for the
+desktop Gantt/table) — change both or neither.
+
+**One parser, no drift** — [`parseScheduleNotes`](src/utils/scheduleNotes.ts) is the single reader of
+`schedule_notes` (`{ phases?, completed?, notes? }`). Both loaders MUST use it. A prior bug had the
+desktop loader silently dropping the single-phase `completed` flag, so completions set on mobile (or
+in `TaskEditPanel`) never showed on desktop, and re-opening `TaskEditPanel` showed the box unchecked
+and **wrote `completed:false` on save — silently reverting completion**. Don't reintroduce a bespoke
+`JSON.parse` of `schedule_notes`; route through the helper.
+
+**Materials & Procurement** — [`useProjectMaterials`](src/hooks/useProjectMaterials.ts) reads the
+`materials` line items from the same approved sources and exposes procurement tracking via **real
+columns** (migration `add_material_procurement_tracking`): `procurement_status`
+(`not_ordered|ordered|in_production|shipped|delivered`, CHECK-constrained), `expected_delivery_date`,
+`need_by_date`, `is_long_lead`. NOT JSON — these are first-class columns on both line-item tables,
+consistent with how `scheduled_start_date`/`schedule_notes`/`dependencies` already live there. Surfaced
+by [`ProjectMaterialsList`](src/components/materials/ProjectMaterialsList.tsx) + `MaterialProcurementSheet`
+(edit gated to admin/manager). Mounted as a **Materials** tab on mobile (`MobileScheduleView`) and a
+third view toggle on desktop (`ProjectScheduleView`). Long-lead items sort first and render as
+**informational milestone diamonds** on the Gantt (id prefix `material:`, `isDisabled`, ignored by the
+drag/click handlers) so a casework/door delivery is visible next to the work it gates without being a
+duration bar.
+
+**Known limitation (consistent with pre-existing behavior)**: `create_estimate_version` copies only
+financial columns — it has never carried scheduling state forward, and procurement state is the same.
+A new estimate version starts with scheduling/procurement reset; both only drive the UI once the
+version is approved/current. Don't "fix" this by special-casing procurement — fix the whole
+scheduling-carry-forward question deliberately if it ever matters.
+
 ---
 
 ## TypeScript Configuration

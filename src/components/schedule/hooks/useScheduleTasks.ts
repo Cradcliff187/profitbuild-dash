@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useProgressTracking } from './useProgressTracking';
+import { isSchedulableCategory, parseScheduleNotes } from '@/utils/scheduleNotes';
 
 interface UseScheduleTasksProps {
   projectId: string;
@@ -173,41 +174,20 @@ export function useScheduleTasks({
     isChangeOrder: boolean,
     coNumber?: string
   ): ScheduleTask[] => {
-    return lineItems.map((item) => {
+    // Only schedulable WORK categories become tasks. Materials (procurement)
+    // and management (overhead) are excluded — see SCHEDULABLE_CATEGORIES.
+    return lineItems
+      .filter((item) => isSchedulableCategory(item.category))
+      .map((item) => {
       // Use description only - badge indicates it's a change order
       const taskName = item.description;
-      
-      // Parse schedule phases, completion, and notes from schedule_notes
-      let phases: any[] | undefined;
-      let hasMultiplePhases = false;
-      let completed: boolean | undefined = undefined;
-      let taskLevelNotes: string | undefined = undefined;
-      
-      try {
-        if (item.schedule_notes) {
-          const parsed = JSON.parse(item.schedule_notes);
-          
-          // Extract phases if present
-          if (parsed.phases && Array.isArray(parsed.phases)) {
-            phases = parsed.phases;
-            hasMultiplePhases = phases.length > 1;
-          }
-          
-          // Extract completion status if present
-          if (typeof parsed.completed === 'boolean') {
-            completed = parsed.completed;
-          }
-          
-          // Extract task-level notes if present
-          if (typeof parsed.notes === 'string') {
-            taskLevelNotes = parsed.notes;
-          }
-        }
-      } catch (e) {
-        // Not JSON - treat as plain text notes
-        taskLevelNotes = item.schedule_notes;
-      }
-      
+
+      // Parse schedule phases & completion from schedule_notes
+      const parsedNotes = parseScheduleNotes(item.schedule_notes);
+      const phases = parsedNotes.phases;
+      const hasMultiplePhases = !!phases && phases.length > 1;
+      const completed = parsedNotes.completed;
+
       // Calculate overall start/end from phases OR use scheduled dates
       let startDate: Date;
       let endDate: Date;

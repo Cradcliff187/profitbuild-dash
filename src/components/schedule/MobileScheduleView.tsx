@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ClipboardCheck, StickyNote, Camera, FileText } from "lucide-react";
+import { ClipboardCheck, StickyNote, Camera, FileText, Package } from "lucide-react";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,18 +10,21 @@ import { FieldScheduleTable } from "@/components/schedule/FieldScheduleTable";
 import { FieldMediaGallery } from "@/components/schedule/FieldMediaGallery";
 import { FieldDocumentsList } from "@/components/schedule/FieldDocumentsList";
 import { ProjectNotesTimeline } from "@/components/ProjectNotesTimeline";
+import { ProjectMaterialsList } from "@/components/materials/ProjectMaterialsList";
+import { useProjectMaterials } from "@/hooks/useProjectMaterials";
 import { ScheduleTask } from "@/types/schedule";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-type FieldTab = "tasks" | "notes" | "media" | "docs";
+type FieldTab = "tasks" | "notes" | "media" | "docs" | "materials";
 
 const tabs: { id: FieldTab; icon: React.ElementType; label: string }[] = [
   { id: "tasks", icon: ClipboardCheck, label: "Tasks" },
   { id: "notes", icon: StickyNote, label: "Notes" },
   { id: "media", icon: Camera, label: "Media" },
   { id: "docs", icon: FileText, label: "Docs" },
+  { id: "materials", icon: Package, label: "Materials" },
 ];
 
 interface MobileScheduleViewProps {
@@ -41,7 +44,7 @@ interface MobileScheduleViewProps {
 export function MobileScheduleView({ projectId, projectStartDate, projectEndDate }: MobileScheduleViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
-  const activeTab: FieldTab = (["tasks", "notes", "media", "docs"].includes(urlTab ?? "")
+  const activeTab: FieldTab = (["tasks", "notes", "media", "docs", "materials"].includes(urlTab ?? "")
     ? (urlTab as FieldTab)
     : "tasks");
 
@@ -119,11 +122,14 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
     enabled: !!projectId,
   });
 
+  const { materials } = useProjectMaterials(projectId);
+
   const badgeCounts: Record<FieldTab, number | undefined> = {
     tasks: tasks.length || undefined,
     notes: notesCount.data || undefined,
     media: mediaCount.data || undefined,
     docs: docsCount.data || undefined,
+    materials: materials.length || undefined,
   };
 
   const handleTaskUpdate = async (task: ScheduleTask) => {
@@ -189,6 +195,8 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
       {activeTab === "media" && <FieldMediaGallery projectId={projectId} />}
 
       {activeTab === "docs" && <FieldDocumentsList projectId={projectId} />}
+
+      {activeTab === "materials" && <ProjectMaterialsList projectId={projectId} />}
     </div>
   );
 }

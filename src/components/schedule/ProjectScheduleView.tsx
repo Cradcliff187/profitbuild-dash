@@ -17,6 +17,10 @@ import { useProgressTracking } from './hooks/useProgressTracking';
 import { ScheduleTask, ScheduleWarning } from '@/types/schedule';
 import { ScheduleExportModal } from './ScheduleExportModal';
 import { getCategoryHexColor } from '@/utils/categoryColors';
+import { isSchedulableCategory, parseScheduleNotes } from '@/utils/scheduleNotes';
+import { useProjectMaterials } from '@/hooks/useProjectMaterials';
+import { ProjectMaterialsList } from '@/components/materials/ProjectMaterialsList';
+import { Package } from 'lucide-react';
 
 interface ProjectScheduleViewProps {
   projectId: string;
@@ -34,9 +38,9 @@ export default function ProjectScheduleView({
   const [selectedTask, setSelectedTask] = useState<ScheduleTask | null>(null);
   const [warnings, setWarnings] = useState<ScheduleWarning[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day);
-  const [displayMode, setDisplayMode] = useState<'gantt' | 'table'>(() => {
+  const [displayMode, setDisplayMode] = useState<'gantt' | 'table' | 'materials'>(() => {
     const saved = localStorage.getItem(`schedule_view_mode_${projectId}`);
-    return (saved === 'table' || saved === 'gantt') ? saved : 'gantt';
+    return (saved === 'table' || saved === 'gantt' || saved === 'materials') ? saved : 'gantt';
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -49,6 +53,7 @@ export default function ProjectScheduleView({
   const ganttContainerRef = React.useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { getTaskProgress, isLoading: progressLoading } = useProgressTracking(projectId);
+  const { materials } = useProjectMaterials(projectId);
 
   // Save display mode preference
   useEffect(() => {
@@ -246,25 +251,20 @@ export default function ProjectScheduleView({
     isChangeOrder: boolean,
     coNumber?: string
   ): ScheduleTask[] => {
-    return lineItems.map((item) => {
+    // Only schedulable WORK categories become Gantt tasks. Materials and
+    // management are excluded — see SCHEDULABLE_CATEGORIES.
+    return lineItems
+      .filter((item) => isSchedulableCategory(item.category))
+      .map((item) => {
       // Use description only - badge indicates it's a change order
       const taskName = item.description;
 
-      // Parse schedule phases from schedule_notes
-      let phases: any[] | undefined;
-      let hasMultiplePhases = false;
-      
-      try {
-        if (item.schedule_notes) {
-          const parsed = JSON.parse(item.schedule_notes);
-          if (parsed.phases && Array.isArray(parsed.phases)) {
-            phases = parsed.phases;
-            hasMultiplePhases = phases.length > 1;
-          }
-        }
-      } catch (e) {
-        // Not JSON or no phases
-      }
+      // Parse phases AND single-phase completion from schedule_notes via the
+      // shared helper so desktop and mobile never disagree on completion.
+      const parsedNotes = parseScheduleNotes(item.schedule_notes);
+      const phases = parsedNotes.phases;
+      const hasMultiplePhases = !!phases && phases.length > 1;
+      const completed = parsedNotes.completed;
 
       // Calculate overall start/end from phases OR use scheduled dates
       let startDate: Date;
@@ -298,6 +298,7 @@ export default function ProjectScheduleView({
         schedule_notes: item.schedule_notes,
         phases: phases,
         has_multiple_phases: hasMultiplePhases,
+        completed: completed,
         estimated_cost: item.total_cost || 0,
         actual_cost: 0,
         change_order_number: coNumber,
@@ -374,6 +375,9 @@ export default function ProjectScheduleView({
   };
 
   const handleTaskChange = async (task: Task) => {
+    // Long-lead material delivery markers are informational only.
+    if (task.id.startsWith('material:')) return;
+
     isDraggingRef.current = true;
     isUpdatingRef.current = true; // Block realtime reload
     
@@ -548,6 +552,10 @@ export default function ProjectScheduleView({
   };
 
   const handleTaskClick = (task: Task) => {
+    // Material delivery markers aren't editable schedule tasks.
+    if (task.id.startsWith('material:')) {
+      return;
+    }
     // FIX 1: Don't open edit panel if we're dragging
     if (isDraggingRef.current) {
       return;
@@ -598,10 +606,38 @@ export default function ProjectScheduleView({
   // Sort tasks based on taskOrder
   const orderedTasks = useMemo(() => {
     if (taskOrder.length === 0) return scheduleTasks;
-    return [...scheduleTasks].sort((a, b) => 
+    return [...scheduleTasks].sort((a, b) =>
       taskOrder.indexOf(a.id) - taskOrder.indexOf(b.id)
     );
   }, [scheduleTasks, taskOrder]);
+
+  // Long-lead material deliveries render as informational milestone diamonds on
+  // the Gantt so the casework/doors/etc. arrival is visible next to the work it
+  // gates — without treating the material as a work duration bar. They are
+  // disabled (no drag) and ignored by the change/click handlers (id prefix).
+  const ganttTasks = useMemo<Task[]>(() => {
+    const milestones: Task[] = materials
+      .filter((m) => m.isLongLead && m.expectedDeliveryDate)
+      .map((m) => {
+        const date = new Date(m.expectedDeliveryDate as string);
+        return {
+          start: date,
+          end: date,
+          name: `📦 ${m.description} delivery (${formatShortDate(m.expectedDeliveryDate as string)})`,
+          id: `material:${m.id}`,
+          type: 'milestone' as const,
+          progress: m.procurementStatus === 'delivered' ? 100 : 0,
+          isDisabled: true,
+          styles: {
+            backgroundColor: '#f59e0b',
+            backgroundSelectedColor: '#f59e0b',
+            progressColor: '#22c55e',
+            progressSelectedColor: '#22c55e',
+          },
+        };
+      });
+    return [...tasks, ...milestones];
+  }, [tasks, materials]);
 
   // Move task up or down in the order
   const moveTask = (taskId: string, direction: 'up' | 'down') => {
@@ -629,7 +665,7 @@ export default function ProjectScheduleView({
     );
   }
 
-  if (tasks.length === 0) {
+  if (tasks.length === 0 && materials.length === 0) {
     return (
       <Card className="p-8 text-center">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -696,6 +732,20 @@ export default function ProjectScheduleView({
               >
                 <BarChart3 className="h-4 w-4 mr-1" />
                 Table
+              </Button>
+              <Button
+                variant={displayMode === 'materials' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDisplayMode('materials')}
+                className="h-7 px-2"
+              >
+                <Package className="h-4 w-4 mr-1" />
+                Materials
+                {materials.length > 0 && (
+                  <span className="ml-1 text-[10px] tabular-nums opacity-70">
+                    {materials.length}
+                  </span>
+                )}
               </Button>
             </div>
 
@@ -773,30 +823,49 @@ export default function ProjectScheduleView({
         onToggle={() => setShowReorderPanel(!showReorderPanel)}
       />
 
-      {/* Conditional Rendering: Gantt or Table */}
-      {displayMode === 'gantt' ? (
-        <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div ref={ganttContainerRef}>
-            <Gantt
-              tasks={tasks}
-              viewMode={viewMode}
-              onDateChange={handleTaskChange}
-              onDoubleClick={handleTaskClick}
-              listCellWidth=""
-              columnWidth={
-                viewMode === ViewMode.Day ? 80 : 
-                viewMode === ViewMode.Week ? 65 : 
-                viewMode === ViewMode.Month ? 300 : 65
-              }
-              headerHeight={60}
-              rowHeight={45}
-              barCornerRadius={4}
-              handleWidth={8}
-              todayColor="rgba(59, 130, 246, 0.1)"
-              locale="en-US"
-            />
-          </div>
-        </Card>
+      {/* Conditional Rendering: Gantt, Table, or Materials */}
+      {displayMode === 'materials' ? (
+        <ProjectMaterialsList projectId={projectId} />
+      ) : displayMode === 'gantt' ? (
+        ganttTasks.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Package className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-sm font-medium">No scheduled work</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              This project has materials but no schedulable work tasks yet. See the{' '}
+              <button
+                className="text-primary underline"
+                onClick={() => setDisplayMode('materials')}
+              >
+                Materials
+              </button>{' '}
+              tab.
+            </p>
+          </Card>
+        ) : (
+          <Card className="p-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div ref={ganttContainerRef}>
+              <Gantt
+                tasks={ganttTasks}
+                viewMode={viewMode}
+                onDateChange={handleTaskChange}
+                onDoubleClick={handleTaskClick}
+                listCellWidth=""
+                columnWidth={
+                  viewMode === ViewMode.Day ? 80 :
+                  viewMode === ViewMode.Week ? 65 :
+                  viewMode === ViewMode.Month ? 300 : 65
+                }
+                headerHeight={60}
+                rowHeight={45}
+                barCornerRadius={4}
+                handleWidth={8}
+                todayColor="rgba(59, 130, 246, 0.1)"
+                locale="en-US"
+              />
+            </div>
+          </Card>
+        )
       ) : (
         <ScheduleTableView
           tasks={orderedTasks}
