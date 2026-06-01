@@ -1059,6 +1059,48 @@ a `contingency_drawdown` KPI and run `npm run sync:edge-kpis`.
 - A contingency-funded line with price > 0 still bills $0; the price is informational only. Don't sum
   `total_price` for client billing — sum additive lines only (the trigger already does).
 
+### 32. Create Quote from an Imported Document (Jun 1, 2026, PR [#128](https://github.com/Cradcliff187/profitbuild-dash/pull/128))
+
+A background Drive-import agent drops files into `project_documents` as `document_type: 'other'` (it can't
+classify them). Reclassifying one to `quote` only relabels the doc row — it does **not** create a real
+`quotes` record (payee, estimate linkage, line items, margin math that cost-tracking depends on). This rule
+adds a one-click path from an imported document to a real quote, reusing the file already in storage.
+
+**The enabling fact**: imported docs (`uploadProjectDocument` → `{projectId}/attachments/...`) and quote
+attachments (`QuoteAttachmentUpload` → `{projectId}/quotes/...`) live in the **same** `project-documents`
+bucket as the **same kind of public URL**, and `quotes.attachment_url` is just that URL string. So "use the
+document that's already there" = point the new quote's `attachment_url` at the existing `file_url` and relink
+the doc row. **No re-upload, no storage copy.**
+
+**Flow**: doc row menu / [`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) footer →
+**Create quote from this document** → navigates to `/projects/:id/estimates/quotes/new?sourceDocumentId=…` →
+[`QuoteNewRoute`](src/components/project-routes/QuoteNewRoute.tsx) fetches the doc and pre-attaches it →
+[`QuoteForm`](src/components/QuoteForm.tsx) shows the file via `existingFile` (no upload) → on Save,
+[`useProjectData.handleSaveQuote`](src/hooks/useProjectData.tsx) inserts the quote, then relinks the SAME
+`project_documents` row (`related_quote_id = newQuoteId`, `document_type = 'quote'`) — no duplicate doc.
+
+**Key pieces**:
+- [`quoteFromDocument.ts`](src/utils/quoteFromDocument.ts) — shared `canCreateQuoteFromDocument(doc)`
+  (eligible types = `other`|`quote`, and `!related_quote_id`) + `newQuoteFromDocumentPath(doc)`. Both
+  surfaces (sheet footer + timeline row menus, mobile & desktop) use it so eligibility never drifts.
+- `QuoteForm` gained transient props `initialAttachmentUrl` / `initialAttachmentName` / `sourceDocumentId`,
+  and `Quote.sourceDocumentId` is a **transient** field (NOT a `quotes` column) used only to carry the doc id
+  to the save handler.
+- The relink is **best-effort** — `attachment_url` already persists via the quote insert, so a relink failure
+  toasts a warning rather than failing the save. On success it invalidates the doc-cache fanout
+  (`project-documents`, `project-documents-timeline`, `project-docs-count`, `field-documents` — Gotcha #27).
+
+**Common pitfalls**:
+- **Cancel-safe** (Gotcha #39): navigation writes nothing; the relink only happens on Save. Don't move the
+  relink to the menu-click handler.
+- **Remove-before-save must not delete the source doc.** `QuoteForm`'s attachment `onRemove` only deletes a
+  `project_documents` row when `initialQuote?.id` exists (edit mode); for a new quote seeded from a document it
+  just clears local state. Don't "fix" it to delete by URL — it would nuke the imported document.
+- The relink sets `document_type='quote'` itself, so the user doesn't need to reclassify first — creating the
+  quote IS the classification. Gate the action on admin/manager (existing `canEdit`).
+- **Phase 2 (not built)**: AI extraction of vendor → payee + line items from the PDF (mirror
+  `enrich-estimate-items` / `gpt-4o-mini`) to pre-fill the form on the same entry point.
+
 ---
 
 ## TypeScript Configuration
@@ -1375,6 +1417,7 @@ Issues identified during codebase audit, validated, and prioritized for future w
 
 | Issue | Resolution |
 |-------|-----------|
+| **Imported documents couldn't become real quotes without re-creating the quote and re-uploading the same PDF (PR [#128](https://github.com/Cradcliff187/profitbuild-dash/pull/128), Jun 1, 2026)** | Shipped — see Architectural Rule 32. The background Drive-import agent lands files as `document_type: 'other'`; reclassifying to `quote` only relabeled the doc row and created no `quotes` record. Added a one-click **Create quote from this document** action (doc row menus + `DocumentDetailsSheet` footer, admin/manager only) that opens the project-scoped new-quote form with the existing PDF pre-attached (same `project-documents` bucket + public URL — no re-upload, no storage copy) and relinks the SAME `project_documents` row (`related_quote_id` + `document_type='quote'`) on save. New shared [`quoteFromDocument.ts`](src/utils/quoteFromDocument.ts) helper (eligibility + URL); `QuoteForm` gained `initialAttachmentUrl`/`initialAttachmentName`/`sourceDocumentId` props + a transient `Quote.sourceDocumentId`; relink lives in `useProjectData.handleSaveQuote` (best-effort, with doc-cache invalidation fanout). Cancel-safe (Gotcha #39); remove-before-save never touches the source doc. Zero backend/schema/edge-function changes. `type-check` clean; no new lint. **Phase 2 deferred**: AI extraction of vendor → payee + line items to pre-fill the form. |
 | **Header-level discount on estimates / quotes / change orders — internal margin concession with customer PDFs unchanged (PR [#97](https://github.com/Cradcliff187/profitbuild-dash/pull/97), May 20, 2026)** | Shipped — see Architectural Rule 26. Six additive migrations applied to production: `discount_type` (`'percent'` \| `'fixed'`) / `discount_value` / `discount_amount` columns on all three tables; two SECURITY DEFINER recompute functions (`compute_estimate_totals_for_id`, `compute_quote_totals_for_id`); AFTER triggers on both `*_line_items` and the parent table so the math stays in Postgres per Rule 1; `sync_change_order_totals` extended to flow discount to `client_amount`/`margin_impact` while leaving cost untouched. Shared [`DiscountInput`](src/components/forms/DiscountInput.tsx) component wired into `EstimateForm`, `QuoteForm`, `ChangeOrderForm`. Read surfaces (`EstimateSummaryCard`, `QuoteViewHero`, `ProjectEstimatesView`) recompute internal margin/profit/contingency from the discounted subtotal. Customer-facing PDF templates unchanged — line items render full price, the Total already reflects discount via the trigger. 20 sandbox scenarios + production smoke test on SYS-TEST passed. **Deferred**: AIA SOV generation (`generate_sov_from_estimate`, `add_change_order_to_sov`) still uses pre-discount line totals; zero affected projects today but flagged in `docs/DISCOUNT_FEATURE_PLAN.md` for a future UX decision (scale lines / inject discount line / block the combo). |
 | **Accepted-quote FKs silently orphaned by estimate versioning (PR [#97](https://github.com/Cradcliff187/profitbuild-dash/pull/97), May 20, 2026)** | Fixed at the root + repaired existing data. See Architectural Rule 27 + Gotcha #57. **Root cause**: `create_estimate_version()` RPC copied line items to the new version but did NOT update `quote_line_items.estimate_line_item_id` references, so accepted quotes stayed pointing at the now-superseded source-version line. Cost-tracking and `actual_cost` rollups lost the quoted commitment with no error. **Fix**: RPC now does an iterative `FOR` loop over source lines ordered by `(sort_order, id)`, INSERT + capture new id + UPDATE quote_line_items referencing the old id in lockstep. Discount carry-forward (`discount_type`, `discount_value`) added to the new-version INSERT in the same migration. **Data repair**: one-shot migration repaired 4 of 5 existing orphans (225-012 ×3: Lights / Paint / Casework; 225-037 ×1: A&B Flooring). The 5th (225-037 / PPD Painting / Paint) is unrepairable code-side because Paint was dropped from v2 — flagged for manual UI resolution. End-to-end test on SYS-TEST sandbox confirmed the new flow. **Companion data hygiene** flagged for PM: 225-037 now has both A&B Flooring AND Grey Street Company accepted on v2's Flooring line ($19,672 quoted on a $10,688 estimate) — needs manual reject of one quote. The double-accept is a side effect of the repair, not a code bug; per Gotcha #57 we deliberately do NOT enforce one-accepted-quote-per-line at the DB layer because legitimate cross-version convergence breaks that invariant. |
 | **No way to fix the file name, type, or description of a `project_documents` row — bulk-imported Drive docs were stuck with names like `Migrated from Drive: 1za1Ck…` and a catch-all `Other` type (PR [#92](https://github.com/Cradcliff187/profitbuild-dash/pull/92), May 19 2026)** | Fixed — new [`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) right-side slide-out (Sheet pattern from `ExpenseAllocationSheet`: header / scroll body / sticky footer). Shows read-only metadata (size, uploaded date, version, mime) plus three editable fields: file name (`<Input>`), document type (`<Select>` over `DOCUMENT_TYPE_LABELS`), description (`<Textarea>`). Save fires a direct `supabase.from('project_documents').update(...).eq('id', ...)` then invalidates three query keys to cover all surfaces without a reload: `["project-documents", projectId]` (prefix-matches the per-tab keys in `ProjectDocumentsTable`), `["field-documents", projectId]`, and `["project-docs-count", projectId]` (Rule 19 fanout). Surfaces: a new **"Edit details"** entry in the row action menu of [`ProjectDocumentsTable`](src/components/ProjectDocumentsTable.tsx) (covers the All / Drawings / Permits / Licenses tabs) and a pencil button on each card in [`FieldDocumentsList`](src/components/schedule/FieldDocumentsList.tsx). Both gated to `isAdmin \|\| isManager` via `useRoles()` — field workers see no edit affordance anywhere. **Backend**: zero DB changes; editing is a pure metadata `UPDATE` (`file_name` / `document_type` / `description` / `updated_at`), Storage and `file_url` untouched. The existing "Authenticated users can manage documents" RLS policy already permits `UPDATE` (same policy the working Delete action depends on); the admin/manager restriction is a client-side UX gate, consistent with how the rest of the app gates non-destructive admin actions. **Out of scope**: `QuoteDocumentsCard` lists vendor quote PDFs (`quotes.attachment_url`) and generated contracts (`contracts` table) — those are different tables, not `project_documents`, so the sheet does not apply. **Side cleanup**: `FieldDocumentsList`'s local `FieldDocument` interface was redundant (the underlying `select('*')` returns the full row) — deleted and the file now uses `ProjectDocument` directly, which also makes the new sheet's typed prop a clean handoff. |
