@@ -9,6 +9,7 @@ import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useScheduleTableColumns } from '@/hooks/useScheduleTableColumns';
 import { cn } from '@/lib/utils';
 import { getCategoryBadgeClasses } from '@/utils/categoryColors';
+import { parseDateOnly } from '@/utils/scheduleNotes';
 import {
   Table,
   TableBody,
@@ -181,7 +182,7 @@ export const ScheduleTableView: React.FC<ScheduleTableViewProps> = ({
   };
 
   const formatDate = (dateStr: string): string => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return parseDateOnly(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
