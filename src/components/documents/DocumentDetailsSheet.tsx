@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { canCreateQuoteFromDocument, newQuoteFromDocumentPath } from "@/utils/quoteFromDocument";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +31,7 @@ function formatFileSize(bytes: number) {
 
 export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: DocumentDetailsSheetProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [fileName, setFileName] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("other");
   const [description, setDescription] = useState("");
@@ -165,7 +169,22 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
           )}
         </div>
 
-        <footer className="border-t px-6 py-3 flex justify-end gap-2 shrink-0">
+        <footer className="border-t px-6 py-3 flex items-center gap-2 shrink-0">
+          {document && canCreateQuoteFromDocument(document) && (
+            <Button
+              variant="secondary"
+              className="mr-auto"
+              disabled={isSaving}
+              onClick={() => {
+                const path = newQuoteFromDocumentPath(document);
+                onOpenChange(false);
+                navigate(path);
+              }}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Create quote from document
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancel
           </Button>

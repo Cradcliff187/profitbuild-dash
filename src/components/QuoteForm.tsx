@@ -104,9 +104,15 @@ interface QuoteFormProps {
   payeeName?: string;
   /** Called when user confirms delete of a generated contract; parent should delete contract and refetch */
   onDeleteContract?: (contractId: string) => void | Promise<void>;
+  /** When creating a quote from an existing imported document: the document's public URL, pre-attached without re-upload */
+  initialAttachmentUrl?: string;
+  /** Display name for the pre-attached document */
+  initialAttachmentName?: string;
+  /** The source project_documents id to relink to the new quote on save (Phase 1: create-quote-from-document) */
+  sourceDocumentId?: string;
 }
 
-export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote, projectNumber, payeeName, onDeleteContract }: QuoteFormProps) => {
+export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSave, onCancel, mode = 'edit', generatedContractsForQuote, projectNumber, payeeName, onDeleteContract, initialAttachmentUrl, initialAttachmentName, sourceDocumentId }: QuoteFormProps) => {
   const isMobile = useIsMobile();
   const isEdit = !!initialQuote;
   const isViewMode = mode === 'view';
@@ -125,7 +131,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
   const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.PENDING);
   const [validUntil, setValidUntil] = useState<Date>();
   const [notes, setNotes] = useState("");
-  const [attachmentUrl, setAttachmentUrl] = useState<string>("");
+  const [attachmentUrl, setAttachmentUrl] = useState<string>(initialAttachmentUrl || "");
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, QuoteValidationResult>>({});
   const [changeOrderLineItems, setChangeOrderLineItems] = useState<any[]>([]);
@@ -705,6 +711,8 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       createdAt: initialQuote?.createdAt || new Date(),
       discount_type: discountType,
       discount_value: discountValue,
+      // Relink the imported document to this quote on save (only when seeded from one and still carrying its file)
+      sourceDocumentId: sourceDocumentId && attachmentUrl ? sourceDocumentId : undefined,
     };
 
     onSave(quote);
@@ -1589,7 +1597,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                   setPreviewContractFileName(fileName);
                   setPreviewContractOpen(true);
                 }}
-                existingFile={attachmentUrl ? { url: attachmentUrl, name: "Quote Attachment" } : undefined}
+                existingFile={attachmentUrl ? { url: attachmentUrl, name: initialAttachmentName || "Quote Attachment" } : undefined}
                 disabled={isViewMode && !initialQuote}
                 relatedQuoteId={initialQuote?.id}
               />

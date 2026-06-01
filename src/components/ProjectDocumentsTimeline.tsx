@@ -2,7 +2,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download, Pencil, Trash2, FilePlus2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { canCreateQuoteFromDocument, newQuoteFromDocumentPath } from '@/utils/quoteFromDocument';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -80,6 +82,7 @@ function TimelineThumbnail({
 
 export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDocumentsTimelineProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TimelineItem['type'] | 'all'>('all');
@@ -562,6 +565,15 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                           Edit details
                         </DropdownMenuItem>
                       )}
+                      {canEdit && item.type === 'document' && canCreateQuoteFromDocument(item.metadata as ProjectDocument) && (
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(newQuoteFromDocumentPath(item.metadata as ProjectDocument));
+                        }}>
+                          <FilePlus2 className="h-4 w-4 mr-2" />
+                          Create quote from this
+                        </DropdownMenuItem>
+                      )}
                       {canEdit && item.type === 'document' && (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
@@ -671,6 +683,15 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
                         }}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Edit details
+                        </DropdownMenuItem>
+                      )}
+                      {canEdit && item.type === 'document' && canCreateQuoteFromDocument(item.metadata as ProjectDocument) && (
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(newQuoteFromDocumentPath(item.metadata as ProjectDocument));
+                        }}>
+                          <FilePlus2 className="h-4 w-4 mr-2" />
+                          Create quote from this
                         </DropdownMenuItem>
                       )}
                       {canEdit && item.type === 'document' && (

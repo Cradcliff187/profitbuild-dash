@@ -395,6 +395,32 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
           if (lineItemsError) throw lineItemsError;
         }
 
+        // Created from an imported document: relink that existing project_documents
+        // row to this quote (no duplicate doc, no re-upload). Best-effort — the quote
+        // already carries attachment_url, so a relink failure shouldn't fail the save.
+        if (quote.sourceDocumentId) {
+          const { error: relinkError } = await supabase
+            .from("project_documents")
+            .update({
+              related_quote_id: quoteData.id,
+              document_type: "quote",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", quote.sourceDocumentId);
+
+          if (relinkError) {
+            console.error("Failed to relink source document to quote:", relinkError);
+            toast.warning("Quote saved, but the source document couldn't be linked.", {
+              description: "You can attach it manually from the quote.",
+            });
+          } else {
+            queryClient.invalidateQueries({ queryKey: ["project-documents", projectId] });
+            queryClient.invalidateQueries({ queryKey: ["project-documents-timeline", projectId] });
+            queryClient.invalidateQueries({ queryKey: ["project-docs-count", projectId] });
+            queryClient.invalidateQueries({ queryKey: ["field-documents", projectId] });
+          }
+        }
+
         toast.success("Quote saved", { description: `Quote ${quote.quoteNumber} has been created successfully.` });
 
         // Await invalidate so the destination route sees fresh data.
@@ -405,7 +431,7 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
         toast.error("Failed to save quote. Please try again.");
       }
     },
-    [projectId, loadProjectData, navigate]
+    [projectId, loadProjectData, navigate, queryClient]
   );
 
   return {

@@ -63,5 +63,12 @@ export interface Quote {
   discount_type?: 'percent' | 'fixed' | null;
   discount_value?: number;
   discount_amount?: number;
+  /**
+   * Transient (not a quotes column). When a quote is created from an imported
+   * project_documents row, this carries that document's id so the save handler
+   * can relink it (related_quote_id + document_type='quote') instead of
+   * creating a duplicate document. Never persisted on the quote itself.
+   */
+  sourceDocumentId?: string;
 }
 
