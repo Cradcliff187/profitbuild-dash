@@ -167,6 +167,17 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     }
   }, [preSelectedEstimateId, estimates, selectedEstimate, initialQuote]);
 
+  // Creating a quote from an imported document: the attachment URL arrives
+  // asynchronously (QuoteNewRoute fetches the doc after mount), so the useState
+  // initializer above captured `undefined`. Sync it in once it's available.
+  // New-quote only, and only when there's no current attachment — so clearing
+  // it via Remove (sets attachmentUrl="") sticks instead of being re-seeded.
+  useEffect(() => {
+    if (!initialQuote && initialAttachmentUrl && !attachmentUrl) {
+      setAttachmentUrl(initialAttachmentUrl);
+    }
+  }, [initialAttachmentUrl, initialQuote]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Create unique project list from estimates
   const uniqueProjects = useMemo(() => {
     const projectMap = new Map();
