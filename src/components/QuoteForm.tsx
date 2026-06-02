@@ -55,15 +55,17 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   const clientPrice = estimateLineItem.pricePerUnit * quantity;
   const estimatedCost = estimateLineItem.costPerUnit * quantity;
   
-  // Critical: Quote cost >= client price
+  // Warning: vendor cost meets/exceeds client price → negative (or zero) margin.
+  // This is a legitimate real-world case (a sub comes in over budget), so we warn
+  // and let the user confirm rather than hard-blocking the save.
   if (quoteAmount >= clientPrice) {
     return {
       isValid: false,
-      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}). Quotes should be vendor COSTS, not client prices.`,
-      severity: 'critical'
+      error: `Vendor cost (${formatCurrency(quoteAmount)}) meets/exceeds the client price (${formatCurrency(clientPrice)}) — this line will have a negative margin. Confirm this is the vendor's cost (not the client price).`,
+      severity: 'warning'
     };
   }
-  
+
   // Warning: Quote cost >20% higher than estimate
   if (quoteAmount > estimatedCost * 1.2) {
     return {
@@ -659,7 +661,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     // Show warning confirmation if warnings exist
     if (hasWarnings) {
       const proceed = window.confirm(
-        "There are validation warnings for some line items. These may indicate price/cost confusion. Do you want to proceed anyway?"
+        "One or more lines have a negative margin (vendor cost meets/exceeds the client price) or a cost well above the estimate. This can be correct when a vendor comes in over budget. Save this quote anyway?"
       );
       if (!proceed) return;
     }
