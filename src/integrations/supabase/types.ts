@@ -352,6 +352,7 @@ export type Database = {
           description: string
           duration_days: number | null
           expected_delivery_date: string | null
+          final_cost_amount: number | null
           funded_by_contingency: boolean
           id: string
           is_long_lead: boolean
@@ -384,6 +385,7 @@ export type Database = {
           description: string
           duration_days?: number | null
           expected_delivery_date?: string | null
+          final_cost_amount?: number | null
           funded_by_contingency?: boolean
           id?: string
           is_long_lead?: boolean
@@ -416,6 +418,7 @@ export type Database = {
           description?: string
           duration_days?: number | null
           expected_delivery_date?: string | null
+          final_cost_amount?: number | null
           funded_by_contingency?: boolean
           id?: string
           is_long_lead?: boolean
@@ -883,6 +886,7 @@ export type Database = {
           duration_days: number | null
           estimate_id: string
           expected_delivery_date: string | null
+          final_cost_amount: number | null
           id: string
           is_long_lead: boolean
           is_milestone: boolean | null
@@ -915,6 +919,7 @@ export type Database = {
           duration_days?: number | null
           estimate_id: string
           expected_delivery_date?: string | null
+          final_cost_amount?: number | null
           id?: string
           is_long_lead?: boolean
           is_milestone?: boolean | null
@@ -947,6 +952,7 @@ export type Database = {
           duration_days?: number | null
           estimate_id?: string
           expected_delivery_date?: string | null
+          final_cost_amount?: number | null
           id?: string
           is_long_lead?: boolean
           is_milestone?: boolean | null
