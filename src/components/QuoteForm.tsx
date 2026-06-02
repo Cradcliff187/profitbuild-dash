@@ -55,12 +55,17 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   const clientPrice = estimateLineItem.pricePerUnit * quantity;
   const estimatedCost = estimateLineItem.costPerUnit * quantity;
   
-  // Critical: Quote cost >= client price
+  // Quote cost >= client price: this line would lose money. That's a legitimate
+  // (if unwelcome) situation — the vendor came in over what we're billing the
+  // client — so the quote MUST stay savable. Surface it as a WARNING, not a hard
+  // block, so it still flags possible price/cost confusion without contradicting
+  // the "quotes can exceed the estimate and still save" design (see the
+  // Variance vs. Estimate row + its "the quote will still save" tooltip).
   if (quoteAmount >= clientPrice) {
     return {
       isValid: false,
-      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}). Quotes should be vendor COSTS, not client prices.`,
-      severity: 'critical'
+      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}) — this quote loses money on this line. Confirm you entered the vendor COST, not the client price.`,
+      severity: 'warning'
     };
   }
   
@@ -614,9 +619,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       return;
     }
 
-    // Optimistic update: Show saving state
-    toast.info("Saving Quote", { description: "Processing quote details..." });
-
     // Only validate line item selection if we have an estimate (not for change order quotes)
     if (selectedEstimate && selectedLineItemIds.length === 0) {
       toast.error("Please select at least one line item to quote.");
@@ -726,6 +728,10 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       sourceDocumentId: sourceDocumentId && attachmentUrl ? sourceDocumentId : undefined,
     };
 
+    // "Saving" state — shown only AFTER all validation + warning confirmation has
+    // passed, so it can never appear alongside a "fix validation errors" toast
+    // (the old placement fired it before validation, producing contradictory toasts).
+    toast.info("Saving Quote", { description: "Processing quote details..." });
     onSave(quote);
     // Success toast moved to Quotes.tsx handleSaveQuote (shown after DB confirms save)
   };
