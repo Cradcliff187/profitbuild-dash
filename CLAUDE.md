@@ -917,6 +917,18 @@ Shared zone→{label,color} map: [cushionZone.ts](src/components/cost-tracking/e
 manual pick). Gate: `isProjectVisibleByCategory(project)` — construction + the SYS-TEST sandbox;
 overhead gets no Allocate (category-locked).
 
+**Bulk-allocate manual override (PR pending, Jun 1 2026)**: `BulkExpenseAllocationSheet` rows
+carry a per-row **Allocate To** picker — every line on the expense's project, **all categories**
+(not just the matcher's category-compatible set) — so a bad auto-match can be reassigned inline
+instead of only skipped (previously the row showed the single suggestion read-only with just an
+accept/skip checkbox). The matcher's category filter exists for *suggestion* precision; it must
+**not** constrain *manual* choice. An override writes `auto_correlated=false` /
+`confidence_score=null` + a "manually reassigned" note; an untouched row stays
+`auto_correlated=true` with its confidence. The other two surfaces already allowed full manual
+choice: `ExpenseAllocationSheet` = searchable all-lines list; `ProjectLineAllocationSheet` = a
+**category-filtered** dropdown (that one is still category-limited + hides zero-candidate
+expenses — flagged for a follow-up).
+
 **Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
 `CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
 
