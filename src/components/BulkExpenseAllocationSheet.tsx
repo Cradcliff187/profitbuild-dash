@@ -39,7 +39,12 @@ interface BulkExpenseAllocationSheetProps {
 
 interface BulkSuggestion {
   expense: EnhancedExpense;
+  /** The auto-suggested line (kept so we can tell when the user overrode it). */
   lineItem: LineItemForMatching;
+  /** Every line on this expense's project — the manual-override picker options. */
+  candidates: LineItemForMatching[];
+  /** The line this row will allocate to; defaults to the suggestion, user can change. */
+  selectedLineId: string;
   confidence: number;
   selected: boolean;
 }
@@ -100,7 +105,8 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       if (confidenceBand === 'medium' && (s.confidence < 60 || s.confidence >= 75)) return false;
       if (confidenceBand === 'low' && s.confidence >= 60) return false;
 
-      if (sourceFilter !== 'all' && s.lineItem.type !== sourceFilter) return false;
+      const sel = s.candidates.find(c => c.id === s.selectedLineId) ?? s.lineItem;
+      if (sourceFilter !== 'all' && sel.type !== sourceFilter) return false;
 
       if (categoryFilter !== 'all' && s.expense.category !== categoryFilter) return false;
 
@@ -109,8 +115,8 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
           s.expense.payee_name,
           s.expense.project_number,
           s.expense.project_name,
-          s.lineItem.description,
-          s.lineItem.payee_name,
+          sel.description,
+          sel.payee_name,
         ]
           .filter(Boolean)
           .join(' ')
@@ -146,9 +152,11 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       // client-side .range() past 1000 is silently clamped (CLAUDE.md Gotcha #23,
       // corrected Apr 18, 2026). For correlations, silent truncation past row
       // 1000 would leak already-correlated expenses back into the candidate set;
-      // there's NO unique constraint on (expense_id, line_item_id), so clicking
-      // "Allocate" on a leaked candidate would create a duplicate correlation
-      // and silently double-count that expense in cost-bucket actuals.
+      // they'd be offered again and the batch insert below would then trip the
+      // partial unique indexes on (expense_id, estimate_line_item_id|quote_id|
+      // change_order_line_item_id) (added Apr 19, 2026) and 23505-abort the whole
+      // batch. Keep the candidate set correct by paginating — don't lean on the DB
+      // to dedup after the fact.
       //
       // The other 3 queries (estimates/quotes/change_orders) are filtered to
       // small subsets (is_current_version / status='accepted' / status='approved'),
@@ -156,11 +164,15 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       const PAGE_SIZE = 1000;
 
       const supportingPromise = Promise.all([
+        // Fetch approved + current-version estimates; reduced per-project below to
+        // the read-side choice (approved first, else current — Rule 28). Was
+        // is_current_version only, which could allocate to a different version's
+        // lines than Cost Analysis reads.
         supabase.from('estimates').select(`
-          id, project_id,
+          id, project_id, status, is_current_version, date_created,
           projects(project_name),
           estimate_line_items(*)
-        `).eq('is_current_version', true),
+        `).or('status.eq.approved,is_current_version.eq.true'),
         supabase.from('quotes').select(`
           id, project_id, status,
           projects(project_name),
@@ -234,7 +246,19 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       if (quotesResult.error) throw quotesResult.error;
       if (changeOrdersResult.error) throw changeOrdersResult.error;
 
-      const estimates = estimatesResult.data || [];
+      // Reduce to one estimate per project: approved (latest) first, else current
+      // version — the cost-tracking read-side choice (Rule 28).
+      const estScore = (e: any) => (e.status === 'approved' ? 2 : e.is_current_version ? 1 : 0);
+      const estimateByProject = new Map<string, any>();
+      for (const est of (estimatesResult.data || [])) {
+        const cur = estimateByProject.get(est.project_id);
+        if (!cur ||
+            estScore(est) > estScore(cur) ||
+            (estScore(est) === estScore(cur) && String(est.date_created ?? '') > String(cur.date_created ?? ''))) {
+          estimateByProject.set(est.project_id, est);
+        }
+      }
+      const estimates = Array.from(estimateByProject.values());
       const acceptedQuotes = quotesResult.data || [];
       const changeOrders = changeOrdersResult.data || [];
       const existingCorrelationExpenseIds = new Set(correlationExpenseIds);
@@ -351,9 +375,22 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
         if (suggestedId && confidence > 0) {
           const lineItem = allLineItems.find(li => li.id === suggestedId);
           if (lineItem) {
+            // Manual-override options: every line on THIS expense's project, all
+            // categories (not just the category-matched ones), so a bad auto-match
+            // can be reassigned to any line. Suggested line sorted first.
+            const candidates = allLineItems
+              .filter(li => li.project_id === enhanced.project_id)
+              .sort((a, b) => {
+                if (a.id === suggestedId) return -1;
+                if (b.id === suggestedId) return 1;
+                if (a.category !== b.category) return a.category.localeCompare(b.category);
+                return a.description.localeCompare(b.description);
+              });
             bulkSuggestions.push({
               expense: enhanced,
               lineItem,
+              candidates,
+              selectedLineId: suggestedId,
               confidence,
               selected: confidence >= 75,
             });
@@ -380,6 +417,14 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
     ));
   };
 
+  // Override the line a row allocates to. Auto-selects the row (you only pick a
+  // line because you intend to allocate it) so the choice isn't silently dropped.
+  const handleSetRowLine = (expenseId: string, lineId: string) => {
+    setSuggestions(prev => prev.map(s =>
+      s.expense.id === expenseId ? { ...s, selectedLineId: lineId, selected: true } : s
+    ));
+  };
+
   // Select/deselect every currently-visible (filtered) row, leaving rows
   // hidden by the filter untouched.
   const handleSelectAll = () => {
@@ -396,20 +441,28 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
 
     setIsAllocating(true);
     try {
-      // Build correlation records
-      const correlations = selected.map(({ expense, lineItem, confidence }) => ({
-        expense_id: expense.id,
-        expense_split_id: null,
-        estimate_line_item_id: lineItem.type === 'estimate' ? lineItem.id : null,
-        quote_id: lineItem.type === 'quote' ? lineItem.source_id : null,
-        change_order_line_item_id: lineItem.type === 'change_order' ? lineItem.id : null,
-        correlation_type: lineItem.type === 'estimate' ? 'estimated'
-          : lineItem.type === 'quote' ? 'quoted'
-          : 'change_order',
-        auto_correlated: true,
-        confidence_score: confidence,
-        notes: 'Bulk allocated via Bulk Expense Allocation',
-      }));
+      // Build correlation records against the SELECTED line (the suggestion unless
+      // the user overrode it via the per-row picker). Overridden rows are recorded
+      // as manual picks, not auto-correlations.
+      const correlations = selected.map(s => {
+        const line = s.candidates.find(c => c.id === s.selectedLineId) ?? s.lineItem;
+        const overridden = s.selectedLineId !== s.lineItem.id;
+        return {
+          expense_id: s.expense.id,
+          expense_split_id: null,
+          estimate_line_item_id: line.type === 'estimate' ? line.id : null,
+          quote_id: line.type === 'quote' ? line.source_id : null,
+          change_order_line_item_id: line.type === 'change_order' ? line.id : null,
+          correlation_type: line.type === 'estimate' ? 'estimated'
+            : line.type === 'quote' ? 'quoted'
+            : 'change_order',
+          auto_correlated: !overridden,
+          confidence_score: overridden ? null : s.confidence,
+          notes: overridden
+            ? 'Bulk allocation, line manually reassigned'
+            : 'Bulk allocated via Bulk Expense Allocation',
+        };
+      });
 
       const { error: correlationError } = await supabase
         .from('expense_line_item_correlations')
@@ -478,6 +531,18 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
     if (type === 'estimate') return 'Estimate';
     if (type === 'quote') return 'Quote';
     return 'Change Order';
+  };
+
+  // The line a row will actually allocate to (selected override, or the suggestion).
+  const resolveSelectedLine = (s: BulkSuggestion): LineItemForMatching =>
+    s.candidates.find(c => c.id === s.selectedLineId) ?? s.lineItem;
+
+  const isOverridden = (s: BulkSuggestion): boolean => s.selectedLineId !== s.lineItem.id;
+
+  const candidateLabel = (c: LineItemForMatching): string => {
+    const cat = CATEGORY_DISPLAY_MAP[c.category as LineItemCategory] || c.category;
+    const src = c.type === 'quote' ? 'Quote' : c.type === 'change_order' ? `CO ${c.change_order_number ?? ''}`.trim() : 'Est';
+    return `${cat} · ${c.description}${c.total ? ` · ${formatCurrency(c.total)}` : ''} · ${src}`;
   };
 
   return (
@@ -607,7 +672,7 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
                     </TableHead>
                     <TableHead>Expense</TableHead>
                     <TableHead>Project</TableHead>
-                    <TableHead>Suggested Line Item</TableHead>
+                    <TableHead>Allocate To</TableHead>
                     <TableHead className="w-[100px] text-right">Est. Cost</TableHead>
                     <TableHead className="w-[90px] text-center">Confidence</TableHead>
                     <TableHead className="w-[90px] text-center">Source</TableHead>
@@ -652,34 +717,45 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
                           <span className="text-muted-foreground">{suggestion.expense.project_name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
-                        <div className="space-y-0.5">
-                          <div className="text-sm font-medium">
-                            {CATEGORY_DISPLAY_MAP[suggestion.lineItem.category as LineItemCategory] || suggestion.lineItem.category}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {suggestion.lineItem.description}
-                          </div>
-                          {suggestion.lineItem.payee_name && (
-                            <div className="text-xs text-muted-foreground italic">
-                              {suggestion.lineItem.payee_name}
-                            </div>
-                          )}
-                        </div>
+                      <TableCell className="align-top" onClick={e => e.stopPropagation()}>
+                        <Select
+                          value={suggestion.selectedLineId}
+                          onValueChange={v => handleSetRowLine(suggestion.expense.id, v)}
+                        >
+                          <SelectTrigger className="h-9 w-full max-w-[260px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {suggestion.candidates.map(c => (
+                              <SelectItem key={c.id} value={c.id} className="text-xs">
+                                {candidateLabel(c)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isOverridden(suggestion) && (
+                          <div className="mt-1 text-[10px] text-amber-600">Manually changed</div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right align-middle">
                         <div className="text-sm font-medium tabular-nums">
-                          {formatCurrency(suggestion.lineItem.total)}
+                          {formatCurrency(resolveSelectedLine(suggestion).total)}
                         </div>
                       </TableCell>
                       <TableCell className="text-center align-middle">
-                        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap', getConfidenceBadgeClass(suggestion.confidence))}>
-                          {suggestion.confidence}%
-                        </Badge>
+                        {isOverridden(suggestion) ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap bg-muted text-muted-foreground">
+                            Manual
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap', getConfidenceBadgeClass(suggestion.confidence))}>
+                            {suggestion.confidence}%
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-center align-middle">
-                        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap', getSourceBadgeClass(suggestion.lineItem.type))}>
-                          {getSourceLabel(suggestion.lineItem.type)}
+                        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap', getSourceBadgeClass(resolveSelectedLine(suggestion).type))}>
+                          {getSourceLabel(resolveSelectedLine(suggestion).type)}
                         </Badge>
                       </TableCell>
                     </TableRow>

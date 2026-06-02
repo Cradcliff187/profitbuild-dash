@@ -12,7 +12,6 @@ import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
   matchExpenseToLine,
-  lineCandidatesForExpense,
   type AllocationReason,
   type LineItemForMatching,
   type EnhancedExpense,
@@ -29,6 +28,8 @@ interface AllocRow {
   candidates: LineItemForMatching[];
   reason: AllocationReason | null;
   confidence: number;
+  /** The matcher's suggested line (immutable) — lets us tell when the user overrode it. */
+  suggestedLineId: string | null;
   selectedLineId: string | null;
   checked: boolean;
 }
@@ -171,7 +172,14 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
       }
 
       // 6. Build rows for un-correlated, non-zero expenses (split parents excluded).
+      // Every such expense becomes a row whose picker lists ALL of the project's
+      // lines (any category), so a bad or absent auto-match can be assigned to
+      // whatever line the user wants. The auto-SUGGESTION stays category-aware
+      // (matchExpenseToLine) — it only sets the default + confidence, it never
+      // limits the choice. (Previously the picker was category-filtered and an
+      // expense whose category had no line was hidden from this sheet entirely.)
       const built: AllocRow[] = [];
+      const hasLines = allLines.length > 0;
       let noLineCount = 0;
       let noLineAmount = 0;
       for (const e of expenses) {
@@ -187,23 +195,29 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
           match_status: 'unallocated', is_split: e.is_split || false,
         };
 
-        const candidates = lineCandidatesForExpense(enhanced, allLines);
-        if (candidates.length === 0) {
-          // Un-correlated, but its category has no line to attribute it to.
-          // Track it so the empty state can prompt a recategorize instead of
-          // misleadingly reporting "All allocated".
+        // Nothing to allocate against if the project has no estimate/quote/CO lines.
+        if (!hasLines) {
           noLineCount += 1;
           noLineAmount += Number(e.amount);
           continue;
         }
 
         const suggestion = matchExpenseToLine(enhanced, allLines);
+        const suggestedId = suggestion?.lineItemId ?? null;
+        // Picker options: every project line, suggested one first, then by category.
+        const candidates = [...allLines].sort((a, b) => {
+          if (a.id === suggestedId) return -1;
+          if (b.id === suggestedId) return 1;
+          if (a.category !== b.category) return a.category.localeCompare(b.category);
+          return a.description.localeCompare(b.description);
+        });
         built.push({
           expense: enhanced,
           candidates,
           reason: suggestion?.reason ?? null,
           confidence: suggestion?.confidence ?? 0,
-          selectedLineId: suggestion?.lineItemId ?? null,
+          suggestedLineId: suggestedId,
+          selectedLineId: suggestedId,
           checked: !!suggestion && suggestion.confidence >= 75,
         });
       }
@@ -243,6 +257,11 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
     try {
       const correlations = toWrite.map(r => {
         const line = r.candidates.find(c => c.id === r.selectedLineId)!;
+        // A row counts as auto-correlated only if the user kept the matcher's
+        // suggestion. Manually picking a different line records a manual pick so
+        // the audit columns (auto_correlated / confidence_score) stay truthful.
+        const overridden = r.selectedLineId !== r.suggestedLineId;
+        const auto = !overridden && r.confidence > 0;
         return {
           expense_id: r.expense.id,
           expense_split_id: null,
@@ -250,9 +269,9 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
           quote_id: line.type === 'quote' ? line.source_id : null,
           change_order_line_item_id: line.type === 'change_order' ? line.id : null,
           correlation_type: line.type === 'estimate' ? 'estimated' : line.type === 'quote' ? 'quoted' : 'change_order',
-          auto_correlated: r.confidence > 0,
-          confidence_score: r.confidence,
-          notes: 'Allocated via Forecast view',
+          auto_correlated: auto,
+          confidence_score: auto ? r.confidence : null,
+          notes: overridden ? 'Allocated via Forecast view (line manually reassigned)' : 'Allocated via Forecast view',
         };
       });
       const { error: corrErr } = await supabase.from('expense_line_item_correlations').insert(correlations);
@@ -297,12 +316,12 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
             noLineSpend.count > 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                 <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
-                <h3 className="text-base font-semibold mb-1">Nothing to allocate here</h3>
+                <h3 className="text-base font-semibold mb-1">No lines to allocate to</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
                   {noLineSpend.count} {noLineSpend.count === 1 ? 'expense' : 'expenses'} totaling{' '}
-                  {formatCurrency(noLineSpend.amount)} {noLineSpend.count === 1 ? 'is' : 'are'} in a
-                  category with no matching estimate line (e.g. Other), so {noLineSpend.count === 1 ? 'it' : 'they'} can&apos;t
-                  be allocated. Recategorize {noLineSpend.count === 1 ? 'it' : 'them'} from the bucket to track against a line.
+                  {formatCurrency(noLineSpend.amount)} {noLineSpend.count === 1 ? 'is' : 'are'} waiting to be
+                  allocated, but this project has no estimate, quote, or change-order lines to attribute
+                  {noLineSpend.count === 1 ? ' it' : ' them'} to yet. Add lines first, then allocate.
                 </p>
               </div>
             ) : (
