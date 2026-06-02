@@ -43,6 +43,10 @@ export interface EFCLine {
   efc: number;
   variance: number; // efc - plan (positive = over the original estimate)
   status: EFCLineStatus;
+  /** When the line is marked final, its EFC is pinned to this amount (else null). */
+  finalCostAmount: number | null;
+  /** True when finalCostAmount is set — EFC bypasses the max(actual,committed,plan) projection. */
+  isFinal: boolean;
   isLabor: boolean;
   acceptedQuote?: CostBucketLineItem['acceptedQuote'];
   acceptedQuoteCount?: number;
@@ -129,7 +133,12 @@ export function useProjectEFC(projectId: string, project: Project): ProjectEFCRe
         const plan = li.target ?? 0;
         const committed = li.committed ?? 0;
         const actual = li.spent ?? 0;
-        const efc = Math.max(actual, committed, plan);
+        // "Mark final" override: when set, the line is closed out and its EFC is
+        // pinned to the stated final amount, bypassing the never-under-project
+        // max(actual, committed, plan). Lets a known-final bill that came in under
+        // (or over) the estimate drive the forecast instead of the budget.
+        const isFinal = li.finalCostAmount != null;
+        const efc = isFinal ? Number(li.finalCostAmount) : Math.max(actual, committed, plan);
         return {
           id: li.id,
           description: li.description,
@@ -140,6 +149,8 @@ export function useProjectEFC(projectId: string, project: Project): ProjectEFCRe
           actual,
           efc,
           variance: efc - plan,
+          finalCostAmount: isFinal ? Number(li.finalCostAmount) : null,
+          isFinal,
           status: deriveStatus(plan, committed, actual),
           isLabor: isLaborCat,
           acceptedQuote: li.acceptedQuote,

@@ -3,9 +3,12 @@ import { format } from 'date-fns';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, AlertTriangle, TrendingUp, Wand2, FileWarning } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { ChevronLeft, AlertTriangle, TrendingUp, Wand2, FileWarning, Lock, CheckCircle2, Loader2 } from 'lucide-react';
 import { Project } from '@/types/project';
 import { EFCLine, EFCCategory, ProjectEFCResult } from '@/hooks/useProjectEFC';
 import { parseDateOnly } from '@/utils/dateUtils';
@@ -90,6 +93,45 @@ export function CostLineDetail({
     efc.refetch();
   };
 
+  // "Mark final" — pin this line's EFC to a stated amount (defaults to spent).
+  const [finalEditing, setFinalEditing] = useState(false);
+  const [finalInput, setFinalInput] = useState('');
+  const [savingFinal, setSavingFinal] = useState(false);
+
+  const openFinalEditor = () => {
+    const seed = line.isFinal ? Number(line.finalCostAmount) : line.actual;
+    setFinalInput(seed > 0 ? String(seed) : line.isFinal ? '0' : '');
+    setFinalEditing(true);
+  };
+
+  const writeFinal = async (amount: number | null) => {
+    setSavingFinal(true);
+    const table = line.source === 'change_order' ? 'change_order_line_items' : 'estimate_line_items';
+    const { error } = await supabase.from(table).update({ final_cost_amount: amount }).eq('id', line.id);
+    setSavingFinal(false);
+    if (error) {
+      console.error('[CostLineDetail] final_cost_amount write error:', error);
+      toast.error('Could not update the final cost. Please retry.');
+      return;
+    }
+    toast.success(
+      amount == null
+        ? 'Line reopened — EFC is back to the projection.'
+        : `Line marked final at ${formatCurrency(amount)}.`,
+    );
+    setFinalEditing(false);
+    handleAllocated();
+  };
+
+  const saveFinal = () => {
+    const parsed = Number(finalInput);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast.error('Enter a valid final amount (0 or more).');
+      return;
+    }
+    writeFinal(parsed);
+  };
+
   const detailCount = invoices.length;
   const detailTabLabel = line.isLabor ? `By employee (${employees.length})` : `Invoices & bills (${detailCount})`;
 
@@ -105,6 +147,11 @@ export function CostLineDetail({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold truncate">{line.description}</h1>
+              {line.isFinal && (
+                <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-700 gap-1">
+                  <Lock className="h-3 w-3" /> Final
+                </Badge>
+              )}
               {isOver ? (
                 <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 gap-1">
                   <AlertTriangle className="h-3 w-3" /> Over budget
@@ -136,7 +183,8 @@ export function CostLineDetail({
         <KpiTile
           label="EFC"
           value={formatCurrency(line.efc)}
-          sub={remaining > 0.005 ? `${formatCurrency(remaining)} to go` : 'No to-go'}
+          sub={line.isFinal ? 'Final — locked' : remaining > 0.005 ? `${formatCurrency(remaining)} to go` : 'No to-go'}
+          subClass={line.isFinal ? 'text-violet-600' : undefined}
         />
         <KpiTile
           label="Variance"
@@ -155,6 +203,72 @@ export function CostLineDetail({
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="space-y-4 mt-3">
+          {/* Mark final — pin EFC to the real final cost when the line is done */}
+          {canAllocate && (
+            <div className={cn('rounded-lg border p-3', line.isFinal ? 'border-violet-200 bg-violet-50/50' : 'bg-card')}>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-sm font-medium">
+                    <Lock className={cn('h-3.5 w-3.5', line.isFinal ? 'text-violet-600' : 'text-muted-foreground')} />
+                    {line.isFinal ? 'Final cost locked' : 'Mark this line final'}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground max-w-md">
+                    {line.isFinal
+                      ? `EFC is pinned to ${formatCurrency(line.finalCostAmount ?? 0)} instead of the projection. Reopen to return to max(spent, committed, plan).`
+                      : 'If no more cost is coming for this line (e.g. the final bill is in and the quote never made it into the system), lock its final cost so EFC and margin reflect reality.'}
+                  </p>
+                </div>
+                {!finalEditing && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {line.isFinal ? (
+                      <>
+                        <Button variant="outline" size="sm" className="h-8" onClick={openFinalEditor} disabled={savingFinal}>
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8" onClick={() => writeFinal(null)} disabled={savingFinal}>
+                          {savingFinal ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Reopen'}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={openFinalEditor}>
+                        <Lock className="h-3.5 w-3.5" /> Mark final
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {finalEditing && (
+                <div className="mt-3 flex items-end gap-2 flex-wrap">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Final cost</label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={finalInput}
+                        autoFocus
+                        onChange={(e) => setFinalInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveFinal(); }}
+                        className="h-8 w-36 text-right font-mono"
+                      />
+                    </div>
+                  </div>
+                  <Button size="sm" className="h-8 gap-1.5" onClick={saveFinal} disabled={savingFinal}>
+                    {savingFinal ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                    Save
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8" onClick={() => setFinalEditing(false)} disabled={savingFinal}>
+                    Cancel
+                  </Button>
+                  <span className="text-[11px] text-muted-foreground ml-1">Defaults to spent ({formatCurrency(line.actual)}). Enter 0 to descope.</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Budget vs actual */}
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Budget vs actual</div>

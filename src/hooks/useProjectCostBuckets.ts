@@ -47,6 +47,9 @@ export interface CostBucketLineItem {
   correlatedExpenses: CostBucketCorrelatedExpense[];
   acceptedQuotes: CostBucketAcceptedQuote[];
   source: 'estimate' | 'change_order';
+  /** Manual EFC override ("mark final"). When set, the line's EFC is pinned here
+   *  instead of max(actual, committed, plan). NULL/undefined = not finalized. */
+  finalCostAmount?: number | null;
 }
 
 /**
@@ -441,6 +444,7 @@ function buildBuckets(
               quoteNumber: String(q.quoteNumber ?? ''),
             })),
           source: li.source ?? 'estimate',
+          finalCostAmount: meta?.finalCostAmount ?? null,
         };
         if (isLabor) {
           baseLine.hours = meta?.laborHours ?? undefined;
@@ -479,6 +483,7 @@ interface LineItemMeta {
   laborHours: number | null;
   billingRatePerHour: number | null;
   laborCushionAmount: number | null;
+  finalCostAmount: number | null;
 }
 
 /**
@@ -487,26 +492,43 @@ interface LineItemMeta {
  * weren't needed for the dense table). Returned as a id → meta lookup.
  */
 async function fetchEstimateLineItemMeta(projectId: string): Promise<Map<string, LineItemMeta>> {
-  // Resolve current estimate (same lookup pattern as fetchLaborCushionRaw)
-  const { data: currentEstimate } = await supabase
+  // Resolve the SAME estimate useLineItemControl uses for the displayed bucket lines:
+  // approved (latest) → current version → latest by date. These MUST stay in lockstep,
+  // or meta (labor cushion + the final-cost override) would key to a different
+  // estimate version than the lines on screen and silently not apply.
+  let estimateId: string | null = null;
+
+  const { data: approvedEstimate } = await supabase
     .from('estimates')
     .select('id')
     .eq('project_id', projectId)
-    .eq('is_current_version', true)
+    .eq('status', 'approved')
+    .order('date_created', { ascending: false })
     .limit(1)
     .maybeSingle();
+  estimateId = approvedEstimate?.id ?? null;
 
-  let estimateId = currentEstimate?.id ?? null;
   if (!estimateId) {
-    const { data: approvedEstimate } = await supabase
+    const { data: currentEstimate } = await supabase
       .from('estimates')
       .select('id')
       .eq('project_id', projectId)
-      .eq('status', 'approved')
-      .order('updated_at', { ascending: false })
+      .eq('is_current_version', true)
+      .order('date_created', { ascending: false })
       .limit(1)
       .maybeSingle();
-    estimateId = approvedEstimate?.id ?? null;
+    estimateId = currentEstimate?.id ?? null;
+  }
+
+  if (!estimateId) {
+    const { data: latestEstimate } = await supabase
+      .from('estimates')
+      .select('id')
+      .eq('project_id', projectId)
+      .order('date_created', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    estimateId = latestEstimate?.id ?? null;
   }
 
   const map = new Map<string, LineItemMeta>();
@@ -514,7 +536,7 @@ async function fetchEstimateLineItemMeta(projectId: string): Promise<Map<string,
   if (estimateId) {
     const { data, error } = await supabase
       .from('estimate_line_items')
-      .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount')
+      .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount, final_cost_amount')
       .eq('estimate_id', estimateId);
 
     if (!error && data) {
@@ -523,17 +545,19 @@ async function fetchEstimateLineItemMeta(projectId: string): Promise<Map<string,
           laborHours: row.labor_hours != null ? Number(row.labor_hours) : null,
           billingRatePerHour: row.billing_rate_per_hour != null ? Number(row.billing_rate_per_hour) : null,
           laborCushionAmount: row.labor_cushion_amount != null ? Number(row.labor_cushion_amount) : null,
+          finalCostAmount: row.final_cost_amount != null ? Number(row.final_cost_amount) : null,
         });
       }
     }
   }
 
-  // Approved-CO labor lines surface their own cushion in the bucket rows too —
-  // their bucket line id is the change_order_line_items id.
+  // Approved-CO lines: labor lines surface their own cushion, and ANY CO line can
+  // carry a final-cost override — so pull every approved-CO line (not just labor).
+  // Their bucket line id is the change_order_line_items id. Labor fields are null
+  // for non-labor rows (only read in the labor branch), which is fine.
   const { data: coData } = await supabase
     .from('change_order_line_items')
-    .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount, change_orders!inner(project_id, status)')
-    .eq('category', 'labor_internal')
+    .select('id, labor_hours, billing_rate_per_hour, labor_cushion_amount, final_cost_amount, change_orders!inner(project_id, status)')
     .eq('change_orders.project_id', projectId)
     .eq('change_orders.status', 'approved');
 
@@ -542,11 +566,13 @@ async function fetchEstimateLineItemMeta(projectId: string): Promise<Map<string,
     labor_hours: number | null;
     billing_rate_per_hour: number | null;
     labor_cushion_amount: number | null;
+    final_cost_amount: number | null;
   }>) {
     map.set(row.id, {
       laborHours: row.labor_hours != null ? Number(row.labor_hours) : null,
       billingRatePerHour: row.billing_rate_per_hour != null ? Number(row.billing_rate_per_hour) : null,
       laborCushionAmount: row.labor_cushion_amount != null ? Number(row.labor_cushion_amount) : null,
+      finalCostAmount: row.final_cost_amount != null ? Number(row.final_cost_amount) : null,
     });
   }
 
