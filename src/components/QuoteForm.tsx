@@ -55,12 +55,14 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   const clientPrice = estimateLineItem.pricePerUnit * quantity;
   const estimatedCost = estimateLineItem.costPerUnit * quantity;
   
-  // Critical: Quote cost >= client price
+  // Warning: Quote cost >= client price. This is often a cost/price mixup, but a
+  // vendor legitimately quoting above the estimated line price (a line-level loss)
+  // is a real scenario, so warn-and-confirm rather than hard-block the save.
   if (quoteAmount >= clientPrice) {
     return {
       isValid: false,
-      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}). Quotes should be vendor COSTS, not client prices.`,
-      severity: 'critical'
+      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}). Confirm this is the vendor COST, not the client price.`,
+      severity: 'warning'
     };
   }
   
