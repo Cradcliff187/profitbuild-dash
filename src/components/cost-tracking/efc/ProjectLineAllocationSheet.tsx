@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertTriangle, Search } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
   matchExpenseToLine,
@@ -67,9 +68,20 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
   // need recategorizing — so the empty state should say so, not "All allocated".
   const [noLineSpend, setNoLineSpend] = useState<{ count: number; amount: number }>({ count: 0, amount: 0 });
 
+  // Filters — mirror BulkExpenseAllocationSheet (All Expenses). No project filter:
+  // this sheet is already scoped to one project (we're inside its detail page).
+  const [searchText, setSearchText] = useState('');
+  const [confidenceBand, setConfidenceBand] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'estimate' | 'quote' | 'change_order'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | 'all'>('all');
+
   useEffect(() => {
     if (open) loadData();
-    else { setRows([]); setNoLineSpend({ count: 0, amount: 0 }); }
+    else {
+      setRows([]);
+      setNoLineSpend({ count: 0, amount: 0 });
+      setSearchText(''); setConfidenceBand('all'); setSourceFilter('all'); setCategoryFilter('all');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -250,6 +262,44 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
     [rows]
   );
 
+  // Categories actually present in the candidate set — drives the Category filter.
+  const presentCategories = useMemo(() => {
+    const set = new Set<ExpenseCategory>();
+    rows.forEach(r => set.add(r.expense.category));
+    return Array.from(set).sort((a, b) =>
+      (EXPENSE_CATEGORY_DISPLAY[a] || a).localeCompare(EXPENSE_CATEGORY_DISPLAY[b] || b)
+    );
+  }, [rows]);
+
+  // Filtered view. Selection lives on the underlying `rows`, so it persists
+  // across filter changes (same contract as BulkExpenseAllocationSheet).
+  const filteredRows = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return rows.filter(r => {
+      if (confidenceBand === 'high' && r.confidence < 75) return false;
+      if (confidenceBand === 'medium' && (r.confidence < 60 || r.confidence >= 75)) return false;
+      if (confidenceBand === 'low' && r.confidence >= 60) return false;
+
+      const sel = r.candidates.find(c => c.id === r.selectedLineId) ?? r.candidates[0];
+      if (sourceFilter !== 'all' && sel && sel.type !== sourceFilter) return false;
+
+      if (categoryFilter !== 'all' && r.expense.category !== categoryFilter) return false;
+
+      if (q) {
+        const haystack = [r.expense.payee_name, sel?.description, sel?.payee_name]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [rows, searchText, confidenceBand, sourceFilter, categoryFilter]);
+
+  const filtersActive =
+    searchText.trim() !== '' || confidenceBand !== 'all' || sourceFilter !== 'all' || categoryFilter !== 'all';
+  const resetFilters = () => {
+    setSearchText(''); setConfidenceBand('all'); setSourceFilter('all'); setCategoryFilter('all');
+  };
+
   const handleAllocate = async () => {
     const toWrite = rows.filter(r => r.checked && r.selectedLineId);
     if (toWrite.length === 0) return;
@@ -309,6 +359,57 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
           </SheetDescription>
         </SheetHeader>
 
+        {!isLoading && rows.length > 0 && (
+          <div className="border-b bg-background px-6 py-3 shrink-0 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search payee or line item…"
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                className="pl-8 h-9"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={confidenceBand} onValueChange={v => setConfidenceBand(v as typeof confidenceBand)}>
+                <SelectTrigger className="h-9 w-[150px]"><SelectValue placeholder="Confidence" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All confidence</SelectItem>
+                  <SelectItem value="high">High (&ge;75%)</SelectItem>
+                  <SelectItem value="medium">Medium (60-74%)</SelectItem>
+                  <SelectItem value="low">Low (&lt;60%)</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sourceFilter} onValueChange={v => setSourceFilter(v as typeof sourceFilter)}>
+                <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="estimate">Estimate</SelectItem>
+                  <SelectItem value="quote">Quote</SelectItem>
+                  <SelectItem value="change_order">Change Order</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={v => setCategoryFilter(v as ExpenseCategory | 'all')}>
+                <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {presentCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{EXPENSE_CATEGORY_DISPLAY[cat] || cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {filtersActive && (
+                <Button variant="ghost" size="sm" className="h-9" onClick={resetFilters}>Clear</Button>
+              )}
+              {filtersActive && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  Showing {filteredRows.length} of {rows.length}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-16"><BrandedLoader message="Finding matches…" size="md" /></div>
@@ -333,9 +434,16 @@ export const ProjectLineAllocationSheet: React.FC<ProjectLineAllocationSheetProp
                 </p>
               </div>
             )
+          ) : filteredRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <Search className="h-10 w-10 text-muted-foreground mb-3" />
+              <h3 className="text-base font-semibold mb-1">No matches</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">No expenses match these filters.</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={resetFilters}>Clear filters</Button>
+            </div>
           ) : (
             <div className="divide-y">
-              {rows.map(row => (
+              {filteredRows.map(row => (
                 <div key={row.expense.id} className={cn('px-4 py-3', row.checked && 'bg-muted/40')}>
                   <div className="flex items-start gap-3">
                     <Checkbox
