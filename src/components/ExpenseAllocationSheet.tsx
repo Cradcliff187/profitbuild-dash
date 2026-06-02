@@ -69,20 +69,30 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       // 2. Load line items for this project only
       const projectId = expenseData.project_id;
       
-      // Load estimate line items
-      const { data: estimates, error: estimatesError } = await supabase
-        .from('estimates')
-        .select(`
-          id,
-          estimate_number,
-          project_id,
-          projects(project_name),
-          estimate_line_items(*)
-        `)
-        .eq('project_id', projectId)
-        .eq('is_current_version', true);
-      
-      if (estimatesError) throw estimatesError;
+      // Load the estimate the cost-tracking read side uses: approved first, then
+      // current version, then latest (matches useLineItemControl / Rule 28). Was
+      // is_current_version only, which could surface a different version's lines
+      // than Cost Analysis reads — allocating to lines it can't see.
+      const estimateSelect = `id, estimate_number, project_id, projects(project_name), estimate_line_items(*)`;
+      const [approvedEstRes, currentEstRes] = await Promise.all([
+        supabase.from('estimates').select(estimateSelect)
+          .eq('project_id', projectId).eq('status', 'approved')
+          .order('date_created', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('estimates').select(estimateSelect)
+          .eq('project_id', projectId).eq('is_current_version', true)
+          .order('date_created', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (approvedEstRes.error) throw approvedEstRes.error;
+      if (currentEstRes.error) throw currentEstRes.error;
+      let chosenEstimate = approvedEstRes.data ?? currentEstRes.data;
+      if (!chosenEstimate) {
+        const latestEstRes = await supabase.from('estimates').select(estimateSelect)
+          .eq('project_id', projectId)
+          .order('date_created', { ascending: false }).limit(1).maybeSingle();
+        if (latestEstRes.error) throw latestEstRes.error;
+        chosenEstimate = latestEstRes.data;
+      }
+      const estimates = chosenEstimate ? [chosenEstimate] : [];
       
       // Load quotes
       const { data: quotes, error: quotesError } = await supabase
@@ -124,11 +134,6 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
         .eq('status', 'approved');
       
       if (coError) throw coError;
-      
-      // Load existing correlations to calculate allocated amounts
-      const { data: correlations } = await supabase
-        .from('expense_line_item_correlations')
-        .select('*');
       
       // Filter to accepted quotes only
       const acceptedQuotes = quotes?.filter(q => q.status === 'accepted') || [];
@@ -202,7 +207,36 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
       });
       
       const allLineItems = [...estimateLineItems, ...quoteLineItems, ...changeOrderLineItems];
-      
+
+      // Load correlations — SCOPED, never the whole table. An unbounded select('*')
+      // silently truncates past 1,000 rows (Gotcha #23) and would under-count line
+      // "used" totals + miss this expense's own allocation at scale. Two bounded
+      // reads, unioned: (1) every correlation touching a line shown here (for the
+      // per-line allocated totals); (2) this expense's own correlations, so an
+      // allocation pointing at a line NOT shown here (e.g. a superseded estimate
+      // line) is still detected and we never offer a duplicate.
+      const estLineIds = estimateLineItems.map(li => li.id);
+      const quoteSourceIds = [...new Set(quoteLineItems.map(li => li.source_id))];
+      const coLineIds = changeOrderLineItems.map(li => li.id);
+      const orParts: string[] = [];
+      if (estLineIds.length) orParts.push(`estimate_line_item_id.in.(${estLineIds.join(',')})`);
+      if (quoteSourceIds.length) orParts.push(`quote_id.in.(${quoteSourceIds.join(',')})`);
+      if (coLineIds.length) orParts.push(`change_order_line_item_id.in.(${coLineIds.join(',')})`);
+
+      const [lineCorrRes, thisExpenseCorrRes] = await Promise.all([
+        orParts.length
+          ? supabase.from('expense_line_item_correlations').select('*').or(orParts.join(','))
+          : Promise.resolve({ data: [] as any[], error: null }),
+        supabase.from('expense_line_item_correlations').select('*').eq('expense_id', expenseId),
+      ]);
+      if (lineCorrRes.error) throw lineCorrRes.error;
+      if (thisExpenseCorrRes.error) throw thisExpenseCorrRes.error;
+
+      const corrById = new Map<string, any>();
+      for (const c of lineCorrRes.data ?? []) corrById.set(c.id, c);
+      for (const c of thisExpenseCorrRes.data ?? []) corrById.set(c.id, c);
+      const correlations = Array.from(corrById.values());
+
       // Calculate allocated amounts
       // Get all expense IDs and split IDs from correlations
       const expenseIds = [...new Set(correlations?.filter(c => c.expense_id).map(c => c.expense_id) || [])];

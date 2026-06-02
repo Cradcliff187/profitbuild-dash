@@ -152,9 +152,11 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       // client-side .range() past 1000 is silently clamped (CLAUDE.md Gotcha #23,
       // corrected Apr 18, 2026). For correlations, silent truncation past row
       // 1000 would leak already-correlated expenses back into the candidate set;
-      // there's NO unique constraint on (expense_id, line_item_id), so clicking
-      // "Allocate" on a leaked candidate would create a duplicate correlation
-      // and silently double-count that expense in cost-bucket actuals.
+      // they'd be offered again and the batch insert below would then trip the
+      // partial unique indexes on (expense_id, estimate_line_item_id|quote_id|
+      // change_order_line_item_id) (added Apr 19, 2026) and 23505-abort the whole
+      // batch. Keep the candidate set correct by paginating — don't lean on the DB
+      // to dedup after the fact.
       //
       // The other 3 queries (estimates/quotes/change_orders) are filtered to
       // small subsets (is_current_version / status='accepted' / status='approved'),
@@ -162,11 +164,15 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       const PAGE_SIZE = 1000;
 
       const supportingPromise = Promise.all([
+        // Fetch approved + current-version estimates; reduced per-project below to
+        // the read-side choice (approved first, else current — Rule 28). Was
+        // is_current_version only, which could allocate to a different version's
+        // lines than Cost Analysis reads.
         supabase.from('estimates').select(`
-          id, project_id,
+          id, project_id, status, is_current_version, date_created,
           projects(project_name),
           estimate_line_items(*)
-        `).eq('is_current_version', true),
+        `).or('status.eq.approved,is_current_version.eq.true'),
         supabase.from('quotes').select(`
           id, project_id, status,
           projects(project_name),
@@ -240,7 +246,19 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       if (quotesResult.error) throw quotesResult.error;
       if (changeOrdersResult.error) throw changeOrdersResult.error;
 
-      const estimates = estimatesResult.data || [];
+      // Reduce to one estimate per project: approved (latest) first, else current
+      // version — the cost-tracking read-side choice (Rule 28).
+      const estScore = (e: any) => (e.status === 'approved' ? 2 : e.is_current_version ? 1 : 0);
+      const estimateByProject = new Map<string, any>();
+      for (const est of (estimatesResult.data || [])) {
+        const cur = estimateByProject.get(est.project_id);
+        if (!cur ||
+            estScore(est) > estScore(cur) ||
+            (estScore(est) === estScore(cur) && String(est.date_created ?? '') > String(cur.date_created ?? ''))) {
+          estimateByProject.set(est.project_id, est);
+        }
+      }
+      const estimates = Array.from(estimateByProject.values());
       const acceptedQuotes = quotesResult.data || [];
       const changeOrders = changeOrdersResult.data || [];
       const existingCorrelationExpenseIds = new Set(correlationExpenseIds);

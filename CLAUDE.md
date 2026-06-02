@@ -917,17 +917,31 @@ Shared zone→{label,color} map: [cushionZone.ts](src/components/cost-tracking/e
 manual pick). Gate: `isProjectVisibleByCategory(project)` — construction + the SYS-TEST sandbox;
 overhead gets no Allocate (category-locked).
 
-**Bulk-allocate manual override (PR pending, Jun 1 2026)**: `BulkExpenseAllocationSheet` rows
-carry a per-row **Allocate To** picker — every line on the expense's project, **all categories**
-(not just the matcher's category-compatible set) — so a bad auto-match can be reassigned inline
-instead of only skipped (previously the row showed the single suggestion read-only with just an
-accept/skip checkbox). The matcher's category filter exists for *suggestion* precision; it must
-**not** constrain *manual* choice. An override writes `auto_correlated=false` /
-`confidence_score=null` + a "manually reassigned" note; an untouched row stays
-`auto_correlated=true` with its confidence. The other two surfaces already allowed full manual
-choice: `ExpenseAllocationSheet` = searchable all-lines list; `ProjectLineAllocationSheet` = a
-**category-filtered** dropdown (that one is still category-limited + hides zero-candidate
-expenses — flagged for a follow-up).
+**Manual line override on the auto-allocate surfaces (PR #133, Jun 1 2026)**: both auto-suggest
+sheets let you reassign the matched line. `BulkExpenseAllocationSheet` rows carry a per-row
+**Allocate To** picker — every line on the expense's project, **all categories** (not just the
+matcher's category-compatible set) — so a bad auto-match can be reassigned inline instead of only
+skipped (previously the row showed the single suggestion read-only with just an accept/skip
+checkbox). The Cost Analysis → Allocate slide-out (`ProjectLineAllocationSheet`) got the same
+treatment: its per-row picker now lists **all** project lines (any category) and every uncorrelated
+expense shows as a row — previously its dropdown was category-filtered AND expenses whose category
+had no line were hidden behind a "recategorize" empty state (that empty state now means only "the
+project has no estimate/quote/CO lines yet"). The per-expense `ExpenseAllocationSheet` ("Match to
+Line Items") already listed every line in a searchable list. Same principle on all three:
+**category-aware *suggestion*, unrestricted *manual* choice.** An override writes
+`auto_correlated=false` / `confidence_score=null` + a "manually reassigned" note; an untouched row
+stays `auto_correlated=true` with its confidence.
+
+Same PR also hardened two things: (1) **version resolution** — the bulk + single sheets now resolve
+the project's estimate the same way the read side does (approved → current → latest), so they can't
+allocate to a version Cost Analysis won't read. Was `is_current_version` only, which silently
+disagreed with the read side whenever an approved estimate wasn't the current version (and would
+mint the same orphan class as the versioning bug below). (2) **bounded correlations read** —
+`ExpenseAllocationSheet` previously did an unbounded `select('*')` on the whole correlations table
+(Gotcha #23; dropped the error too); it's now two project-scoped reads (lines shown here + this
+expense's own correlations, unioned). Still TODO from the review: idempotent batch insert
+(`onConflict`) so one 23505 doesn't abort the batch; dedup the category map; and the bigger
+**estimate-versioning expense-correlation orphan** data fix (see below).
 
 **Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
 `CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
