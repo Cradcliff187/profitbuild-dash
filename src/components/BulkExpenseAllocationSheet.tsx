@@ -63,18 +63,24 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
   const [confidenceBand, setConfidenceBand] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'estimate' | 'quote' | 'change_order'>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | ExpenseCategory>('all');
+  // Structured project picker (this sheet spans every project). The free-text
+  // search also matches project, but the dropdown is the precise control and
+  // gives parity with the project filter on the All Expenses table.
+  const [projectFilter, setProjectFilter] = useState<string>('all'); // project_number or 'all'
 
   const filtersActive =
     searchText.trim() !== '' ||
     confidenceBand !== 'all' ||
     sourceFilter !== 'all' ||
-    categoryFilter !== 'all';
+    categoryFilter !== 'all' ||
+    projectFilter !== 'all';
 
   const resetFilters = () => {
     setSearchText('');
     setConfidenceBand('all');
     setSourceFilter('all');
     setCategoryFilter('all');
+    setProjectFilter('all');
   };
 
   useEffect(() => {
@@ -96,6 +102,19 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
     );
   }, [suggestions]);
 
+  // Distinct projects present in the loaded suggestions — drives the Project
+  // dropdown. Keyed on project_number (the canonical identifier app-wide).
+  const presentProjects = useMemo(() => {
+    const byNumber = new Map<string, string>();
+    suggestions.forEach(s => {
+      const num = s.expense.project_number;
+      if (num) byNumber.set(num, s.expense.project_name || '');
+    });
+    return Array.from(byNumber.entries())
+      .map(([number, name]) => ({ number, name }))
+      .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+  }, [suggestions]);
+
   // Filtered view of the suggestions. Selection state lives on the underlying
   // `suggestions` rows and persists across filter changes.
   const filteredSuggestions = useMemo(() => {
@@ -109,6 +128,8 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
       if (sourceFilter !== 'all' && sel.type !== sourceFilter) return false;
 
       if (categoryFilter !== 'all' && s.expense.category !== categoryFilter) return false;
+
+      if (projectFilter !== 'all' && s.expense.project_number !== projectFilter) return false;
 
       if (q) {
         const haystack = [
@@ -126,7 +147,7 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
 
       return true;
     });
-  }, [suggestions, searchText, confidenceBand, sourceFilter, categoryFilter]);
+  }, [suggestions, searchText, confidenceBand, sourceFilter, categoryFilter, projectFilter]);
 
   // Header tri-state checkbox + select-all act on the currently-visible
   // (filtered) rows. With no filter active this equals the full list, so
@@ -572,6 +593,21 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {presentProjects.length > 1 && (
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="h-9 w-[200px]">
+                    <SelectValue placeholder="Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All projects</SelectItem>
+                    {presentProjects.map(p => (
+                      <SelectItem key={p.number} value={p.number}>
+                        {p.number}{p.name ? ` · ${p.name}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Select
                 value={confidenceBand}
                 onValueChange={v => setConfidenceBand(v as typeof confidenceBand)}

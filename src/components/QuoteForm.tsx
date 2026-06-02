@@ -1029,10 +1029,16 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                               />
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                                   {CATEGORY_DISPLAY_MAP[item.category]}
                                 </Badge>
+                                {coverage.hasAccepted && (
+                                  <Badge variant="default" className="bg-green-600 text-white text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                                    <Check className="h-2.5 w-2.5" />
+                                    Accepted
+                                  </Badge>
+                                )}
                                 {isInternal && (
                                   <span className="text-[10px] text-muted-foreground">(Internal)</span>
                                 )}
@@ -1245,9 +1251,17 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                               )}
                             </td>
                             <td className="p-3">
-                              <Badge variant="outline" className="text-xs">
-                                {CATEGORY_DISPLAY_MAP[item.category]}
-                              </Badge>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="outline" className="text-xs">
+                                  {CATEGORY_DISPLAY_MAP[item.category]}
+                                </Badge>
+                                {coverage.hasAccepted && (
+                                  <Badge variant="default" className="bg-green-600 text-white text-xs gap-1">
+                                    <Check className="h-3 w-3" />
+                                    Accepted
+                                  </Badge>
+                                )}
+                              </div>
                             </td>
                             <td className="p-3 text-right font-mono">
                               {formatCurrency(item.totalCost || 0)}
