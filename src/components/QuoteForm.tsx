@@ -661,7 +661,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     // Show warning confirmation if warnings exist
     if (hasWarnings) {
       const proceed = window.confirm(
-        "There are validation warnings for some line items. These may indicate price/cost confusion. Do you want to proceed anyway?"
+        "One or more lines have a negative margin (vendor cost meets/exceeds the client price) or a cost well above the estimate. This can be correct when a vendor comes in over budget — just verify the amounts are vendor COSTS, not client prices. Save this quote anyway?"
       );
       if (!proceed) return;
     }
