@@ -55,17 +55,20 @@ const validateQuoteAmount = (costPerUnit: number, quantity: number, estimateLine
   const clientPrice = estimateLineItem.pricePerUnit * quantity;
   const estimatedCost = estimateLineItem.costPerUnit * quantity;
   
-  // Warning: vendor cost meets/exceeds client price → negative (or zero) margin.
-  // This is a legitimate real-world case (a sub comes in over budget), so we warn
-  // and let the user confirm rather than hard-blocking the save.
+  // Quote cost >= client price: this line would lose money. That's a legitimate
+  // (if unwelcome) situation — the vendor came in over what we're billing the
+  // client — so the quote MUST stay savable. Surface it as a WARNING, not a hard
+  // block, so it still flags possible price/cost confusion without contradicting
+  // the "quotes can exceed the estimate and still save" design (see the
+  // Variance vs. Estimate row + its "the quote will still save" tooltip).
   if (quoteAmount >= clientPrice) {
     return {
       isValid: false,
-      error: `Vendor cost (${formatCurrency(quoteAmount)}) meets/exceeds the client price (${formatCurrency(clientPrice)}) — this line will have a negative margin. Confirm this is the vendor's cost (not the client price).`,
+      error: `Vendor cost (${formatCurrency(quoteAmount)}) equals/exceeds client price (${formatCurrency(clientPrice)}) — this quote loses money on this line. Confirm you entered the vendor COST, not the client price.`,
       severity: 'warning'
     };
   }
-
+  
   // Warning: Quote cost >20% higher than estimate
   if (quoteAmount > estimatedCost * 1.2) {
     return {
@@ -616,9 +619,6 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       return;
     }
 
-    // Optimistic update: Show saving state
-    toast.info("Saving Quote", { description: "Processing quote details..." });
-
     // Only validate line item selection if we have an estimate (not for change order quotes)
     if (selectedEstimate && selectedLineItemIds.length === 0) {
       toast.error("Please select at least one line item to quote.");
@@ -661,7 +661,7 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
     // Show warning confirmation if warnings exist
     if (hasWarnings) {
       const proceed = window.confirm(
-        "One or more lines have a negative margin (vendor cost meets/exceeds the client price) or a cost well above the estimate. This can be correct when a vendor comes in over budget. Save this quote anyway?"
+        "One or more lines have a negative margin (vendor cost meets/exceeds the client price) or a cost well above the estimate. This can be correct when a vendor comes in over budget — just verify the amounts are vendor COSTS, not client prices. Save this quote anyway?"
       );
       if (!proceed) return;
     }
@@ -728,6 +728,10 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
       sourceDocumentId: sourceDocumentId && attachmentUrl ? sourceDocumentId : undefined,
     };
 
+    // "Saving" state — shown only AFTER all validation + warning confirmation has
+    // passed, so it can never appear alongside a "fix validation errors" toast
+    // (the old placement fired it before validation, producing contradictory toasts).
+    toast.info("Saving Quote", { description: "Processing quote details..." });
     onSave(quote);
     // Success toast moved to Quotes.tsx handleSaveQuote (shown after DB confirms save)
   };
@@ -1025,10 +1029,16 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                               />
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                                   {CATEGORY_DISPLAY_MAP[item.category]}
                                 </Badge>
+                                {coverage.hasAccepted && (
+                                  <Badge variant="default" className="bg-green-600 text-white text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                                    <Check className="h-2.5 w-2.5" />
+                                    Accepted
+                                  </Badge>
+                                )}
                                 {isInternal && (
                                   <span className="text-[10px] text-muted-foreground">(Internal)</span>
                                 )}
@@ -1241,9 +1251,17 @@ export const QuoteForm = ({ estimates, initialQuote, preSelectedEstimateId, onSa
                               )}
                             </td>
                             <td className="p-3">
-                              <Badge variant="outline" className="text-xs">
-                                {CATEGORY_DISPLAY_MAP[item.category]}
-                              </Badge>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="outline" className="text-xs">
+                                  {CATEGORY_DISPLAY_MAP[item.category]}
+                                </Badge>
+                                {coverage.hasAccepted && (
+                                  <Badge variant="default" className="bg-green-600 text-white text-xs gap-1">
+                                    <Check className="h-3 w-3" />
+                                    Accepted
+                                  </Badge>
+                                )}
+                              </div>
                             </td>
                             <td className="p-3 text-right font-mono">
                               {formatCurrency(item.totalCost || 0)}

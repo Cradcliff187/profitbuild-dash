@@ -1,5 +1,5 @@
 import { cn, formatCurrency } from '@/lib/utils';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Lock } from 'lucide-react';
 import { EFCCategory, EFCLine } from '@/hooks/useProjectEFC';
 import { lineDisplayStatus, lineSubtitle } from './lineDisplay';
 
@@ -16,7 +16,14 @@ function LineRow({ line, onClick }: { line: EFCLine; onClick: () => void }) {
       <span className={cn('w-1 shrink-0 rounded-r', meta.border)} aria-hidden />
       <span className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5">
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-medium truncate">{line.description}</span>
+          <span className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-medium truncate">{line.description}</span>
+            {line.isFinal && (
+              <span title="Final cost locked" className="shrink-0 inline-flex items-center">
+                <Lock className="h-3 w-3 text-violet-500" />
+              </span>
+            )}
+          </span>
           {subtitle && <span className="block text-xs text-muted-foreground truncate">{subtitle}</span>}
         </span>
         <span className="hidden sm:block w-24 text-right text-sm tabular-nums text-muted-foreground shrink-0">
@@ -68,14 +75,31 @@ export function CostLineTable({
         <span className="w-4 shrink-0" aria-hidden />
       </div>
 
-      {categories.map((cat) => (
+      {categories.map((cat) => {
+        const catDelta = cat.expectedCost - cat.subtotal.plan;
+        return (
         <div key={cat.category}>
-          <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-1.5 bg-muted/10">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {cat.displayName}
-            </span>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
-              {formatCurrency(cat.subtotal.plan)} → <span className="font-semibold text-foreground">{formatCurrency(cat.expectedCost)}</span>
+          {/* Category subtotal — aligned to the money columns of the rows below */}
+          <div className="flex items-stretch border-b bg-muted/20">
+            <span className="w-1 shrink-0" aria-hidden />
+            <span className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2">
+              <span className="flex-1 min-w-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
+                {cat.displayName}
+              </span>
+              <span className="hidden sm:block w-24 text-right text-sm tabular-nums font-medium text-muted-foreground shrink-0">
+                {formatCurrency(cat.subtotal.plan)}
+              </span>
+              <span className="hidden sm:block w-24 text-right text-sm tabular-nums font-medium text-muted-foreground shrink-0">
+                {cat.categorySpend > 0.005 ? formatCurrency(cat.categorySpend) : '—'}
+              </span>
+              <span className="w-28 text-right text-sm tabular-nums font-semibold shrink-0">
+                {formatCurrency(cat.expectedCost)}
+                {catDelta > 0.005 && (
+                  <span className="block text-[10px] font-medium text-destructive">+{formatCurrency(catDelta)}</span>
+                )}
+              </span>
+              <span className="w-20 shrink-0" aria-hidden />
+              <span className="w-4 shrink-0" aria-hidden />
             </span>
           </div>
 
@@ -98,7 +122,48 @@ export function CostLineTable({
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
+
+      {/* Project total — ties out to the EFC / "over" figures on the KPI strip */}
+      {(() => {
+        const t = categories.reduce(
+          (a, c) => ({
+            plan: a.plan + c.subtotal.plan,
+            spent: a.spent + c.categorySpend,
+            efc: a.efc + c.expectedCost,
+          }),
+          { plan: 0, spent: 0, efc: 0 },
+        );
+        const delta = t.efc - t.plan;
+        return (
+          <div className="flex items-stretch border-t-2 bg-muted/40">
+            <span className="w-1 shrink-0" aria-hidden />
+            <span className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5">
+              <span className="flex-1 min-w-0 text-xs font-semibold uppercase tracking-wide">
+                Project total
+              </span>
+              <span className="hidden sm:block w-24 text-right text-sm tabular-nums font-semibold shrink-0">
+                {formatCurrency(t.plan)}
+              </span>
+              <span className="hidden sm:block w-24 text-right text-sm tabular-nums font-semibold shrink-0">
+                {t.spent > 0.005 ? formatCurrency(t.spent) : '—'}
+              </span>
+              <span className="w-28 text-right text-sm tabular-nums font-bold shrink-0">
+                {formatCurrency(t.efc)}
+                {delta > 0.005 && (
+                  <span className="block text-[10px] font-semibold text-destructive">+{formatCurrency(delta)} over</span>
+                )}
+                {delta < -0.005 && (
+                  <span className="block text-[10px] font-semibold text-green-700">{formatCurrency(delta)} under</span>
+                )}
+              </span>
+              <span className="w-20 shrink-0" aria-hidden />
+              <span className="w-4 shrink-0" aria-hidden />
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }

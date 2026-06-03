@@ -18,7 +18,7 @@ function cell(v: string | number): string {
  * Replaces the old Detail-tab CSV export; same Blob+anchor pattern.
  */
 export function exportCostAnalysisCsv(project: Project, categories: EFCCategory[]): void {
-  const headers = ['Category', 'Line Item', 'Source', 'Plan', 'Committed', 'Spent', 'EFC', 'Variance', 'Status'];
+  const headers = ['Category', 'Line Item', 'Source', 'Plan', 'Committed', 'Spent', 'EFC', 'Variance', 'Status', 'Final', 'Final Cost'];
   const rows: string[] = [headers.join(',')];
 
   for (const cat of categories) {
@@ -33,6 +33,8 @@ export function exportCostAnalysisCsv(project: Project, categories: EFCCategory[
         line.efc.toFixed(2),
         line.variance.toFixed(2),
         cell(STATUS_LABEL[line.status] ?? line.status),
+        line.isFinal ? 'Yes' : '',
+        line.isFinal ? Number(line.finalCostAmount).toFixed(2) : '',
       ].join(','));
     }
     if (cat.unallocated > 0) {
@@ -43,6 +45,7 @@ export function exportCostAnalysisCsv(project: Project, categories: EFCCategory[
         cat.unallocated.toFixed(2),
         '', '',
         'Unallocated',
+        '', '',
       ].join(','));
     }
   }
