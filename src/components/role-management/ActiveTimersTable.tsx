@@ -21,15 +21,13 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { checkStaleTimer } from '@/utils/timeEntryValidation';
 import { LunchToggle } from '@/components/time-tracker/LunchToggle';
 import { DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
+import { isPTOProject } from '@/utils/timeEntries';
 
-// Mirrors PTO_PROJECT_NUMBERS in MobileTimeTracker / WeekView / time-entry-form.
 // PTO entries should NEVER have start_time/end_time set — they're duration-only.
 // If one shows up in Active Timers it's a data-entry mistake, and force-clocking
 // it out at "now" creates a multi-day astronomical labor cost. The admin path
 // here lets you convert it back to a proper PTO entry (8 hours, no times) or
-// discard it entirely.
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-const isPTOProject = (projectNumber: string) => PTO_PROJECT_NUMBERS.includes(projectNumber);
+// discard it entirely. (isPTOProject + the PTO list now live in @/utils/timeEntries.)
 
 // Soft cap on a single shift — anything over this prompts an explicit warning.
 // The actual rule of thumb: a normal day is 8h, a long day is ~12h, a double-

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TimeEntryListItem } from '@/types/timeEntry';
 import { parseDateOnly } from '@/utils/dateUtils';
+import { isPTOProject } from '@/utils/timeEntries';
 
 interface TimeEntriesTableRowProps {
   entry: TimeEntryListItem;
@@ -134,7 +135,7 @@ const TimeEntriesTableRowComponent: React.FC<TimeEntriesTableRowProps> = ({
               </TableCell>
             );
           case "lunch":
-            const isPTO = ['006-SICK', '007-VAC', '008-HOL'].includes(entry.project_number);
+            const isPTO = isPTOProject(entry.project_number);
             
             if (isPTO) {
               return <TableCell key={colKey} className="p-1.5 text-center">-</TableCell>;

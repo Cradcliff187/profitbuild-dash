@@ -6,8 +6,7 @@ import {
 } from '@/utils/timeEntryCalculations';
 import { useOvernightDetection } from './useOvernightDetection';
 import { buildTimeEntryDateTimes } from '@/utils/timeEntryCalculations';
-
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+import { isPTOProject } from '@/utils/timeEntries';
 
 export interface TimeEntryFormData {
   workerId: string;
@@ -71,11 +70,7 @@ export function useTimeEntryForm(options: UseTimeEntryFormOptions = {}) {
   const overnight = useOvernightDetection({ date, startTime, endTime });
 
   const isPTO = useMemo(
-    () =>
-      Boolean(
-        selectedProjectNumber &&
-          PTO_PROJECT_NUMBERS.includes(selectedProjectNumber)
-      ),
+    () => isPTOProject(selectedProjectNumber),
     [selectedProjectNumber]
   );
 

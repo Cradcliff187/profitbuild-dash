@@ -37,13 +37,7 @@ import { useRoles } from '@/contexts/RoleContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addToQueue } from '@/utils/syncQueue';
 import { ProjectCategory } from '@/types/project';
-
-// PTO/Overhead project numbers that don't have traditional start/end times
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-
-const isPTOProject = (projectNumber: string): boolean => {
-  return PTO_PROJECT_NUMBERS.includes(projectNumber);
-};
+import { isPTOProject } from '@/utils/timeEntries';
 
 interface Project {
   id: string;

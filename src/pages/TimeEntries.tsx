@@ -35,6 +35,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { TimeEntryFilters, TimeEntryListItem } from "@/types/timeEntry";
 import { supabase } from "@/integrations/supabase/client";
+import { EXCLUDE_ACTIVE_TIMERS_OR, PENDING_APPROVAL_OR } from "@/utils/timeEntries";
 import { format } from "date-fns";
 import { ColumnSelector } from "@/components/ui/column-selector";
 import { TimeEntriesCardView } from "@/components/TimeEntriesCardView";
@@ -366,12 +367,15 @@ const TimeEntriesPage = () => {
   // Fetch pending time entries count (all pending, not filtered)
   const fetchPendingTimeEntriesCount = async () => {
     try {
+      // Canonical `is_time_entry` count — matches the table exactly so the badge
+      // can never again count rows the table can't display (see src/utils/timeEntries.ts).
       const { count, error } = await supabase
         .from("expenses")
         .select("*", { count: "exact", head: true })
-        .eq("category", "labor_internal")
-        .or("approval_status.is.null,approval_status.eq.pending");
-      
+        .eq("is_time_entry", true)
+        .or(EXCLUDE_ACTIVE_TIMERS_OR)
+        .or(PENDING_APPROVAL_OR);
+
       if (error) {
         console.error("Error fetching pending time entries count:", error);
         return;
@@ -389,8 +393,8 @@ const TimeEntriesPage = () => {
       const { count, error } = await supabase
         .from("receipts")
         .select("*", { count: "exact", head: true })
-        .or("approval_status.is.null,approval_status.eq.pending");
-      
+        .or(PENDING_APPROVAL_OR);
+
       if (error) {
         console.error("Error fetching pending receipts count:", error);
         return;
@@ -413,8 +417,9 @@ const TimeEntriesPage = () => {
         {
           event: "*",
           schema: "public",
+          // No category filter: the count now spans internal labor AND
+          // subcontractor time (via is_time_entry), so refresh on any expenses change.
           table: "expenses",
-          filter: "category=eq.labor_internal",
         },
         () => {
           fetchPendingTimeEntriesCount();

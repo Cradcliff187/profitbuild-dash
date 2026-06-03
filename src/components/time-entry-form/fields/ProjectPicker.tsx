@@ -9,8 +9,7 @@ import {
   getShowSandboxProject,
   SANDBOX_PROJECT_NUMBER,
 } from '@/utils/sandboxPreferences';
-
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
+import { isPTOProject, PTO_PROJECT_NUMBERS } from '@/utils/timeEntries';
 
 interface ProjectOption {
   id: string;
@@ -19,7 +18,7 @@ interface ProjectOption {
 }
 
 function getProjectDisplayName(p: ProjectOption): string {
-  if (PTO_PROJECT_NUMBERS.includes(p.project_number)) {
+  if (isPTOProject(p.project_number)) {
     return p.project_name;
   }
   return `${p.project_number} - ${p.project_name}`;
@@ -60,7 +59,7 @@ export function ProjectPicker({
       // construction work + the three PTO buckets (sick / vacation / holiday).
       query = query
         .in('status', ['approved', 'in_progress'])
-        .or('category.eq.construction,project_number.in.(006-SICK,007-VAC,008-HOL)');
+        .or(`category.eq.construction,project_number.in.(${PTO_PROJECT_NUMBERS.join(',')})`);
     }
 
     query
