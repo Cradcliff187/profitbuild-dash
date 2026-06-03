@@ -12,6 +12,20 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+// Session-tied localStorage keys that MUST be cleared on signed-out — carrying
+// these into the next signed-in user on a shared device causes cross-user UI
+// bleed. activeTimer holds a payee_id + start_time + GPS; without clearing it,
+// the next user's Time Tracker restores the previous user's running timer and
+// the Team Member field locks to that other person's name (Gotcha #67).
+// UI prefs like *-visible-columns and projectSidebarCollapsed are intentionally
+// NOT here — they're per-device preferences and safe to carry across users.
+const SESSION_TIED_LOCAL_STORAGE_KEYS = ['activeTimer'] as const;
+const clearSessionTiedLocalStorage = () => {
+  for (const key of SESSION_TIED_LOCAL_STORAGE_KEYS) {
+    localStorage.removeItem(key);
+  }
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -38,7 +52,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        
+
+        // Clear session-tied localStorage on every signed-out signal. Catches
+        // explicit signOut, cross-tab signOut via BroadcastChannel, and
+        // supabase-js's internal _removeSession() — single chokepoint so we
+        // don't have to chase every code path that ends a session.
+        if (event === 'SIGNED_OUT') {
+          clearSessionTiedLocalStorage();
+        }
+
         // Handle magic link sign-in - Supabase redirects automatically via redirectTo
         // Log for debugging purposes
         if (event === 'SIGNED_IN' && session) {
@@ -140,7 +162,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession) {
-        // No active session - silently clear local state and redirect
+        // No active session - silently clear local state and redirect.
+        // No SIGNED_OUT event will fire here (no server-side signOut), so
+        // clear session-tied localStorage explicitly.
+        clearSessionTiedLocalStorage();
         setSession(null);
         setUser(null);
         return;
@@ -150,7 +175,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         // Handle "Session not found" errors gracefully
         if (error.message.includes('Session not found') || error.message.includes('session_not_found')) {
-          // Session already invalidated - just clear local state
+          // Session already invalidated - just clear local state.
+          // SIGNED_OUT may not fire when signOut errors, so clear explicitly.
+          clearSessionTiedLocalStorage();
           setSession(null);
           setUser(null);
           return;
@@ -162,6 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       // Handle any unexpected errors gracefully
       if (error?.message?.includes('Session not found') || error?.message?.includes('session_not_found')) {
+        clearSessionTiedLocalStorage();
         setSession(null);
         setUser(null);
         return;
