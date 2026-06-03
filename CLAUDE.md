@@ -1126,6 +1126,59 @@ A new estimate version starts with scheduling/procurement reset; both only drive
 version is approved/current. Don't "fix" this by special-casing procurement — fix the whole
 scheduling-carry-forward question deliberately if it ever matters.
 
+### 33. Create Quote from an Imported Document (Jun 1–3, 2026, PRs [#128](https://github.com/Cradcliff187/profitbuild-dash/pull/128) + [#132](https://github.com/Cradcliff187/profitbuild-dash/pull/132))
+
+A background Drive-import agent drops files into `project_documents` as `document_type: 'other'` (it can't
+classify them). Reclassifying one to `quote` only relabels the doc row — it does **not** create a real
+`quotes` record (payee, estimate linkage, line items, margin math that cost-tracking depends on). This rule
+turns an imported document into a real quote in one click, reusing the file already in storage.
+
+**The enabling fact**: imported docs (`uploadProjectDocument` → `{projectId}/attachments/...`) and quote
+attachments (`QuoteAttachmentUpload` → `{projectId}/quotes/...`) live in the **same** `project-documents`
+bucket as the **same kind of public URL**, and `quotes.attachment_url` is just that URL string. So "use the
+document that's already there" = point the new quote's `attachment_url` at the existing `file_url` and relink
+the doc row. **No re-upload, no storage copy.**
+
+**Flow**: doc row menu ([`ProjectDocumentsTimeline`](src/components/ProjectDocumentsTimeline.tsx)) /
+[`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) footer → **Create quote from this
+document** → navigates to `/projects/:id/estimates/quotes/new?sourceDocumentId=…` →
+[`QuoteNewRoute`](src/components/project-routes/QuoteNewRoute.tsx) fetches the doc and pre-attaches it →
+[`QuoteForm`](src/components/QuoteForm.tsx) shows the file via `existingFile` (no upload) → on Save,
+[`useProjectData.handleSaveQuote`](src/hooks/useProjectData.tsx) inserts the quote, then relinks the SAME
+`project_documents` row (`related_quote_id = newQuoteId`, `document_type = 'quote'`) — no duplicate doc.
+
+**Key pieces**:
+- [`quoteFromDocument.ts`](src/utils/quoteFromDocument.ts) — shared `canCreateQuoteFromDocument(doc)`
+  (eligible types = `other`|`quote`, and `!related_quote_id`) + `newQuoteFromDocumentPath(doc)`. Both
+  surfaces use it so eligibility never drifts.
+- `QuoteForm` gained transient props `initialAttachmentUrl` / `initialAttachmentName` / `sourceDocumentId`,
+  and `Quote.sourceDocumentId` is a **transient** field (NOT a `quotes` column) used only to carry the doc id
+  to the save handler.
+- The relink is **best-effort** — `attachment_url` already persists via the quote insert, so a relink failure
+  toasts a warning rather than failing the save. On success it invalidates the doc-cache fanout
+  (`project-documents`, `project-documents-timeline`, `project-docs-count`, `field-documents` — Gotcha #27).
+
+**The first-render race that PR #132 fixed (important)**: `QuoteNewRoute` fetches the source doc **after
+mount** (async), so `QuoteForm` seeding its attachment with `useState(initialAttachmentUrl || "")` captured
+`undefined` — the URL arrived a tick later and `useState` never re-applied it. Result: the quote saved with no
+attachment AND the doc was never relinked (the relink is gated on `attachmentUrl`). Fix: a `useEffect` syncs
+`attachmentUrl` from `initialAttachmentUrl` once it resolves (new-quote only; guarded with `!attachmentUrl` and
+`attachmentUrl` excluded from deps so a manual **Remove** still sticks). **Lesson**: any prop that arrives via
+an async fetch in a parent route cannot seed child state through a `useState` initializer alone — sync it with
+an effect, or don't render the child until the value is present.
+
+**Common pitfalls**:
+- **Cancel-safe** (Gotcha #39): navigation writes nothing; the relink only happens on Save. Don't move the
+  relink to the menu-click handler.
+- **Remove-before-save must not delete the source doc.** `QuoteForm`'s attachment `onRemove` only deletes a
+  `project_documents` row when `initialQuote?.id` exists (edit mode); for a new quote seeded from a document it
+  just clears local state. Don't "fix" it to delete by URL — it would nuke the imported document.
+- The relink sets `document_type='quote'` itself, so the user doesn't need to reclassify first — creating the
+  quote IS the classification. Admin/manager only (existing `canEdit`). There is **no `employees` document
+  type** — this flow only ever writes `quote`.
+- **Phase 2 (not built)**: AI extraction of vendor → payee + line items from the PDF (mirror
+  `enrich-estimate-items` / `gpt-4o-mini`) to pre-fill the form on the same entry point.
+
 ---
 
 ## TypeScript Configuration
@@ -1433,6 +1486,8 @@ Use this list when doing periodic documentation reviews:
 64. **Big pick-lists and galleries must cap/window their RENDERED rows — the render, not the query, is the mobile bottleneck (PR [#125](https://github.com/Cradcliff187/profitbuild-dash/pull/125), May 29, 2026)** — Two offenders on the receipt-entry flow, both fixed by bounding what's *mounted* (not what's fetched — the queries were ~10 ms): (1) **`PayeeSelector`** rendered all 208 vendor rows into the cmdk popover at once (1,466 DOM nodes, 208 badges, **434 ms** to first paint on desktop) and cmdk re-scored every row on each keystroke. Fix: `shouldFilter={false}` + a cheap token-substring filter + cap rendered rows to `RENDER_CAP = 50` (top-by-usage when not searching) with a "Showing 50 of N" hint. 208→50 rows, 1466→361 nodes, 434→**92 ms**; typing still reaches every vendor (the `CommandItem` `value` is the payee **id**, not the search string, since cmdk's own filter is off). (2) **`ReceiptsList`** (mobile Time Tracker → Receipts) mapped all 340 receipt rows (each a thumbnail) at once. Fix: render a growing window (`PAGE_SIZE = 24`) and append via an `IntersectionObserver` sentinel; search/filter/sort + bulk "select all" still run over the full in-memory set — only the rendered slice is bounded. 340→24 initial rows, grows 24/scroll. **Rule**: when a combobox/list/gallery can hold 100+ rows, cap or window the render — don't trust `loading="lazy"` images or cmdk to save you; the DOM-node count and per-keystroke re-score are the real cost. The admin Receipts page already does this via `useReceiptsData`'s 90-day window — mirror that pattern. **Don't** reach for virtualization on a list with expand-in-place rows (ReceiptsList rows expand inline → dynamic heights); the windowed-append approach sidesteps that complexity.
 
 65. **Estimate versioning silently orphaned EXPENSE correlations too — the expense analog of Gotcha #57 / Rule 27 (Jun 1, 2026)** — `create_estimate_version()` re-pointed `quote_line_items` to the new version's lines but NOT `expense_line_item_correlations`, so an expense already allocated to a line got stranded on the dead (superseded) line whenever someone clicked "Create New Version". Effect: the expense's **per-line** attribution vanished from Cost Analysis (line `spent`/`remaining` under-counted, "over budget" flags wrong) AND it got stuck — it has a correlation row so the allocate sheets exclude it, but the row points at a line Cost Analysis never reads. Project/category **totals were NOT wrong** (category spend in `fetchCategorySpend` is correlation-independent; EFC's `max(categorySpend, Σ lineEFC)` recovers it) — only per-line. **Live impact**: 106 orphaned correlations / **$121,329** across 5 projects (225-073 $98.5K, 225-039 $18.6K, 225-078 $2.1K, 225-005 $2.0K, 225-037 $87.50). **Fix**: added the parallel `UPDATE expense_line_item_correlations SET estimate_line_item_id = new_li_id WHERE estimate_line_item_id = src_li.id;` inside the RPC's copy loop (safe — new line ids are created in the same txn, so the partial unique index on `(expense_id, estimate_line_item_id)` cannot collide). Same migration also carries forward the labor columns the copy had dropped (versioning was zeroing the labor cushion on 37 versioned labor lines). Verified on SYS-TEST sandbox before applying. **Backfill**: re-pointed the 70 cleanly-pairable orphans ($102,622.57 on 225-073/005/078) by **EXACT `(category, description)` match** to the live approved estimate's line, with a collision guard; orphan count dropped 106 → 36. **Critical lesson — do NOT pair by `(category, sort_order)`**: the preview caught 225-039's `Plumbing`/`Cushion` dead lines coincidentally mapping to a live `Paint` line by sort position. Sort order is not stable across substantially-rewritten versions; description is. **Left unrepaired by PM decision**: 36 correlations / $18,706 on 225-039 (estimate scope was rewritten — no description match) + 225-037 (same line Rule 27 couldn't repair) — stay orphaned until manually mapped. **Don't** add a "one correlation per (expense, line)" uniqueness guard assuming it holds across versions (same caveat as Gotcha #57).
+
+66. **Negative-margin quotes were hard-blocked — a real over-budget sub quote couldn't be saved (PR [#133](https://github.com/Cradcliff187/profitbuild-dash/pull/133), Jun 3, 2026)** — `validateQuoteAmount` in [QuoteForm.tsx](src/components/QuoteForm.tsx) flagged "vendor cost ≥ client price" as `severity: 'critical'`, and `handleSave` refuses to save when any line is critical ("Please fix the critical validation errors before saving."). The guard's intent was to catch the data-entry mistake of pasting the **client price** into the **cost** field — but it can't tell that apart from a legitimate over-budget vendor quote (e.g. UC Evendale 225-062: Hardware sub quoted $3,950 on a $3,300 sell line → −$650 / −19.7% margin, a real scenario the PM needs to record). Fix: **downgrade that case from `critical` to `warning`** so it routes through the existing `window.confirm` ("Save this quote anyway?") path instead of hard-blocking. The ">20% over estimated cost" warning is unchanged; the negative-margin message was reworded to frame it as a margin heads-up, not a "you made a mistake" error. **Net effect**: `validateQuoteAmount` no longer emits `critical` at all, so `hasErrors` is currently unreachable from it — the guard block stays in place (harmless, future-proof) but every quote-amount issue is now a confirm-to-proceed warning. **Don't** re-promote negative margin to `critical` — over-budget quotes are a normal real-world input; the human confirm is the right guard, not a block. **Don't** silently auto-save negatives with no confirm either: the confirm is the only remaining defense against the genuine price-in-cost-field paste mistake.
 
 ---
 
