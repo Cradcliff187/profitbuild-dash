@@ -317,33 +317,48 @@ export const MobileTimeTracker: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Load timer state from localStorage on mount
+  // Restore active timer from localStorage on mount — but ONLY when the
+  // cached timer belongs to the current user. Without this ownership check,
+  // a shared device that previously had User A signed in (with a running
+  // timer) carries A's cached timer into User B's session on the next
+  // sign-in. B's Time Tracker would then restore A's timer and lock the
+  // Team Member field to A's name, greyed out (Gotcha #67 — Danny seeing
+  // Chris on a shared tablet). AuthContext also clears the key on
+  // SIGNED_OUT now, but this guard is defense-in-depth that also covers any
+  // pre-existing stale cache from before that cleanup shipped.
   useEffect(() => {
+    if (!user) return;
     const savedTimer = localStorage.getItem('activeTimer');
-    if (savedTimer) {
-      try {
-        const parsed = JSON.parse(savedTimer);
-        
-        // Sanitize: clear projects that no longer pass the visibility predicate
-        // (e.g. category changed to system, or sandbox toggle was flipped off
-        // while a SYS-TEST timer was cached).
-        if (parsed.project && !isProjectVisibleByCategory(parsed.project)) {
-          parsed.project = null;
-        }
-        
-        setActiveTimer({
-          ...parsed,
-          startTime: new Date(parsed.startTime)
-        });
-        setSelectedTeamMember(parsed.teamMember);
-        setSelectedProject(parsed.project);
-        setLocation(parsed.location);
-      } catch (error) {
-        console.error('Failed to restore timer:', error);
+    if (!savedTimer) return;
+    try {
+      const parsed = JSON.parse(savedTimer);
+
+      // Ownership check — drop the cached timer if it belongs to a
+      // different user.
+      if (parsed.teamMember?.user_id !== user.id) {
         localStorage.removeItem('activeTimer');
+        return;
       }
+
+      // Sanitize: clear projects that no longer pass the visibility predicate
+      // (e.g. category changed to system, or sandbox toggle was flipped off
+      // while a SYS-TEST timer was cached).
+      if (parsed.project && !isProjectVisibleByCategory(parsed.project)) {
+        parsed.project = null;
+      }
+
+      setActiveTimer({
+        ...parsed,
+        startTime: new Date(parsed.startTime)
+      });
+      setSelectedTeamMember(parsed.teamMember);
+      setSelectedProject(parsed.project);
+      setLocation(parsed.location);
+    } catch (error) {
+      console.error('Failed to restore timer:', error);
+      localStorage.removeItem('activeTimer');
     }
-  }, []);
+  }, [user]);
 
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
