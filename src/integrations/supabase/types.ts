@@ -1285,6 +1285,7 @@ export type Database = {
           is_locked: boolean | null
           is_planned: boolean | null
           is_split: boolean
+          is_time_entry: boolean | null
           local_id: string | null
           lunch_duration_minutes: number | null
           lunch_taken: boolean | null
@@ -1323,6 +1324,7 @@ export type Database = {
           is_locked?: boolean | null
           is_planned?: boolean | null
           is_split?: boolean
+          is_time_entry?: boolean | null
           local_id?: string | null
           lunch_duration_minutes?: number | null
           lunch_taken?: boolean | null
@@ -1361,6 +1363,7 @@ export type Database = {
           is_locked?: boolean | null
           is_planned?: boolean | null
           is_split?: boolean
+          is_time_entry?: boolean | null
           local_id?: string | null
           lunch_duration_minutes?: number | null
           lunch_taken?: boolean | null

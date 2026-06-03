@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TimeEntryListItem, TimeEntryFilters, TimeEntryStatistics } from '@/types/timeEntry';
 import { toast } from 'sonner';
 import { parseDateOnly } from '@/utils/dateUtils';
+import { EXCLUDE_ACTIVE_TIMERS_OR } from '@/utils/timeEntries';
 
 export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25, currentPage: number = 1) => {
   const [entries, setEntries] = useState<TimeEntryListItem[]>([]);
@@ -46,15 +47,20 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
           payees!inner(payee_name, hourly_rate, employee_number),
           projects!inner(project_number, project_name, client_name, address)
         `, { count: 'exact' })
-        .not('start_time', 'is', null)
+        // Time/labor entries only, via the canonical `is_time_entry` generated
+        // column (internal labor incl. PTO, or any clocked entry incl.
+        // subcontractor time). This is the single source of truth shared with
+        // both approval badges — see src/utils/timeEntries.ts.
+        .eq('is_time_entry', true)
         // Exclude active (running) timers. The clock-in flow inserts the row
         // immediately with end_time NULL, hours 0 and amount 0 (description
-        // "Active timer"); it's filled in on clock-out. Without this filter an
+        // "Active timer"); it's filled in on clock-out. Without this an
         // in-progress — or stuck/never-clocked-out — timer leaks into the
-        // approval queue as a phantom "0h / $0.00" pending entry that can't be
-        // meaningfully approved. A completed entry always has end_time set, so
-        // it reappears automatically once the worker clocks out.
-        .not('end_time', 'is', null)
+        // approval queue as a phantom "0h / $0.00" entry that can't be
+        // meaningfully approved. EXCLUDE_ACTIVE_TIMERS_OR keeps completed clocked
+        // entries (end_time set) AND clockless PTO (start_time null) while
+        // dropping only active timers.
+        .or(EXCLUDE_ACTIVE_TIMERS_OR)
         .order('expense_date', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -152,11 +158,10 @@ export const useTimeEntries = (filters: TimeEntryFilters, pageSize: number = 25,
       let statsQuery = supabase
         .from('expenses')
         .select('approval_status, start_time, end_time, description, expense_date, lunch_taken, lunch_duration_minutes, hours')
-        .not('start_time', 'is', null)
-        // Match the main query — active timers (end_time NULL) are in-progress,
-        // not completed entries, so they must not inflate the pending count or
-        // hour totals.
-        .not('end_time', 'is', null);
+        // Match the main query's scope (see fetchEntries): time/labor entries,
+        // excluding in-progress active timers.
+        .eq('is_time_entry', true)
+        .or(EXCLUDE_ACTIVE_TIMERS_OR);
 
       // Apply the same filters as the main query (except status filter)
       if (filters.dateFrom) {

@@ -6,13 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRoles } from '@/contexts/RoleContext';
-
-// PTO/Overhead project numbers that don't have traditional start/end times
-const PTO_PROJECT_NUMBERS = ['006-SICK', '007-VAC', '008-HOL'];
-
-const isPTOProject = (projectNumber: string): boolean => {
-  return PTO_PROJECT_NUMBERS.includes(projectNumber);
-};
+import { isPTOProject } from '@/utils/timeEntries';
 
 const formatTime = (dateString: string | null | undefined): string | null => {
   if (!dateString) return null;

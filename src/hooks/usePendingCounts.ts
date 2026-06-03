@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoles } from '@/contexts/RoleContext';
+import { EXCLUDE_ACTIVE_TIMERS_OR, PENDING_APPROVAL_OR } from '@/utils/timeEntries';
 
 interface PendingCounts {
   pendingTimeEntries: number;
@@ -23,19 +24,22 @@ export function usePendingCounts(): PendingCounts {
     }
 
     try {
-      // Fetch pending time entries (any expense row with start_time set, regardless of category).
-      // Discriminator widened so subcontractor labor providers' time entries are counted too.
+      // Fetch pending time entries via the canonical `is_time_entry` generated
+      // column — the single source of truth shared with the table and the
+      // page-tab badge (see src/utils/timeEntries.ts). Covers internal labor
+      // (incl. all PTO) and subcontractor time; excludes active (running) timers.
       const { count: timeCount } = await supabase
         .from('expenses')
         .select('*', { count: 'exact', head: true })
-        .not('start_time', 'is', null)
-        .or('approval_status.is.null,approval_status.eq.pending');
+        .eq('is_time_entry', true)
+        .or(EXCLUDE_ACTIVE_TIMERS_OR)
+        .or(PENDING_APPROVAL_OR);
 
       // Fetch pending receipts
       const { count: receiptCount } = await supabase
         .from('receipts')
         .select('*', { count: 'exact', head: true })
-        .or('approval_status.is.null,approval_status.eq.pending');
+        .or(PENDING_APPROVAL_OR);
 
       setPendingTimeEntries(timeCount || 0);
       setPendingReceipts(receiptCount || 0);
