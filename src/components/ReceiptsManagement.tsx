@@ -50,6 +50,7 @@ export interface ReceiptsManagementRef {
   setFilters: (filters: ReceiptFilters) => void;
   getPayees: () => Array<{ id: string; name: string }>;
   getProjects: () => Array<{ id: string; number: string; name: string }>;
+  getSubmitters: () => Array<{ id: string; name: string }>;
   getFilteredCount: () => number;
   resetFilters: () => void;
 }
@@ -63,6 +64,7 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     status: [],
     payeeIds: [],
     projectIds: [],
+    submittedBy: [],
     amount: null,
   });
   
@@ -220,6 +222,7 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
       status: [],
       payeeIds: [],
       projectIds: [],
+      submittedBy: [],
       amount: null,
     });
   };
@@ -255,9 +258,18 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     setFilters: (newFilters: ReceiptFilters) => setFilters(newFilters),
     getPayees: () => receiptsData.payees,
     getProjects: () => receiptsData.projects,
+    getSubmitters: () => {
+      const map = new Map<string, string>();
+      receiptsData.allReceipts.forEach((r) => {
+        if (r.user_id) map.set(r.user_id, r.submitted_by_name || 'Unknown');
+      });
+      return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+    },
     getFilteredCount: () => filteredReceipts.length,
     resetFilters: handleResetFilters,
-  }), [filteredReceipts, visibleColumns, columnOrder, receiptsData.statistics, receiptsData.payees, receiptsData.projects, filters]);
+  }), [filteredReceipts, visibleColumns, columnOrder, receiptsData.statistics, receiptsData.payees, receiptsData.projects, receiptsData.allReceipts, filters]);
 
   if (receiptsData.loading) {
     return <BrandedLoader message="Loading receipts..." />;

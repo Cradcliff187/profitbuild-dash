@@ -60,7 +60,10 @@ export const useReceiptFiltering = (
       
       // Project filter
       if (filters.projectIds.length > 0 && !filters.projectIds.includes(r.project_id)) return false;
-      
+
+      // Submitted-by (user who entered the receipt) filter
+      if (filters.submittedBy?.length > 0 && !filters.submittedBy.includes(r.user_id || '')) return false;
+
       return true;
     });
   }, [allReceipts, filters]);

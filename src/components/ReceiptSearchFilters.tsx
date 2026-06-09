@@ -9,6 +9,7 @@ export interface ReceiptFilters {
   status: string[];
   payeeIds: string[];
   projectIds: string[];
+  submittedBy: string[];
   amount: string | null;
 }
 
@@ -19,6 +20,7 @@ interface ReceiptSearchFiltersProps {
   resultCount?: number;
   payees: Array<{ id: string; name: string }>;
   projects: Array<{ id: string; number: string; name: string }>;
+  submitters?: Array<{ id: string; name: string }>;
 }
 
 const STATUS_OPTIONS = [
@@ -35,7 +37,8 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
   onReset,
   resultCount,
   payees,
-  projects
+  projects,
+  submitters = []
 }) => {
   const fields: FilterFieldDef[] = [
     { kind: "multiSelect", key: "status", label: "Status", options: STATUS_OPTIONS },
@@ -55,6 +58,16 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
       searchPlaceholder: "Search projects...",
       options: projects.map((p) => ({ value: p.id, label: `${p.number} - ${p.name}` })),
     },
+    ...(submitters.length > 0
+      ? [{
+          kind: "multiSelect" as const,
+          key: "submittedBy",
+          label: "Submitted By",
+          searchable: true,
+          searchPlaceholder: "Search people...",
+          options: submitters.map((s) => ({ value: s.id, label: s.name })),
+        }]
+      : []),
     { kind: "text", key: "amount", label: "Amount", placeholder: "Filter by amount..." },
     { kind: "dateRange", key: "dateRange", label: "Date" },
   ];

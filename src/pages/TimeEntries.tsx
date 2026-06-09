@@ -75,6 +75,7 @@ const TimeEntriesPage = () => {
     status: [],
     payeeIds: [],
     projectIds: [],
+    submittedBy: [],
     amount: null,
   });
 
@@ -99,6 +100,7 @@ const TimeEntriesPage = () => {
   const [receiptFilteredCount, setReceiptFilteredCount] = useState(0);
   const [receiptPayees, setReceiptPayees] = useState<Array<{ id: string; name: string }>>([]);
   const [receiptProjects, setReceiptProjects] = useState<Array<{ id: string; number: string; name: string }>>([]);
+  const [receiptSubmitters, setReceiptSubmitters] = useState<Array<{ id: string; name: string }>>([]);
   const [receiptVisibleColumns, setReceiptVisibleColumns] = useState<string[]>(
     receiptColumnDefinitions.filter(col => col.required || col.key === "status" || col.key === "amount").map(col => col.key)
   );
@@ -221,14 +223,15 @@ const TimeEntriesPage = () => {
           
           const payees = receiptsManagementRef.current.getPayees();
           const projects = receiptsManagementRef.current.getProjects();
-          
+
           // Always update payees and projects (they may be empty initially, but we'll retry)
           setReceiptPayees(payees);
           setReceiptProjects(projects);
-          
+          setReceiptSubmitters(receiptsManagementRef.current.getSubmitters());
+
           const count = receiptsManagementRef.current.getFilteredCount();
           setReceiptFilteredCount(count);
-          
+
           // Return true if data is ready, false if we need to retry
           return payees.length > 0 && projects.length > 0;
         }
@@ -289,6 +292,10 @@ const TimeEntriesPage = () => {
           }
           if (projects.length > 0) {
             setReceiptProjects(projects);
+          }
+          const submitters = receiptsManagementRef.current.getSubmitters();
+          if (submitters.length > 0) {
+            setReceiptSubmitters(submitters);
           }
           
           const count = receiptsManagementRef.current.getFilteredCount();
@@ -691,6 +698,7 @@ const TimeEntriesPage = () => {
                 status: [],
                 payeeIds: [],
                 projectIds: [],
+                submittedBy: [],
                 amount: null,
               };
               setReceiptFilters(resetFilters);
@@ -701,6 +709,7 @@ const TimeEntriesPage = () => {
             resultCount={receiptFilteredCount}
             payees={receiptPayees}
             projects={receiptProjects}
+            submitters={receiptSubmitters}
           />
           <ErrorBoundary>
             <ReceiptsManagement ref={receiptsManagementRef} />
