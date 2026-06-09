@@ -722,7 +722,7 @@ export const EntityFilterBar: React.FC<EntityFilterBarProps> = ({
   const searchInput = searchField ? (
     <div
       className={cn(
-        "flex h-9 flex-1 min-w-0 items-center gap-2 rounded-md border border-input bg-background pl-2.5 pr-1.5",
+        "flex h-9 grow basis-[220px] min-w-[160px] items-center gap-2 rounded-md border border-input bg-background pl-2.5 pr-1.5",
         "focus-within:border-foreground/40 focus-within:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]"
       )}
     >
@@ -747,17 +747,16 @@ export const EntityFilterBar: React.FC<EntityFilterBarProps> = ({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {searchInput}
 
-        {/* Desktop: inline facet buttons */}
-        {!isMobile && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {facetFields.map((field) => (
-              <DesktopFacet key={field.key} field={field} values={values} onChange={onChange} />
-            ))}
-          </div>
-        )}
+        {/* Desktop: inline facet buttons (wrap freely, never squish) */}
+        {!isMobile &&
+          facetFields.map((field) => (
+            <div key={field.key} className="shrink-0">
+              <DesktopFacet field={field} values={values} onChange={onChange} />
+            </div>
+          ))}
 
         {/* Mobile: single Filters button → sheet */}
         {isMobile && facetFields.length > 0 && (
