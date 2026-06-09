@@ -1,14 +1,7 @@
 import React from 'react';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DatePickerPopover } from "@/components/ui/date-picker-popover";
-import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ChevronDown } from "lucide-react";
 import { format } from "date-fns";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
+import type { FilterFieldDef, FilterValues, DateRangeValue } from "@/components/filters/filterTypes";
 
 export interface ReceiptFilters {
   dateFrom: string | null;
@@ -34,6 +27,8 @@ const STATUS_OPTIONS = [
   { value: 'rejected', label: 'Rejected' }
 ];
 
+const parseISO = (iso: string | null): Date | null => (iso ? new Date(`${iso}T00:00:00`) : null);
+
 export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
   filters,
   onFiltersChange,
@@ -42,298 +37,56 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
   payees,
   projects
 }) => {
-  const isMobile = useIsMobile();
+  const fields: FilterFieldDef[] = [
+    { kind: "multiSelect", key: "status", label: "Status", options: STATUS_OPTIONS },
+    {
+      kind: "multiSelect",
+      key: "payeeIds",
+      label: "Payee",
+      searchable: true,
+      searchPlaceholder: "Search payees...",
+      options: payees.map((p) => ({ value: p.id, label: p.name })),
+    },
+    {
+      kind: "multiSelect",
+      key: "projectIds",
+      label: "Project",
+      searchable: true,
+      searchPlaceholder: "Search projects...",
+      options: projects.map((p) => ({ value: p.id, label: `${p.number} - ${p.name}` })),
+    },
+    { kind: "text", key: "amount", label: "Amount", placeholder: "Filter by amount..." },
+    { kind: "dateRange", key: "dateRange", label: "Date" },
+  ];
 
-  const updateFilters = (updates: Partial<ReceiptFilters>) => {
-    onFiltersChange({ ...filters, ...updates });
+  const valuesForBar: FilterValues = {
+    ...filters,
+    amount: filters.amount ?? "",
+    dateRange: { start: parseISO(filters.dateFrom), end: parseISO(filters.dateTo) },
   };
 
-  const toggleStatus = (status: string) => {
-    const newStatuses = filters.status.includes(status)
-      ? filters.status.filter(s => s !== status)
-      : [...filters.status, status];
-    updateFilters({ status: newStatuses });
-  };
-
-  const togglePayee = (payeeId: string) => {
-    const newPayees = filters.payeeIds.includes(payeeId)
-      ? filters.payeeIds.filter(p => p !== payeeId)
-      : [...filters.payeeIds, payeeId];
-    updateFilters({ payeeIds: newPayees });
-  };
-
-  const toggleProject = (projectId: string) => {
-    const newProjects = filters.projectIds.includes(projectId)
-      ? filters.projectIds.filter(p => p !== projectId)
-      : [...filters.projectIds, projectId];
-    updateFilters({ projectIds: newProjects });
-  };
-
-  const getActiveFilterCount = (): number => {
-    let count = 0;
-    if (filters.status.length > 0) count++;
-    if (filters.payeeIds.length > 0) count++;
-    if (filters.projectIds.length > 0) count++;
-    if (filters.dateFrom || filters.dateTo) count++;
-    if (filters.amount) count++;
-    return count;
-  };
-
-  const hasActiveFilters = (): boolean => {
-    return getActiveFilterCount() > 0;
-  };
-
-  const handleClearFilters = () => {
-    onReset();
+  const handleChange = (patch: FilterValues) => {
+    const next = { ...patch } as Record<string, unknown>;
+    if ("dateRange" in next) {
+      const dr = next.dateRange as DateRangeValue;
+      delete next.dateRange;
+      next.dateFrom = dr.start ? format(dr.start, "yyyy-MM-dd") : null;
+      next.dateTo = dr.end ? format(dr.end, "yyyy-MM-dd") : null;
+    }
+    if ("amount" in next) {
+      next.amount = (next.amount as string) || null;
+    }
+    onFiltersChange({ ...filters, ...next } as ReceiptFilters);
   };
 
   return (
-    <CollapsibleFilterSection
-      title="Filter Receipts"
-      hasActiveFilters={hasActiveFilters()}
-      activeFilterCount={getActiveFilterCount()}
-      onClearFilters={handleClearFilters}
+    <EntityFilterBar
+      entityName="Receipts"
+      fields={fields}
+      values={valuesForBar}
+      onChange={handleChange}
+      onClearAll={onReset}
       resultCount={resultCount}
-      defaultExpanded={false}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-        {/* Status Multi-Select Dropdown */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-9 w-full justify-between text-xs"
-            >
-              <span className="truncate">
-                {filters.status.length === 0 
-                  ? "All Statuses" 
-                  : filters.status.length === STATUS_OPTIONS.length
-                  ? "All Statuses"
-                  : `${filters.status.length} selected`
-                }
-              </span>
-              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-2" : "w-56 p-2"} 
-            align={isMobile ? "end" : "start"}
-          >
-            <div className="space-y-1">
-              <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs px-2"
-                  onClick={() => updateFilters({ 
-                    status: STATUS_OPTIONS.map(s => s.value) 
-                  })}
-                >
-                  Select All
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs px-2"
-                  onClick={() => updateFilters({ status: [] })}
-                >
-                  Clear
-                </Button>
-              </div>
-              
-              {STATUS_OPTIONS.map((option) => (
-                <div 
-                  key={option.value}
-                  className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                  onClick={() => toggleStatus(option.value)}
-                >
-                  <Checkbox
-                    checked={filters.status.includes(option.value)}
-                    className="h-4 w-4 pointer-events-none"
-                  />
-                  <label className="text-sm cursor-pointer flex-1">
-                    {option.label}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Payee Multi-Select Filter - Searchable Dropdown */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-full justify-between text-xs"
-            >
-              <span className="truncate">
-                {filters.payeeIds.length === 0 
-                  ? "All Payees" 
-                  : filters.payeeIds.length === payees.length
-                  ? "All Payees"
-                  : `${filters.payeeIds.length} selected`
-                }
-              </span>
-              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
-            align={isMobile ? "end" : "start"}
-          >
-            <Command>
-              <CommandInput placeholder="Search payees..." className="h-9" />
-              <CommandList>
-                <CommandEmpty>No payee found.</CommandEmpty>
-                <CommandGroup>
-                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => updateFilters({ payeeIds: payees.map(p => p.id) })}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => updateFilters({ payeeIds: [] })}
-                  >
-                    Clear
-                  </Button>
-                </div>
-                {payees.map((payee) => (
-                  <CommandItem
-                    key={payee.id}
-                    value={payee.name}
-                    onSelect={() => togglePayee(payee.id)}
-                    className="text-sm"
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <Checkbox
-                        checked={filters.payeeIds.includes(payee.id)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <span>{payee.name}</span>
-                    </div>
-                  </CommandItem>
-                ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {/* Project Multi-Select Filter - Searchable Dropdown */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-full justify-between text-xs"
-            >
-              <span className="truncate">
-                {filters.projectIds.length === 0 
-                  ? "All Projects" 
-                  : filters.projectIds.length === projects.length
-                  ? "All Projects"
-                  : `${filters.projectIds.length} selected`
-                }
-              </span>
-              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className={isMobile ? "w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] p-0" : "w-64 p-0"} 
-            align={isMobile ? "end" : "start"}
-          >
-            <Command>
-              <CommandInput placeholder="Search projects..." className="h-9" />
-              <CommandList>
-                <CommandEmpty>No project found.</CommandEmpty>
-                <CommandGroup>
-                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => updateFilters({ projectIds: projects.map(p => p.id) })}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => updateFilters({ projectIds: [] })}
-                  >
-                    Clear
-                  </Button>
-                </div>
-                {projects.map((project) => (
-                  <CommandItem
-                    key={project.id}
-                    value={`${project.number} ${project.name}`}
-                    onSelect={() => toggleProject(project.id)}
-                    className="text-sm"
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <Checkbox
-                        checked={filters.projectIds.includes(project.id)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <span>{project.number} - {project.name}</span>
-                    </div>
-                  </CommandItem>
-                ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {/* Amount Filter */}
-        <Input
-          type="text"
-          placeholder="Filter by amount..."
-          value={filters.amount || ''}
-          onChange={(e) => updateFilters({ 
-            amount: e.target.value || null
-          })}
-          className="h-9 text-xs"
-        />
-
-        {/* Date Range */}
-        <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
-          <DatePickerPopover
-            value={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
-            onSelect={(date) => updateFilters({
-              dateFrom: date ? format(date, 'yyyy-MM-dd') : null
-            })}
-            placeholder="Start"
-            dateFormat="MMM dd"
-            size="sm"
-            triggerClassName="flex-1 text-xs"
-            iconClassName="h-3 w-3 mr-1"
-          />
-          <DatePickerPopover
-            value={filters.dateTo ? new Date(filters.dateTo) : undefined}
-            onSelect={(date) => updateFilters({
-              dateTo: date ? format(date, 'yyyy-MM-dd') : null
-            })}
-            placeholder="End"
-            dateFormat="MMM dd"
-            size="sm"
-            triggerClassName="flex-1 text-xs"
-            iconClassName="h-3 w-3 mr-1"
-          />
-        </div>
-      </div>
-    </CollapsibleFilterSection>
+    />
   );
 };

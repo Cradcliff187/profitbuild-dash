@@ -1,8 +1,6 @@
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
 import { PayeeType } from "@/types/payee";
-import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
+import type { FilterFieldDef, FilterValues } from "@/components/filters/filterTypes";
 
 interface PayeeFiltersProps {
   searchTerm: string;
@@ -16,6 +14,27 @@ interface PayeeFiltersProps {
   resultCount?: number;
 }
 
+const getPayeeTypeLabel = (type: PayeeType): string => {
+  switch (type) {
+    case PayeeType.SUBCONTRACTOR: return "Subcontractor";
+    case PayeeType.MATERIAL_SUPPLIER: return "Material Supplier";
+    case PayeeType.EQUIPMENT_RENTAL: return "Equipment Rental";
+    case PayeeType.INTERNAL_LABOR: return "Internal Labor";
+    case PayeeType.MANAGEMENT: return "Management";
+    case PayeeType.PERMIT_AUTHORITY: return "Permit Authority";
+    case PayeeType.OTHER: return "Other";
+    default: return type;
+  }
+};
+
+const SERVICES_OPTIONS = [
+  { value: "labor", label: "Provides Labor" },
+  { value: "materials", label: "Provides Materials" },
+  { value: "1099", label: "Requires 1099" },
+  { value: "internal", label: "Internal" },
+  { value: "permit_issuer", label: "Permit Issuer" },
+];
+
 export const PayeeFilters = ({
   searchTerm,
   onSearchChange,
@@ -24,68 +43,47 @@ export const PayeeFilters = ({
   servicesFilter,
   onServicesFilterChange,
   onClearFilters,
-  hasActiveFilters,
   resultCount,
 }: PayeeFiltersProps) => {
-  const getPayeeTypeLabel = (type: PayeeType) => {
-    switch (type) {
-      case PayeeType.SUBCONTRACTOR: return "Subcontractor";
-      case PayeeType.MATERIAL_SUPPLIER: return "Material Supplier";
-      case PayeeType.EQUIPMENT_RENTAL: return "Equipment Rental";
-      case PayeeType.INTERNAL_LABOR: return "Internal Labor";
-      case PayeeType.MANAGEMENT: return "Management";
-      case PayeeType.PERMIT_AUTHORITY: return "Permit Authority";
-      case PayeeType.OTHER: return "Other";
-      default: return type;
-    }
+  const fields: FilterFieldDef[] = [
+    { kind: "search", key: "searchTerm", placeholder: "Search payees..." },
+    {
+      kind: "select",
+      key: "selectedType",
+      label: "Type",
+      allLabel: "All Types",
+      options: Object.values(PayeeType).map((t) => ({ value: t, label: getPayeeTypeLabel(t) })),
+    },
+    {
+      kind: "select",
+      key: "servicesFilter",
+      label: "Services",
+      allLabel: "All Services",
+      options: SERVICES_OPTIONS,
+    },
+  ];
+
+  const values: FilterValues = {
+    searchTerm,
+    selectedType: selectedType === "all" ? null : selectedType,
+    servicesFilter: servicesFilter === "all" ? null : servicesFilter,
+  };
+
+  const handleChange = (patch: FilterValues) => {
+    if ("searchTerm" in patch) onSearchChange((patch.searchTerm as string) ?? "");
+    if ("selectedType" in patch) onTypeChange((patch.selectedType as string | null) ?? "all");
+    if ("servicesFilter" in patch)
+      onServicesFilterChange((patch.servicesFilter as string | null) ?? "all");
   };
 
   return (
-    <CollapsibleFilterSection
-      title="Filter Payees"
-      hasActiveFilters={hasActiveFilters}
-      onClearFilters={onClearFilters}
+    <EntityFilterBar
+      entityName="Payees"
+      fields={fields}
+      values={values}
+      onChange={handleChange}
+      onClearAll={onClearFilters}
       resultCount={resultCount}
-      defaultExpanded={false}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Search */}
-        <Input
-          placeholder="Search payees..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-
-        {/* Type Filter */}
-        <Select value={selectedType} onValueChange={onTypeChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {Object.values(PayeeType).map((type) => (
-              <SelectItem key={type} value={type}>
-                {getPayeeTypeLabel(type)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Services Filter */}
-        <Select value={servicesFilter} onValueChange={onServicesFilterChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Filter by services" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Services</SelectItem>
-            <SelectItem value="labor">Provides Labor</SelectItem>
-            <SelectItem value="materials">Provides Materials</SelectItem>
-            <SelectItem value="1099">Requires 1099</SelectItem>
-            <SelectItem value="internal">Internal</SelectItem>
-            <SelectItem value="permit_issuer">Permit Issuer</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </CollapsibleFilterSection>
+    />
   );
 };

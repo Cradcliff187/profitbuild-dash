@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Split, ChevronRight, FileText, FileCheck2, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -10,14 +9,12 @@ import { ProjectRevenue } from "@/types/revenue";
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CompletePagination } from "@/components/ui/complete-pagination";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
-import { TimePeriodFilter } from "./ui/time-period-filter";
 import { ALL_TIME_PERIOD, TimePeriodValue } from "@/utils/timePeriodPresets";
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
+import type { FilterValues } from "@/components/filters/filterTypes";
 import { usePagination } from '@/hooks/usePagination';
 import { RevenueBulkActions } from "./RevenueBulkActions";
 import { RevenueSplitDialog } from "./RevenueSplitDialog";
@@ -520,43 +517,12 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
       : <ChevronDown className="h-3 w-3 ml-1" />;
   };
 
-  const getActiveFilterCount = (): number => {
-    let count = 0;
-    if (searchTerm) count++;
-    if (filterProjects.length > 0) count++;
-    if (filterClients.length > 0) count++;
-    if (filterPeriod.preset !== "all") count++;
-    return count;
-  };
-
-  const hasActiveFilters = (): boolean => {
-    return getActiveFilterCount() > 0;
-  };
-
   const handleClearFilters = () => {
     setSearchTerm("");
     setFilterProjects([]);
     setFilterClients([]);
     setFilterPeriod(ALL_TIME_PERIOD);
     setSelectedRevenues([]); // Clear selection when filters change
-    pagination.goToPage(1);
-  };
-
-  const toggleProject = (projectId: string) => {
-    setFilterProjects(prev => 
-      prev.includes(projectId)
-        ? prev.filter(id => id !== projectId)
-        : [...prev, projectId]
-    );
-    pagination.goToPage(1);
-  };
-
-  const toggleClient = (clientName: string) => {
-    setFilterClients(prev =>
-      prev.includes(clientName)
-        ? prev.filter(name => name !== clientName)
-        : [...prev, clientName]
-    );
     pagination.goToPage(1);
   };
 
@@ -808,168 +774,45 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
 
   return (
     <div className="dense-spacing">
-      {/* Filters - Compact */}
-      <CollapsibleFilterSection
-        title="Filter Invoices"
-        hasActiveFilters={hasActiveFilters()}
-        activeFilterCount={getActiveFilterCount()}
-        onClearFilters={handleClearFilters}
-        resultCount={filteredRevenues.length}
-        defaultExpanded={false}
+      {/* Filters */}
+      <EntityFilterBar
+        entityName="Invoices"
         className="mb-4"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-          <div className="md:col-span-4">
-            <Input
-              placeholder="Search invoices by number, description, project, client, account, amount..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                pagination.goToPage(1);
-              }}
-              className="h-9"
-            />
-          </div>
-
-          <div className="md:col-span-4">
-            <TimePeriodFilter
-              value={filterPeriod}
-              onChange={(v) => {
-                setFilterPeriod(v);
-                pagination.goToPage(1);
-              }}
-            />
-          </div>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 w-full justify-between text-xs"
-              >
-                <span className="truncate">
-                  {filterProjects.length === 0 
-                    ? "All Projects" 
-                    : `${filterProjects.length} selected`
-                  }
-                </span>
-                <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search projects..." className="h-9" />
-                <CommandList>
-                  <CommandEmpty>No project found.</CommandEmpty>
-                  <CommandGroup>
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterProjects(projects.map(p => p.id))}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterProjects([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  {projects.map((project) => (
-                    <CommandItem
-                      key={project.id}
-                      value={`${project.number} ${project.name}`}
-                      onSelect={() => toggleProject(project.id)}
-                      className="text-sm"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <Checkbox
-                          checked={filterProjects.includes(project.id)}
-                          className="h-4 w-4 pointer-events-none"
-                        />
-                        <span className="text-sm truncate">
-                          {project.number} - {project.name}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 w-full justify-between text-xs"
-              >
-                <span className="truncate">
-                  {filterClients.length === 0 
-                    ? "All Clients" 
-                    : `${filterClients.length} selected`
-                  }
-                </span>
-                <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search clients..." className="h-9" />
-                <CommandList>
-                  <CommandEmpty>No client found.</CommandEmpty>
-                  <CommandGroup>
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterClients(clients.map(c => c.name))}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterClients([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  {clients.map((client) => (
-                    <CommandItem
-                      key={client.name}
-                      value={client.name}
-                      onSelect={() => toggleClient(client.name)}
-                      className="text-sm"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <Checkbox
-                          checked={filterClients.includes(client.name)}
-                          className="h-4 w-4 pointer-events-none"
-                        />
-                        <span className="text-sm truncate">
-                          {client.name}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </CollapsibleFilterSection>
+        resultCount={filteredRevenues.length}
+        fields={[
+          {
+            kind: "search",
+            key: "searchTerm",
+            placeholder: "Search invoices by number, description, project, client, account, amount...",
+          },
+          { kind: "period", key: "filterPeriod", label: "Date" },
+          {
+            kind: "multiSelect",
+            key: "filterProjects",
+            label: "Project",
+            searchable: true,
+            searchPlaceholder: "Search projects...",
+            options: projects.map((p) => ({ value: p.id, label: `${p.number} - ${p.name}` })),
+          },
+          {
+            kind: "multiSelect",
+            key: "filterClients",
+            label: "Client",
+            searchable: true,
+            searchPlaceholder: "Search clients...",
+            options: clients.map((c) => ({ value: c.name, label: c.name })),
+          },
+        ]}
+        values={{ searchTerm, filterPeriod, filterProjects, filterClients }}
+        onChange={(patch: FilterValues) => {
+          if ("searchTerm" in patch) setSearchTerm(patch.searchTerm as string);
+          if ("filterPeriod" in patch) setFilterPeriod(patch.filterPeriod as TimePeriodValue);
+          if ("filterProjects" in patch) setFilterProjects(patch.filterProjects as string[]);
+          if ("filterClients" in patch) setFilterClients(patch.filterClients as string[]);
+          pagination.goToPage(1);
+        }}
+        onClearAll={handleClearFilters}
+      />
 
       {/* Bulk Actions */}
       {selectedRevenues.length > 0 && (
