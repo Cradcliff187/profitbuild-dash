@@ -1126,6 +1126,59 @@ A new estimate version starts with scheduling/procurement reset; both only drive
 version is approved/current. Don't "fix" this by special-casing procurement — fix the whole
 scheduling-carry-forward question deliberately if it ever matters.
 
+### 33. Create Quote from an Imported Document (Jun 1–3, 2026, PRs [#128](https://github.com/Cradcliff187/profitbuild-dash/pull/128) + [#132](https://github.com/Cradcliff187/profitbuild-dash/pull/132))
+
+A background Drive-import agent drops files into `project_documents` as `document_type: 'other'` (it can't
+classify them). Reclassifying one to `quote` only relabels the doc row — it does **not** create a real
+`quotes` record (payee, estimate linkage, line items, margin math that cost-tracking depends on). This rule
+turns an imported document into a real quote in one click, reusing the file already in storage.
+
+**The enabling fact**: imported docs (`uploadProjectDocument` → `{projectId}/attachments/...`) and quote
+attachments (`QuoteAttachmentUpload` → `{projectId}/quotes/...`) live in the **same** `project-documents`
+bucket as the **same kind of public URL**, and `quotes.attachment_url` is just that URL string. So "use the
+document that's already there" = point the new quote's `attachment_url` at the existing `file_url` and relink
+the doc row. **No re-upload, no storage copy.**
+
+**Flow**: doc row menu ([`ProjectDocumentsTimeline`](src/components/ProjectDocumentsTimeline.tsx)) /
+[`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) footer → **Create quote from this
+document** → navigates to `/projects/:id/estimates/quotes/new?sourceDocumentId=…` →
+[`QuoteNewRoute`](src/components/project-routes/QuoteNewRoute.tsx) fetches the doc and pre-attaches it →
+[`QuoteForm`](src/components/QuoteForm.tsx) shows the file via `existingFile` (no upload) → on Save,
+[`useProjectData.handleSaveQuote`](src/hooks/useProjectData.tsx) inserts the quote, then relinks the SAME
+`project_documents` row (`related_quote_id = newQuoteId`, `document_type = 'quote'`) — no duplicate doc.
+
+**Key pieces**:
+- [`quoteFromDocument.ts`](src/utils/quoteFromDocument.ts) — shared `canCreateQuoteFromDocument(doc)`
+  (eligible types = `other`|`quote`, and `!related_quote_id`) + `newQuoteFromDocumentPath(doc)`. Both
+  surfaces use it so eligibility never drifts.
+- `QuoteForm` gained transient props `initialAttachmentUrl` / `initialAttachmentName` / `sourceDocumentId`,
+  and `Quote.sourceDocumentId` is a **transient** field (NOT a `quotes` column) used only to carry the doc id
+  to the save handler.
+- The relink is **best-effort** — `attachment_url` already persists via the quote insert, so a relink failure
+  toasts a warning rather than failing the save. On success it invalidates the doc-cache fanout
+  (`project-documents`, `project-documents-timeline`, `project-docs-count`, `field-documents` — Gotcha #27).
+
+**The first-render race that PR #132 fixed (important)**: `QuoteNewRoute` fetches the source doc **after
+mount** (async), so `QuoteForm` seeding its attachment with `useState(initialAttachmentUrl || "")` captured
+`undefined` — the URL arrived a tick later and `useState` never re-applied it. Result: the quote saved with no
+attachment AND the doc was never relinked (the relink is gated on `attachmentUrl`). Fix: a `useEffect` syncs
+`attachmentUrl` from `initialAttachmentUrl` once it resolves (new-quote only; guarded with `!attachmentUrl` and
+`attachmentUrl` excluded from deps so a manual **Remove** still sticks). **Lesson**: any prop that arrives via
+an async fetch in a parent route cannot seed child state through a `useState` initializer alone — sync it with
+an effect, or don't render the child until the value is present.
+
+**Common pitfalls**:
+- **Cancel-safe** (Gotcha #39): navigation writes nothing; the relink only happens on Save. Don't move the
+  relink to the menu-click handler.
+- **Remove-before-save must not delete the source doc.** `QuoteForm`'s attachment `onRemove` only deletes a
+  `project_documents` row when `initialQuote?.id` exists (edit mode); for a new quote seeded from a document it
+  just clears local state. Don't "fix" it to delete by URL — it would nuke the imported document.
+- The relink sets `document_type='quote'` itself, so the user doesn't need to reclassify first — creating the
+  quote IS the classification. Admin/manager only (existing `canEdit`). There is **no `employees` document
+  type** — this flow only ever writes `quote`.
+- **Phase 2 (not built)**: AI extraction of vendor → payee + line items from the PDF (mirror
+  `enrich-estimate-items` / `gpt-4o-mini`) to pre-fill the form on the same entry point.
+
 ---
 
 ## TypeScript Configuration
