@@ -1,8 +1,6 @@
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
 import { ClientType, CLIENT_TYPES } from "@/types/client";
-import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
+import type { FilterFieldDef, FilterValues } from "@/components/filters/filterTypes";
 
 interface ClientFiltersProps {
   searchTerm: string;
@@ -23,54 +21,55 @@ export const ClientFilters = ({
   onStatusFilterChange,
   resultCount,
 }: ClientFiltersProps) => {
-  const hasActiveFilters = !!searchTerm || typeFilter !== "all" || statusFilter !== "all";
+  const fields: FilterFieldDef[] = [
+    { kind: "search", key: "searchTerm", placeholder: "Search clients..." },
+    {
+      kind: "select",
+      key: "typeFilter",
+      label: "Type",
+      allLabel: "All Types",
+      options: CLIENT_TYPES.map((t) => ({ value: t.value, label: t.label })),
+    },
+    {
+      kind: "select",
+      key: "statusFilter",
+      label: "Status",
+      allLabel: "All Status",
+      options: [
+        { value: "active", label: "Active" },
+        { value: "inactive", label: "Inactive" },
+      ],
+    },
+  ];
 
-  const handleClearFilters = () => {
+  const values: FilterValues = {
+    searchTerm,
+    typeFilter: typeFilter === "all" ? null : typeFilter,
+    statusFilter: statusFilter === "all" ? null : statusFilter,
+  };
+
+  const handleChange = (patch: FilterValues) => {
+    if ("searchTerm" in patch) onSearchChange((patch.searchTerm as string) ?? "");
+    if ("typeFilter" in patch)
+      onTypeFilterChange((patch.typeFilter as ClientType | null) ?? "all");
+    if ("statusFilter" in patch)
+      onStatusFilterChange((patch.statusFilter as "active" | "inactive" | null) ?? "all");
+  };
+
+  const handleClearAll = () => {
     onSearchChange("");
     onTypeFilterChange("all");
     onStatusFilterChange("all");
   };
 
   return (
-    <CollapsibleFilterSection
-      title="Filter Clients"
-      hasActiveFilters={hasActiveFilters}
-      onClearFilters={handleClearFilters}
+    <EntityFilterBar
+      entityName="Clients"
+      fields={fields}
+      values={values}
+      onChange={handleChange}
+      onClearAll={handleClearAll}
       resultCount={resultCount}
-      defaultExpanded={false}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input
-          placeholder="Search clients..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-        
-        <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {CLIENT_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </CollapsibleFilterSection>
+    />
   );
 };

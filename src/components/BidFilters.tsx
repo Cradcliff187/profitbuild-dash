@@ -1,13 +1,6 @@
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DatePickerPopover } from "@/components/ui/date-picker-popover";
-import { ChevronDown } from "lucide-react";
-import { format } from "date-fns";
-import { CollapsibleFilterSection } from "@/components/ui/collapsible-filter-section";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import React from "react";
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
+import type { FilterFieldDef, FilterValues } from "@/components/filters/filterTypes";
 
 export interface BidSearchFilters {
   searchText: string;
@@ -36,31 +29,50 @@ export const BidFilters = ({
   actions,
   clients
 }: BidFiltersProps) => {
-  const updateFilters = (updates: Partial<BidSearchFilters>) => {
-    onFiltersChange({ ...filters, ...updates });
+  const fields: FilterFieldDef[] = [
+    {
+      kind: "search",
+      key: "searchText",
+      placeholder: "Search leads, clients, descriptions...",
+    },
+    {
+      kind: "multiSelect",
+      key: "clientName",
+      label: "Client",
+      searchable: true,
+      searchPlaceholder: "Search clients...",
+      options: clients.map((c) => ({ value: c.client_name, label: c.client_name })),
+    },
+    {
+      kind: "select",
+      key: "hasProject",
+      label: "Project Link",
+      allLabel: "All",
+      options: [
+        { value: "true", label: "Linked to Project" },
+        { value: "false", label: "No Project" },
+      ],
+    },
+    { kind: "dateRange", key: "dateRange", label: "Date" },
+  ];
+
+  const valuesForBar: FilterValues = {
+    ...filters,
+    hasProject: filters.hasProject === null ? null : String(filters.hasProject),
   };
 
-  const toggleClient = (clientName: string) => {
-    const newClients = filters.clientName.includes(clientName)
-      ? filters.clientName.filter(c => c !== clientName)
-      : [...filters.clientName, clientName];
-    updateFilters({ clientName: newClients });
+  const handleChange = (patch: FilterValues) => {
+    const next = { ...patch } as Record<string, unknown>;
+    if ("hasProject" in next) {
+      next.hasProject =
+        next.hasProject === null || next.hasProject === undefined
+          ? null
+          : next.hasProject === "true";
+    }
+    onFiltersChange({ ...filters, ...next } as BidSearchFilters);
   };
 
-  const getActiveFilterCount = (): number => {
-    let count = 0;
-    if (filters.searchText) count++;
-    if (filters.clientName.length > 0) count++;
-    if (filters.hasProject !== null) count++;
-    if (filters.dateRange.start || filters.dateRange.end) count++;
-    return count;
-  };
-
-  const hasActiveFilters = () => {
-    return getActiveFilterCount() > 0;
-  };
-
-  const handleClearFilters = () => {
+  const handleClearAll = () => {
     onFiltersChange({
       searchText: "",
       clientName: [],
@@ -70,136 +82,21 @@ export const BidFilters = ({
   };
 
   return (
-    <CollapsibleFilterSection
-      title="Filter Leads"
-      hasActiveFilters={hasActiveFilters()}
-      activeFilterCount={getActiveFilterCount()}
-      onClearFilters={handleClearFilters}
+    <EntityFilterBar
+      entityName="Leads"
+      fields={fields}
+      values={valuesForBar}
+      onChange={handleChange}
+      onClearAll={handleClearAll}
       resultCount={resultCount}
-      defaultExpanded={false}
-      leftActions={leftActions}
-      actions={actions}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-        {/* Quick Search - Full Width */}
-        <div className="md:col-span-4">
-          <Input
-            placeholder="Search bids, clients, descriptions..."
-            value={filters.searchText}
-            onChange={(e) => updateFilters({ searchText: e.target.value })}
-            className="h-9"
-          />
-        </div>
-
-        {/* Client Multi-Select Filter - Searchable Dropdown */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-full justify-between text-xs"
-            >
-              <span className="truncate">
-                {filters.clientName.length === 0 
-                  ? "All Clients" 
-                  : filters.clientName.length === clients.length
-                  ? "All Clients"
-                  : `${filters.clientName.length} selected`
-                }
-              </span>
-              <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search clients..." className="h-9" />
-              <CommandList>
-                <CommandEmpty>No client found.</CommandEmpty>
-                <CommandGroup>
-                <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => updateFilters({ clientName: clients.map(c => c.client_name) })}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => updateFilters({ clientName: [] })}
-                  >
-                    Clear
-                  </Button>
-                </div>
-                {clients.map((client) => (
-                  <CommandItem
-                    key={client.id}
-                    value={client.client_name}
-                    onSelect={() => toggleClient(client.client_name)}
-                    className="text-sm"
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <Checkbox
-                        checked={filters.clientName.includes(client.client_name)}
-                        onCheckedChange={() => toggleClient(client.client_name)}
-                        className="h-4 w-4"
-                      />
-                      <span>{client.client_name}</span>
-                    </div>
-                  </CommandItem>
-                ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {/* Has Project Filter */}
-        <Select
-          value={filters.hasProject === null ? 'all' : filters.hasProject ? 'yes' : 'no'}
-          onValueChange={(value) => updateFilters({ 
-            hasProject: value === 'all' ? null : value === 'yes' 
-          })}
-        >
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Linked Project" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="yes">Linked to Project</SelectItem>
-            <SelectItem value="no">No Project</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Date Range */}
-        <div className="flex gap-2 md:col-span-2">
-          <DatePickerPopover
-            value={filters.dateRange.start || undefined}
-            onSelect={(date) => updateFilters({
-              dateRange: { ...filters.dateRange, start: date || null }
-            })}
-            placeholder="Start"
-            dateFormat="MMM dd"
-            size="sm"
-            triggerClassName="flex-1 text-xs"
-            iconClassName="h-3 w-3 mr-1"
-          />
-          <DatePickerPopover
-            value={filters.dateRange.end || undefined}
-            onSelect={(date) => updateFilters({
-              dateRange: { ...filters.dateRange, end: date || null }
-            })}
-            placeholder="End"
-            dateFormat="MMM dd"
-            size="sm"
-            triggerClassName="flex-1 text-xs"
-            iconClassName="h-3 w-3 mr-1"
-          />
-        </div>
-      </div>
-    </CollapsibleFilterSection>
+      actions={
+        (leftActions || actions) ? (
+          <>
+            {leftActions}
+            {actions}
+          </>
+        ) : undefined
+      }
+    />
   );
 };

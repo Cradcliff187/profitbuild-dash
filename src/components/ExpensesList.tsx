@@ -44,8 +44,7 @@ import { ExpenseAllocationSheet } from "./ExpenseAllocationSheet";
 import { ReceiptLinkModal } from "./expenses/ReceiptLinkModal";
 import { ReceiptPreviewModal } from "./ReceiptPreviewModal";
 import { unlinkReceiptFromExpense, fetchLinkedReceipt } from "@/utils/receiptLinking";
-import { CollapsibleFilterSection } from "./ui/collapsible-filter-section";
-import { TimePeriodFilter } from "./ui/time-period-filter";
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
 import { ALL_TIME_PERIOD, TimePeriodValue } from "@/utils/timePeriodPresets";
 import { usePagination } from '@/hooks/usePagination';
 import { useExpensesQuery, ExpensesQueryFilters } from '@/hooks/useExpensesQuery';
@@ -286,25 +285,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       .map(key => EXPENSE_COLUMNS.find(col => col.key === key))
       .filter((col): col is ColumnDefinition => col !== undefined);
 
-    const getActiveFilterCount = (): number => {
-      let count = 0;
-      if (searchTerm) count++;
-      if (filterCategories.length > 0) count++;
-      if (filterTransactionTypes.length > 0) count++;
-      if (filterProjects.length > 0) count++;
-      if (filterMatchStatuses.length > 0) count++;
-      if (filterApprovalStatuses.length > 0) count++;
-      if (filterSplitStatuses.length > 0) count++;
-      if (filterPayees.length > 0) count++;
-      if (filterPayeeTypes.length > 0) count++;
-      if (filterPeriod.preset !== "all") count++;
-      return count;
-    };
-
-    const hasActiveFilters = (): boolean => {
-      return getActiveFilterCount() > 0;
-    };
-
     const handleClearFilters = () => {
       setSearchTerm("");
       setFilterCategories([]);
@@ -316,71 +296,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
       setFilterPayees([]);
       setFilterPayeeTypes([]);
       setFilterPeriod(ALL_TIME_PERIOD);
-    };
-
-    // Toggle helper functions for multi-select
-    const toggleProject = (projectId: string) => {
-      setFilterProjects(prev => 
-        prev.includes(projectId)
-          ? prev.filter(id => id !== projectId)
-          : [...prev, projectId]
-      );
-    };
-
-    const toggleCategory = (category: string) => {
-      setFilterCategories(prev =>
-        prev.includes(category)
-          ? prev.filter(c => c !== category)
-          : [...prev, category]
-      );
-    };
-
-    const toggleTransactionType = (type: string) => {
-      setFilterTransactionTypes(prev =>
-        prev.includes(type)
-          ? prev.filter(t => t !== type)
-          : [...prev, type]
-      );
-    };
-
-    const toggleMatchStatus = (status: string) => {
-      setFilterMatchStatuses(prev =>
-        prev.includes(status)
-          ? prev.filter(s => s !== status)
-          : [...prev, status]
-      );
-    };
-
-    const toggleApprovalStatus = (status: string) => {
-      setFilterApprovalStatuses(prev =>
-        prev.includes(status)
-          ? prev.filter(s => s !== status)
-          : [...prev, status]
-      );
-    };
-
-    const toggleSplitStatus = (status: string) => {
-      setFilterSplitStatuses(prev =>
-        prev.includes(status)
-          ? prev.filter(s => s !== status)
-          : [...prev, status]
-      );
-    };
-
-    const togglePayee = (payeeId: string) => {
-      setFilterPayees(prev => 
-        prev.includes(payeeId)
-          ? prev.filter(id => id !== payeeId)
-          : [...prev, payeeId]
-      );
-    };
-
-    const togglePayeeType = (type: string) => {
-      setFilterPayeeTypes(prev =>
-        prev.includes(type)
-          ? prev.filter(t => t !== type)
-          : [...prev, type]
-      );
     };
 
     React.useImperativeHandle(ref, () => ({
@@ -1742,533 +1657,114 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
           </div>
         </div>
 
-        {/* Filters - Compact */}
-        <CollapsibleFilterSection
-          title="Filter Expenses"
-          hasActiveFilters={hasActiveFilters()}
-          activeFilterCount={getActiveFilterCount()}
-          onClearFilters={handleClearFilters}
-          resultCount={filteredExpenses.length}
-          defaultExpanded={false}
+        {/* Filters */}
+        <EntityFilterBar
+          entityName="Expenses"
           className="mb-4"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-            <div className="md:col-span-4">
-              <Input
-                placeholder="Search by payee, description, invoice, project, amount..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-9"
-              />
-            </div>
-
-            <div className="md:col-span-4">
-              <TimePeriodFilter value={filterPeriod} onChange={setFilterPeriod} />
-            </div>
-
-            {!projectId && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-9 w-full justify-between text-xs"
-                  >
-                    <span className="truncate">
-                      {filterProjects.length === 0 
-                        ? "All Projects" 
-                        : `${filterProjects.length} selected`
-                      }
-                    </span>
-                    <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full sm:w-64 p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search projects..." className="h-9" />
-                    <CommandList>
-                      <CommandEmpty>No project found.</CommandEmpty>
-                      <CommandGroup>
-                        <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs px-2"
-                            onClick={() => setFilterProjects(projects.map(p => p.id))}
-                          >
-                            Select All
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs px-2"
-                            onClick={() => setFilterProjects([])}
-                          >
-                            Clear
-                          </Button>
-                        </div>
-                        {projects.map((project) => (
-                          <CommandItem
-                            key={project.id}
-                            value={`${project.project_number} ${project.project_name}`}
-                            onSelect={() => toggleProject(project.id)}
-                            className="text-sm"
-                          >
-                            <div className="flex items-center gap-2 w-full">
-                              <Checkbox
-                                checked={filterProjects.includes(project.id)}
-                                className="h-4 w-4 pointer-events-none"
-                              />
-                              <span className="text-sm truncate">
-                                {project.project_number} - {project.project_name}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            )}
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterCategories.length === 0 
-                      ? "Expense Categories" 
-                      : `${filterCategories.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-56 p-2" align="start">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterCategories(Object.keys(EXPENSE_CATEGORY_DISPLAY))}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterCategories([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  
-                  {Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => (
-                    <div 
-                      key={value}
-                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                      onClick={() => toggleCategory(value)}
-                    >
-                      <Checkbox
-                        checked={filterCategories.includes(value)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <label className="text-sm cursor-pointer flex-1">
-                        {label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterTransactionTypes.length === 0 
-                      ? "Transaction Types" 
-                      : `${filterTransactionTypes.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-56 p-2" align="start">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterTransactionTypes(Object.keys(TRANSACTION_TYPE_DISPLAY))}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterTransactionTypes([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  
-                  {Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => (
-                    <div 
-                      key={value}
-                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                      onClick={() => toggleTransactionType(value)}
-                    >
-                      <Checkbox
-                        checked={filterTransactionTypes.includes(value)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <label className="text-sm cursor-pointer flex-1">
-                        {label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterMatchStatuses.length === 0 
-                      ? "Allocation Status" 
-                      : `${filterMatchStatuses.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-56 p-2" align="start">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterMatchStatuses(["unassigned", "unmatched", "matched"])}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterMatchStatuses([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  
-                  <div 
-                    className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                    onClick={() => toggleMatchStatus("unassigned")}
-                  >
-                    <Checkbox
-                      checked={filterMatchStatuses.includes("unassigned")}
-                      className="h-4 w-4 pointer-events-none"
-                    />
-                    <label className="text-sm cursor-pointer flex-1">
-                      ⚠️ Needs Assignment
-                    </label>
-                  </div>
-                  <div 
-                    className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                    onClick={() => toggleMatchStatus("unmatched")}
-                  >
-                    <Checkbox
-                      checked={filterMatchStatuses.includes("unmatched")}
-                      className="h-4 w-4 pointer-events-none"
-                    />
-                    <label className="text-sm cursor-pointer flex-1">
-                      ⚠️ Unallocated
-                    </label>
-                  </div>
-                  <div 
-                    className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                    onClick={() => toggleMatchStatus("matched")}
-                  >
-                    <Checkbox
-                      checked={filterMatchStatuses.includes("matched")}
-                      className="h-4 w-4 pointer-events-none"
-                    />
-                    <label className="text-sm cursor-pointer flex-1">
-                      ✅ Allocated
-                    </label>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterApprovalStatuses.length === 0 
-                      ? "All Statuses" 
-                      : `${filterApprovalStatuses.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-56 p-2" align="start">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterApprovalStatuses(["pending", "approved", "rejected"])}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterApprovalStatuses([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  
-                  {[
-                    { value: "pending", label: "Pending" },
-                    { value: "approved", label: "Approved" },
-                    { value: "rejected", label: "Rejected" }
-                  ].map(({ value, label }) => (
-                    <div 
-                      key={value}
-                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                      onClick={() => toggleApprovalStatus(value)}
-                    >
-                      <Checkbox
-                        checked={filterApprovalStatuses.includes(value)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <label className="text-sm cursor-pointer flex-1">
-                        {label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterSplitStatuses.length === 0 
-                      ? "Split Status" 
-                      : `${filterSplitStatuses.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-56 p-2" align="start">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterSplitStatuses(["split", "unsplit"])}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterSplitStatuses([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  
-                  {[
-                    { value: "split", label: "Split Expenses" },
-                    { value: "unsplit", label: "Single Project" }
-                  ].map(({ value, label }) => (
-                    <div 
-                      key={value}
-                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                      onClick={() => toggleSplitStatus(value)}
-                    >
-                      <Checkbox
-                        checked={filterSplitStatuses.includes(value)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <label className="text-sm cursor-pointer flex-1">
-                        {label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterPayees.length === 0 
-                      ? "All Payees" 
-                      : `${filterPayees.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-64 p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search payees..." className="h-9" />
-                  <CommandList>
-                    <CommandEmpty>No payee found.</CommandEmpty>
-                    <CommandGroup>
-                      <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-2"
-                          onClick={() => setFilterPayees(payees.map(p => p.id))}
-                        >
-                          Select All
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-2"
-                          onClick={() => setFilterPayees([])}
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                      {payees.map((payee) => (
-                        <CommandItem
-                          key={payee.id}
-                          value={payee.payee_name}
-                          onSelect={() => togglePayee(payee.id)}
-                          className="text-sm"
-                        >
-                          <div className="flex items-center gap-2 w-full">
-                            <Checkbox
-                              checked={filterPayees.includes(payee.id)}
-                              className="h-4 w-4 pointer-events-none"
-                            />
-                            <span className="text-sm truncate">
-                              {payee.payee_name}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 w-full justify-between text-xs"
-                >
-                  <span className="truncate">
-                    {filterPayeeTypes.length === 0 
-                      ? "All Payee Types" 
-                      : `${filterPayeeTypes.length} selected`
-                    }
-                  </span>
-                  <ChevronDown className="h-3 w-3 ml-2 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full sm:w-56 p-2" align="start">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 py-1.5 border-b mb-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterPayeeTypes(Object.values(PayeeType))}
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => setFilterPayeeTypes([])}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  
-                  {[
-                    { value: PayeeType.SUBCONTRACTOR, label: "Subcontractor" },
-                    { value: PayeeType.MATERIAL_SUPPLIER, label: "Material Supplier" },
-                    { value: PayeeType.EQUIPMENT_RENTAL, label: "Equipment Rental" },
-                    { value: PayeeType.INTERNAL_LABOR, label: "Internal Labor" },
-                    { value: PayeeType.MANAGEMENT, label: "Management" },
-                    { value: PayeeType.PERMIT_AUTHORITY, label: "Permit Authority" },
-                    { value: PayeeType.OTHER, label: "Other" }
-                  ].map(({ value, label }) => (
-                    <div 
-                      key={value}
-                      className="flex items-center space-x-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-pointer"
-                      onClick={() => togglePayeeType(value)}
-                    >
-                      <Checkbox
-                        checked={filterPayeeTypes.includes(value)}
-                        className="h-4 w-4 pointer-events-none"
-                      />
-                      <label className="text-sm cursor-pointer flex-1">
-                        {label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </CollapsibleFilterSection>
+          resultCount={filteredExpenses.length}
+          fields={[
+            { kind: "search" as const, key: "searchTerm", placeholder: "Search by payee, description, invoice, project, amount..." },
+            { kind: "period" as const, key: "filterPeriod", label: "Date" },
+            ...(projectId
+              ? []
+              : [{
+                  kind: "multiSelect" as const,
+                  key: "filterProjects",
+                  label: "Project",
+                  searchable: true,
+                  searchPlaceholder: "Search projects...",
+                  options: projects.map((p) => ({ value: p.id, label: `${p.project_number} - ${p.project_name}` })),
+                }]),
+            {
+              kind: "multiSelect" as const,
+              key: "filterCategories",
+              label: "Category",
+              options: Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([value, label]) => ({ value, label: label as string })),
+            },
+            {
+              kind: "multiSelect" as const,
+              key: "filterTransactionTypes",
+              label: "Txn Type",
+              options: Object.entries(TRANSACTION_TYPE_DISPLAY).map(([value, label]) => ({ value, label: label as string })),
+            },
+            {
+              kind: "multiSelect" as const,
+              key: "filterMatchStatuses",
+              label: "Allocation",
+              options: [
+                { value: "unassigned", label: "⚠️ Needs Assignment" },
+                { value: "unmatched", label: "⚠️ Unallocated" },
+                { value: "matched", label: "✅ Allocated" },
+              ],
+            },
+            {
+              kind: "multiSelect" as const,
+              key: "filterApprovalStatuses",
+              label: "Approval",
+              options: [
+                { value: "pending", label: "Pending" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+              ],
+            },
+            {
+              kind: "multiSelect" as const,
+              key: "filterSplitStatuses",
+              label: "Split",
+              options: [
+                { value: "split", label: "Split Expenses" },
+                { value: "unsplit", label: "Single Project" },
+              ],
+            },
+            {
+              kind: "multiSelect" as const,
+              key: "filterPayees",
+              label: "Payee",
+              searchable: true,
+              searchPlaceholder: "Search payees...",
+              options: payees.map((p) => ({ value: p.id, label: p.payee_name })),
+            },
+            {
+              kind: "multiSelect" as const,
+              key: "filterPayeeTypes",
+              label: "Payee Type",
+              options: [
+                { value: PayeeType.SUBCONTRACTOR, label: "Subcontractor" },
+                { value: PayeeType.MATERIAL_SUPPLIER, label: "Material Supplier" },
+                { value: PayeeType.EQUIPMENT_RENTAL, label: "Equipment Rental" },
+                { value: PayeeType.INTERNAL_LABOR, label: "Internal Labor" },
+                { value: PayeeType.MANAGEMENT, label: "Management" },
+                { value: PayeeType.PERMIT_AUTHORITY, label: "Permit Authority" },
+                { value: PayeeType.OTHER, label: "Other" },
+              ],
+            },
+          ]}
+          values={{
+            searchTerm,
+            filterPeriod,
+            filterProjects,
+            filterCategories,
+            filterTransactionTypes,
+            filterMatchStatuses,
+            filterApprovalStatuses,
+            filterSplitStatuses,
+            filterPayees,
+            filterPayeeTypes,
+          }}
+          onChange={(patch) => {
+            if ("searchTerm" in patch) setSearchTerm(patch.searchTerm as string);
+            if ("filterPeriod" in patch) setFilterPeriod(patch.filterPeriod as TimePeriodValue);
+            if ("filterProjects" in patch) setFilterProjects(patch.filterProjects as string[]);
+            if ("filterCategories" in patch) setFilterCategories(patch.filterCategories as string[]);
+            if ("filterTransactionTypes" in patch) setFilterTransactionTypes(patch.filterTransactionTypes as string[]);
+            if ("filterMatchStatuses" in patch) setFilterMatchStatuses(patch.filterMatchStatuses as string[]);
+            if ("filterApprovalStatuses" in patch) setFilterApprovalStatuses(patch.filterApprovalStatuses as string[]);
+            if ("filterSplitStatuses" in patch) setFilterSplitStatuses(patch.filterSplitStatuses as string[]);
+            if ("filterPayees" in patch) setFilterPayees(patch.filterPayees as string[]);
+            if ("filterPayeeTypes" in patch) setFilterPayeeTypes(patch.filterPayeeTypes as string[]);
+          }}
+          onClearAll={handleClearFilters}
+        />
 
         {/* Global mode: server-side pagination status + Load More */}
         {isGlobalMode && (
