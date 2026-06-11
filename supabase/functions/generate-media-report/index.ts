@@ -113,19 +113,31 @@ async function convertMediaToBase64(
 
   for (let i = 0; i < results.length; i += batchSize) {
     const batch = results.slice(i, i + batchSize);
-    const base64Results = await Promise.all(
-      batch.map((media) => fetchImageAsBase64(media.file_url))
+    const convertedBatch = await Promise.all(
+      batch.map(async (media) => {
+        // Embed only what the report actually renders. For videos that's the
+        // thumbnail (the timeline shows thumbnail_url); file_url is the raw video
+        // binary — never rendered as an <img>, and downloading/encoding a
+        // multi-MB video would needlessly blow the worker resource limit.
+        if (media.file_type === 'video') {
+          if (!media.thumbnail_url) return media;
+          const b64 = await fetchImageAsBase64(media.thumbnail_url);
+          return b64 ? { ...media, thumbnail_url: b64 } : media;
+        }
+        const b64 = await fetchImageAsBase64(media.file_url);
+        // If conversion fails, keep the signed URL as fallback
+        return b64 ? { ...media, file_url: b64 } : media;
+      })
     );
 
-    base64Results.forEach((base64Url, idx) => {
-      if (base64Url) {
-        results[i + idx] = { ...results[i + idx], file_url: base64Url };
-      }
-      // If conversion fails, keep the signed URL as fallback
+    convertedBatch.forEach((media, idx) => {
+      results[i + idx] = media;
     });
   }
 
-  const converted = results.filter((m) => m.file_url?.startsWith('data:')).length;
+  const converted = results.filter(
+    (m) => m.file_url?.startsWith('data:') || m.thumbnail_url?.startsWith('data:')
+  ).length;
   console.log(`✅ Base64 conversion: ${converted}/${results.length} succeeded`);
 
   return results;
