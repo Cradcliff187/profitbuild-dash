@@ -78,9 +78,16 @@ async function fetchImageAsBase64(
 
     const arrayBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = btoa(
-      uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+
+    // Encode in 32KB chunks. The previous one-concat-per-byte reduce was
+    // O(n²) in CPU + memory and tripped the edge worker resource limit
+    // (HTTP 546 / WORKER_LIMIT) on full-resolution photos.
+    let binary = '';
+    const CHUNK = 0x8000; // 32KB
+    for (let i = 0; i < uint8Array.length; i += CHUNK) {
+      binary += String.fromCharCode(...uint8Array.subarray(i, i + CHUNK));
+    }
+    const base64 = btoa(binary);
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     return `data:${contentType};base64,${base64}`;
@@ -99,7 +106,9 @@ async function convertMediaToBase64(
 
   console.log(`🖼️ Converting ${mediaItems.length} images to base64...`);
 
-  const batchSize = 5;
+  // Keep concurrency low — each in-flight full-res image holds its decoded
+  // bytes + base64 in memory; too many at once pressures the 256MB worker cap.
+  const batchSize = 3;
   const results = [...mediaItems];
 
   for (let i = 0; i < results.length; i += batchSize) {
