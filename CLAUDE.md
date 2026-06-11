@@ -120,7 +120,7 @@ These four functions MUST be deployed together with the shared file via Supabase
 | `send-auth-email` | false | 114 |
 | `send-receipt-notification` | false | 97 |
 | `send-training-notification` | false | 46 |
-| `generate-media-report` | true | 115 |
+| `generate-media-report` | true | 119 |
 
 ### Critical: `admin-disable-user` / `admin-enable-user` Pinned Versions
 
