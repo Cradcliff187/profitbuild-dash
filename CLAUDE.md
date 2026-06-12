@@ -1126,6 +1126,38 @@ A new estimate version starts with scheduling/procurement reset; both only drive
 version is approved/current. Don't "fix" this by special-casing procurement — fix the whole
 scheduling-carry-forward question deliberately if it ever matters.
 
+### 33. Unified List Filters — `EntityFilterBar` (Jun 9, 2026, PR [#146](https://github.com/Cradcliff187/profitbuild-dash/pull/146))
+
+Every list page's filter UI renders through one shared component:
+[`EntityFilterBar`](src/components/filters/EntityFilterBar.tsx) (+ [`filterTypes.ts`](src/components/filters/filterTypes.ts)
+and [`dateRangePresets.ts`](src/components/filters/dateRangePresets.ts)). Replaced 11 bespoke
+per-page filter implementations (net −1,267 lines). Desktop = search input + facet popovers +
+active-filter chips + result count; mobile = a single filter Sheet. Layout is responsive at every
+width (fixed in the same PR).
+
+**Adapter pattern — the bar never owns canonical state.** Pages keep their existing typed
+`FilterState` (so the `*ExportModal`s and query hooks stay untouched) and adapt at the edge:
+declare a `FilterFieldDef[]`, map state to a plain `FilterValues` bag, and apply `onChange`
+patches back into the typed state. Seven field kinds: `search`, `text`, `multiSelect`
+(`searchable` swaps checkboxes for a cmdk list), `select`, `dateRange` (preset pills),
+`numberRange` (`prefix: "$"`), and `period` — which wraps the app-wide `TimePeriodFilter` for
+surfaces whose state is a single `TimePeriodValue` (Expenses, Invoices) so pagination semantics
+are preserved.
+
+**Consumers (11)**: `BidFilters`, `ClientFilters`, `EstimateSearchFilters`, `ExpensesList`,
+`PayeeFilters`, `ProjectFilters`, `QuoteFilters`, `ReceiptSearchFilters`, `RevenuesList`,
+`TimeEntrySearchFilters`, `WorkOrderFilters`. Same PR added a **"Submitted By"** facet on the
+Receipts tab (`useReceiptFiltering.submittedBy`, matches `receipts.user_id`).
+
+**Common pitfalls**:
+- Don't build a new bespoke filter row on a list page — declare `FilterFieldDef`s and mount
+  `EntityFilterBar`. If a control type is missing, extend the `FilterFieldDef` union (and
+  `emptyValueForField` + `isFieldActive` + the bar's renderer) so every page gets it.
+- Don't move canonical filter state into the bar — the page's typed `FilterState` stays the
+  source of truth; the bar only reads the value bag and emits patches.
+- `multiSelect` popovers use the proper `<CommandList>` shell — keep Gotcha #48's wheel-isolation
+  invariant if you touch them.
+
 ---
 
 ## TypeScript Configuration
