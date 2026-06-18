@@ -255,6 +255,13 @@ Deno.serve(async (req) => {
       streetAddress: subParsed.street,
       cityStateZip: subParsed.cityStateZip,
       legalEntity: `[${String(sub.stateOfFormation ?? '').trim()}] [${String(sub.legalForm ?? '').trim()}]`,
+      // The template carries two full-address placeholders in the subcontractor
+      // contact block ({{SUBCONTRACTOR_ADDRESS}} above Phone, and
+      // {{SUBCONTRACTOR_ADDRESS_FORMATTED}} above E-Mail). Both were fed the same
+      // billing_address, printing the address twice. The single-line address
+      // ({{SUBCONTRACTOR_ADDRESS}}) is the canonical one; blank the formatted
+      // duplicate so it renders once.
+      addressFormatted: '',
     };
     
     const rcg = (enrichedFieldValues.rcg || {}) as Record<string, unknown>;

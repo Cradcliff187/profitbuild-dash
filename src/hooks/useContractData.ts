@@ -137,7 +137,9 @@ export function useContractData({
           phone: payee?.phone_numbers ?? '',
           email: payee?.email ?? '',
           address: payee?.billing_address ?? '',
-          addressFormatted: payee?.billing_address ?? '',
+          // Canonical address only. The template's {{SUBCONTRACTOR_ADDRESS_FORMATTED}}
+          // placeholder is left blank so the address isn't duplicated in the contract.
+          addressFormatted: '',
         },
         project: {
           projectNameNumber: formatProjectNameNumber(

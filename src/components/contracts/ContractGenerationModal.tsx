@@ -36,8 +36,6 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DatePickerPopover } from '@/components/ui/date-picker-popover';
 import { Loader2, AlertCircle, FileText, Download, Plus, Trash2 } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
@@ -154,7 +152,7 @@ export function ContractGenerationModal({
     resolver: zodResolver(contractFormSchema),
     defaultValues: {
       listOfExhibits: [''],
-      outputFormat: 'both',
+      outputFormat: 'docx',
       saveToDocuments: true,
       saveToPayee: true,
     },
@@ -204,7 +202,7 @@ export function ContractGenerationModal({
         governingState: fieldValues.contract.governingState ?? 'Kentucky',
         governingCountyState: fieldValues.contract.governingCountyState ?? 'Boone County, Kentucky',
         arbitrationLocation: fieldValues.contract.arbitrationLocation ?? 'Covington, Kentucky',
-        outputFormat: 'both',
+        outputFormat: 'docx',
         saveToDocuments: true,
         saveToPayee: true,
       });
@@ -242,7 +240,10 @@ export function ContractGenerationModal({
         phone: values.subcontractorPhone || '',
         email: values.subcontractorEmail || '',
         address: values.subcontractorAddress,
-        addressFormatted: values.subcontractorAddress,
+        // Single canonical address. The template's second placeholder
+        // ({{SUBCONTRACTOR_ADDRESS_FORMATTED}}) is intentionally left blank so the
+        // address isn't printed twice in the contact block.
+        addressFormatted: '',
       },
       project: {
         projectNameNumber: values.projectNameNumber,
@@ -963,35 +964,11 @@ export function ContractGenerationModal({
             </Accordion>
 
             <div className="border rounded-lg p-4 space-y-4">
-              <h4 className="font-semibold">Output Options</h4>
-              <FormField
-                control={form.control}
-                name="outputFormat"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="flex flex-col space-y-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="docx" id="docx" />
-                          <Label htmlFor="docx">Generate DOCX only</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="pdf" id="pdf" />
-                          <Label htmlFor="pdf">Generate PDF only</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="both" id="both" />
-                          <Label htmlFor="both">Generate DOCX + PDF</Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <h4 className="font-semibold">Save Options</h4>
+              <p className="text-sm text-muted-foreground">
+                The agreement is generated as a Word document (.docx). You can print or
+                save it as a PDF from the next screen.
+              </p>
               <FormField
                 control={form.control}
                 name="saveToDocuments"
