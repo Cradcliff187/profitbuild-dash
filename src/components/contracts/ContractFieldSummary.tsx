@@ -32,7 +32,6 @@ export function ContractFieldSummary({ fieldValues }: ContractFieldSummaryProps)
           <FieldRow label="Phone Number" value={subcontractor.phone} />
           <FieldRow label="Email Address" value={subcontractor.email} />
           <FieldRow label="Physical Address" value={subcontractor.address} />
-          <FieldRow label="Address (formatted)" value={subcontractor.addressFormatted} />
           <FieldRow label="Legal Form" value={subcontractor.legalForm} />
           <FieldRow label="State of Formation" value={subcontractor.stateOfFormation} />
         </CardContent>
