@@ -34,7 +34,9 @@ export function CompanyBrandingSettings() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase
+
+    // 1. Save branding columns (logos, colors, display info).
+    const { error: brandingError } = await supabase
       .from('company_branding_settings')
       .update({
         company_name: branding.company_name,
@@ -50,10 +52,42 @@ export function CompanyBrandingSettings() {
       })
       .eq('id', branding.id);
 
-    if (error) {
-      toast.error("Error saving settings", { description: error.message });
+    if (brandingError) {
+      toast.error("Error saving settings", { description: brandingError.message });
+      setSaving(false);
+      return;
+    }
+
+    // 2. Mirror the shared contact fields into `company_settings`.
+    // Contracts and invoices read company info from the key/value `company_settings`
+    // table — NOT this branding table — so without this sync, editing the profile
+    // address/phone here would leave generated documents showing stale values.
+    // Only address + phone are mirrored: they're the unambiguously-shared fields.
+    // Legal/display name are intentionally NOT synced, because the contract recital
+    // legal name (e.g. "RCG LLC, a Kentucky limited liability company") is deliberately
+    // distinct from the branding display name and must not be overwritten.
+    const settingSyncs: { key: string; value: string }[] = [
+      { key: 'company_address', value: branding.company_address ?? '' },
+      { key: 'company_phone', value: branding.company_phone ?? '' },
+    ];
+    const syncResults = await Promise.all(
+      settingSyncs.map(({ key, value }) =>
+        supabase
+          .from('company_settings')
+          .update({ setting_value: value, updated_at: new Date().toISOString() })
+          .eq('setting_key', key)
+      )
+    );
+    const syncError = syncResults.find((r) => r.error)?.error;
+
+    if (syncError) {
+      toast.error("Branding saved, but contract info didn't sync", {
+        description: syncError.message,
+      });
     } else {
-      toast.success("Settings saved", { description: "Company branding updated successfully" });
+      toast.success("Settings saved", {
+        description: "Company branding and contract info updated",
+      });
     }
     setSaving(false);
   };
