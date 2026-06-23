@@ -54,7 +54,7 @@ npm run upload:template       # Upload contract Word template to Storage
 | Backend | Supabase (PostgreSQL, Auth, Storage, Edge Functions) |
 | Email | Resend (via edge functions) |
 | SMS | Textbelt (via edge functions) |
-| AI features | Supabase edge functions → OpenAI API (gpt-4o-mini for reports, Whisper for audio) |
+| AI features | Supabase edge functions → OpenAI API (gpt-4o for Reports AI SQL generation + gpt-4o-mini for narration, Whisper for audio) |
 | File handling | PapaParse (CSV), XLSX, JSZip, react-dropzone |
 | Sanitization | DOMPurify (HTML sanitization for user-provided embeds) |
 
@@ -135,11 +135,13 @@ The `ai-report-assistant` function uses a generated `kpi-context.generated.ts` f
 
 | Function | verify_jwt | Pinned version | AI Model | API Key Secret |
 |----------|------------|----------------|----------|----------------|
-| `ai-report-assistant` | true | 71 | `gpt-4o-mini` (OpenAI) | `OPENAI_API_KEY` |
+| `ai-report-assistant` | true | 76 | `gpt-4o` (SQL gen) + `gpt-4o-mini` (narration) — overridable via `AI_REPORT_SQL_MODEL` / `AI_REPORT_NARRATION_MODEL` secrets | `OPENAI_API_KEY` |
 
 **Model history:** Switched from Lovable AI Gateway (`google/gemini-3-flash-preview` via `LOVABLE_API_KEY`) to direct OpenAI API in v5.0.0 (Apr 2026). Reasons: Lovable gateway had 6+ week deployment lag, Gemini Flash preview-tier had inconsistent SQL generation, and `OPENAI_API_KEY` was already configured for 3 other edge functions.
 
 **SQL validation (v5.1.0):** Generated SQL is validated against the live database schema before execution. If the AI hallucinates a column name (e.g., `expenses.total_cost` instead of `expenses.amount`), the validator catches it and auto-corrects with a focused re-prompt containing only the relevant table's actual columns. This eliminates column-not-found errors without needing more few-shot examples.
+
+**v5.2.0 — tiered models + deterministic fuzzy entity resolution (May 27, 2026, [PR #120](https://github.com/Cradcliff187/profitbuild-dash/pull/120)):** SQL generation upgraded from `gpt-4o-mini` to `gpt-4o` because text-to-SQL is the hard reasoning task; narration kept on `gpt-4o-mini` because it's the easy half. Both overridable via the secrets above without a code change. **Deterministic `pg_trgm` entity resolution on empty results**: when a query returns 0 rows, name-search terms in the SQL are fuzzy-resolved against the real `payees` / `projects` tables (the DB decides the truth, not the model), then one broadened retry runs with the exact resolved names / relaxed filters before giving up. Prompt rewritten so name searches reuse entities already established earlier in the conversation. Hook (`useAIReportAssistant`) now carries identifying string values (payee names, project numbers) forward in conversation summaries so follow-ups reuse the exact resolved name instead of the user's spelling. **DB side**: `pg_trgm` enabled in `extensions`; added to `execute_ai_query`'s `search_path` so trigram functions/operators resolve; `execute_ai_query` hardened to `btrim` all leading/trailing whitespace (a stray leading newline in generated SQL was rejected as "Only SELECT queries are allowed" — a silent failure class). **Origin**: the assistant could find a payee's total spend but then claim "no expenses found" when asked which projects those expenses were on, because `ILIKE '%Venefron%'` (user spelling) never matches the real `Vennefron Signs & Custom Apparel`, and 0-row results were a designed dead-end.
 
 **Deployment note:** Lovable does NOT reliably auto-deploy this function on git push. Always deploy via Supabase CLI (`supabase functions deploy ai-report-assistant`) or MCP after changes. The file size (~135KB across index.ts + kpi-context.generated.ts) may exceed MCP tool parameter limits — prefer CLI deployment. See "Managing Edge Functions" below for the full CLI flow.
 
