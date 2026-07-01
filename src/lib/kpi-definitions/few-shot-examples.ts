@@ -108,7 +108,7 @@ ORDER BY contingency_remaining DESC`,
   // ==========================================================================
   {
     question: "How many hours did John work last week?",
-    reasoning: "Time entries are in expenses table with category='labor_internal'. Use pre-computed expenses.hours for paid hours. Use ILIKE for fuzzy name matching. Join to payees for employee info.",
+    reasoning: "Time entries are expenses WHERE is_time_entry = true (this covers internal labor AND labor-providing subcontractors — do NOT gate on is_internal or category, or you will miss subcontractors who log time). Use pre-computed expenses.hours for paid hours. Use a LOOSE ILIKE on the first name only ('%john%') for fuzzy matching — people are often stored by full legal name (e.g. 'Jonathan A Smith'). Join to payees for the name.",
     sql: `SELECT
   p.payee_name,
   SUM(e.hours) as paid_hours,
@@ -116,9 +116,8 @@ ORDER BY contingency_remaining DESC`,
   SUM(e.amount) as total_billed
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE p.is_internal = true
-  AND p.payee_name ILIKE '%john%'
-  AND e.category = 'labor_internal'
+WHERE p.payee_name ILIKE '%john%'
+  AND e.is_time_entry = true
   AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY p.payee_name`,
     kpisUsed: ['expense_net_hours'],
@@ -126,7 +125,7 @@ GROUP BY p.payee_name`,
   },
   {
     question: "Show me all employee hours this month by person",
-    reasoning: "Aggregate time entries by employee. Use pre-computed expenses.hours for paid hours. Filter to internal payees only.",
+    reasoning: "Aggregate time entries by person. Use pre-computed expenses.hours for paid hours. Scope by is_time_entry = true (NOT category or is_internal) so everyone who logged time is counted, including labor-providing subcontractors.",
     sql: `SELECT
   p.payee_name as employee,
   SUM(e.hours) as paid_hours,
@@ -135,8 +134,7 @@ GROUP BY p.payee_name`,
   SUM(e.amount) as total_billed
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE p.is_internal = true
-  AND e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.expense_date >= DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY p.payee_name
 ORDER BY paid_hours DESC`,
@@ -153,7 +151,7 @@ ORDER BY paid_hours DESC`,
   e.hours as paid_hours
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.expense_date >= CURRENT_DATE - INTERVAL '7 days'
   AND e.gross_hours > 8
 ORDER BY e.gross_hours DESC`,
@@ -376,7 +374,7 @@ ORDER BY quote_coverage_percent ASC`,
   ROUND(SUM(e.hours)::numeric, 1) as paid_hours,
   COUNT(DISTINCT e.project_id) as projects_worked
 FROM expenses e
-WHERE e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.expense_date >= DATE_TRUNC('week', CURRENT_DATE)`,
     kpisUsed: [],
     category: 'lookup',
@@ -392,9 +390,8 @@ WHERE e.category = 'labor_internal'
   COUNT(DISTINCT e.project_id) as projects_worked
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE p.is_internal = true
-  AND p.payee_name ILIKE '%mike%'
-  AND e.category = 'labor_internal'
+WHERE p.payee_name ILIKE '%mike%'
+  AND e.is_time_entry = true
   AND e.expense_date >= DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY p.payee_name`,
     kpisUsed: ['time_entry_hours'],
@@ -433,7 +430,7 @@ WHERE project_name ILIKE '%smith%'
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
 JOIN projects pr ON e.project_id = pr.id
-WHERE e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.expense_date = CURRENT_DATE
 ORDER BY e.start_time`,
     kpisUsed: [],
@@ -544,8 +541,7 @@ ORDER BY month DESC`,
   ROUND(SUM(e.amount)::numeric, 2) as total_billed
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE p.is_internal = true
-  AND e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.expense_date >= DATE_TRUNC('quarter', CURRENT_DATE)
 GROUP BY p.id, p.payee_name
 ORDER BY paid_hours DESC
@@ -569,7 +565,7 @@ LIMIT 10`,
   e.hours as paid_hours
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.submitted_for_approval_at >= CURRENT_DATE - INTERVAL '1 day'
   AND e.submitted_for_approval_at < CURRENT_DATE
 ORDER BY e.submitted_for_approval_at DESC`,
@@ -588,7 +584,7 @@ ORDER BY e.submitted_for_approval_at DESC`,
   e.amount
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.approval_status = 'approved'
   AND e.approved_at >= CURRENT_DATE
 ORDER BY e.approved_at DESC`,
@@ -608,7 +604,7 @@ ORDER BY e.approved_at DESC`,
   e.amount
 FROM expenses e
 JOIN payees p ON e.payee_id = p.id
-WHERE e.category = 'labor_internal'
+WHERE e.is_time_entry = true
   AND e.approval_status = 'pending'
   AND e.submitted_for_approval_at IS NOT NULL
 ORDER BY e.submitted_for_approval_at ASC`,

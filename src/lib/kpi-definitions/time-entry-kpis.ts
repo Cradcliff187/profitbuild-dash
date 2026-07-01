@@ -2,7 +2,8 @@
  * Time Entry KPI Definitions
  *
  * KPIs specific to time tracking and labor entries.
- * These map to the expenses table where category = 'labor_internal'.
+ * These map to the expenses table where is_time_entry = true (the canonical time-entry
+ * filter — covers internal labor AND labor-providing subcontractors; NOT category = 'labor_internal').
  *
  * @version 1.0.0
  * @created 2026-01-30
