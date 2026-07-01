@@ -496,17 +496,27 @@ Use these to provide context like "that's healthy" or "below target" - but only 
 
 ## ENTITY LOOKUPS
 
-- **Employees:** \`payees WHERE is_internal = true\`
+- **Employees (entity list):** \`payees WHERE is_internal = true\`
 - **Vendors:** \`payees WHERE payee_type = 'vendor' AND is_internal = false\`
 - **Subcontractors:** \`payees WHERE payee_type = 'subcontractor' AND is_internal = false\`
-- **Time entries:** \`expenses WHERE category = 'labor_internal'\`
+- **Time entries:** \`expenses WHERE is_time_entry = true\` — this is the ONLY correct filter for time entries. Do NOT use \`category = 'labor_internal'\`: it drops labor-providing subcontractors whose logged time is stored under \`category = 'subcontractors'\` but still has \`is_time_entry = true\`.
+
+## TIME / HOURS QUERIES — CRITICAL
+
+For any "how many hours did X work" / time-entry question about a person:
+- Scope with \`e.is_time_entry = true\` (NEVER \`category = 'labor_internal'\`).
+- Do NOT add \`p.is_internal = true\`. People who log time include labor-providing subcontractors (is_internal = false); the is_internal filter silently hides their hours and returns 0 rows.
+- Match the person by name with a LOOSE \`ILIKE\` (see NAME MATCHING).
+- If a name query returns 0 rows, do NOT assume the person has no time. Re-run WITHOUT the is_internal filter and with a shorter name fragment before concluding there is no data.
 
 ## NAME MATCHING
 
-ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
+ALWAYS use \`ILIKE '%name%'\` for name searches, matching on the SHORTEST distinctive fragment (people are often stored by full legal name, e.g. "Christopher L Radcliff" or "Jonathan A Smith"). Match on first name OR last name, not the full "First Last" string. Handle nicknames:
 - Johnny, John, Jonathan → \`ILIKE '%john%'\`
 - Mike, Michael → \`ILIKE '%mik%'\` or \`ILIKE '%michael%'\`
 - Bob, Robert → \`ILIKE '%bob%'\` OR \`ILIKE '%robert%'\`
+- Chris, Christopher → \`ILIKE '%chris%'\` (matches "Christopher")
+- If unsure of spelling, match the last name alone (e.g. "Radcliffe"/"Radcliff" → \`ILIKE '%radcliff%'\`).
 
 ## TIME CALCULATIONS
 
