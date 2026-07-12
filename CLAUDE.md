@@ -2,6 +2,8 @@
 
 This file is the canonical reference for Claude Code when working in this repository. Keep it accurate as the project evolves.
 
+> **For operational playbooks — "how do I do X safely" (add a migration, run a backfill, inspect live data, ship to prod, debug a login loop, avoid the 1,000-row cap) — see [docs/OPERATIONS.md](docs/OPERATIONS.md).** That runbook is task/symptom-indexed and cross-links the rules and gotchas below rather than restating them.
+
 ---
 
 ## Project Identity
