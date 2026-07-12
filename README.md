@@ -150,7 +150,7 @@ supabase db push
 npm run dev
 ```
 
-Application will be available at `http://localhost:8080`
+Application will be available at `http://localhost:5225`
 
 ### 6. Create Initial User
 
@@ -175,7 +175,7 @@ src/
 │   ├── contracts/       # Contract generation & management
 │   ├── payment-applications/ # AIA G702/G703 billing
 │   └── ...              # (13 more feature directories)
-├── pages/               # 36 route pages (one per major view)
+├── pages/               # 37 route pages (one per major view)
 ├── hooks/               # 50+ custom React hooks
 ├── utils/               # 50+ utility/calculation modules
 ├── types/               # 25 TypeScript type definition files
@@ -190,7 +190,7 @@ src/
 - **Database**: PostgreSQL with Row Level Security (RLS)
 - **Authentication**: Supabase Auth (email/password)
 - **Storage**: File uploads for receipts, photos, videos
-- **Edge Functions** (27 in `supabase/functions/`): Server-side Deno functions for:
+- **Edge Functions** (30 in `supabase/functions/`): Server-side Deno functions for:
   - **Auth:** `send-auth-email`, `forgot-password`, `admin-create-user`, `admin-reset-password`, `admin-delete-user`, `admin-disable-user`
   - **Notifications:** `send-receipt-notification`, `send-training-notification`
   - **SMS:** `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key`
@@ -272,7 +272,7 @@ All tables enforce RLS policies based on:
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server (http://localhost:8080) |
+| `npm run dev` | Start development server (http://localhost:5225) |
 | `npm run build` | Production build to `dist/` |
 | `npm run build:dev` | Development build (with source maps) |
 | `npm run preview` | Preview production build locally |
@@ -319,13 +319,16 @@ All tables enforce RLS policies based on:
 ## Deployment
 
 ### Via Lovable Platform (Recommended)
-1. Open [Lovable Project Dashboard](https://lovable.dev/projects/8ad59cd4-cdfa-472d-b4a1-52ac194e00f2)
-2. Click **Share → Publish**
-3. Click **Update** to deploy latest changes
-4. Frontend deploys to Lovable CDN
-5. Backend (Supabase) is automatically synced
 
-**Note:** Backend changes (edge functions, migrations) deploy immediately. Frontend changes require clicking "Update" in the publish dialog.
+**The frontend does NOT auto-deploy on push.** Shipping is a manual step:
+
+1. Merge your PR to `main` (CI must be green — see `docs/WORKFLOW.md`).
+2. Open the [Lovable Project Dashboard](https://lovable.dev/projects/8ad59cd4-cdfa-472d-b4a1-52ac194e00f2) and click **Publish**. The build runs ~2 minutes, then `rcgwork.com` reflects the new frontend.
+3. Verify it landed: `curl -sL https://rcgwork.com/version.json` — the `buildTime` should be after your commit. Settings → App Updates shows an amber "Publish pending" indicator when `main` is ahead of the deployed build.
+
+**Edge functions** deploy separately and are NOT reliably picked up by Lovable — deploy them via CLI: `npx supabase functions deploy <name> --project-ref clsjdxwbsjbhjibvlqbz` (see `docs/WORKFLOW.md` and CLAUDE.md "Managing Edge Functions"). **Database migrations** are applied to Supabase directly (MCP/dashboard) with a matching placeholder file committed locally (CLAUDE.md "Critical Migration Rules").
+
+> See **[docs/WORKFLOW.md](docs/WORKFLOW.md)** for the canonical end-to-end pipeline (diagnose → verify → PR → CI → merge → Publish → smoke-test) and **[docs/OPERATIONS.md](docs/OPERATIONS.md)** for the "how do I do X safely" runbook.
 
 ### Manual Deployment (Self-Hosted)
 ```bash
@@ -418,12 +421,12 @@ npm run type-check  # See detailed errors
 ## Contributing
 
 ### Development Workflow
-1. Create feature branch from `main`
+1. Create a feature branch from `main` (humans/agents cannot push to `main` directly — branch protection enforces PR-only; see `docs/WORKFLOW.md`)
 2. Make changes with descriptive commits
-3. Run `npm run pre-deploy` before pushing
-4. Push to GitHub (auto-syncs to Lovable)
-5. Test in Lovable preview environment
-6. Merge to `main` when ready
+3. Live-verify UI changes in a running browser, then run `npm run pre-deploy` before pushing
+4. Push the branch and open a PR (CI runs `npm run pre-deploy` as a required check)
+5. Squash-merge once CI is green
+6. **Click Publish in Lovable** to actually deploy the frontend — merging does not deploy
 
 ### Git Workflow
 ```bash
