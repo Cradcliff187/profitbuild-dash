@@ -1,7 +1,12 @@
 # Database Tables & Fields Reference
 
 **For Report Builder Planning**  
-**Updated:** 2025-11-17
+**Updated:** 2026-07-12
+
+> **Source of truth:** `src/integrations/supabase/types.ts` (generated). This doc is an
+> orientation reference and may lag the generated types for the newest columns. When in doubt,
+> trust the generated types. See the [Recent Schema Additions](#recent-schema-additions-2026)
+> section for columns/tables added since the original 2025-11 writeup.
 
 ---
 
@@ -24,6 +29,46 @@
 | 13 | `receipts` | 500-2000 | Receipt images | ⭐⭐ MEDIUM |
 | 14 | `project_media` | 1000-5000 | Photos/videos | ⭐ LOW |
 | 15 | `activity_feed` | 5000-20000 | Audit log | ⭐ LOW |
+| 16 | `invoices` | 100-1000 | Generated client invoices | ⭐⭐ MEDIUM |
+| 17 | `invoice_revenues` | 100-1000 | Invoice ↔ revenue junction | ⭐ LOW |
+
+---
+
+## Recent Schema Additions (2026)
+
+Columns and tables added since the original 2025-11 writeup. Each links to the CLAUDE.md rule that
+governs it. **All financial values are trigger-computed — do not write them from the frontend
+(Rule 1).**
+
+### Header-level discount (CLAUDE.md Rule 26)
+On **`estimates`, `quotes`, and `change_orders`** (NOT on `projects`):
+
+| Field | Type | Calculated | Notes |
+|-------|------|-----------|-------|
+| `discount_type` | TEXT | No | `'percent'` or `'fixed'` |
+| `discount_value` | NUMERIC | No | Percent or dollar amount, per `discount_type` |
+| `discount_amount` | NUMERIC | **YES** | Computed dollar discount — trigger-maintained, never write it. `total_amount` already reflects it (don't subtract again) |
+
+### Material procurement tracking (CLAUDE.md Rule 32)
+**Columns** on **`estimate_line_items`** and **`change_order_line_items`** (there is no separate
+procurement table): `procurement_status` (`not_ordered`/`ordered`/`in_production`/`shipped`/
+`delivered`), `expected_delivery_date`, `need_by_date`, `is_long_lead`.
+
+### Contingency draw-down (CLAUDE.md Rule 31)
+- `change_orders.contingency_drawdown` (NUMERIC) — cost drawn from the reserve by a CO.
+- `change_order_line_items.funded_by_contingency` (BOOL) — per-line funding flag.
+- `projects.contingency_remaining` is the single source of truth via `calculate_contingency_remaining()` (Gotcha #26).
+- **Deprecated** (read by no calculation): `change_orders.contingency_billed_to_client`, `change_orders.includes_contingency`.
+
+### Labor cushion (CLAUDE.md Rules 30, 62; Gotcha #62)
+**Columns** on **`estimate_line_items`** and **`change_order_line_items`**: `labor_hours`,
+`billing_rate_per_hour`, `actual_cost_rate_per_hour`, and `labor_cushion_amount` — the last is a
+**`GENERATED ALWAYS`** column (`labor_hours × (billing_rate − actual_cost_rate)` for
+`labor_internal` lines). Set the three inputs; never write `labor_cushion_amount`.
+
+### Invoices (CLAUDE.md Rule 25)
+- **`invoices`** — generated client invoices (mirrors `contracts` shape: `internal_reference` UNIQUE, `version`, `status`, `field_values` jsonb, `docx_url`, `pdf_url`).
+- **`invoice_revenues`** — junction to `project_revenues` (Phase-2-ready aggregation; one row per revenue in Phase 1).
 
 ---
 
@@ -46,10 +91,12 @@
 | `start_date` | DATE | No | Project start | Date range |
 | `end_date` | DATE | No | Project end | Date range, duration calc |
 | `contracted_amount` | NUMERIC | **YES** | Total contract value | Display, sum, avg |
-| `current_margin` | NUMERIC | **YES** | Contracted Amount - actual expenses | Display, sum |
+| `current_margin` | NUMERIC | **YES** | ⚠️ **DEPRECATED — see CLAUDE.md Rule 1. Use `actual_margin` instead.** (Contracted Amount − actual expenses) | Do not use |
 | `actual_margin` | NUMERIC | **YES** | Total Invoiced - actual expenses | Display, sum |
 | `margin_percentage` | NUMERIC | **YES** | Margin as % of revenue | Display, avg, filter |
-| `projected_margin` | NUMERIC | **YES** | Expected final margin | Display, sum |
+| `projected_margin` | NUMERIC | **YES** | ⚠️ **DEPRECATED — see CLAUDE.md Rule 1. Use `adjusted_est_margin` instead.** (Expected final margin) | Do not use |
+| `adjusted_est_margin` | NUMERIC | **YES** | Canonical projected margin (replaces `projected_margin`) | Display, sum |
+| `default_expense_category` | ENUM | No | Overhead-project category lock (CLAUDE.md Rule 6a). NULL for construction projects | Filter |
 | `original_margin` | NUMERIC | **YES** | Margin from original estimate | Comparison |
 | `contingency_remaining` | NUMERIC | **YES** | Unused contingency | Display |
 | `total_accepted_quotes` | NUMERIC | **YES** | Sum of accepted quotes | Display |

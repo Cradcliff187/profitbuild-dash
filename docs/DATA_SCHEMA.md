@@ -1,6 +1,6 @@
 # Data Schema Reference
 
-> Generated on 2025-11-12. This document consolidates the Supabase schema that backs ProfitBuild Dash as defined in `src/integrations/supabase/types.ts` and the SQL migrations under `supabase/migrations/`. It covers tables, views, enums, key indexes, relationships, and notable policies. Use this as a living reference when evolving the data layer.
+> Generated on 2025-11-12. **Last updated 2026-07-12** (added the [Recent Schema Additions](#recent-schema-additions-2026) section; deprecation notes on `current_margin`/`projected_margin`). This document consolidates the Supabase schema that backs ProfitBuild Dash as defined in `src/integrations/supabase/types.ts` and the SQL migrations under `supabase/migrations/`. It covers tables, views, enums, key indexes, relationships, and notable policies. `src/integrations/supabase/types.ts` is the authoritative source of truth; this doc may lag it for the newest columns.
 
 ## Quick Index
 
@@ -50,10 +50,12 @@ Comprehensive reporting view that aggregates project-level financial metrics, ex
 
 **Financial Calculated Fields (from projects table):**
 - `contracted_amount` - Total contract value including approved estimates and change orders
-- `current_margin` - Contracted amount minus actual expenses
+- `current_margin` - ⚠️ **DEPRECATED — see CLAUDE.md Rule 1. Use `actual_margin` instead.** (Contracted amount minus actual expenses)
 - `actual_margin` - Total invoiced minus actual expenses (real profit)
 - `margin_percentage` - Margin as percentage of revenue
-- `projected_margin` - Expected final margin
+- `projected_margin` - ⚠️ **DEPRECATED — see CLAUDE.md Rule 1. Use `adjusted_est_margin` instead.** (Expected final margin)
+- `adjusted_est_margin` - Canonical projected margin (replaces `projected_margin`)
+- `default_expense_category` - Overhead-project category lock (CLAUDE.md Rule 6a); NULL for construction projects
 - `original_margin` - Margin from original estimate
 - `contingency_remaining` - Unused contingency
 - `total_accepted_quotes` - Sum of accepted quotes
@@ -292,6 +294,18 @@ Comprehensive reporting view that aggregates project-level financial metrics, ex
 #### Archival Table `estimate_line_items_backup_20251030`
 
 - Legacy snapshot created during schedule migration; structure mirrors `estimate_line_items` but is not touched by application code. Retained for reference/migrations only; no indexes.
+
+## Recent Schema Additions (2026)
+
+Objects added since the original 2025-11 generation. Each links to the CLAUDE.md rule that governs
+it. **All financial values are trigger-computed — do not write them from the frontend (Rule 1).**
+
+- **Header-level discount** (Rule 26) — `discount_type` / `discount_value` (inputs) + `discount_amount` (**computed**, don't write) on **`estimates`**, **`quotes`**, **`change_orders`**. Not on `projects`. `total_amount` already reflects the discount.
+- **Material procurement tracking** (Rule 32) — columns on **`estimate_line_items`** and **`change_order_line_items`** (no separate table): `procurement_status` (CHECK: `not_ordered`/`ordered`/`in_production`/`shipped`/`delivered`), `expected_delivery_date`, `need_by_date`, `is_long_lead`.
+- **Contingency draw-down** (Rule 31) — `change_orders.contingency_drawdown`; `change_order_line_items.funded_by_contingency`; `projects.contingency_remaining` via `calculate_contingency_remaining()` (Gotcha #26). Deprecated (unused): `change_orders.contingency_billed_to_client`, `change_orders.includes_contingency`.
+- **Labor cushion** (Rules 30, 62) — `labor_hours`, `billing_rate_per_hour`, `actual_cost_rate_per_hour`, and the **`GENERATED ALWAYS`** `labor_cushion_amount` on **`estimate_line_items`** and **`change_order_line_items`**. Set the inputs; never write the generated column.
+- **`projects.default_expense_category`** (Rule 6a) — overhead-project category lock; NULL for construction projects.
+- **Invoices** (Rule 25) — new tables **`invoices`** (mirrors `contracts` shape) and **`invoice_revenues`** (junction to `project_revenues`).
 
 ## Recommendations
 
