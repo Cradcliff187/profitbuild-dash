@@ -32,10 +32,10 @@ export const businessRules: BusinessRule[] = [
   {
     id: 'time_entries_are_expenses',
     category: 'data_source',
-    rule: 'Time entries are stored in the `expenses` table with category = \'labor_internal\'',
-    reason: 'Time tracking uses the expenses table with specific category, not a separate time_entries table.',
-    correctExample: "SELECT * FROM expenses WHERE category = 'labor_internal'",
-    incorrectExample: 'SELECT * FROM time_entries (wrong table name)',
+    rule: 'Time entries are rows in the `expenses` table WHERE is_time_entry = true. ALWAYS use is_time_entry = true to identify time entries — do NOT filter by category = \'labor_internal\'.',
+    reason: "is_time_entry is a generated column (category = 'labor_internal' OR start_time IS NOT NULL). It is the single canonical definition of a time entry. Filtering by category = 'labor_internal' silently drops the time entries of labor-providing subcontractors (payee_type = 'subcontractor', is_internal = false), whose logged time is stored under category = 'subcontractors' but still has is_time_entry = true.",
+    correctExample: "SELECT * FROM expenses WHERE is_time_entry = true",
+    incorrectExample: "SELECT * FROM expenses WHERE category = 'labor_internal' (misses labor-providing subcontractors) — also wrong: SELECT * FROM time_entries (no such table)",
     severity: 'critical'
   },
 
@@ -54,10 +54,10 @@ export const businessRules: BusinessRule[] = [
   {
     id: 'employee_filter',
     category: 'filtering',
-    rule: 'To find employees, use payees table WHERE is_internal = true',
-    reason: 'Payees table contains both internal employees and external vendors/subs.',
-    correctExample: "SELECT * FROM payees WHERE is_internal = true AND payee_name ILIKE '%john%'",
-    incorrectExample: "SELECT * FROM employees (wrong table name)",
+    rule: "To list employees as an entity, use payees WHERE is_internal = true. BUT for time/hours questions about a person, do NOT add is_internal = true — match by name (ILIKE) and scope with is_time_entry = true. Some people who log time are labor-providing subcontractors (is_internal = false), and gating on is_internal hides their hours entirely.",
+    reason: 'Payees contains internal employees AND external vendors/subs. Not everyone who logs labor time is is_internal = true — labor-providing subcontractors do too.',
+    correctExample: "-- who worked hours: JOIN payees p ON e.payee_id = p.id WHERE p.payee_name ILIKE '%chris%' AND e.is_time_entry = true (no is_internal filter)",
+    incorrectExample: "SELECT ... WHERE p.is_internal = true AND e.category = 'labor_internal' AND p.payee_name ILIKE '%chris%' (misses labor-providing subcontractors like a subcontractor who logs time)",
     severity: 'important'
   },
   {

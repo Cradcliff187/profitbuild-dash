@@ -231,7 +231,7 @@ export const KPI_CONTEXT = {
   // Preferred data sources
   preferredSources: {
     'project financials': 'reporting.project_financials',
-    'time entries': "expenses WHERE category = 'labor_internal'",
+    'time entries': "expenses WHERE is_time_entry = true",
     'employees': 'payees WHERE is_internal = true',
     'vendors': "payees WHERE payee_type = 'vendor' AND is_internal = false",
     'subcontractors': "payees WHERE payee_type = 'subcontractor' AND is_internal = false",

@@ -52,7 +52,7 @@ export function generateAIContext(): AIKPIContext {
     businessRules,
     preferredSources: {
       'project financials': 'reporting.project_financials',
-      'time entries': "expenses WHERE category = 'labor_internal'",
+      'time entries': 'expenses WHERE is_time_entry = true',
       'employees': 'payees WHERE is_internal = true',
       'vendors': "payees WHERE payee_type = 'vendor' AND is_internal = false",
       'subcontractors': "payees WHERE payee_type = 'subcontractor' AND is_internal = false",
@@ -160,11 +160,12 @@ Use these to provide context like "that's healthy" or "below target" - but only 
 - **Employees:** \`payees WHERE is_internal = true\`
 - **Vendors:** \`payees WHERE payee_type = 'vendor' AND is_internal = false\`
 - **Subcontractors:** \`payees WHERE payee_type = 'subcontractor' AND is_internal = false\`
-- **Time entries:** \`expenses WHERE category = 'labor_internal'\`
+- **Time entries:** \`expenses WHERE is_time_entry = true\` — the ONLY correct filter. Do NOT use \`category = 'labor_internal'\`; it drops labor-providing subcontractors whose time is stored under \`category = 'subcontractors'\` (still is_time_entry = true). For "hours worked by a person" queries, match by name and scope with is_time_entry = true — do NOT add is_internal = true (it hides subcontractors who log time).
 
 ## NAME MATCHING
 
-ALWAYS use \`ILIKE '%name%'\` for name searches. Handle nicknames:
+ALWAYS use \`ILIKE '%name%'\` for name searches, on the SHORTEST distinctive fragment (people are stored by full legal name, e.g. "Christopher L Radcliff"). Match first OR last name, not the full "First Last" string. Handle nicknames:
+- Chris, Christopher → \`ILIKE '%chris%'\`
 - Johnny, John, Jonathan → \`ILIKE '%john%'\`
 - Mike, Michael → \`ILIKE '%mik%'\` or \`ILIKE '%michael%'\`
 - Bob, Robert → \`ILIKE '%bob%'\` OR \`ILIKE '%robert%'\`
@@ -302,9 +303,9 @@ CRITICAL RULES:
 - Use reporting.project_financials view (not raw projects table)
 - Filter: WHERE category = 'construction' (excludes internal projects)
 - NEVER use receipts table (documentation only, not financial data)
-- Time entries: expenses WHERE category = 'labor_internal'
-- Employees: payees WHERE is_internal = true
-- Use ILIKE '%name%' for fuzzy name matching
+- Time entries: expenses WHERE is_time_entry = true (NOT category = 'labor_internal' — that misses labor-providing subcontractors; and do NOT add is_internal = true on hours-by-person queries)
+- Employees (entity list only): payees WHERE is_internal = true
+- Use ILIKE '%name%' for fuzzy name matching (shortest distinctive fragment; match first OR last name)
 - Use pre-computed expenses.hours (net) and expenses.gross_hours (total) — don't recalculate
 
 REPORTING VIEWS:
