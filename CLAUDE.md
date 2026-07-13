@@ -1160,6 +1160,52 @@ Receipts tab (`useReceiptFiltering.submittedBy`, matches `receipts.user_id`).
 - `multiSelect` popovers use the proper `<CommandList>` shell — keep Gotcha #48's wheel-isolation
   invariant if you touch them.
 
+### 34. `crew_day_assignments` — the per-day dispatch store (Jul 13, 2026, field-worker redesign PR 1)
+
+The source of truth for **who is on what project on which day**. One row = one person dispatched to
+one project for one work date. Provenance: the field-worker experience audit
+([docs/audits/2026-07-12-field-worker-experience.md](docs/audits/2026-07-12-field-worker-experience.md)
+§3 on branch `audit/field-worker-experience`) — per-person-per-day existed nowhere in the schema
+(`project_assignments` is dormant and undated; `schedule_notes` and `expenses` were rejected as
+carriers per §3's cost/benefit). A minimal new table was the locked design decision.
+
+**Schema** (applied to production 2026-07-13; the local migration file is a placeholder per the
+Critical Migration Rules): `id uuid PK`, `user_id → auth.users ON DELETE CASCADE`,
+`project_id → projects ON DELETE CASCADE`, `work_date date NOT NULL`, `start_time time NULL`,
+`task_note text NULL`, `admin_notes text NULL`, `created_at`/`created_by`, `updated_at`/`updated_by`.
+Indexes: `(user_id, work_date)`, `(project_id, work_date)`, plus single-column FK-covering indexes
+on `created_by` and `updated_by` (the `admin-delete-user` hard-delete path fires their
+`ON DELETE SET NULL` actions). `updated_at` is maintained by the house `update_updated_at_column()`
+BEFORE UPDATE trigger; **`created_by`/`updated_by` are writer-set** — nothing at the DB layer
+populates them, so PR 2's write paths must set both explicitly. Note: RLS is row-level, so a field
+worker CAN read `admin_notes` on their own rows — if that column must ever become internal-only,
+it needs a column-omitting view or a separate table, not RLS.
+
+**Multiple rows per `(user_id, work_date)` are VALID — do NOT add a unique constraint or index on
+it.** A worker can be dispatched to two projects on the same day (e.g. morning/afternoon split).
+This is a locked product decision, same class as Gotcha #57's "don't enforce one-accepted-quote-per-line".
+
+**Query pattern for a user's day:**
+```sql
+SELECT * FROM crew_day_assignments
+WHERE user_id = ? AND work_date = ?
+ORDER BY start_time NULLS LAST, created_at;
+```
+
+**RLS** (the DB is the security boundary — the AppLayout allowlist is UX-only per Gotcha #44):
+SELECT = own rows (`user_id = auth.uid()`) OR admin/manager read all; INSERT/UPDATE = admin/manager
+only; DELETE = admin only. All via the existing `has_role()` SECURITY DEFINER helper, mirroring the
+`project_assignments` policy pattern.
+
+**Do NOT consume this table in code paths yet.** UI arrives in PR 2 (admin Crew Dispatch board) and
+PR 3 (field-worker experience); consumers will be feature-flagged (`crew_dispatch_board` admin-side,
+`field_worker_v2` field-side — both default OFF with per-user admin override). Until then the table
+is read-nothing/write-nothing from `src/`.
+
+**Deliberately untouched:** the subcontractor vs W-2 payee model — `payees`, `WorkerPicker`,
+`enforce_time_entry_category_from_payee`, `sync_payee_provides_labor_on_role_change`, and all
+related sync logic are unchanged. Assignments reference `auth.users` directly, not payees.
+
 ---
 
 ## TypeScript Configuration
