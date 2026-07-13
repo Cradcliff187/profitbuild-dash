@@ -795,6 +795,56 @@ export type Database = {
           },
         ]
       }
+      crew_day_assignments: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          project_id: string
+          start_time: string | null
+          task_note: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          project_id: string
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          project_id?: string
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_messages: {
         Row: {
           created_at: string | null
@@ -2574,6 +2624,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      projects_demographic_backup_20260617: {
+        Row: {
+          contracted_amount: number | null
+          end_date: string | null
+          id: string | null
+          project_number: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       quickbooks_account_mappings: {
         Row: {

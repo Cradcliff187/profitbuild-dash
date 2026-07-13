@@ -9,7 +9,10 @@ name: PR checks
 
 on:
   pull_request:
-    branches: [main]
+    # feat/field-worker-redesign is the integration branch for the staged
+    # field-worker redesign PRs (PR 1-5) — same gate as main so each staged
+    # PR gets CI before merging into the integration branch.
+    branches: [main, feat/field-worker-redesign]
     types: [opened, synchronize, reopened, ready_for_review]
 
 # Cancel superseded runs when a PR receives new commits
