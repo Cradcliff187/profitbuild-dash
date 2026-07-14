@@ -2,6 +2,25 @@
 
 This document tracks the current state of feature flags in the application.
 
+## Field-Worker Redesign (Jul 2026)
+
+**Flag Names**: `crew_dispatch_board`, `field_worker_v2`
+**Status**: ❌ OFF globally — **per-user overrides ON** for both Chris accounts (+ Tom Finn on `field_worker_v2` for dogfooding)
+**Last Updated**: July 14, 2026
+
+| Flag | Controls |
+|---|---|
+| `crew_dispatch_board` | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (assign person → project → day, schedule-task links, copy-week) |
+| `field_worker_v2` | The field-worker experience: five-tab IA (Today `/` · Time · Receipts · Projects · Notes), `NextStopChip`, `FieldTimeLanding` (timer demoted to `/time-tracker/timer`), field-worker landing at `/` |
+
+### Per-user overrides
+`feature_flag_user_overrides` (`flag_id`, `user_id`, `enabled`, UNIQUE per pair) — an override row wins over the global `enabled`. Resolution via the `useDbFeatureFlag(flagName)` hook. Admin UI: **`/settings/feature-flags`** (global switches + per-user overrides + audit trail). Every change to a flag or override is auto-logged to `feature_flag_audit` by the `log_feature_flag_change()` trigger.
+
+### Rollout plan
+Flags stay OFF globally until dogfooding (Chris + Matt on the board; Tom on the field experience) proves stable in production for a few days. Flip per-user first via `/settings/feature-flags`; global enable is the last step.
+
+Note: the DB-side pieces (assignment-notification trigger, dispatch auto-allocation trigger) are active regardless of the flags — they only fire on `crew_day_assignments` writes, which only flag-enabled surfaces produce.
+
 ## QuickBooks Integration
 
 **Flag Name**: `quickbooks_auto_sync`

@@ -9,7 +9,6 @@ import { LunchSection } from './fields/LunchSection';
 import { HoursDisplay } from './fields/HoursDisplay';
 import { NotesField } from './fields/NotesField';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 
 export interface ManualTimeEntryFormProps {
   mode: 'create' | 'edit';
@@ -90,7 +89,7 @@ export function ManualTimeEntryForm({
   const tzLabel = tzShortLabels[timezone] ?? timezone;
 
   return (
-    <div className={cn('space-y-4', isMobile && 'space-y-4')}>
+    <div className="space-y-4">
       <WorkerPicker
         value={form.workerId || null}
         onChange={form.setWorkerId}

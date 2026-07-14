@@ -86,6 +86,8 @@ export function ProjectPicker({
         )}
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
       >
         {selected ? getProjectDisplayName(selected) : 'Select project...'}
       </Button>

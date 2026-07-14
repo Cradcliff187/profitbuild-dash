@@ -336,12 +336,12 @@ export function CopyDayEntriesSheet({
               type="date"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
-              className="h-11 sm:max-w-[240px]"
+              className="h-11 text-base sm:max-w-[240px] md:text-sm"
             />
           </div>
         </div>
 
-        <footer className="flex shrink-0 gap-3 border-t bg-background p-4 sm:px-6">
+        <footer className="flex shrink-0 gap-3 border-t bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           <Button
             type="button"
             variant="ghost"

@@ -79,7 +79,7 @@ export function ManualTimeEntrySheet({
         className={cn(
           'flex flex-col p-0',
           isMobile
-            ? 'w-[92%] max-h-[92vh] rounded-t-2xl left-1/2 -translate-x-1/2 right-auto'
+            ? 'w-[92%] max-h-[92vh] rounded-t-2xl left-1/2 -translate-x-1/2 right-auto sm:max-w-xl'
             : 'w-full sm:max-w-[500px]'
         )}
         side={isMobile ? 'bottom' : 'right'}
@@ -103,11 +103,11 @@ export function ManualTimeEntrySheet({
             }}
           />
         </div>
-        <footer className="flex gap-3 p-4 border-t bg-background shrink-0">
+        <footer className="flex gap-3 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t bg-background shrink-0">
           <Button
             type="button"
             variant="ghost"
-            className={cn('flex-1', isMobile && 'min-h-[48px]')}
+            className="flex-1 min-h-[48px]"
             onClick={handleCancel}
           >
             Cancel
@@ -116,7 +116,7 @@ export function ManualTimeEntrySheet({
             <Button
               type="button"
               variant="destructive"
-              className={cn('flex-1', isMobile && 'min-h-[48px]')}
+              className="flex-1 min-h-[48px]"
               onClick={async () => {
                 await onDelete?.();
                 onOpenChange(false);
@@ -127,7 +127,7 @@ export function ManualTimeEntrySheet({
           )}
           <Button
             type="button"
-            className={cn('flex-1', isMobile && 'min-h-[48px]')}
+            className="flex-1 min-h-[48px]"
             onClick={handleSave}
           >
             Save

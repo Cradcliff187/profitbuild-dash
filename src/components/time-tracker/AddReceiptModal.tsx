@@ -282,24 +282,22 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
       <SheetContent 
         className={cn(
           "flex flex-col p-0",
-          isMobile 
-            ? "w-[92%] max-h-[92vh] rounded-t-2xl left-1/2 -translate-x-1/2 right-auto" 
+          isMobile
+            ? "w-[92%] max-h-[92vh] rounded-t-2xl left-1/2 -translate-x-1/2 right-auto sm:max-w-xl"
             : "w-full sm:max-w-[500px]"
         )}
         side={isMobile ? "bottom" : "right"}
       >
         <SheetHeader className="space-y-1 px-6 pt-4 pb-3 border-b shrink-0">
-          <SheetTitle className={isMobile ? "text-xl font-semibold" : "text-lg font-semibold"}>Add Receipt</SheetTitle>
-          {!isMobile && (
-            <SheetDescription className="text-sm">
-              Capture a receipt and assign it to a vendor and project
-            </SheetDescription>
-          )}
+          <SheetTitle className="text-xl font-semibold md:text-lg">Add Receipt</SheetTitle>
+          <SheetDescription className="hidden text-sm md:block">
+            Capture a receipt and assign it to a vendor and project
+          </SheetDescription>
         </SheetHeader>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className={cn("space-y-4", isMobile && "space-y-4")}>
+          <div className="space-y-4">
             {/* Camera Capture / Photo Preview */}
             <div className="space-y-3">
               {!capturedPhoto ? (
@@ -307,11 +305,11 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   <Button
                     onClick={openFilePicker}
                     variant="outline"
-                    className={cn("w-full border-2 border-dashed", isMobile ? "h-48" : "h-48")}
+                    className="h-48 w-full border-2 border-dashed"
                   >
                     <div className="flex flex-col items-center gap-3 text-center">
                       <CameraIcon className="w-12 h-12 text-muted-foreground" />
-                      <span className={isMobile ? "text-base font-medium" : "text-sm font-medium"}>
+                      <span className="text-base font-medium md:text-sm">
                         Upload photo (camera, photo library, or files)
                       </span>
                     </div>
@@ -327,7 +325,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                     <img
                       src={capturedPhoto}
                       alt="Captured receipt"
-                      className={cn("w-full object-cover rounded-lg", isMobile ? "h-48" : "h-48")}
+                      className="h-48 w-full object-cover rounded-lg"
                     />
                     <Button
                       onClick={() => {
@@ -339,16 +337,16 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                       variant="destructive"
                       size="icon"
                       aria-label="Remove photo"
-                      className={cn("absolute top-2 right-2", isMobile && "h-10 w-10")}
+                      className="absolute top-2 right-2 h-11 w-11 md:h-9 md:w-9"
                     >
-                      <X className={isMobile ? "w-5 h-5" : "w-4 h-4"} />
+                      <X className="w-5 h-5 md:w-4 md:h-4" />
                     </Button>
                   </div>
                   <Button
                     onClick={openFilePicker}
                     variant="outline"
                     size="sm"
-                    className={cn("w-full mt-2", isMobile && "h-10 text-sm")}
+                    className="w-full mt-2 min-h-[44px] text-sm md:min-h-0"
                   >
                     <CameraIcon className="w-4 h-4 mr-2" />
                     Retake photo
@@ -367,12 +365,13 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
             {/* Amount (Required) */}
             <div className="space-y-2">
-              <Label htmlFor="amount" className={cn("text-sm font-medium", isMobile && "text-base")}>
+              <Label htmlFor="amount" className="text-base font-medium md:text-sm">
                 Amount *
               </Label>
               <Input
                 id="amount"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0.01"
                 value={amount}
@@ -390,8 +389,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                 required
                 aria-invalid={!!amountError}
                 aria-describedby={amountError ? 'amount-error' : undefined}
-                className={cn(isMobile && "h-12 text-base", amountError && "border-destructive")}
-                style={{ fontSize: isMobile ? '16px' : undefined }}
+                className={cn("h-12 text-base md:h-9 md:text-sm", amountError && "border-destructive")}
               />
               {amountError && (
                 <p id="amount-error" className="text-xs text-destructive">
@@ -426,7 +424,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
             {/* Project Assignment (Optional) */}
             <div className="space-y-2">
-              <Label htmlFor="project" className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-base")}>
+              <Label htmlFor="project" className="text-base font-medium text-muted-foreground md:text-sm">
                 Assign to Project (Optional)
               </Label>
               <Select
@@ -436,10 +434,10 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                   setProjectSearchQuery(''); // Clear search on selection
                 }}
               >
-                <SelectTrigger className={cn(isMobile && "h-12 text-base")}>
-                  <SelectValue placeholder="Select a project" className={cn(isMobile && "text-base")}>
+                <SelectTrigger className="h-12 text-base md:h-9 md:text-sm">
+                  <SelectValue placeholder="Select a project" className="text-base md:text-sm">
                     {selectedProjectId ? (
-                      <span className={cn("truncate", isMobile && "text-base")}>
+                      <span className="truncate text-base md:text-sm">
                         {(() => {
                           const project = projects.find(p => p.id === selectedProjectId);
                           return project?.category === 'overhead' 
@@ -460,8 +458,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                       placeholder="Search projects..."
                       value={projectSearchQuery}
                       onChange={(e) => setProjectSearchQuery(e.target.value)}
-                      className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                      style={{ fontSize: '16px' }}
+                      className="h-10 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base md:h-8 md:text-sm"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     />
@@ -491,7 +488,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
             {/* Description (Optional) */}
             <div className="space-y-2">
-              <Label htmlFor="description" className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-base")}>
+              <Label htmlFor="description" className="text-base font-medium text-muted-foreground md:text-sm">
                 Notes (Optional)
               </Label>
               <Textarea
@@ -500,31 +497,30 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add notes about this receipt..."
                 rows={isMobile ? 4 : 3}
-                className={cn("text-sm", isMobile && "text-base")}
-                style={{ fontSize: isMobile ? '16px' : undefined }}
+                className="text-base md:text-sm"
               />
             </div>
           </div>
         </div>
 
         {/* Fixed Footer with Action Buttons */}
-        <div className={cn("flex gap-3 px-6 border-t bg-background shrink-0", isMobile ? "py-4 pb-safe" : "py-4")}>
+        <div className="flex gap-3 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t bg-background shrink-0">
           <Button
             onClick={handleClose}
             variant="outline"
-            className={cn("flex-1", isMobile && "h-12 text-base")}
+            className="flex-1 min-h-[48px] text-base md:text-sm"
             disabled={uploading}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
-            className={cn("flex-1", isMobile && "h-12 text-base font-medium")}
+            className="flex-1 min-h-[48px] text-base font-medium md:text-sm"
             disabled={!capturedPhoto || !amount || !selectedPayeeId || !!amountError || uploading}
           >
             {uploading ? (
               <>
-                <Loader2 className={cn("mr-2 animate-spin", isMobile ? "h-5 w-5" : "h-4 w-4")} />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin md:h-4 md:w-4" />
                 Saving...
               </>
             ) : (
