@@ -14,7 +14,13 @@ export default function Mentions() {
   const handleTap = async (notification: typeof notifications[0]) => {
     await markAsRead(notification.id);
     if (notification.link_url) {
-      navigate(notification.link_url + '?tab=notes');
+      // ?tab=notes is a mention-specific deep-link into the project Notes
+      // tab; other types (assignment → "/") navigate to link_url as-is.
+      navigate(
+        notification.type === 'mention'
+          ? notification.link_url + '?tab=notes'
+          : notification.link_url
+      );
     }
   };
 
@@ -22,8 +28,8 @@ export default function Mentions() {
     <MobilePageWrapper>
       <PageHeader
         icon={AtSign}
-        title="Mentions"
-        description="Notes where you've been tagged"
+        title="Notifications"
+        description="Mentions and dispatch updates"
         actions={
           unreadCount > 0 ? (
             <Button variant="outline" size="sm" onClick={markAllAsRead} className="min-h-[44px]">

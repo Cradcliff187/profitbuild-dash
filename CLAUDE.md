@@ -1286,8 +1286,18 @@ and used to hand field crews the admin Gantt with drag-edit affordances.
   390 / 768 / 1024. iPad is a first-class target — deliberate `md:`/`lg:` layouts, never a stretched
   phone strip. `useIsMobile()` breaks at 768 (iPads land on the DESKTOP side) — use Tailwind
   breakpoints, not the hook, for layout decisions on these surfaces.
-- "Unread" on the Today week strip = unread mentions (`useUnreadMentions`) — there is no per-note
-  read tracking; don't invent one casually.
+- "Unread" on the Today week strip = unread notifications (`useUnreadMentions` — the hook reads ALL
+  `user_notifications` types); there is no per-note read tracking, don't invent one casually.
+- **In-app assignment notifications are LIVE (Jul 14 2026 — the in-app half of PR 4, pulled
+  forward)**: the SECURITY DEFINER trigger `notify_crew_assignment_change()` on
+  `crew_day_assignments` writes `user_notifications` (`type:'assignment'`, `link_url:'/'`) on
+  INSERT / reassignment (old worker "removed" + new worker "new") / detail changes (date, time,
+  project, task_note) / DELETE. Noise rules baked in: self-writes silent, `admin_notes`-only edits
+  silent (admin-note activity never leaks to workers), removal/cancel pings only for today-or-future
+  dates. The bell + sidebar badge + `/mentions` page (retitled "Notifications") render them via the
+  existing rail; the page appends `?tab=notes` ONLY for `type:'mention'`. No realtime (Gotcha #53) —
+  new pings surface on next navigation/focus, and mark-as-read clears optimistically. **PR 4 is now
+  SMS-only** (Textbelt deep-link on same-day changes).
 
 ### 36. `ProjectAddressLocator` is the canonical address affordance (Jul 14 2026, PR 3)
 

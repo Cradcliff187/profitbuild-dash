@@ -60,7 +60,7 @@ const getPageTitle = (pathname: string): string => {
     '/payees': 'Payees',
     '/field-media': 'Field Media',
     '/leads': 'Leads',
-    '/mentions': 'Mentions',
+    '/mentions': 'Notifications',
     '/role-management': 'Role Management',
     '/sms': 'Send SMS',
     '/training': 'My Training',

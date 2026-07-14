@@ -155,7 +155,9 @@ export function AppSidebar() {
         // Hidden for v2 field users — the bottom tab shell owns Time.
         { title: "Time Tracker", url: "/time-tracker", icon: Clock, show: !(isFieldWorkerOnly && fieldHomeEnabled) },
         { title: "My Training", url: "/training", icon: GraduationCap, show: true },
-        { title: "Mentions", url: "/mentions", icon: AtSign, show: true, badgeCount: mentionCount },
+        // Renamed from "Mentions" (Jul 2026): the rail now also carries
+        // dispatch-assignment notifications, not just @mentions.
+        { title: "Notifications", url: "/mentions", icon: AtSign, show: true, badgeCount: mentionCount },
       ],
     },
     {
