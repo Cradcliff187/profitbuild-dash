@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRoles } from "@/contexts/RoleContext";
+import { useDbFeatureFlag } from "@/hooks/useDbFeatureFlag";
 import { useProjectData } from "@/hooks/useProjectData";
 import { FieldQuickActionBar } from "@/components/schedule/FieldQuickActionBar";
 import { AppBreadcrumbs } from "@/components/layout/AppBreadcrumbs";
@@ -70,6 +71,10 @@ export const ProjectDetailView = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { isFieldWorker, isFieldWorkerOnly } = useRoles();
+  // v2 field shell (PR 3): when the bottom FieldTabBar is mounted by AppLayout,
+  // this view's own FieldQuickActionBar must sit ABOVE it, not under it.
+  const { enabled: fieldHomeEnabled } = useDbFeatureFlag('field_worker_v2');
+  const fieldShellActive = isFieldWorkerOnly && fieldHomeEnabled;
 
   const {
     project,
@@ -102,7 +107,10 @@ export const ProjectDetailView = () => {
   const matchEstimateNew = useMatch('/projects/:id/estimates/new');
   const matchQuoteEdit = useMatch('/projects/:id/estimates/quotes/:quoteId/edit');
   const matchQuoteNew = useMatch('/projects/:id/estimates/quotes/new');
-  const forceCollapsed = Boolean(matchEstimateEdit || matchEstimateNew || matchQuoteEdit || matchQuoteNew);
+  // Pure field workers also force-collapse: their rail holds a single item
+  // (Schedule) and the v2 bottom tabs own navigation — a one-item rail is
+  // dead weight on a 768px iPad.
+  const forceCollapsed = Boolean(matchEstimateEdit || matchEstimateNew || matchQuoteEdit || matchQuoteNew) || isFieldWorkerOnly;
   const effectiveCollapsed = forceCollapsed || panelCollapsed;
 
   // Mobile nav sheet state
@@ -411,16 +419,17 @@ export const ProjectDetailView = () => {
                   {project.client_name}
                 </span>
               </div>
-            </div>
 
-            {/* Address locator — 44px pin badge, always rendered (muted +
-                disabled when the project has no address). Tap opens a bottom
-                sheet with the full address, Get Directions, and Copy. */}
-            <ProjectAddressLocator
-              address={project.address}
-              variant="header-badge-icon"
-              className="-mt-0.5"
-            />
+              {/* Row 4: Address — FULL text, wraps, always visible (restored
+                  Jul 2026 per Chris: the pin-only badge hid the address behind
+                  a tap; field crews glance at this row constantly). Tap opens
+                  the directions/copy sheet. */}
+              <ProjectAddressLocator
+                address={project.address}
+                variant="header-inline"
+                className="mt-1"
+              />
+            </div>
 
             {/* Edit Project — direct icon button. Used to be wrapped in a
                 DropdownMenu with a single item, which cost an extra tap and
@@ -545,7 +554,12 @@ export const ProjectDetailView = () => {
            py-2.5 + border + safe-area ≈ 80px) so scrollable content never
            ends up hidden behind the global action bar. */}
         <div
-          className="flex-1 overflow-auto w-full max-w-full box-border min-w-0 pb-20"
+          className={cn(
+            "flex-1 overflow-auto w-full max-w-full box-border min-w-0 pb-20",
+            // Extra clearance when BOTH bottom bars are present (v2 shell):
+            // FieldTabBar (~64px) + lifted FieldQuickActionBar above it.
+            fieldShellActive && "pb-40"
+          )}
           data-project-detail-content
           style={{ maxWidth: '100%', width: '100%' }}
         >
@@ -579,7 +593,17 @@ export const ProjectDetailView = () => {
            three large pills: Note, Camera, Attach. Replaces per-page FABs and
            per-card inline inputs. Not rendered on /field-schedule/:id because
            that route lives outside ProjectDetailView and has its own bar. */}
-        <FieldQuickActionBar projectId={project.id} onNoteCreated={loadProjectData} />
+        {/* Under the v2 shell the AppLayout FieldTabBar owns bottom-0; lift the
+            capture bar to sit directly above it (Rule 14 override pattern). */}
+        <div
+          className={
+            fieldShellActive
+              ? "[&>div:first-child]:!bottom-[calc(64px+env(safe-area-inset-bottom))]"
+              : undefined
+          }
+        >
+          <FieldQuickActionBar projectId={project.id} onNoteCreated={loadProjectData} />
+        </div>
 
         {/* Change Order Modal */}
         <ChangeOrderModal

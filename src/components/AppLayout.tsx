@@ -117,7 +117,11 @@ export default function AppLayout() {
   useActivityTracker();
   
   // Get current page title
-  const pageTitle = getPageTitle(location.pathname);
+  // For v2 field users "/" IS the Today home (IndexGate) — title accordingly.
+  const pageTitle =
+    isFieldWorkerOnly && fieldHomeEnabled && location.pathname === '/'
+      ? 'Today'
+      : getPageTitle(location.pathname);
 
   useEffect(() => {
     if (!user) return;
@@ -251,7 +255,7 @@ export default function AppLayout() {
   }
 
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
+    <SidebarProvider defaultOpen={!isMobile && !(isFieldWorkerOnly && fieldHomeEnabled)}>
       <div className="flex min-h-screen w-full overflow-x-hidden max-w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
@@ -287,10 +291,15 @@ export default function AppLayout() {
             // Clearance for the fixed bottom FieldTabBar (field_worker_v2 shell)
             isFieldWorkerOnly && fieldHomeEnabled && "pb-20"
           )} style={{ width: '100%', maxWidth: '100%' }}>
-            {/* Persistent "Next Stop" chip — every field-worker screen (PR 3).
+            {/* Persistent "Next Stop" chip — field-worker screens (PR 3).
                 Direct child of the scroll container so sticky works; on mobile
-                it pins just below the 67px fixed header. */}
-            {isFieldWorkerOnly && fieldHomeEnabled && (
+                it pins just below the 67px fixed header. NOT rendered on
+                project-detail routes (/projects/:id/*): ProjectDetailView is
+                h-full with its own header + internal scroll, so the chip both
+                overlapped the project header and added phantom outer scroll —
+                and the project header already carries the site's identity. */}
+            {isFieldWorkerOnly && fieldHomeEnabled &&
+              !/^\/projects\/[^/]+/.test(location.pathname) && (
               <NextStopChip className={isMobile ? "!top-[67px]" : undefined} />
             )}
             <Outlet />

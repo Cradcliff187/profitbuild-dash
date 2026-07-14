@@ -17,9 +17,12 @@ export interface ProjectAddressLocatorProps {
   /**
    * - `card`: Overview card block — full address + Get Directions / Copy actions.
    * - `header-chip`: desktop/iPad header — single-line truncated maps link.
-   * - `header-badge-icon`: mobile header — 44px pin button opening a bottom sheet.
+   * - `header-badge-icon`: 44px pin button opening a bottom sheet.
+   * - `header-inline`: mobile project header — pin + FULL wrapping address text
+   *   (always glanceable, per Chris's Jul 2026 call: field crews read this off
+   *   the header; never hide it behind a tap). Tap opens the same bottom sheet.
    */
-  variant: "card" | "header-chip" | "header-badge-icon";
+  variant: "card" | "header-chip" | "header-badge-icon" | "header-inline";
   /**
    * Card-variant empty-state CTA. When provided, the dashed empty state renders
    * an "Add address" button calling it; when omitted, a muted "No address on
@@ -159,8 +162,24 @@ export function ProjectAddressLocator({
     );
   }
 
-  // ----------------------------------------------------- header-badge-icon
-  if (!address) {
+  // ------------------------------------- header-inline + header-badge-icon
+  // Both open the same bottom sheet (Get Directions + Copy) — built once below.
+  if (variant === "header-inline" && !address) {
+    return (
+      <span
+        className={cn(
+          "flex items-start gap-1.5 text-xs text-muted-foreground/60",
+          className
+        )}
+        aria-label="No address on file"
+      >
+        <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+        <span>No address on file</span>
+      </span>
+    );
+  }
+
+  if (variant === "header-badge-icon" && !address) {
     return (
       <Button
         variant="ghost"
@@ -176,15 +195,31 @@ export function ProjectAddressLocator({
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn("h-11 w-11 shrink-0 text-muted-foreground", className)}
-        onClick={() => setSheetOpen(true)}
-        aria-label={`Project address: ${address}`}
-      >
-        <MapPin className="h-5 w-5" />
-      </Button>
+      {variant === "header-inline" ? (
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-label={`Project address: ${address}. Opens directions and copy options.`}
+          className={cn(
+            "flex w-full items-start gap-1.5 text-left text-xs text-muted-foreground",
+            "hover:text-foreground active:text-foreground transition-colors py-1",
+            className
+          )}
+        >
+          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="flex-1 leading-snug">{address}</span>
+        </button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("h-11 w-11 shrink-0 text-muted-foreground", className)}
+          onClick={() => setSheetOpen(true)}
+          aria-label={`Project address: ${address}`}
+        >
+          <MapPin className="h-5 w-5" />
+        </Button>
+      )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl">

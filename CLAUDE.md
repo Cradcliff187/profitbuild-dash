@@ -1251,6 +1251,16 @@ Notes `/notes`** — bottom `FieldTabBar` + persistent `NextStopChip` mounted on
 [AppLayout.tsx](src/components/AppLayout.tsx) (chip is a direct child of `<main>` so sticky works;
 mobile passes `!top-[67px]` to clear the fixed header; tab bar is a sibling of the scroll container
 per Gotcha #41; main gets `pb-20`). Flag OFF = byte-identical to the pre-PR-3 app.
+**The chip is NOT rendered on `/projects/:id/*`** — ProjectDetailView is `h-full` with its own
+header + internal scroll, so a sticky chip both overlapped the project header and added phantom
+outer scroll; the project header already names the site. On those routes ProjectDetailView lifts
+its own `FieldQuickActionBar` above the tab bar (`!bottom-[calc(64px+env(safe-area-inset-bottom))]`
+wrapper + `pb-40` content) so the two bottom bars stack instead of colliding. Under the v2 shell
+the app sidebar starts collapsed (`SidebarProvider defaultOpen`) and PDV's one-item section rail is
+force-collapsed for field-only users. **Field-only users get the tabbed field schedule at EVERY
+width** ([ProjectScheduleRoute](src/components/project-routes/ProjectScheduleRoute.tsx) branches on
+`isMobile || isFieldWorkerOnly`) — iPads land on the desktop side of `useIsMobile()`'s 768 break
+and used to hand field crews the admin Gantt with drag-edit affordances.
 
 - **Routing**: `/` renders [IndexGate](src/pages/IndexGate.tsx) — field-only+flag → `TodayHome`,
   everyone else → Dashboard. `/time-tracker` renders [TimeTracker](src/pages/TimeTracker.tsx) —
@@ -1283,11 +1293,15 @@ per Gotcha #41; main gets `pb-20`). Flag OFF = byte-identical to the pre-PR-3 ap
 
 Never inline a pin-icon + maps `<a>` again — render
 [`ProjectAddressLocator`](src/components/projects/ProjectAddressLocator.tsx)
-(`address`, `variant: 'card' | 'header-chip' | 'header-badge-icon'`, `onAddAddress?`, `className?`).
+(`address`, `variant: 'card' | 'header-chip' | 'header-badge-icon' | 'header-inline'`,
+`onAddAddress?`, `className?`).
 It owns the maps deep-link (`https://www.google.com/maps/search/?api=1&query=…`), Copy-to-clipboard,
 per-variant empty states (it NEVER returns null), and aria labels. Adopted in `ProjectDetailView`
-(mobile header = badge-icon, desktop header = chip — always rendered; the old `isOverviewRoute`
-suppression is deleted) and the Overview card (= card variant). `projects.address` is one free-text
+(mobile header = **header-inline** — pin + FULL wrapping address text, always glanceable, tap opens
+the directions/copy sheet; per Chris Jul 2026 the address must never hide behind an icon-only tap
+on mobile — the pin-only badge variant remains available for tighter surfaces; desktop header =
+chip — always rendered; the old `isOverviewRoute` suppression is deleted) and the Overview card
+(= card variant). `projects.address` is one free-text
 column (no city/state/zip split); `payees.phone_numbers` is likewise free text despite the plural
 name — parse with `firstUsablePhone()` ([todayData.ts](src/components/today/todayData.ts)), never
 assume structure.
