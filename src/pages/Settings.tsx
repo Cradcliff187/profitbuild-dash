@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2, Building2, Palette, DollarSign, Wallet, AlertTriangle, CheckCircle2, GitCommit, type LucideIcon } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Shield, Database, Hash, RefreshCw, Code2, Building2, Palette, DollarSign, Wallet, AlertTriangle, CheckCircle2, GitCommit, Flag, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
@@ -478,6 +478,7 @@ const Settings = () => {
     { id: 'branding', label: 'Branding', icon: Palette, show: true },
     { id: 'labor-rates', label: 'Labor Rates', icon: Building2, show: isAdmin },
     { id: 'developer', label: 'Developer', icon: Code2, show: isAdmin },
+    { id: 'feature-flags', label: 'Feature Flags', icon: Flag, show: isAdmin },
     { id: 'app-updates', label: 'Updates', icon: RefreshCw, show: true },
     { id: 'security', label: 'Security', icon: Shield, show: true },
   ];
@@ -793,6 +794,25 @@ const Settings = () => {
                   }}
                 />
               </div>
+            </CardContent>
+          </Card>
+          </section>
+        )}
+
+        {isAdmin && (
+          <section id="feature-flags" className="scroll-mt-24">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Flag className="h-5 w-5" />
+                <span>Feature Flags</span>
+              </CardTitle>
+              <CardDescription>Global toggles with per-user overrides and a change audit trail</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => navigate('/settings/feature-flags')}>
+                Manage feature flags
+              </Button>
             </CardContent>
           </Card>
           </section>

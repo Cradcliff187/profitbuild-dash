@@ -38,6 +38,7 @@ import {
   LogOut,
   ChevronUp,
   AtSign,
+  CalendarRange,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
@@ -56,6 +57,7 @@ import { getCompanyBranding } from "@/utils/companyBranding";
 import { supabase } from "@/integrations/supabase/client";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useUnreadMentions } from "@/hooks/useUnreadMentions";
+import { useDbFeatureFlag } from "@/hooks/useDbFeatureFlag";
 
 const logoIconDefault = 'https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/large%20icon%20only%20(2).png';
 // Bundled white-text variant of the horizontal logo, designed for the dark
@@ -87,6 +89,9 @@ export function AppSidebar() {
   const { isAdmin, isManager, isFieldWorker, isFieldWorkerOnly, roles } = useRoles();
   const { total: pendingCount } = usePendingCounts();
   const { unreadCount: mentionCount } = useUnreadMentions();
+  // Plain TanStack query (no realtime, no getUser) — safe on the post-login
+  // path per Gotcha #53. Gates the Crew Dispatch nav item (PR 2a).
+  const { enabled: crewDispatchEnabled } = useDbFeatureFlag("crew_dispatch_board");
 
   const collapsed = state === "collapsed";
   
@@ -165,6 +170,7 @@ export function AppSidebar() {
         // their safe sub-route per Rule 18. Admins/managers see the full
         // financial card variant with margin/cost KPIs as before.
         { title: "Projects", url: "/projects", icon: Building2, show: true },
+        { title: "Crew Dispatch", url: "/dispatch", icon: CalendarRange, show: (isAdmin || isManager) && crewDispatchEnabled },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
         // Receipts deep-links into Time Tracker's existing Receipts tab.
