@@ -1,0 +1,223 @@
+/**
+ * Data layer + display helpers for the field-worker "Today" home page (`/today`).
+ *
+ * House rules — this page is the future post-login landing for field workers,
+ * i.e. the auth-loop danger zone (Gotchas #53/#54/#55/#56/#63):
+ * - ZERO realtime subscriptions. Freshness comes from staleTime +
+ *   refetchOnWindowFocus (workers reopen their phone → focus refetch).
+ * - The user id comes from the in-memory `useAuth()` context at the call site —
+ *   NEVER `supabase.auth.getUser()` on a mount path.
+ * - Plain `useQuery` everywhere.
+ * - Field-worker code paths read the `crew_day_assignments_field_view` view
+ *   (Rule 34) — RLS scopes it to the signed-in user's own rows. Never query
+ *   the base `crew_day_assignments` table from field code.
+ * - Errors are destructured and thrown (Gotcha #16).
+ */
+
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Query-key constants shared between the ThisWeekStrip reads and the
+ * QuickActionsRow in-place dialogs (Gotcha #27 — a write from those dialogs
+ * must invalidate every key that reads the same table).
+ */
+export const TODAY_WEEK_TIME_KEY = "today-week-time-entries";
+export const TODAY_WEEK_ASSIGNMENTS_KEY = "today-week-assignments";
+export const TODAY_RECEIPTS_PENDING_KEY = "today-receipts-pending";
+
+/**
+ * Field-facing assignment row from `crew_day_assignments_field_view`.
+ * The generated view types are all-nullable; rows missing identity columns
+ * are dropped in the query fn before this shape is asserted.
+ */
+export interface FieldAssignment {
+  id: string;
+  user_id: string;
+  project_id: string;
+  /** YYYY-MM-DD (date-only — compare as strings, never through `new Date()`). */
+  work_date: string;
+  /** Postgres `time` — "HH:MM:SS" — or null when the dispatcher didn't set one. */
+  start_time: string | null;
+  /** Dispatcher's instruction for the worker (may contain gate codes etc.). */
+  task_note: string | null;
+  estimate_line_item_id: string | null;
+  change_order_line_item_id: string | null;
+  created_at: string | null;
+  created_by: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+/** Resolved, dialable phone for the Call affordance. */
+export interface ResolvedPhone {
+  /** The raw token as entered (shown to the user if needed). */
+  display: string;
+  /** Digits (+ optional leading "+") for the tel: href. */
+  tel: string;
+}
+
+/** Lightweight project projection for the Today cards. */
+export interface TodayProject {
+  id: string;
+  project_number: string;
+  project_name: string;
+  /** Single free-text column on `projects` (no separate city/state columns). */
+  address: string | null;
+  /** Project owner's payee_name (projects.owner_id → payees), when resolvable. */
+  owner_name: string | null;
+  /** First usable number parsed from the owner's phone_numbers text, or null. */
+  owner_phone: ResolvedPhone | null;
+}
+
+interface HookOptions {
+  enabled?: boolean;
+}
+
+/**
+ * Today's + tomorrow's assignments for the signed-in user, ordered
+ * work_date → start_time (nulls last) → created_at. One query covers both
+ * days; callers split by comparing `work_date` against the ISO strings.
+ */
+export function useMyDayAssignments(
+  userId: string | undefined,
+  todayISO: string,
+  tomorrowISO: string,
+  options: HookOptions = {}
+) {
+  return useQuery({
+    queryKey: ["my-day-assignments", userId, todayISO],
+    enabled: !!userId && (options.enabled ?? true),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<FieldAssignment[]> => {
+      // Two days × one worker — nowhere near the 1,000-row cap (Gotcha #23).
+      const { data, error } = await supabase
+        .from("crew_day_assignments_field_view")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("work_date", todayISO)
+        .lte("work_date", tomorrowISO)
+        .order("work_date")
+        .order("start_time", { ascending: true, nullsFirst: false })
+        .order("created_at");
+      if (error) throw error;
+      // View rows are all-nullable in the generated types; drop anything
+      // missing its identity columns before asserting the practical shape.
+      return (data ?? []).filter(
+        (r) => r.id && r.project_id && r.work_date
+      ) as FieldAssignment[];
+    },
+  });
+}
+
+/**
+ * Projects referenced by the visible assignments, plus each project's owner
+ * contact (projects.owner_id → payees.payee_name / phone_numbers). The owner
+ * read is deliberately NON-FATAL: the Call affordance is secondary, and a
+ * payees RLS denial must not take down the hero card's project identity.
+ */
+export function useTodayProjects(projectIds: string[], options: HookOptions = {}) {
+  // Sorted copy → stable structural query key regardless of assignment order.
+  const ids = [...projectIds].sort();
+
+  return useQuery({
+    queryKey: ["today-projects", ids],
+    enabled: ids.length > 0 && (options.enabled ?? true),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<TodayProject[]> => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, project_number, project_name, address, owner_id")
+        .in("id", ids);
+      if (error) throw error;
+      const rows = data ?? [];
+
+      const ownerIds = Array.from(
+        new Set(rows.map((r) => r.owner_id).filter(Boolean))
+      ) as string[];
+
+      const ownerById = new Map<
+        string,
+        { payee_name: string | null; phone_numbers: string | null }
+      >();
+      if (ownerIds.length > 0) {
+        const { data: owners, error: ownersError } = await supabase
+          .from("payees")
+          .select("id, payee_name, phone_numbers")
+          .in("id", ownerIds);
+        if (ownersError) {
+          // Surfaced, not discarded (Gotcha #16) — but non-fatal by design:
+          // losing the Call button must not blank the Next Stop card.
+          console.error("TodayHome: failed to load project owners", ownersError);
+        } else {
+          for (const o of owners ?? []) {
+            ownerById.set(o.id, {
+              payee_name: o.payee_name,
+              phone_numbers: o.phone_numbers,
+            });
+          }
+        }
+      }
+
+      return rows.map((r) => {
+        const owner = r.owner_id ? ownerById.get(r.owner_id) : undefined;
+        return {
+          id: r.id,
+          project_number: r.project_number,
+          project_name: r.project_name,
+          address: r.address,
+          owner_name: owner?.payee_name ?? null,
+          owner_phone: firstUsablePhone(owner?.phone_numbers),
+        };
+      });
+    },
+  });
+}
+
+/**
+ * `payees.phone_numbers` is a FREE-TEXT column (`string | null` in the
+ * generated Supabase types — NOT jsonb; PayeeForm exposes it as a single
+ * "Phone" input, plural name notwithstanding). Users sometimes stuff
+ * multiple numbers in, so split on common separators and take the first
+ * token with at least 7 digits. Returns null when nothing dialable is
+ * found — callers omit the Call affordance entirely in that case.
+ */
+export function firstUsablePhone(
+  raw: string | null | undefined
+): ResolvedPhone | null {
+  if (!raw) return null;
+  const candidates = raw.split(/[,;\n/]|\s+or\s+/i);
+  for (const candidate of candidates) {
+    const display = candidate.trim();
+    if (!display) continue;
+    const digits = display.replace(/\D/g, "");
+    if (digits.length >= 7) {
+      const tel = display.startsWith("+") ? `+${digits}` : digits;
+      return { display, tel };
+    }
+  }
+  return null;
+}
+
+/**
+ * Postgres `time` value ("07:30:00") → "7:30 AM". Returns null when unset so
+ * callers can skip the chip entirely.
+ */
+export function formatStartTime12h(t: string | null): string | null {
+  if (!t) return null;
+  const [hStr, mStr] = t.split(":");
+  const h = parseInt(hStr, 10);
+  if (Number.isNaN(h)) return null;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${mStr ?? "00"} ${period}`;
+}
+
+/** First line of a multi-line note (for compact previews). */
+export function firstLine(text: string | null): string | null {
+  if (!text) return null;
+  const line = text.split("\n")[0].trim();
+  return line.length > 0 ? line : null;
+}
