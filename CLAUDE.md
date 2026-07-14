@@ -1249,8 +1249,12 @@ For **pure field workers** (`isFieldWorkerOnly`) with `field_worker_v2` ON, the 
 five-tab IA: **Today `/` · Time `/time-tracker` · Receipts `/receipts` · Projects `/my-projects` ·
 Notes `/notes`** — bottom `FieldTabBar` + persistent `NextStopChip` mounted once in
 [AppLayout.tsx](src/components/AppLayout.tsx) (chip is a direct child of `<main>` so sticky works;
-mobile passes `!top-[67px]` to clear the fixed header; tab bar is a sibling of the scroll container
-per Gotcha #41; main gets `pb-20`). Flag OFF = byte-identical to the pre-PR-3 app.
+the chip's own `sticky top-0` pins it flush under the mobile fixed header because main's `pt-[67px]`
+IS the header clearance — sticky offsets resolve against the scroll container's padding-inset content
+edge, so do NOT pass a top offset at the mount site (a `!top-[67px]` override double-counted the
+padding, pushed the chip to y=134, and occluded every page heading — validation §5.4 FAIL, fixed
+Jul 2026); tab bar is a sibling of the scroll container per Gotcha #41; main gets `pb-20`). Flag
+OFF = byte-identical to the pre-PR-3 app.
 **The chip is NOT rendered on `/projects/:id/*`** — ProjectDetailView is `h-full` with its own
 header + internal scroll, so a sticky chip both overlapped the project header and added phantom
 outer scroll; the project header already names the site. On those routes ProjectDetailView lifts

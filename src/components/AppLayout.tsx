@@ -292,15 +292,21 @@ export default function AppLayout() {
             isFieldWorkerOnly && fieldHomeEnabled && "pb-20"
           )} style={{ width: '100%', maxWidth: '100%' }}>
             {/* Persistent "Next Stop" chip — field-worker screens (PR 3).
-                Direct child of the scroll container so sticky works; on mobile
-                it pins just below the 67px fixed header. NOT rendered on
+                Direct child of the scroll container so sticky works. Its own
+                `sticky top-0` already pins it flush under the mobile fixed
+                header: Chromium resolves sticky offsets against the scroll
+                container's padding-inset content edge, and main's pt-[67px]
+                (above) IS the header clearance. Do NOT pass an extra top
+                offset here — a `!top-[67px]` override double-counts the
+                padding and pushes the chip to y=134, occluding page headings
+                (validation §5.4 FAIL, 2026-07-13). NOT rendered on
                 project-detail routes (/projects/:id/*): ProjectDetailView is
                 h-full with its own header + internal scroll, so the chip both
                 overlapped the project header and added phantom outer scroll —
                 and the project header already carries the site's identity. */}
             {isFieldWorkerOnly && fieldHomeEnabled &&
               !/^\/projects\/[^/]+/.test(location.pathname) && (
-              <NextStopChip className={isMobile ? "!top-[67px]" : undefined} />
+              <NextStopChip />
             )}
             <Outlet />
           </main>
