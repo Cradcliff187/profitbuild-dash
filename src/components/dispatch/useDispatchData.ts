@@ -25,6 +25,8 @@ import {
   CrewAssignment,
   DispatchProject,
   DispatchWorker,
+  ScheduleTaskLink,
+  taskLinkToColumns,
 } from "./dispatchTypes";
 
 const PROJECT_FIELDS = "id, project_number, project_name, status, category, client_name";
@@ -147,6 +149,12 @@ export interface SaveAssignmentInput {
   start_time: string | null;
   task_note: string | null;
   admin_notes: string | null;
+  /**
+   * Optional schedule-activity link. Projected onto the two FK columns via
+   * `taskLinkToColumns` (at most one set, per the DB CHECK); null clears both.
+   * Independent of `task_note` — the note is a text snapshot and survives unlink.
+   */
+  task_link: ScheduleTaskLink | null;
 }
 
 export function useDispatchMutations(weekStartISO: string) {
@@ -162,6 +170,7 @@ export function useDispatchMutations(weekStartISO: string) {
       toast.error("You must be signed in to save assignments");
       return false;
     }
+    const linkColumns = taskLinkToColumns(input.task_link);
     if (input.id) {
       const { error } = await supabase
         .from("crew_day_assignments")
@@ -172,6 +181,7 @@ export function useDispatchMutations(weekStartISO: string) {
           start_time: input.start_time,
           task_note: input.task_note,
           admin_notes: input.admin_notes,
+          ...linkColumns,
           updated_by: user.id,
         })
         .eq("id", input.id);
@@ -188,6 +198,7 @@ export function useDispatchMutations(weekStartISO: string) {
         start_time: input.start_time,
         task_note: input.task_note,
         admin_notes: input.admin_notes,
+        ...linkColumns,
         created_by: user.id,
         updated_by: user.id,
       });
@@ -202,8 +213,10 @@ export function useDispatchMutations(weekStartISO: string) {
   };
 
   /**
-   * Drag move: optimistic UPDATE of user_id/work_date (start_time/task_note kept),
-   * rollback on error, then prefix invalidation either way.
+   * Drag move: optimistic UPDATE of user_id/work_date ONLY — start_time,
+   * task_note, and the schedule-link FK columns (estimate_line_item_id /
+   * change_order_line_item_id) are deliberately untouched so a move preserves
+   * the link. Rollback on error, then prefix invalidation either way.
    */
   const moveAssignment = async (
     assignmentId: string,

@@ -4,17 +4,21 @@
  *
  * Schedule tie-in: once a project is selected, the project's schedulable lines
  * active on the chosen date render as "From schedule:" chips above the task
- * note — tapping one sets/appends the description into task_note (a SNAPSHOT;
- * we deliberately store text, not an FK). If nothing matches the date but the
- * project has schedulable lines, they all fold into a muted collapsed
- * "All schedule activities" section (they may simply be undated).
+ * note — tapping one sets/appends the description into task_note (a SNAPSHOT)
+ * AND selects an OPTIONAL link to that activity (estimate_line_item_id /
+ * change_order_line_item_id, at most one set). The link is what lets the DB
+ * trigger auto-allocate the worker's time entries to the right line. The two
+ * are independent: unlinking keeps the note text, and typing in the note never
+ * changes the link. If nothing matches the date but the project has
+ * schedulable lines, they all fold into a muted collapsed "All schedule
+ * activities" section (they may simply be undated).
  *
  * Delete lives inside the sheet, admin-only (RLS: managers cannot delete),
  * confirmed via AlertDialog.
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCheck2, ChevronDown, Trash2 } from "lucide-react";
+import { CalendarCheck2, ChevronDown, Link2, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -45,7 +49,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ProjectSelectorNew } from "@/components/ProjectSelectorNew";
 import type { Project } from "@/types/project";
-import { CrewAssignment, DispatchProject, DispatchWorker } from "./dispatchTypes";
+import {
+  CrewAssignment,
+  DispatchProject,
+  DispatchWorker,
+  ScheduleTaskLink,
+  assignmentTaskLink,
+} from "./dispatchTypes";
 import { SaveAssignmentInput } from "./useDispatchData";
 import { useProjectDayTasks, ProjectDayTask } from "./useProjectDayTasks";
 
@@ -90,6 +100,12 @@ export function AssignmentSheet({
   const [startTime, setStartTime] = useState<string>("");
   const [taskNote, setTaskNote] = useState<string>("");
   const [adminNotes, setAdminNotes] = useState<string>("");
+  /**
+   * Selected schedule-activity link (or null = unlinked). Set ONLY by tapping
+   * a schedule chip, cleared by the unlink button or by switching projects —
+   * never by typing in the task note (the note is an independent snapshot).
+   */
+  const [linkedTask, setLinkedTask] = useState<ScheduleTaskLink | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -113,6 +129,7 @@ export function AssignmentSheet({
       setStartTime("");
       setTaskNote("");
       setAdminNotes("");
+      setLinkedTask(null);
     } else {
       const a = state.assignment;
       setProjectId(a.project_id);
@@ -120,6 +137,7 @@ export function AssignmentSheet({
       setStartTime(a.start_time ? a.start_time.slice(0, 5) : "");
       setTaskNote(a.task_note ?? "");
       setAdminNotes(a.admin_notes ?? "");
+      setLinkedTask(assignmentTaskLink(a));
     }
   }, [open, state]);
 
@@ -135,10 +153,17 @@ export function AssignmentSheet({
 
   const selectedProject = selectorProjects.find((p) => p.id === projectId);
 
-  const { allTasks, matchingTasks } = useProjectDayTasks(
+  const { allTasks, matchingTasks, isLoading: tasksLoading } = useProjectDayTasks(
     projectId || null,
     workDate || null
   );
+
+  // Resolve the linked FK back to a task for display. `undefined` while the id
+  // doesn't resolve — with lines deleted/superseded on versioning (Rule 27 /
+  // Gotcha #65 class) the FK may point at a line no longer on the schedule.
+  const resolvedLinkedTask = linkedTask
+    ? allTasks.find((t) => t.id === linkedTask.id && t.source === linkedTask.source)
+    : undefined;
 
   const handleSave = async () => {
     if (!workerUserId) return;
@@ -159,6 +184,7 @@ export function AssignmentSheet({
       start_time: startTime ? startTime : null,
       task_note: taskNote.trim() ? taskNote.trim() : null,
       admin_notes: adminNotes.trim() ? adminNotes.trim() : null,
+      task_link: linkedTask,
     });
     setIsSaving(false);
     if (ok) onOpenChange(false);
@@ -173,21 +199,37 @@ export function AssignmentSheet({
     if (ok) onOpenChange(false);
   };
 
-  const taskChip = (task: ProjectDayTask) => (
-    <button
-      key={task.id}
-      type="button"
-      onClick={() => setTaskNote((prev) => appendTaskText(prev, task.description))}
-      className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-full border border-primary/30 bg-primary/5",
-        "px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-primary/10"
-      )}
-      title={task.description}
-    >
-      <CalendarCheck2 className="h-3 w-3 shrink-0 text-primary" />
-      <span className="truncate">{task.description}</span>
-    </button>
-  );
+  // Tapping a chip snapshots the description into task_note (as before) AND
+  // selects the schedule link. Tapping the already-linked chip re-appends
+  // nothing (appendTaskText dedups) and keeps the same link.
+  const taskChip = (task: ProjectDayTask) => {
+    const isSelected =
+      linkedTask?.id === task.id && linkedTask?.source === task.source;
+    return (
+      <button
+        key={task.id}
+        type="button"
+        onClick={() => {
+          setTaskNote((prev) => appendTaskText(prev, task.description));
+          setLinkedTask({ id: task.id, source: task.source });
+        }}
+        aria-pressed={isSelected}
+        className={cn(
+          "inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-xs text-foreground transition-colors",
+          isSelected
+            ? "border-primary bg-primary/15 font-medium ring-1 ring-primary/40"
+            : "border-primary/30 bg-primary/5 hover:bg-primary/10"
+        )}
+        title={task.description}
+      >
+        <CalendarCheck2 className="h-3 w-3 shrink-0 text-primary" />
+        <span className="truncate">{task.description}</span>
+      </button>
+    );
+  };
+
+  const linkIsStale = !!linkedTask && !resolvedLinkedTask && !tasksLoading;
+  const showLinkNudge = !!projectId && allTasks.length > 0 && !linkedTask;
 
   return (
     <>
@@ -213,7 +255,13 @@ export function AssignmentSheet({
               <ProjectSelectorNew
                 projects={selectorProjects as unknown as Project[]}
                 selectedProject={selectedProject as unknown as Project | undefined}
-                onSelect={(project) => setProjectId(project.id)}
+                onSelect={(project) => {
+                  // Switching projects invalidates the schedule link — the
+                  // linked line belongs to the previous project. The note
+                  // snapshot text stays (it never implies the link).
+                  if (project.id !== projectId) setLinkedTask(null);
+                  setProjectId(project.id);
+                }}
                 placeholder="Select a project..."
                 hideCreateButton
               />
@@ -266,6 +314,49 @@ export function AssignmentSheet({
                 </Collapsible>
               )}
 
+              {/* Link status row. Unlinking clears the FKs only — the task
+                  note text is a snapshot and is deliberately kept. */}
+              {linkedTask && (
+                <div
+                  className={cn(
+                    "flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-xs",
+                    linkIsStale
+                      ? "border-amber-500/40 bg-amber-500/10"
+                      : "border-primary/30 bg-primary/5"
+                  )}
+                >
+                  <Link2
+                    className={cn(
+                      "mt-0.5 h-3 w-3 shrink-0",
+                      linkIsStale ? "text-amber-600" : "text-primary"
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 text-muted-foreground">
+                    {resolvedLinkedTask ? (
+                      <>
+                        Linked to schedule activity —{" "}
+                        <span className="text-foreground">
+                          {resolvedLinkedTask.description}
+                        </span>
+                      </>
+                    ) : tasksLoading ? (
+                      "Linked to schedule activity"
+                    ) : (
+                      "Linked activity no longer on the schedule"
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLinkedTask(null)}
+                    aria-label="Unlink schedule activity"
+                    title="Unlink (keeps the task note text)"
+                    className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
               <Textarea
                 id="assignment-task-note"
                 value={taskNote}
@@ -292,30 +383,40 @@ export function AssignmentSheet({
             </div>
           </div>
 
-          <footer className="flex shrink-0 items-center gap-2 border-t px-6 py-3">
-            {isEdit && isAdmin && (
-              <Button
-                variant="destructive"
-                size="sm"
-                className="mr-auto"
-                disabled={isSaving || isDeleting}
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                <Trash2 className="mr-1.5 h-4 w-4" />
-                Delete
-              </Button>
+          <footer className="shrink-0 space-y-2 border-t px-6 py-3">
+            {/* Non-blocking nudge — the link is optional; saving unlinked is
+                always allowed. */}
+            {showLinkNudge && (
+              <p className="text-xs text-muted-foreground">
+                Tip: link a schedule activity so this worker's time
+                auto-allocates to the right line.
+              </p>
             )}
-            <Button
-              variant="outline"
-              className={cn(!(isEdit && isAdmin) && "ml-auto")}
-              onClick={() => onOpenChange(false)}
-              disabled={isSaving || isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving || isDeleting}>
-              {isSaving ? "Saving..." : isEdit ? "Save changes" : "Create"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {isEdit && isAdmin && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="mr-auto"
+                  disabled={isSaving || isDeleting}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Delete
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className={cn(!(isEdit && isAdmin) && "ml-auto")}
+                onClick={() => onOpenChange(false)}
+                disabled={isSaving || isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving || isDeleting}>
+                {isSaving ? "Saving..." : isEdit ? "Save changes" : "Create"}
+              </Button>
+            </div>
           </footer>
         </SheetContent>
       </Sheet>

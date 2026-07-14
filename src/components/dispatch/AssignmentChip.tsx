@@ -5,9 +5,14 @@
  */
 
 import { Draggable } from "@hello-pangea/dnd";
-import { Clock } from "lucide-react";
+import { Clock, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CrewAssignment, DispatchProject, formatStartTime } from "./dispatchTypes";
+import {
+  CrewAssignment,
+  DispatchProject,
+  formatStartTime,
+  isTaskLinked,
+} from "./dispatchTypes";
 
 interface AssignmentChipProps {
   assignment: CrewAssignment;
@@ -19,6 +24,7 @@ interface AssignmentChipProps {
 export function AssignmentChip({ assignment, project, index, onEdit }: AssignmentChipProps) {
   const startTime = formatStartTime(assignment.start_time);
   const notePreview = assignment.task_note?.split("\n")[0]?.trim();
+  const linked = isTaskLinked(assignment);
 
   return (
     <Draggable draggableId={assignment.id} index={index}>
@@ -53,8 +59,16 @@ export function AssignmentChip({ assignment, project, index, onEdit }: Assignmen
               </span>
             )}
           </div>
-          {notePreview && (
-            <p className="truncate text-muted-foreground">{notePreview}</p>
+          {(notePreview || linked) && (
+            <p className="flex min-w-0 items-center gap-1 text-muted-foreground">
+              {linked && (
+                <Link2
+                  className="h-2.5 w-2.5 shrink-0 text-primary"
+                  aria-label="Linked to schedule activity"
+                />
+              )}
+              {notePreview && <span className="truncate">{notePreview}</span>}
+            </p>
           )}
         </div>
       )}
