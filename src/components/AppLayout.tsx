@@ -105,8 +105,8 @@ export default function AppLayout() {
   const { isFieldWorkerOnly, loading: rolesLoading } = useRoles();
   // Plain TanStack query (no realtime, no getUser) — safe on the post-login
   // path per Gotcha #53. When field_worker_v2 is ON for this user, blocked
-  // field workers land on the new /today home instead of /time-tracker.
-  const { enabled: fieldHomeEnabled } = useDbFeatureFlag('field_worker_v2');
+  // field workers land on the new "/" Today home instead of /time-tracker.
+  const { enabled: fieldHomeEnabled, isLoading: fieldHomeLoading } = useDbFeatureFlag('field_worker_v2');
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -227,13 +227,22 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (!authLoading && !rolesLoading && user && isFieldWorkerOnly) {
+      // Wait for the flag before judging: on a cold load at '/', bouncing
+      // while field_worker_v2 is still resolving reads enabled=false and
+      // lands flag-ON users on /time-tracker nondeterministically. The
+      // render gate below holds the loader for this window, so no blocked
+      // page ever paints while we wait.
+      if (fieldHomeLoading) return;
       if (!isFieldWorkerAllowed(location.pathname)) {
         navigate(fieldHomeEnabled ? '/' : '/time-tracker', { replace: true });
       }
     }
-  }, [user, authLoading, rolesLoading, isFieldWorkerOnly, fieldHomeEnabled, location.pathname, navigate]);
+  }, [user, authLoading, rolesLoading, isFieldWorkerOnly, fieldHomeEnabled, fieldHomeLoading, location.pathname, navigate]);
 
-  if (authLoading || rolesLoading) {
+  if (authLoading || rolesLoading || (isFieldWorkerOnly && fieldHomeLoading)) {
+    // Field-only users also wait for field_worker_v2 to resolve so the
+    // allowlist/bounce decision above is deterministic and no blocked
+    // page paints in the interim. Admins/managers are never held here.
     return <BrandedLoader message="Loading..." />;
   }
 
