@@ -12,9 +12,7 @@ import {
   Receipt,
   FileIcon,
   ChevronRight,
-  Check,
-  MapPin,
-  ExternalLink
+  Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -26,6 +24,7 @@ import type { Quote } from '@/types/quote';
 import type { Expense } from '@/types/expense';
 import type { ChangeOrder } from '@/types/changeOrder';
 import { ProjectNotesTimeline } from './ProjectNotesTimeline';
+import { ProjectAddressLocator } from '@/components/projects/ProjectAddressLocator';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectOperationalDashboardProps {
@@ -398,18 +397,16 @@ export function ProjectOperationalDashboard({
     <div className="space-y-3">
       {/* Key facts — identity (number/name/status) is already in the page header/breadcrumb */}
       <Card className="p-3">
-        {project.address && (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start gap-1.5 text-sm text-foreground hover:text-primary active:text-primary transition-colors mb-3 pb-3 border-b"
-          >
-            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-            <span className="flex-1 leading-snug">{project.address}</span>
-            <ExternalLink className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-          </a>
-        )}
+        {/* Canonical address block (ProjectAddressLocator card variant) —
+            always rendered; shows a dashed "No address on file" empty state
+            when the project has no address. No onAddAddress here: this
+            component has no role gating or edit affordance of its own, so
+            the empty state stays informational (edit lives in the header). */}
+        <ProjectAddressLocator
+          address={project.address}
+          variant="card"
+          className="mb-3 pb-3 border-b"
+        />
 
         {isMobile ? (
           <div className="space-y-1.5">

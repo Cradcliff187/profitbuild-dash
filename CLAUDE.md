@@ -1243,6 +1243,79 @@ estimate by `date_created` + approved COs, SCHEDULABLE_CATEGORIES) — keep all 
 `enforce_time_entry_category_from_payee`, `sync_payee_provides_labor_on_role_change`, and all
 related sync logic are unchanged. Assignments reference `auth.users` directly, not payees.
 
+### 35. Field-Worker Experience v2 (Jul 14 2026, field-worker redesign PR 3, behind `field_worker_v2`)
+
+For **pure field workers** (`isFieldWorkerOnly`) with `field_worker_v2` ON, the app becomes a
+five-tab IA: **Today `/` · Time `/time-tracker` · Receipts `/receipts` · Projects `/my-projects` ·
+Notes `/notes`** — bottom `FieldTabBar` + persistent `NextStopChip` mounted once in
+[AppLayout.tsx](src/components/AppLayout.tsx) (chip is a direct child of `<main>` so sticky works;
+mobile passes `!top-[67px]` to clear the fixed header; tab bar is a sibling of the scroll container
+per Gotcha #41; main gets `pb-20`). Flag OFF = byte-identical to the pre-PR-3 app.
+**The chip is NOT rendered on `/projects/:id/*`** — ProjectDetailView is `h-full` with its own
+header + internal scroll, so a sticky chip both overlapped the project header and added phantom
+outer scroll; the project header already names the site. On those routes ProjectDetailView lifts
+its own `FieldQuickActionBar` above the tab bar (`!bottom-[calc(64px+env(safe-area-inset-bottom))]`
+wrapper + `pb-40` content) so the two bottom bars stack instead of colliding. Under the v2 shell
+the app sidebar starts collapsed (`SidebarProvider defaultOpen`) and PDV's one-item section rail is
+force-collapsed for field-only users. **Field-only users get the tabbed field schedule at EVERY
+width** ([ProjectScheduleRoute](src/components/project-routes/ProjectScheduleRoute.tsx) branches on
+`isMobile || isFieldWorkerOnly`) — iPads land on the desktop side of `useIsMobile()`'s 768 break
+and used to hand field crews the admin Gantt with drag-edit affordances.
+
+- **Routing**: `/` renders [IndexGate](src/pages/IndexGate.tsx) — field-only+flag → `TodayHome`,
+  everyone else → Dashboard. `/time-tracker` renders [TimeTracker](src/pages/TimeTracker.tsx) —
+  field-only+flag → `FieldTimeLanding` (entry-first: Add entry, Copy yesterday / last Friday batch,
+  weekly summary + day dots, recent entries), else the unchanged tabbed `MobileTimeTracker`.
+  `/today` stays as the admin/manager **dogfood door** (same TodayHome, any role with flag ON).
+- **Timer is a supported secondary path — do not remove; do not re-promote to the landing without
+  user-research evidence.** It lives at `/time-tracker/timer` ([TimerPage](src/pages/TimerPage.tsx))
+  which mounts `MobileTimeTracker` with the additive `timerOnly` prop (hides the Timer/Entries/
+  Receipts strip + ignores `?tab=` — those surfaces live on the v2 tabs; default `false` keeps
+  admins/flag-off users untouched, per audit rule R3 on shared contracts).
+- **Allowlist (Gotcha #44)**: `/`, `/receipts`, `/my-projects`, `/notes` are allowed ONLY when the
+  flag is on; `/today` + `/time-tracker/*` unconditionally. Blocked field workers bounce to `/`
+  (flag on) or `/time-tracker` (flag off).
+- **Sidebar under v2**: field-only users lose the Time Tracker + Receipts sidebar entries (tabs own
+  them); the sidebar keeps only what tabs don't cover (Training, Mentions, Field Media, Settings).
+- **Auth discipline (Gotchas #53-56/#63 — the reason this PR was isolated)**: every v2 surface has
+  ZERO realtime subscriptions and never calls `auth.getUser()` on mount paths; flags/data via plain
+  TanStack queries (staleTime 60s, focus refetch). Keep it that way. Known pre-existing debt: the
+  shared Create/EditTimeEntryDialog call `getUser()` internally (save-handler / mount respectively)
+  — v2 pages defer-mount them on first interaction; a shared-side cleanup is queued.
+- **Time-tracking surfaces are mobile + iPad first (Chris's standing rule)**: design and verify at
+  390 / 768 / 1024. iPad is a first-class target — deliberate `md:`/`lg:` layouts, never a stretched
+  phone strip. `useIsMobile()` breaks at 768 (iPads land on the DESKTOP side) — use Tailwind
+  breakpoints, not the hook, for layout decisions on these surfaces.
+- "Unread" on the Today week strip = unread notifications (`useUnreadMentions` — the hook reads ALL
+  `user_notifications` types); there is no per-note read tracking, don't invent one casually.
+- **In-app assignment notifications are LIVE (Jul 14 2026 — the in-app half of PR 4, pulled
+  forward)**: the SECURITY DEFINER trigger `notify_crew_assignment_change()` on
+  `crew_day_assignments` writes `user_notifications` (`type:'assignment'`, `link_url:'/'`) on
+  INSERT / reassignment (old worker "removed" + new worker "new") / detail changes (date, time,
+  project, task_note) / DELETE. Noise rules baked in: self-writes silent, `admin_notes`-only edits
+  silent (admin-note activity never leaks to workers), removal/cancel pings only for today-or-future
+  dates. The bell + sidebar badge + `/mentions` page (retitled "Notifications") render them via the
+  existing rail; the page appends `?tab=notes` ONLY for `type:'mention'`. No realtime (Gotcha #53) —
+  new pings surface on next navigation/focus, and mark-as-read clears optimistically. **PR 4 is now
+  SMS-only** (Textbelt deep-link on same-day changes).
+
+### 36. `ProjectAddressLocator` is the canonical address affordance (Jul 14 2026, PR 3)
+
+Never inline a pin-icon + maps `<a>` again — render
+[`ProjectAddressLocator`](src/components/projects/ProjectAddressLocator.tsx)
+(`address`, `variant: 'card' | 'header-chip' | 'header-badge-icon' | 'header-inline'`,
+`onAddAddress?`, `className?`).
+It owns the maps deep-link (`https://www.google.com/maps/search/?api=1&query=…`), Copy-to-clipboard,
+per-variant empty states (it NEVER returns null), and aria labels. Adopted in `ProjectDetailView`
+(mobile header = **header-inline** — pin + FULL wrapping address text, always glanceable, tap opens
+the directions/copy sheet; per Chris Jul 2026 the address must never hide behind an icon-only tap
+on mobile — the pin-only badge variant remains available for tighter surfaces; desktop header =
+chip — always rendered; the old `isOverviewRoute` suppression is deleted) and the Overview card
+(= card variant). `projects.address` is one free-text
+column (no city/state/zip split); `payees.phone_numbers` is likewise free text despite the plural
+name — parse with `firstUsablePhone()` ([todayData.ts](src/components/today/todayData.ts)), never
+assume structure.
+
 ---
 
 ## TypeScript Configuration

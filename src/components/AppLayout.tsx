@@ -13,6 +13,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useDbFeatureFlag } from '@/hooks/useDbFeatureFlag';
+import { NextStopChip } from '@/components/field/NextStopChip';
+import { FieldTabBar } from '@/components/field/FieldTabBar';
 
 // Mobile menu trigger component (must be inside SidebarProvider)
 function MobileMenuTrigger() {
@@ -42,6 +45,8 @@ const getPageTitle = (pathname: string): string => {
   const exactMatches: Record<string, string> = {
     '/': 'Dashboard',
     '/dashboard': 'Dashboard',
+    '/today': 'Today',
+    '/dispatch': 'Crew Dispatch',
     '/projects': 'Projects',
     '/work-orders': 'Work Orders',
     '/time-tracker': 'Time Tracker',
@@ -55,7 +60,7 @@ const getPageTitle = (pathname: string): string => {
     '/payees': 'Payees',
     '/field-media': 'Field Media',
     '/leads': 'Leads',
-    '/mentions': 'Mentions',
+    '/mentions': 'Notifications',
     '/role-management': 'Role Management',
     '/sms': 'Send SMS',
     '/training': 'My Training',
@@ -98,6 +103,10 @@ export default function AppLayout() {
   // to /time-tracker — they're an admin first. Only pure field workers get
   // role-based redirects.
   const { isFieldWorkerOnly, loading: rolesLoading } = useRoles();
+  // Plain TanStack query (no realtime, no getUser) — safe on the post-login
+  // path per Gotcha #53. When field_worker_v2 is ON for this user, blocked
+  // field workers land on the new "/" Today home instead of /time-tracker.
+  const { enabled: fieldHomeEnabled, isLoading: fieldHomeLoading } = useDbFeatureFlag('field_worker_v2');
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -108,7 +117,11 @@ export default function AppLayout() {
   useActivityTracker();
   
   // Get current page title
-  const pageTitle = getPageTitle(location.pathname);
+  // For v2 field users "/" IS the Today home (IndexGate) — title accordingly.
+  const pageTitle =
+    isFieldWorkerOnly && fieldHomeEnabled && location.pathname === '/'
+      ? 'Today'
+      : getPageTitle(location.pathname);
 
   useEffect(() => {
     if (!user) return;
@@ -171,6 +184,8 @@ export default function AppLayout() {
   // is automatically blocked for field workers without touching this file.
   //
   // Allowed for field workers:
+  //   /today                             — field home (PR 3, behind field_worker_v2;
+  //                                        becomes the bounce target when the flag is ON)
   //   /time-tracker[?tab=...]            — primary daily surface
   //   /training, /training/:id           — My Training + viewer
   //   /mentions                          — @mention notifications
@@ -189,7 +204,17 @@ export default function AppLayout() {
   // canonical security boundary is database RLS, which is queued as a
   // separate hardening session per F2 finding.
   const isFieldWorkerAllowed = (path: string): boolean => {
+    // field_worker_v2 IA (PR 3): Today lives at '/', plus the tab routes.
+    // All are flag-gated so flag-off behavior is byte-identical to before.
+    if (fieldHomeEnabled) {
+      if (path === '/') return true;
+      if (path === '/receipts') return true;
+      if (path === '/my-projects') return true;
+      if (path === '/notes') return true;
+    }
+    if (path === '/today') return true;
     if (path === '/time-tracker') return true;
+    if (path.startsWith('/time-tracker/')) return true;
     if (path === '/mentions') return true;
     if (path === '/training') return true;
     if (path.startsWith('/training/')) return true;
@@ -206,13 +231,22 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (!authLoading && !rolesLoading && user && isFieldWorkerOnly) {
+      // Wait for the flag before judging: on a cold load at '/', bouncing
+      // while field_worker_v2 is still resolving reads enabled=false and
+      // lands flag-ON users on /time-tracker nondeterministically. The
+      // render gate below holds the loader for this window, so no blocked
+      // page ever paints while we wait.
+      if (fieldHomeLoading) return;
       if (!isFieldWorkerAllowed(location.pathname)) {
-        navigate('/time-tracker', { replace: true });
+        navigate(fieldHomeEnabled ? '/' : '/time-tracker', { replace: true });
       }
     }
-  }, [user, authLoading, rolesLoading, isFieldWorkerOnly, location.pathname, navigate]);
+  }, [user, authLoading, rolesLoading, isFieldWorkerOnly, fieldHomeEnabled, fieldHomeLoading, location.pathname, navigate]);
 
-  if (authLoading || rolesLoading) {
+  if (authLoading || rolesLoading || (isFieldWorkerOnly && fieldHomeLoading)) {
+    // Field-only users also wait for field_worker_v2 to resolve so the
+    // allowlist/bounce decision above is deterministic and no blocked
+    // page paints in the interim. Admins/managers are never held here.
     return <BrandedLoader message="Loading..." />;
   }
 
@@ -221,7 +255,7 @@ export default function AppLayout() {
   }
 
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
+    <SidebarProvider defaultOpen={!isMobile && !(isFieldWorkerOnly && fieldHomeEnabled)}>
       <div className="flex min-h-screen w-full overflow-x-hidden max-w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 bg-slate-50/50">
@@ -253,10 +287,25 @@ export default function AppLayout() {
           <main className={cn(
             "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
             (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-5',
-            isMobile && "pt-[67px]"
+            isMobile && "pt-[67px]",
+            // Clearance for the fixed bottom FieldTabBar (field_worker_v2 shell)
+            isFieldWorkerOnly && fieldHomeEnabled && "pb-20"
           )} style={{ width: '100%', maxWidth: '100%' }}>
+            {/* Persistent "Next Stop" chip — field-worker screens (PR 3).
+                Direct child of the scroll container so sticky works; on mobile
+                it pins just below the 67px fixed header. NOT rendered on
+                project-detail routes (/projects/:id/*): ProjectDetailView is
+                h-full with its own header + internal scroll, so the chip both
+                overlapped the project header and added phantom outer scroll —
+                and the project header already carries the site's identity. */}
+            {isFieldWorkerOnly && fieldHomeEnabled &&
+              !/^\/projects\/[^/]+/.test(location.pathname) && (
+              <NextStopChip className={isMobile ? "!top-[67px]" : undefined} />
+            )}
             <Outlet />
           </main>
+          {/* Bottom tab shell — sibling of the scroll container (Gotcha #41) */}
+          {isFieldWorkerOnly && fieldHomeEnabled && <FieldTabBar />}
         </SidebarInset>
       </div>
     </SidebarProvider>

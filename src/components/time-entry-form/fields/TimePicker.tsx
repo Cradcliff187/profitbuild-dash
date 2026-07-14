@@ -87,7 +87,7 @@ export function TimePicker({
         align="start"
         side="bottom"
         className={cn(
-          'w-[280px] p-4',
+          'w-[280px] max-h-[min(75vh,420px)] overflow-y-auto p-4',
           isMobile && 'max-w-[min(320px,calc(100vw-2rem))]'
         )}
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -173,10 +173,21 @@ export function TimePicker({
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] px-4 md:min-h-0 md:px-2.5"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={apply}>
+            <Button
+              type="button"
+              size="sm"
+              className="min-h-[44px] px-4 md:min-h-0 md:px-2.5"
+              onClick={apply}
+            >
               OK
             </Button>
           </div>

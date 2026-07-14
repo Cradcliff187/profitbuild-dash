@@ -20,7 +20,7 @@ export function NotesField({ value, onChange, disabled = false }: NotesFieldProp
         placeholder="Add notes about this shift (e.g., rain delay, material pickup, waiting on inspector)..."
         rows={2}
         disabled={disabled}
-        className="resize-none text-sm"
+        className="resize-none text-base md:text-sm"
       />
       <p className="text-xs text-muted-foreground">
         Optional — visible to managers reviewing this time entry

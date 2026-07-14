@@ -38,7 +38,17 @@ type SortType = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 // rows (and their thumbnails) up front.
 const PAGE_SIZE = 24;
 
-export const ReceiptsList = () => {
+interface ReceiptsListProps {
+  /**
+   * Hide the floating Add FAB. The /receipts field page (PR 3) provides its
+   * own prominent "Add receipt" button — two affordances for one action is
+   * noise (Rule 22 single-affordance principle). Default false: the
+   * time-tracker Receipts tab keeps the FAB as its primary affordance.
+   */
+  hideAddFab?: boolean;
+}
+
+export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
@@ -480,17 +490,19 @@ export const ReceiptsList = () => {
         </>
       )}
 
-      {/* Floating Add Button */}
-      <div className="fixed bottom-20 right-4 z-20">
-        <Button
-          onClick={() => setShowAddModal(true)}
-          size="lg"
-          aria-label="Add receipt"
-          className="h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-transform"
-        >
-          <Plus className="w-6 h-6" />
-        </Button>
-      </div>
+      {/* Floating Add Button (hidden when the host page owns the affordance) */}
+      {!hideAddFab && (
+        <div className="fixed bottom-20 right-4 z-20">
+          <Button
+            onClick={() => setShowAddModal(true)}
+            size="lg"
+            aria-label="Add receipt"
+            className="h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-transform"
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+        </div>
+      )}
 
       {/* Add Receipt Modal */}
       <AddReceiptModal

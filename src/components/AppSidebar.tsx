@@ -39,6 +39,7 @@ import {
   ChevronUp,
   AtSign,
   CalendarRange,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
@@ -89,9 +90,10 @@ export function AppSidebar() {
   const { isAdmin, isManager, isFieldWorker, isFieldWorkerOnly, roles } = useRoles();
   const { total: pendingCount } = usePendingCounts();
   const { unreadCount: mentionCount } = useUnreadMentions();
-  // Plain TanStack query (no realtime, no getUser) — safe on the post-login
-  // path per Gotcha #53. Gates the Crew Dispatch nav item (PR 2a).
+  // Plain TanStack queries (no realtime, no getUser) — safe on the post-login
+  // path per Gotcha #53. Gate the Crew Dispatch (PR 2a) and Today (PR 3) items.
   const { enabled: crewDispatchEnabled } = useDbFeatureFlag("crew_dispatch_board");
+  const { enabled: fieldHomeEnabled } = useDbFeatureFlag("field_worker_v2");
 
   const collapsed = state === "collapsed";
   
@@ -145,10 +147,17 @@ export function AppSidebar() {
       label: "CORE",
       abbrev: "C",
       items: [
+        // Today = the field-worker home (PR 3, behind field_worker_v2).
+        // Shown to admins/managers (dogfood door at /today) — NOT to pure
+        // field workers, whose bottom tab shell already owns Today at "/".
+        { title: "Today", url: "/today", icon: Sun, show: fieldHomeEnabled && !isFieldWorkerOnly && (isFieldWorker || isAdmin) },
         { title: "Dashboard", url: "/", icon: LayoutDashboard, show: hasFinancialAccess },
-        { title: "Time Tracker", url: "/time-tracker", icon: Clock, show: true },
+        // Hidden for v2 field users — the bottom tab shell owns Time.
+        { title: "Time Tracker", url: "/time-tracker", icon: Clock, show: !(isFieldWorkerOnly && fieldHomeEnabled) },
         { title: "My Training", url: "/training", icon: GraduationCap, show: true },
-        { title: "Mentions", url: "/mentions", icon: AtSign, show: true, badgeCount: mentionCount },
+        // Renamed from "Mentions" (Jul 2026): the rail now also carries
+        // dispatch-assignment notifications, not just @mentions.
+        { title: "Notifications", url: "/mentions", icon: AtSign, show: true, badgeCount: mentionCount },
       ],
     },
     {
@@ -169,7 +178,9 @@ export function AppSidebar() {
         // with a directions tap target) and tap into /schedule directly —
         // their safe sub-route per Rule 18. Admins/managers see the full
         // financial card variant with margin/cost KPIs as before.
-        { title: "Projects", url: "/projects", icon: Building2, show: true },
+        // Hidden for v2 field users — the bottom tab shell owns Projects
+        // (/my-projects), same trim as Time Tracker/Receipts/Today.
+        { title: "Projects", url: "/projects", icon: Building2, show: !(isFieldWorkerOnly && fieldHomeEnabled) },
         { title: "Crew Dispatch", url: "/dispatch", icon: CalendarRange, show: (isAdmin || isManager) && crewDispatchEnabled },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
@@ -178,7 +189,8 @@ export function AppSidebar() {
         // receipts list isn't buried two taps deep inside the Time Tracker
         // tab strip. Admins/managers reach receipts via the Time Tracker tab
         // strip directly — they don't need a sidebar shortcut.
-        { title: "Receipts", url: "/time-tracker?tab=receipts", icon: Receipt, show: isFieldWorkerOnly },
+        // v2 field users get Receipts as a bottom tab (/receipts) instead.
+        { title: "Receipts", url: "/time-tracker?tab=receipts", icon: Receipt, show: isFieldWorkerOnly && !fieldHomeEnabled },
         { title: "Field Media", url: "/field-media", icon: Camera, show: true },
       ],
     },
