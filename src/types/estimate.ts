@@ -22,6 +22,11 @@ export interface LineItem {
   billingRatePerHour?: number | null;
   actualCostRatePerHour?: number | null;
   laborCushionAmount?: number | null; // Generated column - read only
+
+  // When the form was seeded by copying another estimate's lines (versioning /
+  // duplicate), the id of the DB line this item came from. create_estimate_version
+  // uses it to re-point quote/correlation/dispatch FKs onto the new version's line.
+  sourceLineItemId?: string | null;
 }
 
 export interface Estimate {

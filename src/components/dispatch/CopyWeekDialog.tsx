@@ -169,6 +169,10 @@ export function CopyWeekDialog({
         start_time: row.source.start_time,
         task_note: row.source.task_note,
         admin_notes: row.source.admin_notes,
+        // Schedule-activity link carries over (at most one is set on the
+        // source, per the DB CHECK — copying both columns preserves that).
+        estimate_line_item_id: row.source.estimate_line_item_id,
+        change_order_line_item_id: row.source.change_order_line_item_id,
         created_by: user.id,
         updated_by: user.id,
       }))

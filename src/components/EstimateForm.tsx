@@ -297,7 +297,11 @@ useEffect(() => {
         markupPercent: item.markup_percent,
         markupAmount: item.markup_amount,
         totalCost: Number(item.total_cost ?? 0),
-        totalMarkup: Number(item.total_markup ?? 0)
+        totalMarkup: Number(item.total_markup ?? 0),
+        laborHours: item.labor_hours != null ? Number(item.labor_hours) : null,
+        billingRatePerHour: item.billing_rate_per_hour != null ? Number(item.billing_rate_per_hour) : null,
+        actualCostRatePerHour: item.actual_cost_rate_per_hour != null ? Number(item.actual_cost_rate_per_hour) : null,
+        sourceLineItemId: item.id
       })) || [];
 
       setLineItems(items as LineItem[]);
@@ -795,10 +799,35 @@ useEffect(() => {
             throw new Error('Could not find root estimate for version creation');
           }
 
-          // Create new version using RPC function
+          // Version from the estimate the form was actually seeded from (falling
+          // back to the root for blank new estimates). The RPC inserts OUR line
+          // items directly and re-points quote/correlation/dispatch FKs from each
+          // item's sourceLineItemId onto the new line. The previous shape — RPC
+          // copies the ROOT's lines, then we DELETE the copies and re-insert —
+          // nulled the FKs the RPC had just re-pointed (delete-after-repoint bug)
+          // and never re-pointed links sitting on v2+ lines at all.
+          const versionSourceId = copyFromEstimate || rootEstimate.id;
+
+          const lineItemsPayload = validLineItems.map((item, index) => ({
+            category: item.category,
+            description: item.description.trim(),
+            quantity: item.quantity,
+            price_per_unit: item.pricePerUnit,
+            unit: item.unit || null,
+            sort_order: index,
+            cost_per_unit: item.costPerUnit || 0,
+            markup_percent: item.markupPercent,
+            markup_amount: item.markupAmount,
+            labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
+            billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
+            actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null,
+            source_line_item_id: item.sourceLineItemId || null
+          }));
+
           const { data: newVersionId, error: versionError } = await supabase
             .rpc('create_estimate_version', {
-              source_estimate_id: rootEstimate.id
+              source_estimate_id: versionSourceId,
+              p_line_items: lineItemsPayload
             });
 
           if (versionError) throw versionError;
@@ -826,40 +855,7 @@ useEffect(() => {
             .single();
 
           if (updateError) throw updateError;
-
-          // Delete default line items from new version and add our line items
-          const { error: deleteError } = await supabase
-            .from('estimate_line_items')
-            .delete()
-            .eq('estimate_id', newVersionId);
-
-          if (deleteError) {
-            console.error('Failed to delete default line items:', deleteError);
-            throw new Error(`Cannot create estimate: ${deleteError.message}`);
-          }
-
-          const lineItemsData = validLineItems.map((item, index) => ({
-            estimate_id: newVersionId,
-            category: item.category,
-            description: item.description.trim(),
-            quantity: item.quantity,
-            price_per_unit: item.pricePerUnit,
-            unit: item.unit || null,
-            sort_order: index,
-            cost_per_unit: item.costPerUnit || 0,
-            markup_percent: item.markupPercent,
-            markup_amount: item.markupAmount,
-            labor_hours: item.category === LineItemCategory.LABOR ? (item.laborHours || null) : null,
-            billing_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.billingRatePerHour || null) : null,
-            actual_cost_rate_per_hour: item.category === LineItemCategory.LABOR ? (item.actualCostRatePerHour || null) : null
-          }));
-
-          const { error: lineItemsError } = await supabase
-            .from('estimate_line_items')
-            .insert(lineItemsData)
-            .select('id, estimate_id, category, description, quantity, price_per_unit, unit, sort_order, cost_per_unit, markup_percent, markup_amount, created_at');
-
-          if (lineItemsError) throw lineItemsError;
+          // Line items were inserted by the RPC (form path) — no delete/re-insert.
 
           const newEstimate: Estimate = {
             id: newVersionId,

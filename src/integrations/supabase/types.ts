@@ -798,8 +798,10 @@ export type Database = {
       crew_day_assignments: {
         Row: {
           admin_notes: string | null
+          change_order_line_item_id: string | null
           created_at: string
           created_by: string | null
+          estimate_line_item_id: string | null
           id: string
           project_id: string
           start_time: string | null
@@ -811,8 +813,10 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          change_order_line_item_id?: string | null
           created_at?: string
           created_by?: string | null
+          estimate_line_item_id?: string | null
           id?: string
           project_id: string
           start_time?: string | null
@@ -824,8 +828,10 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          change_order_line_item_id?: string | null
           created_at?: string
           created_by?: string | null
+          estimate_line_item_id?: string | null
           id?: string
           project_id?: string
           start_time?: string | null
@@ -836,6 +842,20 @@ export type Database = {
           work_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crew_day_assignments_project_id_fkey"
             columns: ["project_id"]
@@ -4018,8 +4038,10 @@ export type Database = {
     Views: {
       crew_day_assignments_field_view: {
         Row: {
+          change_order_line_item_id: string | null
           created_at: string | null
           created_by: string | null
+          estimate_line_item_id: string | null
           id: string | null
           project_id: string | null
           start_time: string | null
@@ -4030,8 +4052,10 @@ export type Database = {
           work_date: string | null
         }
         Insert: {
+          change_order_line_item_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          estimate_line_item_id?: string | null
           id?: string | null
           project_id?: string | null
           start_time?: string | null
@@ -4042,8 +4066,10 @@ export type Database = {
           work_date?: string | null
         }
         Update: {
+          change_order_line_item_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          estimate_line_item_id?: string | null
           id?: string | null
           project_id?: string | null
           start_time?: string | null
@@ -4054,6 +4080,20 @@ export type Database = {
           work_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crew_day_assignments_project_id_fkey"
             columns: ["project_id"]
@@ -4276,7 +4316,11 @@ export type Database = {
         Returns: undefined
       }
       create_estimate_version: {
-        Args: { new_version_number?: number; source_estimate_id: string }
+        Args: {
+          new_version_number?: number
+          p_line_items?: Json
+          source_estimate_id: string
+        }
         Returns: string
       }
       create_payment_application: {
