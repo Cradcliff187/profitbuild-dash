@@ -35,8 +35,10 @@ export function NextStopChip({ className }: { className?: string }) {
   const barShell = cn(
     "sticky top-0 z-30 w-full",
     "bg-background/95 backdrop-blur-sm border-b",
-    // Mount-site override (e.g. AppLayout passes !top-[67px] on mobile so the
-    // chip pins just below the fixed app header instead of hiding behind it).
+    // Mount-site override slot. NOTE: sticky offsets resolve against the
+    // scroll container's padding-inset content edge — if the mount's scroll
+    // container already pads for a fixed header (AppLayout main pt-[67px]),
+    // top-0 is correct and an extra top offset double-counts (§5.4 bug).
     className
   );
   // Inner row is width-capped so the chip reads comfortably on iPad
