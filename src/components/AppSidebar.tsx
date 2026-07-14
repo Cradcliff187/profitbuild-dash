@@ -176,7 +176,9 @@ export function AppSidebar() {
         // with a directions tap target) and tap into /schedule directly —
         // their safe sub-route per Rule 18. Admins/managers see the full
         // financial card variant with margin/cost KPIs as before.
-        { title: "Projects", url: "/projects", icon: Building2, show: true },
+        // Hidden for v2 field users — the bottom tab shell owns Projects
+        // (/my-projects), same trim as Time Tracker/Receipts/Today.
+        { title: "Projects", url: "/projects", icon: Building2, show: !(isFieldWorkerOnly && fieldHomeEnabled) },
         { title: "Crew Dispatch", url: "/dispatch", icon: CalendarRange, show: (isAdmin || isManager) && crewDispatchEnabled },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },

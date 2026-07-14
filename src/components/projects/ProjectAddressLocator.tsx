@@ -50,6 +50,39 @@ const copyAddress = async (address: string) => {
 };
 
 /**
+ * Navigation apps — deliberately https universal links, NOT native URL
+ * schemes: they open the installed app when present and fall back to the
+ * web (or store) when not, with zero scheme-sniffing to go wrong.
+ */
+const NAV_APPS = [
+  {
+    key: "apple",
+    name: "Apple Maps",
+    url: (a: string) => `https://maps.apple.com/?daddr=${encodeURIComponent(a)}`,
+  },
+  {
+    key: "google",
+    name: "Google Maps",
+    url: (a: string) =>
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(a)}`,
+  },
+  {
+    key: "waze",
+    name: "Waze",
+    url: (a: string) => `https://waze.com/ul?q=${encodeURIComponent(a)}&navigate=yes`,
+  },
+];
+
+/** Platform-aware ordering only (all three always offered): Apple devices
+ *  lead with Apple Maps, everything else leads with Google Maps. */
+const getOrderedNavApps = () => {
+  const isApple =
+    typeof navigator !== "undefined" &&
+    /iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent);
+  return isApple ? NAV_APPS : [NAV_APPS[1], NAV_APPS[0], NAV_APPS[2]];
+};
+
+/**
  * Canonical project-address affordance. NEVER returns null — every variant
  * renders an explicit empty state when no address is on file, so headers and
  * the Overview card always carry the same predictable slot.
@@ -61,6 +94,61 @@ export function ProjectAddressLocator({
   className,
 }: ProjectAddressLocatorProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Shared bottom sheet: full address + "Navigate with" (Apple Maps / Google
+  // Maps / Waze, platform-ordered) + Copy. Used by the card, header-inline,
+  // and header-badge-icon variants; header-chip (desktop) keeps its direct
+  // maps link.
+  const orderedNavApps = getOrderedNavApps();
+  const directionsSheet = address ? (
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <SheetContent side="bottom" className="rounded-t-2xl sm:max-w-lg sm:mx-auto">
+        <SheetHeader className="text-left">
+          <SheetTitle>Project address</SheetTitle>
+          <SheetDescription className="sr-only">
+            Navigate with your preferred maps app or copy the address.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex items-start gap-2 py-3 text-sm text-foreground">
+          <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" />
+          <span className="flex-1 leading-snug">{address}</span>
+        </div>
+        <div className="flex flex-col gap-2 pb-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Navigate with
+          </span>
+          {orderedNavApps.map((app, i) => (
+            <Button
+              key={app.key}
+              asChild
+              variant={i === 0 ? "default" : "outline"}
+              className="min-h-[44px]"
+            >
+              <a
+                href={app.url(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Navigate to ${address} with ${app.name}`}
+                onClick={() => setSheetOpen(false)}
+              >
+                <Navigation className="h-4 w-4 mr-2" aria-hidden="true" />
+                {app.name}
+              </a>
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            className="min-h-[44px]"
+            onClick={() => copyAddress(address)}
+            aria-label={`Copy address: ${address}`}
+          >
+            <Copy className="h-4 w-4 mr-2" aria-hidden="true" />
+            Copy address
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  ) : null;
 
   // ------------------------------------------------------------------ card
   if (variant === "card") {
@@ -91,35 +179,39 @@ export function ProjectAddressLocator({
     }
 
     return (
-      <div className={cn("space-y-2", className)}>
-        <div className="flex items-start gap-1.5 text-sm text-foreground">
-          <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" />
-          <span className="flex-1 leading-snug">{address}</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm" className="min-h-[44px] sm:min-h-0">
-            <a
-              href={getMapsUrl(address)}
-              target="_blank"
-              rel="noopener noreferrer"
+      <>
+        <div className={cn("space-y-2", className)}>
+          <div className="flex items-start gap-1.5 text-sm text-foreground">
+            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" />
+            <span className="flex-1 leading-snug">{address}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {/* Opens the app-chooser sheet (Apple/Google/Waze) rather than
+                hard-linking one provider — crews have strong nav-app habits. */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] sm:min-h-0"
+              onClick={() => setSheetOpen(true)}
               aria-label={`Get directions to ${address}`}
             >
               <Navigation className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
               Get Directions
-            </a>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px] sm:min-h-0"
-            onClick={() => copyAddress(address)}
-            aria-label={`Copy address: ${address}`}
-          >
-            <Copy className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-            Copy
-          </Button>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] sm:min-h-0"
+              onClick={() => copyAddress(address)}
+              aria-label={`Copy address: ${address}`}
+            >
+              <Copy className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              Copy
+            </Button>
+          </div>
         </div>
-      </div>
+        {directionsSheet}
+      </>
     );
   }
 
@@ -221,43 +313,7 @@ export function ProjectAddressLocator({
         </Button>
       )}
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetHeader className="text-left">
-            <SheetTitle>Project address</SheetTitle>
-            <SheetDescription className="sr-only">
-              Get directions in Google Maps or copy the address to the clipboard.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex items-start gap-2 py-3 text-sm text-foreground">
-            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" />
-            <span className="flex-1 leading-snug">{address}</span>
-          </div>
-          <div className="flex flex-col gap-2 pb-2">
-            <Button asChild className="min-h-[44px]">
-              <a
-                href={getMapsUrl(address)}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Get directions to ${address}`}
-                onClick={() => setSheetOpen(false)}
-              >
-                <Navigation className="h-4 w-4 mr-2" aria-hidden="true" />
-                Get Directions
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              className="min-h-[44px]"
-              onClick={() => copyAddress(address)}
-              aria-label={`Copy address: ${address}`}
-            >
-              <Copy className="h-4 w-4 mr-2" aria-hidden="true" />
-              Copy address
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {directionsSheet}
     </>
   );
 }

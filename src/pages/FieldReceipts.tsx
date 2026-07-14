@@ -63,8 +63,10 @@ export default function FieldReceipts() {
           </Button>
         </div>
 
-        {/* Shared receipts list — self-contained (search/filter/sort/edit) */}
-        <ReceiptsList />
+        {/* Shared receipts list — self-contained (search/filter/sort/edit).
+            hideAddFab: the header button above is the single add affordance;
+            the list's floating FAB would duplicate it above the tab bar. */}
+        <ReceiptsList hideAddFab />
       </div>
 
       <AddReceiptModal
