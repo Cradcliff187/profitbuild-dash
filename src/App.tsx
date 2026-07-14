@@ -9,7 +9,7 @@ import { RoleProvider } from "@/contexts/RoleContext";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { BrandedLoader } from "@/components/ui/branded-loader";
-import Dashboard from "./pages/Dashboard";
+import IndexGate from "./pages/IndexGate";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
 import Projects from "./pages/Projects";
@@ -28,6 +28,13 @@ const KPIGuide = lazy(() => import("./pages/KPIGuide"));
 const Clients = lazy(() => import("./pages/Clients"));
 const ProfitAnalysis = lazy(() => import("./pages/ProfitAnalysis"));
 const Settings = lazy(() => import("./pages/Settings"));
+const FeatureFlagsSettings = lazy(() => import("./pages/FeatureFlagsSettings"));
+const DispatchBoard = lazy(() => import("./pages/DispatchBoard"));
+const TodayHome = lazy(() => import("./pages/TodayHome"));
+const TimerPage = lazy(() => import("./pages/TimerPage"));
+const FieldReceipts = lazy(() => import("./pages/FieldReceipts"));
+const MyProjects = lazy(() => import("./pages/MyProjects"));
+const FieldNotes = lazy(() => import("./pages/FieldNotes"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
 const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
@@ -111,10 +118,14 @@ const App = () => (
                 <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/reset-password" element={<LazyRoute component={ResetPassword} />} />
                 <Route path="/" element={<AppLayout />}>
-                  <Route index element={<Dashboard />} />
+                  <Route index element={<IndexGate />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
                   <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
+                  <Route path="time-tracker/timer" element={<LazyRoute component={TimerPage} />} />
+                  <Route path="receipts" element={<LazyRoute component={FieldReceipts} />} />
+                  <Route path="my-projects" element={<LazyRoute component={MyProjects} />} />
+                  <Route path="notes" element={<LazyRoute component={FieldNotes} />} />
                   <Route path="time-entries" element={<LazyRoute component={TimeEntries} />} />
                   <Route path="field-schedule/:projectId" element={<LegacyFieldScheduleRedirect />} />
                   <Route path="mentions" element={<LazyRoute component={Mentions} />} />
@@ -172,6 +183,9 @@ const App = () => (
                   <Route path="clients" element={<LazyRoute component={Clients} />} />
                   <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />
                   <Route path="settings" element={<LazyRoute component={Settings} />} />
+                  <Route path="settings/feature-flags" element={<LazyRoute component={FeatureFlagsSettings} />} />
+                  <Route path="dispatch" element={<LazyRoute component={DispatchBoard} />} />
+                  <Route path="today" element={<LazyRoute component={TodayHome} />} />
                   <Route path="role-management" element={<LazyRoute component={RoleManagement} />} />
                   <Route path="sms" element={<LazyRoute component={SMSAdmin} />} />
                   <Route path="kpi-guide" element={<LazyRoute component={KPIGuide} />} />

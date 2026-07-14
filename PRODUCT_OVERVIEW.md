@@ -131,6 +131,25 @@ Estimating → Approved → In Progress → Complete
 
 ## Module 3: Field Worker Portal
 
+### Field-Worker Experience v2 + Crew Dispatch (Jul 2026, behind feature flags)
+
+Two flag-gated surfaces reshape this module (flags `crew_dispatch_board` + `field_worker_v2`,
+per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding completes):
+
+- **Crew Dispatch board** (`/dispatch`, admin/manager): assign any labor-providing worker to a
+  project per day — multi-assignment chip stacks, drag to move, copy-last-week with merge preview,
+  optional link to a schedule activity that (a) snapshots the task into the crew-visible note and
+  (b) drives **automatic allocation of that worker's time entries to the right estimate line**
+  (DB trigger; ambiguous cases fall back to the existing suggestion sheets).
+- **Field experience v2** (pure field workers): five-tab IA — **Today** (Next Stop card with
+  dispatcher note, address + Apple/Google/Waze directions chooser, Call button; this-week strip
+  with day dots; quick actions), **Time** (entry-first landing: add entry, copy yesterday/last
+  Friday, weekly summary; the timer lives on at `/time-tracker/timer`), **Receipts**, **Projects**,
+  **Notes** — plus a persistent "Next stop" chip and in-app notifications when dispatch changes
+  (bell + Notifications page; SMS for same-day changes planned).
+- `admin_notes` on assignments is admin-only by construction (field reads go through a view that
+  excludes it); `task_note` is the crew-visible channel.
+
 ### Mobile Time Tracking
 
 The field worker experience is optimized for mobile devices (PWA with Capacitor):

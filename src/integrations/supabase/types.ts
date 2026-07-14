@@ -795,6 +795,76 @@ export type Database = {
           },
         ]
       }
+      crew_day_assignments: {
+        Row: {
+          admin_notes: string | null
+          change_order_line_item_id: string | null
+          created_at: string
+          created_by: string | null
+          estimate_line_item_id: string | null
+          id: string
+          project_id: string
+          start_time: string | null
+          task_note: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          change_order_line_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string
+          project_id: string
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          admin_notes?: string | null
+          change_order_line_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string
+          project_id?: string
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_messages: {
         Row: {
           created_at: string | null
@@ -1421,6 +1491,77 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flag_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          flag_id: string
+          flag_name: string
+          id: string
+          new_enabled: boolean | null
+          old_enabled: boolean | null
+          target_user_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          flag_id: string
+          flag_name: string
+          id?: string
+          new_enabled?: boolean | null
+          old_enabled?: boolean | null
+          target_user_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          flag_id?: string
+          flag_name?: string
+          id?: string
+          new_enabled?: boolean | null
+          old_enabled?: boolean | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_flag_user_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          flag_id: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_user_overrides_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
             referencedColumns: ["id"]
           },
         ]
@@ -2574,6 +2715,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      projects_demographic_backup_20260617: {
+        Row: {
+          contracted_amount: number | null
+          end_date: string | null
+          id: string | null
+          project_number: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       quickbooks_account_mappings: {
         Row: {
@@ -3865,6 +4036,73 @@ export type Database = {
       }
     }
     Views: {
+      crew_day_assignments_field_view: {
+        Row: {
+          change_order_line_item_id: string | null
+          created_at: string | null
+          created_by: string | null
+          estimate_line_item_id: string | null
+          id: string | null
+          project_id: string | null
+          start_time: string | null
+          task_note: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+          work_date: string | null
+        }
+        Insert: {
+          change_order_line_item_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string | null
+          project_id?: string | null
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_date?: string | null
+        }
+        Update: {
+          change_order_line_item_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string | null
+          project_id?: string | null
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_financial_summary: {
         Row: {
           contingency_amount: number | null
@@ -4078,7 +4316,11 @@ export type Database = {
         Returns: undefined
       }
       create_estimate_version: {
-        Args: { new_version_number?: number; source_estimate_id: string }
+        Args: {
+          new_version_number?: number
+          p_line_items?: Json
+          source_estimate_id: string
+        }
         Returns: string
       }
       create_payment_application: {

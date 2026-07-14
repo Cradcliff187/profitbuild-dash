@@ -1,12 +1,12 @@
 # API Reference
 
-> Generated on 2026-06-12T13:20:34.514Z by `scripts/generate-api-docs.ts`.
+> Generated on 2026-07-14T02:41:32.230Z by `scripts/generate-api-docs.ts`.
 
 This reference enumerates all exported components, hooks, functions, classes, types, enums, and values exposed under `src/`. Each entry includes import examples and usage guidance.
 
 ## React Components
 
-Total: 414
+Total: 463
 
 ### AccountMappingsManager
 
@@ -73,6 +73,48 @@ _No inline documentation provided._
 import { ActivityFeedList } from '@/components/ActivityFeedList';
 
 <ActivityFeedList {...props} />
+```
+
+### addDays
+
+**Import:** `@/components/dispatch/weekUtils`
+
+- Defined in: `components/dispatch/weekUtils.ts`
+- Export type: named
+
+```ts
+function addDays(d: Date, n: number): Date
+```
+
+Local-midnight copy of `d` shifted by `n` days.
+
+**Example**
+
+```tsx
+import { addDays } from '@/components/dispatch/weekUtils';
+
+<addDays {...props} />
+```
+
+### addDaysISO
+
+**Import:** `@/components/dispatch/weekUtils`
+
+- Defined in: `components/dispatch/weekUtils.ts`
+- Export type: named
+
+```ts
+function addDaysISO(iso: string, n: number): string
+```
+
+Shift a YYYY-MM-DD string by `n` days (local-calendar safe).
+
+**Example**
+
+```tsx
+import { addDaysISO } from '@/components/dispatch/weekUtils';
+
+<addDaysISO {...props} />
 ```
 
 ### AddReceiptModal
@@ -332,6 +374,104 @@ _No inline documentation provided._
 import { AppSidebar } from '@/components/AppSidebar';
 
 <AppSidebar {...props} />
+```
+
+### AssignmentChip
+
+**Import:** `@/components/dispatch/AssignmentChip`
+
+- Defined in: `components/dispatch/AssignmentChip.tsx`
+- Export type: named
+
+```ts
+function AssignmentChip({ assignment, project, index, onEdit }: AssignmentChipProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { AssignmentChip } from '@/components/dispatch/AssignmentChip';
+
+<AssignmentChip {...props} />
+```
+
+### AssignmentHeroCard
+
+**Import:** `@/components/today/AssignmentHeroCard`
+
+- Defined in: `components/today/AssignmentHeroCard.tsx`
+- Export type: named
+
+```ts
+function AssignmentHeroCard({
+  assignment,
+  project,
+  variant,
+}: AssignmentHeroCardProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { AssignmentHeroCard } from '@/components/today/AssignmentHeroCard';
+
+<AssignmentHeroCard {...props} />
+```
+
+### AssignmentSheet
+
+**Import:** `@/components/dispatch/AssignmentSheet`
+
+- Defined in: `components/dispatch/AssignmentSheet.tsx`
+- Export type: named
+
+```ts
+function AssignmentSheet({
+  open,
+  onOpenChange,
+  state,
+  workers,
+  pickerProjects,
+  projectsById,
+  isAdmin,
+  onSave,
+  onDelete,
+}: AssignmentSheetProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { AssignmentSheet } from '@/components/dispatch/AssignmentSheet';
+
+<AssignmentSheet {...props} />
+```
+
+### assignmentTaskLink
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function assignmentTaskLink(a: Pick<CrewAssignment, "estimate_line_item_id" | "change_order_line_item_id">): import("C:/Dev/profitbuild-dash/src/components/dispatch/dispatchTypes").ScheduleTaskLink
+```
+
+Inverse of `taskLinkToColumns` — read an assignment row's link (or null).
+
+**Example**
+
+```tsx
+import { assignmentTaskLink } from '@/components/dispatch/dispatchTypes';
+
+<assignmentTaskLink {...props} />
 ```
 
 ### AudioVisualizer
@@ -1145,6 +1285,27 @@ import { CategoryBreakdownTable } from '@/components/profit-analysis/CategoryBre
 <CategoryBreakdownTable {...props} />
 ```
 
+### cellDroppableId
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function cellDroppableId(userId: string, isoDate: string): string
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { cellDroppableId } from '@/components/dispatch/dispatchTypes';
+
+<cellDroppableId {...props} />
+```
+
 ### CertificationSection
 
 **Import:** `@/components/payment-applications/CertificationSection`
@@ -1840,6 +2001,63 @@ import { ContractStepper } from '@/components/contracts/ContractStepper';
 <ContractStepper {...props} />
 ```
 
+### CopyDayEntriesSheet
+
+**Import:** `@/components/field-time/CopyDayEntriesSheet`
+
+- Defined in: `components/field-time/CopyDayEntriesSheet.tsx`
+- Export type: named
+
+```ts
+function CopyDayEntriesSheet({
+  open,
+  onOpenChange,
+  sourceLabel,
+  sourceDateISO,
+  entries,
+  currentUserId,
+  todayISO,
+  onCopied,
+}: CopyDayEntriesSheetProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { CopyDayEntriesSheet } from '@/components/field-time/CopyDayEntriesSheet';
+
+<CopyDayEntriesSheet {...props} />
+```
+
+### CopyWeekDialog
+
+**Import:** `@/components/dispatch/CopyWeekDialog`
+
+- Defined in: `components/dispatch/CopyWeekDialog.tsx`
+- Export type: named
+
+```ts
+function CopyWeekDialog({
+  open,
+  onOpenChange,
+  weekStart,
+  workers,
+  projectsById,
+}: CopyWeekDialogProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { CopyWeekDialog } from '@/components/dispatch/CopyWeekDialog';
+
+<CopyWeekDialog {...props} />
+```
+
 ### CostAnalysisTable
 
 **Import:** `@/components/profit-analysis/CostAnalysisTable`
@@ -2148,6 +2366,27 @@ import CreateWorkOrderModal from '@/components/CreateWorkOrderModal';
 <CreateWorkOrderModal {...props} />
 ```
 
+### CREW_ASSIGNMENTS_KEY
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+"crew-day-assignments"
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { CREW_ASSIGNMENTS_KEY } from '@/components/dispatch/dispatchTypes';
+
+<CREW_ASSIGNMENTS_KEY {...props} />
+```
+
 ### Dashboard
 
 **Import:** `@/pages/Dashboard`
@@ -2340,6 +2579,87 @@ _No inline documentation provided._
 import { DiscountInput } from '@/components/forms/DiscountInput';
 
 <DiscountInput {...props} />
+```
+
+### DispatchBoard
+
+**Import:** `@/pages/DispatchBoard`
+
+- Defined in: `pages/DispatchBoard.tsx`
+- Export type: default
+
+```ts
+function DispatchBoard(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import DispatchBoard from '@/pages/DispatchBoard';
+
+<DispatchBoard {...props} />
+```
+
+### DispatchCell
+
+**Import:** `@/components/dispatch/DispatchCell`
+
+- Defined in: `components/dispatch/DispatchCell.tsx`
+- Export type: named
+
+```ts
+function DispatchCell({
+  userId,
+  isoDate,
+  assignments,
+  projectsById,
+  isToday,
+  onCreate,
+  onEdit,
+}: DispatchCellProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { DispatchCell } from '@/components/dispatch/DispatchCell';
+
+<DispatchCell {...props} />
+```
+
+### DispatchGrid
+
+**Import:** `@/components/dispatch/DispatchGrid`
+
+- Defined in: `components/dispatch/DispatchGrid.tsx`
+- Export type: named
+
+```ts
+function DispatchGrid({
+  weekDayISOs,
+  workers,
+  assignments,
+  projectsById,
+  isAdmin,
+  onCreate,
+  onEdit,
+  onMove,
+  onDelete,
+}: DispatchGridProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { DispatchGrid } from '@/components/dispatch/DispatchGrid';
+
+<DispatchGrid {...props} />
 ```
 
 ### DocumentDetailsSheet
@@ -2545,6 +2865,27 @@ _No inline documentation provided._
 import { EmployeeAuditSection } from '@/components/role-management/EmployeeAuditSection';
 
 <EmployeeAuditSection {...props} />
+```
+
+### EMPTY_DISPATCH_FILTERS
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+DispatchFilterState
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { EMPTY_DISPATCH_FILTERS } from '@/components/dispatch/dispatchTypes';
+
+<EMPTY_DISPATCH_FILTERS {...props} />
 ```
 
 ### emptyValueForField
@@ -3399,6 +3740,27 @@ import { exportCostAnalysisCsv } from '@/components/cost-tracking/efc/costAnalys
 <exportCostAnalysisCsv {...props} />
 ```
 
+### FeatureFlagsSettings
+
+**Import:** `@/pages/FeatureFlagsSettings`
+
+- Defined in: `pages/FeatureFlagsSettings.tsx`
+- Export type: default
+
+```ts
+function FeatureFlagsSettings(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import FeatureFlagsSettings from '@/pages/FeatureFlagsSettings';
+
+<FeatureFlagsSettings {...props} />
+```
+
 ### FieldDocumentsList
 
 **Import:** `@/components/schedule/FieldDocumentsList`
@@ -3460,6 +3822,27 @@ _No inline documentation provided._
 import { FieldMediaGallery } from '@/components/schedule/FieldMediaGallery';
 
 <FieldMediaGallery {...props} />
+```
+
+### FieldNotes
+
+**Import:** `@/pages/FieldNotes`
+
+- Defined in: `pages/FieldNotes.tsx`
+- Export type: default
+
+```ts
+function FieldNotes(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import FieldNotes from '@/pages/FieldNotes';
+
+<FieldNotes {...props} />
 ```
 
 ### FieldPhotoCapture
@@ -3540,6 +3923,27 @@ import { FieldQuickActionBar } from '@/components/schedule/FieldQuickActionBar';
 <FieldQuickActionBar {...props} />
 ```
 
+### FieldReceipts
+
+**Import:** `@/pages/FieldReceipts`
+
+- Defined in: `pages/FieldReceipts.tsx`
+- Export type: default
+
+```ts
+function FieldReceipts(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import FieldReceipts from '@/pages/FieldReceipts';
+
+<FieldReceipts {...props} />
+```
+
 ### FieldScheduleTable
 
 **Import:** `@/components/schedule/FieldScheduleTable`
@@ -3563,6 +3967,27 @@ _No inline documentation provided._
 import { FieldScheduleTable } from '@/components/schedule/FieldScheduleTable';
 
 <FieldScheduleTable {...props} />
+```
+
+### FieldTabBar
+
+**Import:** `@/components/field/FieldTabBar`
+
+- Defined in: `components/field/FieldTabBar.tsx`
+- Export type: named
+
+```ts
+function FieldTabBar(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { FieldTabBar } from '@/components/field/FieldTabBar';
+
+<FieldTabBar {...props} />
 ```
 
 ### FieldTaskCard
@@ -3611,6 +4036,27 @@ _No inline documentation provided._
 import { FieldTaskSection } from '@/components/schedule/FieldTaskSection';
 
 <FieldTaskSection {...props} />
+```
+
+### FieldTimeLanding
+
+**Import:** `@/pages/FieldTimeLanding`
+
+- Defined in: `pages/FieldTimeLanding.tsx`
+- Export type: default
+
+```ts
+function FieldTimeLanding(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import FieldTimeLanding from '@/pages/FieldTimeLanding';
+
+<FieldTimeLanding {...props} />
 ```
 
 ### FieldVideoCapture
@@ -3716,6 +4162,53 @@ import { FinancialTableTemplate } from '@/components/FinancialTableTemplate';
 <FinancialTableTemplate {...props} />
 ```
 
+### firstLine
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+function firstLine(text: string | null): string
+```
+
+First line of a multi-line note (for compact previews).
+
+**Example**
+
+```tsx
+import { firstLine } from '@/components/today/todayData';
+
+<firstLine {...props} />
+```
+
+### firstUsablePhone
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+function firstUsablePhone(raw: string | null | undefined): import("C:/Dev/profitbuild-dash/src/components/today/todayData").ResolvedPhone
+```
+
+`payees.phone_numbers` is a FREE-TEXT column (`string | null` in the
+generated Supabase types — NOT jsonb; PayeeForm exposes it as a single
+"Phone" input, plural name notwithstanding). Users sometimes stuff
+multiple numbers in, so split on common separators and take the first
+token with at least 7 digits. Returns null when nothing dialable is
+found — callers omit the Call affordance entirely in that case.
+
+**Example**
+
+```tsx
+import { firstUsablePhone } from '@/components/today/todayData';
+
+<firstUsablePhone {...props} />
+```
+
 ### fmtHours
 
 **Import:** `@/components/cost-tracking/efc/lineDisplay`
@@ -3758,6 +4251,27 @@ import { formatDuration } from '@/components/schedule/utils/scheduleCalculations
 <formatDuration {...props} />
 ```
 
+### formatEntryTimeRange
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function formatEntryTimeRange(entry: FieldTimeEntry): string
+```
+
+"7:00 AM – 3:30 PM", or null when the entry has no clock times (PTO).
+
+**Example**
+
+```tsx
+import { formatEntryTimeRange } from '@/components/field-time/fieldTimeData';
+
+<formatEntryTimeRange {...props} />
+```
+
 ### formatProjectLabel
 
 **Import:** `@/components/projects/ProjectOption`
@@ -3779,6 +4293,49 @@ import { formatProjectLabel } from '@/components/projects/ProjectOption';
 <formatProjectLabel {...props} />
 ```
 
+### formatStartTime
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function formatStartTime(t: string | null): string
+```
+
+`time` column value → display "HH:MM" (or null when unset).
+
+**Example**
+
+```tsx
+import { formatStartTime } from '@/components/dispatch/dispatchTypes';
+
+<formatStartTime {...props} />
+```
+
+### formatStartTime12h
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+function formatStartTime12h(t: string | null): string
+```
+
+Postgres `time` value ("07:30:00") → "7:30 AM". Returns null when unset so
+callers can skip the chip entirely.
+
+**Example**
+
+```tsx
+import { formatStartTime12h } from '@/components/today/todayData';
+
+<formatStartTime12h {...props} />
+```
+
 ### formatTime12h
 
 **Import:** `@/components/time-entry-form/fields/TimePickerButton`
@@ -3798,6 +4355,27 @@ Format HH:mm to 12-hour display e.g. "8:00 AM", "5:00 PM"
 import { formatTime12h } from '@/components/time-entry-form/fields/TimePickerButton';
 
 <formatTime12h {...props} />
+```
+
+### formatWeekLabel
+
+**Import:** `@/components/dispatch/weekUtils`
+
+- Defined in: `components/dispatch/weekUtils.ts`
+- Export type: named
+
+```ts
+function formatWeekLabel(weekStart: Date): string
+```
+
+e.g. "Jul 13 – Jul 19, 2026"
+
+**Example**
+
+```tsx
+import { formatWeekLabel } from '@/components/dispatch/weekUtils';
+
+<formatWeekLabel {...props} />
 ```
 
 ### FuzzyMatchDetailsPanel
@@ -3903,6 +4481,29 @@ Generate all schedule warnings for a set of tasks
 import { generateScheduleWarnings } from '@/components/schedule/utils/scheduleValidation';
 
 <generateScheduleWarnings {...props} />
+```
+
+### getApprovalBadgeClass
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function getApprovalBadgeClass(status: string | null): string
+```
+
+Approval-status badge classes — same map `TimeEntriesCardView` uses (that
+copy is component-local, so it can't be imported without editing a shared
+file; keep the two in visual lockstep).
+
+**Example**
+
+```tsx
+import { getApprovalBadgeClass } from '@/components/field-time/fieldTimeData';
+
+<getApprovalBadgeClass {...props} />
 ```
 
 ### getNavigationGroups
@@ -4029,6 +4630,48 @@ Get typical duration for a construction phase
 import { getTypicalDuration } from '@/components/schedule/utils/constructionSequences';
 
 <getTypicalDuration {...props} />
+```
+
+### getWeekDayISOs
+
+**Import:** `@/components/dispatch/weekUtils`
+
+- Defined in: `components/dispatch/weekUtils.ts`
+- Export type: named
+
+```ts
+function getWeekDayISOs(weekStart: Date): string[]
+```
+
+The 7 ISO (YYYY-MM-DD) dates of the Monday–Sunday week starting at `weekStart`.
+
+**Example**
+
+```tsx
+import { getWeekDayISOs } from '@/components/dispatch/weekUtils';
+
+<getWeekDayISOs {...props} />
+```
+
+### getWeekStart
+
+**Import:** `@/components/dispatch/weekUtils`
+
+- Defined in: `components/dispatch/weekUtils.ts`
+- Export type: named
+
+```ts
+function getWeekStart(d: Date): Date
+```
+
+Monday of the week containing `d`, at local midnight.
+
+**Example**
+
+```tsx
+import { getWeekStart } from '@/components/dispatch/weekUtils';
+
+<getWeekStart {...props} />
 ```
 
 ### GlobalExpenseAllocation
@@ -4196,6 +4839,47 @@ import { ImportHistory } from '@/components/ImportHistory';
 <ImportHistory {...props} />
 ```
 
+### IndexGate
+
+**Import:** `@/pages/IndexGate`
+
+- Defined in: `pages/IndexGate.tsx`
+- Export type: default
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import IndexGate from '@/pages/IndexGate';
+
+<IndexGate {...props} />
+```
+
+### invalidateFieldTimeQueries
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function invalidateFieldTimeQueries(queryClient: QueryClient): Promise<void>
+```
+
+Invalidate every query this page owns. Called after any write (create /
+edit / delete / copy-batch) so the summary dots, per-project subtotals,
+recent list, and copy-source lists all refresh without F5 (Gotcha #27 —
+cache fanout must cover every key reading the underlying table).
+
+**Example**
+
+```tsx
+import { invalidateFieldTimeQueries } from '@/components/field-time/fieldTimeData';
+
+<invalidateFieldTimeQueries {...props} />
+```
+
 ### InvoiceFieldSummary
 
 **Import:** `@/components/invoices/InvoiceFieldSummary`
@@ -4332,6 +5016,27 @@ Returns true if there's a sequencing violation
 import { isSequenceViolation } from '@/components/schedule/utils/constructionSequences';
 
 <isSequenceViolation {...props} />
+```
+
+### isTaskLinked
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function isTaskLinked(a: Pick<CrewAssignment, "estimate_line_item_id" | "change_order_line_item_id">): boolean
+```
+
+True when the assignment row carries a schedule-activity link.
+
+**Example**
+
+```tsx
+import { isTaskLinked } from '@/components/dispatch/dispatchTypes';
+
+<isTaskLinked {...props} />
 ```
 
 ### isTaskOverdue
@@ -5205,7 +5910,7 @@ import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 - Export type: named
 
 ```ts
-function MobileTimeTracker(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function MobileTimeTracker({ timerOnly = false }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -5216,6 +5921,27 @@ _No inline documentation provided._
 import { MobileTimeTracker } from '@/components/time-tracker/MobileTimeTracker';
 
 <MobileTimeTracker {...props} />
+```
+
+### MyProjects
+
+**Import:** `@/pages/MyProjects`
+
+- Defined in: `pages/MyProjects.tsx`
+- Export type: default
+
+```ts
+function MyProjects(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import MyProjects from '@/pages/MyProjects';
+
+<MyProjects {...props} />
 ```
 
 ### NeedsAttentionCard
@@ -5268,6 +5994,27 @@ _No inline documentation provided._
 import { NewTemplateGallery } from '@/components/reports/NewTemplateGallery';
 
 <NewTemplateGallery {...props} />
+```
+
+### NextStopChip
+
+**Import:** `@/components/field/NextStopChip`
+
+- Defined in: `components/field/NextStopChip.tsx`
+- Export type: named
+
+```ts
+function NextStopChip({ className }: { className?: string }): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { NextStopChip } from '@/components/field/NextStopChip';
+
+<NextStopChip {...props} />
 ```
 
 ### NonLaborLineItemRow
@@ -5562,6 +6309,48 @@ _No inline documentation provided._
 import { PageHeader } from '@/components/ui/page-header';
 
 <PageHeader {...props} />
+```
+
+### paidHoursByProject
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function paidHoursByProject(entries: FieldTimeEntry[]): import("C:/Dev/profitbuild-dash/src/components/field-time/fieldTimeData").ProjectHoursRollup[]
+```
+
+Paid Hours grouped by project, largest first.
+
+**Example**
+
+```tsx
+import { paidHoursByProject } from '@/components/field-time/fieldTimeData';
+
+<paidHoursByProject {...props} />
+```
+
+### parseCellDroppableId
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function parseCellDroppableId(droppableId: string): { userId: string; isoDate: string; }
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { parseCellDroppableId } from '@/components/dispatch/dispatchTypes';
+
+<parseCellDroppableId {...props} />
 ```
 
 ### PayeeBulkActions
@@ -6008,6 +6797,34 @@ _No inline documentation provided._
 import { ProfitSummaryCards } from '@/components/profit-analysis/ProfitSummaryCards';
 
 <ProfitSummaryCards {...props} />
+```
+
+### ProjectAddressLocator
+
+**Import:** `@/components/projects/ProjectAddressLocator`
+
+- Defined in: `components/projects/ProjectAddressLocator.tsx`
+- Export type: named
+
+```ts
+function ProjectAddressLocator({
+  address,
+  variant,
+  onAddAddress,
+  className,
+}: ProjectAddressLocatorProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+Canonical project-address affordance. NEVER returns null — every variant
+renders an explicit empty state when no address is on file, so headers and
+the Overview card always carry the same predictable slot.
+
+**Example**
+
+```tsx
+import { ProjectAddressLocator } from '@/components/projects/ProjectAddressLocator';
+
+<ProjectAddressLocator {...props} />
 ```
 
 ### ProjectBillingRoute
@@ -7053,6 +7870,27 @@ import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicato
 <PullToRefreshIndicator {...props} />
 ```
 
+### QuickActionsRow
+
+**Import:** `@/components/today/QuickActionsRow`
+
+- Defined in: `components/today/QuickActionsRow.tsx`
+- Export type: named
+
+```ts
+function QuickActionsRow(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { QuickActionsRow } from '@/components/today/QuickActionsRow';
+
+<QuickActionsRow {...props} />
+```
+
 ### QuickAddPayee
 
 **Import:** `@/components/QuickAddPayee`
@@ -7874,7 +8712,7 @@ import { ReceiptsGallery } from '@/components/time-tracker/ReceiptsGallery';
 - Export type: named
 
 ```ts
-function ReceiptsList(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+function ReceiptsList({ hideAddFab = false }: ReceiptsListProps = {}): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
 ```
 
 _No inline documentation provided._
@@ -8000,6 +8838,31 @@ _No inline documentation provided._
 import { ReceiptsTableRow } from '@/components/receipts/ReceiptsTableRow';
 
 <ReceiptsTableRow {...props} />
+```
+
+### RecentEntriesList
+
+**Import:** `@/components/field-time/RecentEntriesList`
+
+- Defined in: `components/field-time/RecentEntriesList.tsx`
+- Export type: named
+
+```ts
+function RecentEntriesList({
+  entries,
+  loading,
+  onSelect,
+}: RecentEntriesListProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { RecentEntriesList } from '@/components/field-time/RecentEntriesList';
+
+<RecentEntriesList {...props} />
 ```
 
 ### RejectTimeEntryDialog
@@ -8702,6 +9565,27 @@ import { SMSSettings } from '@/components/sms/SMSSettings';
 <SMSSettings {...props} />
 ```
 
+### sortAssignments
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function sortAssignments(list: CrewAssignment[]): import("C:/Dev/profitbuild-dash/src/components/dispatch/dispatchTypes").CrewAssignment[]
+```
+
+Chip stack order inside a cell: start_time ascending NULLS LAST, then created_at.
+
+**Example**
+
+```tsx
+import { sortAssignments } from '@/components/dispatch/dispatchTypes';
+
+<sortAssignments {...props} />
+```
+
 ### SOVGeneratorDialog
 
 **Import:** `@/components/payment-applications/SOVGeneratorDialog`
@@ -8771,6 +9655,27 @@ import { StatusBadge } from '@/components/ui/status-badge';
 <StatusBadge {...props} />
 ```
 
+### sumPaidHours
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function sumPaidHours(entries: FieldTimeEntry[]): number
+```
+
+Total Paid Hours across entries (`expenses.hours` — Gotcha #17).
+
+**Example**
+
+```tsx
+import { sumPaidHours } from '@/components/field-time/fieldTimeData';
+
+<sumPaidHours {...props} />
+```
+
 ### SyncStatusBadge
 
 **Import:** `@/components/SyncStatusBadge`
@@ -8838,6 +9743,29 @@ _No inline documentation provided._
 import TaskEditPanel from '@/components/schedule/TaskEditPanel';
 
 <TaskEditPanel {...props} />
+```
+
+### taskLinkToColumns
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+function taskLinkToColumns(link: ScheduleTaskLink | null): { estimate_line_item_id: string; change_order_line_item_id: string; }
+```
+
+Project a task link onto the two FK columns. Deriving both columns from the
+single `source` discriminant structurally enforces the DB CHECK ("at most
+one set") — callers can never write both.
+
+**Example**
+
+```tsx
+import { taskLinkToColumns } from '@/components/dispatch/dispatchTypes';
+
+<taskLinkToColumns {...props} />
 ```
 
 ### TaskReorderPanel
@@ -8928,6 +9856,27 @@ _No inline documentation provided._
 import { TemplateGallery } from '@/components/reports/TemplateGallery';
 
 <TemplateGallery {...props} />
+```
+
+### ThisWeekStrip
+
+**Import:** `@/components/today/ThisWeekStrip`
+
+- Defined in: `components/today/ThisWeekStrip.tsx`
+- Export type: named
+
+```ts
+function ThisWeekStrip({ userId, todayISO }: ThisWeekStripProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { ThisWeekStrip } from '@/components/today/ThisWeekStrip';
+
+<ThisWeekStrip {...props} />
 ```
 
 ### TimeEntriesCardView
@@ -9317,6 +10266,23 @@ import { TimeRangeField } from '@/components/time-entry-form/fields/TimeRangeFie
 <TimeRangeField {...props} />
 ```
 
+### TimerPage
+
+**Import:** `@/pages/TimerPage`
+
+- Defined in: `pages/TimerPage.tsx`
+- Export type: default
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import TimerPage from '@/pages/TimerPage';
+
+<TimerPage {...props} />
+```
+
 ### TimesheetGridCell
 
 **Import:** `@/components/TimesheetGridCell`
@@ -9421,6 +10387,115 @@ _No inline documentation provided._
 import TimeTracker from '@/pages/TimeTracker';
 
 <TimeTracker {...props} />
+```
+
+### TODAY_RECEIPTS_PENDING_KEY
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+"today-receipts-pending"
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { TODAY_RECEIPTS_PENDING_KEY } from '@/components/today/todayData';
+
+<TODAY_RECEIPTS_PENDING_KEY {...props} />
+```
+
+### TODAY_WEEK_ASSIGNMENTS_KEY
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+"today-week-assignments"
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { TODAY_WEEK_ASSIGNMENTS_KEY } from '@/components/today/todayData';
+
+<TODAY_WEEK_ASSIGNMENTS_KEY {...props} />
+```
+
+### TODAY_WEEK_TIME_KEY
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+"today-week-time-entries"
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { TODAY_WEEK_TIME_KEY } from '@/components/today/todayData';
+
+<TODAY_WEEK_TIME_KEY {...props} />
+```
+
+### TodayHome
+
+**Import:** `@/pages/TodayHome`
+
+- Defined in: `pages/TodayHome.tsx`
+- Export type: default
+
+```ts
+function TodayHome(): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import TodayHome from '@/pages/TodayHome';
+
+<TodayHome {...props} />
+```
+
+### TomorrowSection
+
+**Import:** `@/components/today/TomorrowSection`
+
+- Defined in: `components/today/TomorrowSection.tsx`
+- Export type: named
+
+```ts
+function TomorrowSection({
+  assignments,
+  projectById,
+  loading,
+}: TomorrowSectionProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { TomorrowSection } from '@/components/today/TomorrowSection';
+
+<TomorrowSection {...props} />
 ```
 
 ### Training
@@ -9726,6 +10801,33 @@ import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
 <VoiceNoteButton {...props} />
 ```
 
+### WeeklySummary
+
+**Import:** `@/components/field-time/WeeklySummary`
+
+- Defined in: `components/field-time/WeeklySummary.tsx`
+- Export type: named
+
+```ts
+function WeeklySummary({
+  weekDays,
+  todayISO,
+  entries,
+  assignmentDates,
+  loading,
+}: WeeklySummaryProps): import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { WeeklySummary } from '@/components/field-time/WeeklySummary';
+
+<WeeklySummary {...props} />
+```
+
 ### WeekView
 
 **Import:** `@/components/time-tracker/WeekView`
@@ -9962,7 +11064,7 @@ import { WorkOrderStatusCard } from '@/components/dashboard/WorkOrderStatusCard'
 
 ## Hooks
 
-Total: 89
+Total: 112
 
 ### calculateSummaryTotals
 
@@ -10005,6 +11107,28 @@ Clear the geocode cache (useful for testing)
 import { clearGeocodeCache } from '@/hooks/useReverseGeocode';
 
 const result = clearGeocodeCache(/* params */);
+```
+
+### pickCurrentStop
+
+**Import:** `@/hooks/useMyDayAssignments`
+
+- Defined in: `hooks/useMyDayAssignments.ts`
+- Export type: named
+
+```ts
+function pickCurrentStop(todayRows: FieldAssignment[], nowTime: string): import("C:/Dev/profitbuild-dash/src/hooks/useMyDayAssignments").FieldAssignment
+```
+
+Pick the current stop from today's ordered rows (see MyDayAssignments doc).
+Exported for unit testing; pure function of its inputs.
+
+**Example**
+
+```ts
+import { pickCurrentStop } from '@/hooks/useMyDayAssignments';
+
+const result = pickCurrentStop(/* params */);
 ```
 
 ### receiptQueryKeys
@@ -10340,6 +11464,41 @@ import { useCreateLinkedPayee } from '@/hooks/useEmployeesAudit';
 const result = useCreateLinkedPayee(/* params */);
 ```
 
+### useDbFeatureFlag
+
+**Import:** `@/hooks/useDbFeatureFlag`
+
+- Defined in: `hooks/useDbFeatureFlag.ts`
+- Export type: named
+
+```ts
+function useDbFeatureFlag(flagName: string): { enabled: boolean; isLoading: boolean; }
+```
+
+Per-user database-backed feature flag resolution.
+
+Resolution semantics: a flag is enabled for the current user when their
+`feature_flag_user_overrides` row exists (the override's `enabled` wins),
+otherwise the global `feature_flags.enabled` applies. Missing flag row
+resolves to `false`.
+
+Notes on house rules:
+- User comes from the in-memory `useAuth()` context — NEVER
+  `supabase.auth.getUser()` on a mount path (Gotcha #63: it serializes every
+  concurrent data query behind an auth round-trip).
+- No realtime subscription (Gotcha #53: nothing realtime on the post-login
+  critical path). staleTime keeps this cheap; admin mutations invalidate the
+  `['db-feature-flag']` prefix so consumers refresh without a reload.
+- Errors are destructured and thrown per Gotcha #16.
+
+**Example**
+
+```ts
+import { useDbFeatureFlag } from '@/hooks/useDbFeatureFlag';
+
+const result = useDbFeatureFlag(/* params */);
+```
+
 ### useDeactivatePayee
 
 **Import:** `@/hooks/useEmployeesAudit`
@@ -10381,6 +11540,69 @@ Custom hook to debounce a value
 import { useDebounce } from '@/hooks/useDebounce';
 
 const result = useDebounce(/* params */);
+```
+
+### useDispatchMutations
+
+**Import:** `@/components/dispatch/useDispatchData`
+
+- Defined in: `components/dispatch/useDispatchData.ts`
+- Export type: named
+
+```ts
+function useDispatchMutations(weekStartISO: string): { saveAssignment: (input: import("C:/Dev/profitbuild-dash/src/components/dispatch/useDispatchData").SaveAssignmentInput) => Promise<boolean>; moveAssignment: (assignmentId: string, toUserId: string, toDateISO: string) => Promise<void>; deleteAssignment: (assignmentId: string) => Promise<boolean>; }
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useDispatchMutations } from '@/components/dispatch/useDispatchData';
+
+const result = useDispatchMutations(/* params */);
+```
+
+### useDispatchProjects
+
+**Import:** `@/components/dispatch/useDispatchData`
+
+- Defined in: `components/dispatch/useDispatchData.ts`
+- Export type: named
+
+```ts
+function useDispatchProjects(options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/dispatch/dispatchTypes").DispatchProject[], Error>
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useDispatchProjects } from '@/components/dispatch/useDispatchData';
+
+const result = useDispatchProjects(/* params */);
+```
+
+### useDispatchRoster
+
+**Import:** `@/components/dispatch/useDispatchData`
+
+- Defined in: `components/dispatch/useDispatchData.ts`
+- Export type: named
+
+```ts
+function useDispatchRoster(options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/dispatch/dispatchTypes").DispatchWorker[], Error>
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useDispatchRoster } from '@/components/dispatch/useDispatchData';
+
+const result = useDispatchRoster(/* params */);
 ```
 
 ### useDocumentPreview
@@ -10517,6 +11739,116 @@ _No inline documentation provided._
 import { useExpensesQuery } from '@/hooks/useExpensesQuery';
 
 const result = useExpensesQuery(/* params */);
+```
+
+### useFeatureFlagAudit
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useFeatureFlagAudit(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/hooks/useFeatureFlagAdmin").FeatureFlagAuditRow[], Error>
+```
+
+Last 50 audit rows, newest first. Read-only — rows are trigger-written.
+
+**Example**
+
+```ts
+import { useFeatureFlagAudit } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useFeatureFlagAudit(/* params */);
+```
+
+### useFeatureFlagOverrides
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useFeatureFlagOverrides(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/hooks/useFeatureFlagAdmin").FeatureFlagOverrideRow[], Error>
+```
+
+Every override row (all flags). The table is tiny — one row per (flag, user)
+pair — so a single fetch grouped client-side beats N per-flag queries. If it
+ever approaches PostgREST's 1,000-row cap (Gotcha #23), paginate here.
+
+**Example**
+
+```ts
+import { useFeatureFlagOverrides } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useFeatureFlagOverrides(/* params */);
+```
+
+### useFeatureFlags
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useFeatureFlags(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/hooks/useFeatureFlagAdmin").FeatureFlagRow[], Error>
+```
+
+All feature flags, alphabetical. SELECT is RLS-open but the page is admin-gated.
+
+**Example**
+
+```ts
+import { useFeatureFlags } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useFeatureFlags(/* params */);
+```
+
+### useFieldActiveProjects
+
+**Import:** `@/components/field/fieldProjects`
+
+- Defined in: `components/field/fieldProjects.ts`
+- Export type: named
+
+```ts
+function useFieldActiveProjects(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/field/fieldProjects").FieldActiveProject[], Error>
+```
+
+Active (approved / in-progress) construction projects, newest number first.
+
+**Example**
+
+```ts
+import { useFieldActiveProjects } from '@/components/field/fieldProjects';
+
+const result = useFieldActiveProjects(/* params */);
+```
+
+### useFlagUserDirectory
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useFlagUserDirectory(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/hooks/useFeatureFlagAdmin").FlagUserRow[], Error>
+```
+
+Admin user directory for the override picker + name resolution.
+Reuses the same `get_user_auth_status` RPC that /role-management uses
+(read-only). Falls back to a plain `profiles` read if the RPC errors so the
+page still renders names.
+
+**Example**
+
+```ts
+import { useFlagUserDirectory } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useFlagUserDirectory(/* params */);
 ```
 
 ### useGenerateInvoiceDescription
@@ -10725,6 +12057,94 @@ import { useMentionableUsers } from '@/hooks/useMentionableUsers';
 const result = useMentionableUsers(/* params */);
 ```
 
+### useMyDayAssignments
+
+**Import:** `@/hooks/useMyDayAssignments`
+
+- Defined in: `hooks/useMyDayAssignments.ts`
+- Export type: named
+
+```ts
+function useMyDayAssignments(): import("C:/Dev/profitbuild-dash/src/hooks/useMyDayAssignments").MyDayAssignments
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useMyDayAssignments } from '@/hooks/useMyDayAssignments';
+
+const result = useMyDayAssignments(/* params */);
+```
+
+### useMyDayAssignments
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+function useMyDayAssignments(userId: string | undefined, todayISO: string, tomorrowISO: string, options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/today/todayData").FieldAssignment[], Error>
+```
+
+Today's + tomorrow's assignments for the signed-in user, ordered
+work_date → start_time (nulls last) → created_at. One query covers both
+days; callers split by comparing `work_date` against the ISO strings.
+
+**Example**
+
+```ts
+import { useMyDayAssignments } from '@/components/today/todayData';
+
+const result = useMyDayAssignments(/* params */);
+```
+
+### useMyDayTimeEntries
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function useMyDayTimeEntries(userId: string | undefined, dateISO: string, options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/field-time/fieldTimeData").FieldTimeEntry[], Error>
+```
+
+Own time entries for a single day — the source list for the
+"Copy yesterday" / "Copy last Friday" flows. When yesterday IS last
+Friday (Saturdays), both callers share this key and only one fetch fires.
+
+**Example**
+
+```ts
+import { useMyDayTimeEntries } from '@/components/field-time/fieldTimeData';
+
+const result = useMyDayTimeEntries(/* params */);
+```
+
+### useMyRecentTimeEntries
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function useMyRecentTimeEntries(userId: string | undefined, options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/field-time/fieldTimeData").FieldTimeEntry[], Error>
+```
+
+Own 10 most recent time entries, newest first.
+
+**Example**
+
+```ts
+import { useMyRecentTimeEntries } from '@/components/field-time/fieldTimeData';
+
+const result = useMyRecentTimeEntries(/* params */);
+```
+
 ### useMyTraining
 
 **Import:** `@/hooks/useTrainingAssignments`
@@ -10744,6 +12164,51 @@ _No inline documentation provided._
 import { useMyTraining } from '@/hooks/useTrainingAssignments';
 
 const result = useMyTraining(/* params */);
+```
+
+### useMyWeekAssignmentDates
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function useMyWeekAssignmentDates(userId: string | undefined, weekStartISO: string, weekEndISO: string, options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<string[], Error>
+```
+
+Dates (YYYY-MM-DD) within the week window on which the signed-in user has
+at least one crew assignment. Read from `crew_day_assignments_field_view`
+per Rule 34 — never the base `crew_day_assignments` table from field code.
+
+**Example**
+
+```ts
+import { useMyWeekAssignmentDates } from '@/components/field-time/fieldTimeData';
+
+const result = useMyWeekAssignmentDates(/* params */);
+```
+
+### useMyWeekTimeEntries
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+function useMyWeekTimeEntries(userId: string | undefined, weekStartISO: string, weekEndISO: string, options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/field-time/fieldTimeData").FieldTimeEntry[], Error>
+```
+
+Own time entries for a Mon–Sun week window (inclusive date strings).
+Mirrors MobileTimeTracker's `loadTodayEntries` scoping: own `user_id` only.
+
+**Example**
+
+```ts
+import { useMyWeekTimeEntries } from '@/components/field-time/fieldTimeData';
+
+const result = useMyWeekTimeEntries(/* params */);
 ```
 
 ### useOnlineStatus
@@ -11015,6 +12480,27 @@ _No inline documentation provided._
 import { useProjectData } from '@/hooks/useProjectData';
 
 const result = useProjectData(/* params */);
+```
+
+### useProjectDayTasks
+
+**Import:** `@/components/dispatch/useProjectDayTasks`
+
+- Defined in: `components/dispatch/useProjectDayTasks.ts`
+- Export type: named
+
+```ts
+function useProjectDayTasks(projectId: string | null, isoDate: string | null): { allTasks: import("C:/Dev/profitbuild-dash/src/components/dispatch/useProjectDayTasks").ProjectDayTask[]; matchingTasks: import("C:/Dev/profitbuild-dash/src/components/dispatch/useProjectDayTasks").ProjectDayTask[]; isLoading: boolean; }
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useProjectDayTasks } from '@/components/dispatch/useProjectDayTasks';
+
+const result = useProjectDayTasks(/* params */);
 ```
 
 ### useProjectEFC
@@ -11349,7 +12835,7 @@ const result = useReceiptsData(/* params */);
 - Export type: named
 
 ```ts
-function useReceiptSorting(filteredReceipts: UnifiedReceipt[]): { sortColumn: string; sortDirection: "asc" | "desc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedReceipts: import("C:/Dev/profitbuild-dash/src/hooks/useReceiptsData").UnifiedReceipt[]; }
+function useReceiptSorting(filteredReceipts: UnifiedReceipt[]): { sortColumn: string; sortDirection: "desc" | "asc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedReceipts: import("C:/Dev/profitbuild-dash/src/hooks/useReceiptsData").UnifiedReceipt[]; }
 ```
 
 _No inline documentation provided._
@@ -11360,6 +12846,50 @@ _No inline documentation provided._
 import { useReceiptSorting } from '@/hooks/useReceiptSorting';
 
 const result = useReceiptSorting(/* params */);
+```
+
+### useReferencedProjects
+
+**Import:** `@/components/dispatch/useDispatchData`
+
+- Defined in: `components/dispatch/useDispatchData.ts`
+- Export type: named
+
+```ts
+function useReferencedProjects(assignments: CrewAssignment[], pickerProjects: DispatchProject[], options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/dispatch/dispatchTypes").DispatchProject[], Error>
+```
+
+Projects referenced by this week's assignments but missing from the picker
+set (completed / on-hold projects still carrying chips). Fetched by id so
+chips always render a real project number.
+
+**Example**
+
+```ts
+import { useReferencedProjects } from '@/components/dispatch/useDispatchData';
+
+const result = useReferencedProjects(/* params */);
+```
+
+### useRemoveFlagOverride
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useRemoveFlagOverride(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, string, unknown>
+```
+
+Remove an override — the user falls back to the flag's global state.
+
+**Example**
+
+```ts
+import { useRemoveFlagOverride } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useRemoveFlagOverride(/* params */);
 ```
 
 ### useReportExecution
@@ -11601,6 +13131,27 @@ import { useSelectInteractionGuard } from '@/components/time-tracker/hooks/useSe
 const result = useSelectInteractionGuard(/* params */);
 ```
 
+### useSetGlobalFlag
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useSetGlobalFlag(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, { flagId: string; flagName: string; enabled: boolean; }, unknown>
+```
+
+Toggle a flag's GLOBAL enabled state.
+
+**Example**
+
+```ts
+import { useSetGlobalFlag } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useSetGlobalFlag(/* params */);
+```
+
 ### useSidebar
 
 **Import:** `@/components/ui/sidebar`
@@ -11768,7 +13319,7 @@ const result = useTimeEntrySelection(/* params */);
 - Export type: named
 
 ```ts
-function useTimeEntrySorting(entries: TimeEntryListItem[]): { sortColumn: string; sortDirection: "asc" | "desc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedEntries: import("C:/Dev/profitbuild-dash/src/types/timeEntry").TimeEntryListItem[]; }
+function useTimeEntrySorting(entries: TimeEntryListItem[]): { sortColumn: string; sortDirection: "desc" | "asc"; handleSort: (columnKey: string) => void; renderSortIcon: (columnKey: string) => import("C:/Dev/profitbuild-dash/node_modules/@types/react/jsx-runtime").JSX.Element; sortedEntries: import("C:/Dev/profitbuild-dash/src/types/timeEntry").TimeEntryListItem[]; }
 ```
 
 _No inline documentation provided._
@@ -11779,6 +13330,30 @@ _No inline documentation provided._
 import { useTimeEntrySorting } from '@/hooks/useTimeEntrySorting';
 
 const result = useTimeEntrySorting(/* params */);
+```
+
+### useTodayProjects
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+function useTodayProjects(projectIds: string[], options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/today/todayData").TodayProject[], Error>
+```
+
+Projects referenced by the visible assignments, plus each project's owner
+contact (projects.owner_id → payees.payee_name / phone_numbers). The owner
+read is deliberately NON-FATAL: the Call affordance is secondary, and a
+payees RLS denial must not take down the hero card's project identity.
+
+**Example**
+
+```ts
+import { useTodayProjects } from '@/components/today/todayData';
+
+const result = useTodayProjects(/* params */);
 ```
 
 ### useToggleMentionable
@@ -11907,6 +13482,27 @@ import { useUpdateInternalLaborRates } from '@/hooks/useCompanySettings';
 const result = useUpdateInternalLaborRates(/* params */);
 ```
 
+### useUpsertFlagOverride
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+function useUpsertFlagOverride(): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseMutationResult<void, unknown, { flagId: string; userId: string; enabled: boolean; }, unknown>
+```
+
+Create or flip a per-user override (upsert on the (flag_id, user_id) unique key).
+
+**Example**
+
+```ts
+import { useUpsertFlagOverride } from '@/hooks/useFeatureFlagAdmin';
+
+const result = useUpsertFlagOverride(/* params */);
+```
+
 ### useVarianceCalculation
 
 **Import:** `@/hooks/useVarianceCalculation`
@@ -11949,6 +13545,27 @@ Returns Photo object with video data for compatibility
 import { useVideoCapture } from '@/hooks/useVideoCapture';
 
 const result = useVideoCapture(/* params */);
+```
+
+### useWeekAssignments
+
+**Import:** `@/components/dispatch/useDispatchData`
+
+- Defined in: `components/dispatch/useDispatchData.ts`
+- Export type: named
+
+```ts
+function useWeekAssignments(weekStartISO: string, weekEndISO: string, options: HookOptions = {}): import("C:/Dev/profitbuild-dash/node_modules/@tanstack/react-query/build/modern/types").UseQueryResult<import("C:/Dev/profitbuild-dash/src/components/dispatch/dispatchTypes").CrewAssignment[], Error>
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { useWeekAssignments } from '@/components/dispatch/useDispatchData';
+
+const result = useWeekAssignments(/* params */);
 ```
 
 ## Functions
@@ -19764,7 +21381,7 @@ const instance = new ScheduleErrorBoundary(/* args */);
 
 ## Interfaces
 
-Total: 311
+Total: 331
 
 ### AIKPIContext
 
@@ -21078,6 +22695,32 @@ import type { CreateTrainingContentData } from '@/types/training';
 type Example = CreateTrainingContentData;
 ```
 
+### CrewAssignment
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+interface CrewAssignment
+```
+
+Shared types for the admin Crew Dispatch board (`/dispatch`).
+
+`crew_day_assignments` contract (Rule 34):
+ - multiple rows per (user_id, work_date) are VALID by design
+ - RLS: admins/managers read all + insert/update; DELETE is ADMIN ONLY
+ - created_by / updated_by are writer-set from the useAuth() user id
+
+**Example**
+
+```ts
+import type { CrewAssignment } from '@/components/dispatch/dispatchTypes';
+
+type Example = CrewAssignment;
+```
+
 ### CSVRow
 
 **Import:** `@/types/expense`
@@ -21254,6 +22897,69 @@ _No inline documentation provided._
 import type { DedupePayeesResult } from '@/utils/payeeCsvParser';
 
 type Example = DedupePayeesResult;
+```
+
+### DispatchFilterState
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+interface DispatchFilterState
+```
+
+Page-owned typed filter state (Rule 33 — the bar only sees the value bag).
+
+**Example**
+
+```ts
+import type { DispatchFilterState } from '@/components/dispatch/dispatchTypes';
+
+type Example = DispatchFilterState;
+```
+
+### DispatchProject
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+interface DispatchProject
+```
+
+Lightweight project projection for chips + pickers.
+
+**Example**
+
+```ts
+import type { DispatchProject } from '@/components/dispatch/dispatchTypes';
+
+type Example = DispatchProject;
+```
+
+### DispatchWorker
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+interface DispatchWorker
+```
+
+Dispatchable worker — a labor-providing, active payee linked to an auth user.
+
+**Example**
+
+```ts
+import type { DispatchWorker } from '@/components/dispatch/dispatchTypes';
+
+type Example = DispatchWorker;
 ```
 
 ### EFCCategory
@@ -21844,6 +23550,79 @@ import type { ExtractionResult } from '@/types/importTypes';
 type Example = ExtractionResult;
 ```
 
+### FeatureFlagAuditRow
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+interface FeatureFlagAuditRow
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { FeatureFlagAuditRow } from '@/hooks/useFeatureFlagAdmin';
+
+type Example = FeatureFlagAuditRow;
+```
+
+### FeatureFlagOverrideRow
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+interface FeatureFlagOverrideRow
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { FeatureFlagOverrideRow } from '@/hooks/useFeatureFlagAdmin';
+
+type Example = FeatureFlagOverrideRow;
+```
+
+### FeatureFlagRow
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+interface FeatureFlagRow
+```
+
+Admin-side queries + mutations for the /settings/feature-flags page.
+
+The audit table (`feature_flag_audit`) is written by a DB trigger on every
+flag/override change — the client NEVER inserts into it; we only invalidate
+its query key after mutations so the "Recent changes" list refreshes.
+
+Cache fanout (Gotcha #27): every mutation invalidates
+  ['feature-flags']          — the admin page's global list
+  ['db-feature-flag']        — prefix-matches every useDbFeatureFlag consumer
+  ['feature-flag-audit']     — the trigger just appended a row
+and override mutations additionally invalidate ['feature-flag-overrides'].
+
+**Example**
+
+```ts
+import type { FeatureFlagRow } from '@/hooks/useFeatureFlagAdmin';
+
+type Example = FeatureFlagRow;
+```
+
 ### FeatureFlags
 
 **Import:** `@/lib/featureFlags`
@@ -21887,6 +23666,73 @@ import type { FewShotExample } from '@/lib/kpi-definitions/types';
 type Example = FewShotExample;
 ```
 
+### FieldActiveProject
+
+**Import:** `@/components/field/fieldProjects`
+
+- Defined in: `components/field/fieldProjects.ts`
+- Export type: named
+
+```ts
+interface FieldActiveProject
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { FieldActiveProject } from '@/components/field/fieldProjects';
+
+type Example = FieldActiveProject;
+```
+
+### FieldAssignment
+
+**Import:** `@/hooks/useMyDayAssignments`
+
+- Defined in: `hooks/useMyDayAssignments.ts`
+- Export type: named
+
+```ts
+interface FieldAssignment
+```
+
+A `crew_day_assignments_field_view` row plus its joined project.
+`project` is null for the brief window while the second (projects-by-id)
+query resolves, or if the project row is genuinely unreadable.
+
+**Example**
+
+```ts
+import type { FieldAssignment } from '@/hooks/useMyDayAssignments';
+
+type Example = FieldAssignment;
+```
+
+### FieldAssignment
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+interface FieldAssignment
+```
+
+Field-facing assignment row from `crew_day_assignments_field_view`.
+The generated view types are all-nullable; rows missing identity columns
+are dropped in the query fn before this shape is asserted.
+
+**Example**
+
+```ts
+import type { FieldAssignment } from '@/components/today/todayData';
+
+type Example = FieldAssignment;
+```
+
 ### FieldMetadata
 
 **Import:** `@/components/reports/SimpleReportBuilder`
@@ -21906,6 +23752,30 @@ _No inline documentation provided._
 import type { FieldMetadata } from '@/components/reports/SimpleReportBuilder';
 
 type Example = FieldMetadata;
+```
+
+### FieldTimeEntry
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+interface FieldTimeEntry
+```
+
+Own time-entry row as this page reads it — a superset of the `TimeEntry`
+shape `EditTimeEntryDialog` accepts, plus the embedded project label and
+the hours columns for display (Paid Hours = `hours`, Gross = `gross_hours`
+— Gotcha #17; always display the DB values, never recompute).
+
+**Example**
+
+```ts
+import type { FieldTimeEntry } from '@/components/field-time/fieldTimeData';
+
+type Example = FieldTimeEntry;
 ```
 
 ### FilterOption
@@ -21990,6 +23860,27 @@ _No inline documentation provided._
 import type { FinancialTableGroup } from '@/components/FinancialTableTemplate';
 
 type Example = FinancialTableGroup;
+```
+
+### FlagUserRow
+
+**Import:** `@/hooks/useFeatureFlagAdmin`
+
+- Defined in: `hooks/useFeatureFlagAdmin.ts`
+- Export type: named
+
+```ts
+interface FlagUserRow
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { FlagUserRow } from '@/hooks/useFeatureFlagAdmin';
+
+type Example = FlagUserRow;
 ```
 
 ### FuzzyMatchResult
@@ -23054,6 +24945,27 @@ import type { MultiSelectFieldDef } from '@/components/filters/filterTypes';
 type Example = MultiSelectFieldDef;
 ```
 
+### MyDayAssignments
+
+**Import:** `@/hooks/useMyDayAssignments`
+
+- Defined in: `hooks/useMyDayAssignments.ts`
+- Export type: named
+
+```ts
+interface MyDayAssignments
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { MyDayAssignments } from '@/hooks/useMyDayAssignments';
+
+type Example = MyDayAssignments;
+```
+
 ### MyTrainingItem
 
 **Import:** `@/types/training`
@@ -23896,6 +25808,27 @@ import type { Project } from '@/types/project';
 type Example = Project;
 ```
 
+### ProjectAddressLocatorProps
+
+**Import:** `@/components/projects/ProjectAddressLocator`
+
+- Defined in: `components/projects/ProjectAddressLocator.tsx`
+- Export type: named
+
+```ts
+interface ProjectAddressLocatorProps
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { ProjectAddressLocatorProps } from '@/components/projects/ProjectAddressLocator';
+
+type Example = ProjectAddressLocatorProps;
+```
+
 ### ProjectAlias
 
 **Import:** `@/utils/importCore`
@@ -23915,6 +25848,27 @@ _No inline documentation provided._
 import type { ProjectAlias } from '@/utils/importCore';
 
 type Example = ProjectAlias;
+```
+
+### ProjectDayTask
+
+**Import:** `@/components/dispatch/useProjectDayTasks`
+
+- Defined in: `components/dispatch/useProjectDayTasks.ts`
+- Export type: named
+
+```ts
+interface ProjectDayTask
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { ProjectDayTask } from '@/components/dispatch/useProjectDayTasks';
+
+type Example = ProjectDayTask;
 ```
 
 ### ProjectDocument
@@ -24020,6 +25974,27 @@ _No inline documentation provided._
 import type { ProjectFinancialSummary } from '@/types/revenue';
 
 type Example = ProjectFinancialSummary;
+```
+
+### ProjectHoursRollup
+
+**Import:** `@/components/field-time/fieldTimeData`
+
+- Defined in: `components/field-time/fieldTimeData.ts`
+- Export type: named
+
+```ts
+interface ProjectHoursRollup
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { ProjectHoursRollup } from '@/components/field-time/fieldTimeData';
+
+type Example = ProjectHoursRollup;
 ```
 
 ### ProjectInfo
@@ -24868,6 +26843,27 @@ import type { ReportTemplate } from '@/hooks/useReportTemplates';
 type Example = ReportTemplate;
 ```
 
+### ResolvedPhone
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+interface ResolvedPhone
+```
+
+Resolved, dialable phone for the Call affordance.
+
+**Example**
+
+```ts
+import type { ResolvedPhone } from '@/components/today/todayData';
+
+type Example = ResolvedPhone;
+```
+
 ### ResolvedScheduleDates
 
 **Import:** `@/utils/projectDashboard`
@@ -24995,6 +26991,27 @@ import type { RevenueWithSplits } from '@/types/revenue';
 type Example = RevenueWithSplits;
 ```
 
+### SaveAssignmentInput
+
+**Import:** `@/components/dispatch/useDispatchData`
+
+- Defined in: `components/dispatch/useDispatchData.ts`
+- Export type: named
+
+```ts
+interface SaveAssignmentInput
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { SaveAssignmentInput } from '@/components/dispatch/useDispatchData';
+
+type Example = SaveAssignmentInput;
+```
+
 ### ScheduleColumnConfig
 
 **Import:** `@/hooks/useScheduleTableColumns`
@@ -25119,6 +27136,27 @@ _No inline documentation provided._
 import type { ScheduleTask } from '@/types/schedule';
 
 type Example = ScheduleTask;
+```
+
+### ScheduleTaskLink
+
+**Import:** `@/components/dispatch/dispatchTypes`
+
+- Defined in: `components/dispatch/dispatchTypes.ts`
+- Export type: named
+
+```ts
+interface ScheduleTaskLink
+```
+
+In-memory reference to the schedule activity an assignment is linked to.
+
+**Example**
+
+```ts
+import type { ScheduleTaskLink } from '@/components/dispatch/dispatchTypes';
+
+type Example = ScheduleTaskLink;
 ```
 
 ### ScheduleWarning
@@ -25632,6 +27670,27 @@ _No inline documentation provided._
 import type { TimeRangeFieldProps } from '@/components/time-entry-form/fields/TimeRangeField';
 
 type Example = TimeRangeFieldProps;
+```
+
+### TodayProject
+
+**Import:** `@/components/today/todayData`
+
+- Defined in: `components/today/todayData.ts`
+- Export type: named
+
+```ts
+interface TodayProject
+```
+
+Lightweight project projection for the Today cards.
+
+**Example**
+
+```ts
+import type { TodayProject } from '@/components/today/todayData';
+
+type Example = TodayProject;
 ```
 
 ### TrainingAssignment
@@ -26350,7 +28409,7 @@ type Example = WorkOrderSearchFilters;
 
 ## Types
 
-Total: 82
+Total: 84
 
 ### AllocationReason
 
@@ -26457,6 +28516,28 @@ _No inline documentation provided._
 import type { AppRole } from '@/types/training';
 
 type Example = AppRole;
+```
+
+### AssignmentSheetState
+
+**Import:** `@/components/dispatch/AssignmentSheet`
+
+- Defined in: `components/dispatch/AssignmentSheet.tsx`
+- Export type: named
+
+```ts
+type AssignmentSheetState = | { mode: "create"; userId: string; workDate: string }
+  | { mode: "edit"; assignment: CrewAssignment }
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import type { AssignmentSheetState } from '@/components/dispatch/AssignmentSheet';
+
+type Example = AssignmentSheetState;
 ```
 
 ### BudgetComparisonStatus
@@ -27587,6 +29668,76 @@ type Database = {
           },
         ]
       }
+      crew_day_assignments: {
+        Row: {
+          admin_notes: string | null
+          change_order_line_item_id: string | null
+          created_at: string
+          created_by: string | null
+          estimate_line_item_id: string | null
+          id: string
+          project_id: string
+          start_time: string | null
+          task_note: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          change_order_line_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string
+          project_id: string
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          admin_notes?: string | null
+          change_order_line_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string
+          project_id?: string
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_messages: {
         Row: {
           created_at: string | null
@@ -28213,6 +30364,77 @@ type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flag_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          flag_id: string
+          flag_name: string
+          id: string
+          new_enabled: boolean | null
+          old_enabled: boolean | null
+          target_user_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          flag_id: string
+          flag_name: string
+          id?: string
+          new_enabled?: boolean | null
+          old_enabled?: boolean | null
+          target_user_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          flag_id?: string
+          flag_name?: string
+          id?: string
+          new_enabled?: boolean | null
+          old_enabled?: boolean | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_flag_user_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          flag_id: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_user_overrides_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
             referencedColumns: ["id"]
           },
         ]
@@ -29366,6 +31588,36 @@ type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      projects_demographic_backup_20260617: {
+        Row: {
+          contracted_amount: number | null
+          end_date: string | null
+          id: string | null
+          project_number: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       quickbooks_account_mappings: {
         Row: {
@@ -30657,6 +32909,73 @@ type Database = {
       }
     }
     Views: {
+      crew_day_assignments_field_view: {
+        Row: {
+          change_order_line_item_id: string | null
+          created_at: string | null
+          created_by: string | null
+          estimate_line_item_id: string | null
+          id: string | null
+          project_id: string | null
+          start_time: string | null
+          task_note: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+          work_date: string | null
+        }
+        Insert: {
+          change_order_line_item_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string | null
+          project_id?: string | null
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_date?: string | null
+        }
+        Update: {
+          change_order_line_item_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          estimate_line_item_id?: string | null
+          id?: string | null
+          project_id?: string | null
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"
+            columns: ["change_order_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "change_order_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"
+            columns: ["estimate_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_day_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_financial_summary: {
         Row: {
           contingency_amount: number | null
@@ -30870,7 +33189,11 @@ type Database = {
         Returns: undefined
       }
       create_estimate_version: {
-        Args: { new_version_number?: number; source_estimate_id: string }
+        Args: {
+          new_version_number?: number
+          p_line_items?: Json
+          source_estimate_id: string
+        }
         Returns: string
       }
       create_payment_application: {
@@ -31438,6 +33761,27 @@ _No inline documentation provided._
 import type { ExpenseStatus } from '@/lib/statusColors';
 
 type Example = ExpenseStatus;
+```
+
+### FieldAssignmentProject
+
+**Import:** `@/hooks/useMyDayAssignments`
+
+- Defined in: `hooks/useMyDayAssignments.ts`
+- Export type: named
+
+```ts
+type FieldAssignmentProject = TodayProject
+```
+
+Project projection joined onto each assignment (null when lookup misses).
+
+**Example**
+
+```ts
+import type { FieldAssignmentProject } from '@/hooks/useMyDayAssignments';
+
+type Example = FieldAssignmentProject;
 ```
 
 ### FieldWorkerPayeeType
@@ -34187,7 +36531,7 @@ import semanticMappings, { semanticMappings as semanticMappingsNamed } from '@/l
 - Export type: named
 
 ```ts
-import("C:/Dev/profitbuild-dash/node_modules/@supabase/supabase-js/dist/module/SupabaseClient").default<Database, "public", "public", { Tables: { activity_feed: { Row: { activity_type: string; created_at: string; deleted_at: string | null; description: string; entity_id: string; entity_type: string; id: string; metadata: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id: string | null; user_id: string | null; }; Insert: { activity_type: string; created_at?: string; deleted_at?: string | null; description: string; entity_id: string; entity_type: string; id?: string; metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Update: { activity_type?: string; created_at?: string; deleted_at?: string | null; description?: string; entity_id?: string; entity_type?: string; id?: string; metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "activity_feed_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "activity_feed_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; admin_actions: { Row: { action_details: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at: string; id: string; target_user_id: string | null; }; Insert: { action_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at?: string; id?: string; target_user_id?: string | null; }; Update: { action_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type?: string; admin_user_id?: string; created_at?: string; id?: string; target_user_id?: string | null; }; Relationships: []; }; ai_action_log: { Row: { action_type: string; ai_response: string | null; created_at: string | null; entity_id: string | null; entity_type: string; error_message: string | null; execution_time_ms: number | null; id: string; parameters: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by: string | null; success: boolean | null; user_message: string | null; }; Insert: { action_type: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Update: { action_type?: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type?: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Relationships: [{ foreignKeyName: "ai_action_log_performed_by_fkey"; columns: ["performed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; bid_media: { Row: { altitude: number | null; bid_id: string; caption: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; bid_id: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; bid_id?: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "bid_media_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; bid_notes: { Row: { bid_id: string; created_at: string; id: string; note_text: string; updated_at: string; user_id: string; }; Insert: { bid_id: string; created_at?: string; id?: string; note_text: string; updated_at?: string; user_id: string; }; Update: { bid_id?: string; created_at?: string; id?: string; note_text?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "bid_notes_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; branch_bids: { Row: { address: string | null; client_id: string | null; created_at: string; created_by: string; deleted_at: string | null; description: string | null; estimate_id: string | null; id: string; job_type: string | null; name: string; project_id: string | null; project_type: string | null; updated_at: string; }; Insert: { address?: string | null; client_id?: string | null; created_at?: string; created_by: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Update: { address?: string | null; client_id?: string | null; created_at?: string; created_by?: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name?: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "branch_bids_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; change_order_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit: number | null; created_at: string | null; dependencies: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; expected_delivery_date: string | null; final_cost_amount: number | null; funded_by_contingency: boolean; id: string; is_long_lead: boolean; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; need_by_date: string | null; payee_id: string | null; price_per_unit: number | null; procurement_status: string; quantity: number | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total_cost: number | null; total_price: number | null; unit: string | null; updated_at: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; expected_delivery_date?: string | null; final_cost_amount?: number | null; funded_by_contingency?: boolean; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; need_by_date?: string | null; payee_id?: string | null; price_per_unit?: number | null; procurement_status?: string; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; change_order_id?: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; expected_delivery_date?: string | null; final_cost_amount?: number | null; funded_by_contingency?: boolean; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; need_by_date?: string | null; payee_id?: string | null; price_per_unit?: number | null; procurement_status?: string; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_order_line_items_change_order_id_fkey"; columns: ["change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "change_order_line_items_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; change_orders: { Row: { amount: number | null; approved_by: string | null; approved_date: string | null; change_order_number: string; client_amount: number | null; contingency_billed_to_client: number | null; contingency_drawdown: number; cost_impact: number | null; created_at: string | null; description: string; discount_amount: number | null; discount_type: string | null; discount_value: number | null; id: string; includes_contingency: boolean | null; margin_impact: number | null; project_id: string; reason_for_change: string | null; requested_date: string | null; status: Database["public"]["Enums"]["change_order_status"] | null; updated_at: string | null; }; Insert: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number: string; client_amount?: number | null; contingency_billed_to_client?: number | null; contingency_drawdown?: number; cost_impact?: number | null; created_at?: string | null; description: string; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Update: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number?: string; client_amount?: number | null; contingency_billed_to_client?: number | null; contingency_drawdown?: number; cost_impact?: number | null; created_at?: string | null; description?: string; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id?: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; clients: { Row: { billing_address: string | null; client_name: string; client_type: string | null; company_name: string | null; contact_person: string | null; created_at: string | null; email: string | null; id: string; is_active: boolean | null; mailing_address: string | null; notes: string | null; payment_terms: string | null; phone: string | null; quickbooks_customer_id: string | null; tax_exempt: boolean | null; updated_at: string | null; }; Insert: { billing_address?: string | null; client_name: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Update: { billing_address?: string | null; client_name?: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Relationships: []; }; company_branding_settings: { Row: { accent_color: string | null; company_abbreviation: string | null; company_address: string | null; company_legal_name: string | null; company_license: string | null; company_name: string | null; company_phone: string | null; created_at: string | null; id: string; light_bg_color: string | null; logo_full_url: string | null; logo_icon_url: string | null; logo_report_header_url: string | null; logo_stacked_url: string | null; primary_color: string | null; secondary_color: string | null; updated_at: string | null; }; Insert: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Update: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Relationships: []; }; company_settings: { Row: { created_at: string | null; description: string | null; id: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at: string | null; }; Insert: { created_at?: string | null; description?: string | null; id?: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at?: string | null; }; Update: { created_at?: string | null; description?: string | null; id?: string; setting_key?: string; setting_value?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at?: string | null; }; Relationships: []; }; contracts: { Row: { agreement_date: string; contract_number: string | null; contract_type: string; created_at: string; created_by: string | null; docx_storage_path: string | null; docx_url: string | null; estimate_id: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; internal_reference: string | null; notes: string | null; payee_id: string; pdf_storage_path: string | null; pdf_url: string | null; project_end_date: string | null; project_id: string; project_start_date: string | null; quote_id: string | null; status: string; subcontract_price: number; updated_at: string; version: number; }; Insert: { agreement_date: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price: number; updated_at?: string; version?: number; }; Update: { agreement_date?: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id?: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id?: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; email_messages: { Row: { created_at: string | null; delivery_status: string | null; email_type: string; entity_id: string | null; entity_type: string | null; error_message: string | null; id: string; project_id: string | null; recipient_email: string; recipient_name: string | null; recipient_user_id: string | null; resend_email_id: string | null; sent_at: string | null; sent_by: string | null; subject: string; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; email_type: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject: string; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; email_type?: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email?: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "email_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; estimate_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit: number | null; created_at: string | null; dependencies: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; estimate_id: string; expected_delivery_date: string | null; final_cost_amount: number | null; id: string; is_long_lead: boolean; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; markup_percent: number | null; need_by_date: string | null; price_per_unit: number; procurement_status: string; quantity: number | null; quickbooks_item_id: string | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; estimate_id: string; expected_delivery_date?: string | null; final_cost_amount?: number | null; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; need_by_date?: string | null; price_per_unit?: number; procurement_status?: string; quantity?: number | null; quickbooks_item_id?: string | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; estimate_id?: string; expected_delivery_date?: string | null; final_cost_amount?: number | null; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; need_by_date?: string | null; price_per_unit?: number; procurement_status?: string; quantity?: number | null; quickbooks_item_id?: string | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }]; }; estimates: { Row: { contingency_amount: number | null; contingency_percent: number | null; contingency_used: number | null; created_at: string | null; created_by: string | null; date_created: string | null; default_markup_percent: number | null; discount_amount: number | null; discount_type: string | null; discount_value: number | null; estimate_number: string; id: string; is_auto_generated: boolean | null; is_current_version: boolean | null; is_draft: boolean; notes: string | null; parent_estimate_id: string | null; project_id: string; revision_number: number | null; sequence_number: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent: number | null; total_amount: number | null; total_cost: number | null; total_labor_cushion: number | null; updated_at: string | null; valid_for_days: number | null; valid_until: string | null; version_number: number | null; }; Insert: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_number: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Update: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_number?: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id?: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expense_line_item_correlations: { Row: { auto_correlated: boolean | null; change_order_line_item_id: string | null; confidence_score: number | null; correlation_type: string; created_at: string; estimate_line_item_id: string | null; expense_id: string | null; expense_split_id: string | null; id: string; notes: string | null; quote_id: string | null; updated_at: string; }; Insert: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Update: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type?: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_line_item_correlations_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses_search"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"; columns: ["expense_split_id"]; isOneToOne: false; referencedRelation: "expense_splits"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; expense_splits: { Row: { created_at: string; created_by: string | null; expense_id: string; id: string; notes: string | null; project_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; expense_id: string; id?: string; notes?: string | null; project_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; expense_id?: string; id?: string; notes?: string | null; project_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses_search"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses: { Row: { account_full_name: string | null; account_name: string | null; amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean; is_time_entry: boolean | null; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_id: string | null; project_id: string; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; is_time_entry?: boolean | null; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category?: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; is_time_entry?: boolean | null; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id?: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type?: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; feature_flags: { Row: { config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at: string | null; description: string | null; enabled: boolean | null; flag_name: string; id: string; updated_at: string | null; updated_by: string | null; }; Insert: { config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Update: { config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name?: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Relationships: [{ foreignKeyName: "feature_flags_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; import_batches: { Row: { duplicates_skipped: number | null; errors: number | null; expenses_imported: number | null; file_name: string; id: string; imported_at: string | null; imported_by: string | null; match_log: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported: number | null; status: string | null; total_rows: number | null; }; Insert: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Update: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name?: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Relationships: []; }; invoice_revenues: { Row: { invoice_id: string; revenue_id: string; }; Insert: { invoice_id: string; revenue_id: string; }; Update: { invoice_id?: string; revenue_id?: string; }; Relationships: [{ foreignKeyName: "invoice_revenues_invoice_id_fkey"; columns: ["invoice_id"]; isOneToOne: false; referencedRelation: "invoices"; referencedColumns: ["id"]; }, { foreignKeyName: "invoice_revenues_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; invoices: { Row: { amount: number; client_id: string | null; created_at: string; created_by: string | null; description: string | null; docx_storage_path: string | null; docx_url: string | null; due_date: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; internal_reference: string; invoice_date: string; invoice_number: string | null; notes: string | null; pdf_storage_path: string | null; pdf_url: string | null; project_id: string; status: string; updated_at: string; version: number; }; Insert: { amount: number; client_id?: string | null; created_at?: string; created_by?: string | null; description?: string | null; docx_storage_path?: string | null; docx_url?: string | null; due_date?: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference: string; invoice_date: string; invoice_number?: string | null; notes?: string | null; pdf_storage_path?: string | null; pdf_url?: string | null; project_id: string; status?: string; updated_at?: string; version?: number; }; Update: { amount?: number; client_id?: string | null; created_at?: string; created_by?: string | null; description?: string | null; docx_storage_path?: string | null; docx_url?: string | null; due_date?: string | null; field_values?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string; invoice_date?: string; invoice_number?: string | null; notes?: string | null; pdf_storage_path?: string | null; pdf_url?: string | null; project_id?: string; status?: string; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "invoices_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "invoices_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; media_comments: { Row: { comment_text: string; created_at: string; id: string; media_id: string; updated_at: string; user_id: string; }; Insert: { comment_text: string; created_at?: string; id?: string; media_id: string; updated_at?: string; user_id: string; }; Update: { comment_text?: string; created_at?: string; id?: string; media_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "media_comments_media_id_fkey"; columns: ["media_id"]; isOneToOne: false; referencedRelation: "project_media"; referencedColumns: ["id"]; }, { foreignKeyName: "media_comments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; note_mentions: { Row: { created_at: string; id: string; note_id: string; user_id: string; }; Insert: { created_at?: string; id?: string; note_id: string; user_id: string; }; Update: { created_at?: string; id?: string; note_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "note_mentions_note_id_fkey"; columns: ["note_id"]; isOneToOne: false; referencedRelation: "project_notes"; referencedColumns: ["id"]; }]; }; payees: { Row: { account_number: string | null; billing_address: string | null; contact_name: string | null; contact_title: string | null; created_at: string | null; email: string | null; employee_number: string | null; full_name: string | null; hourly_rate: number | null; id: string; insurance_expires: string | null; is_active: boolean | null; is_internal: boolean | null; last_synced_at: string | null; legal_form: string | null; license_number: string | null; notes: string | null; payee_name: string; payee_type: string | null; permit_issuer: boolean | null; phone_numbers: string | null; provides_labor: boolean | null; provides_materials: boolean | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_vendor_id: string | null; quickbooks_vendor_name: string | null; requires_1099: boolean | null; state_of_formation: string | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; terms: string | null; updated_at: string | null; user_id: string | null; }; Insert: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Update: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name?: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Relationships: []; }; payment_application_lines: { Row: { balance_to_finish: number; created_at: string; current_work: number; id: string; payment_application_id: string; percent_complete: number; previous_work: number; retainage: number; scheduled_value: number; sov_line_item_id: string; stored_materials: number; total_completed: number; updated_at: string; }; Insert: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Update: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id?: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id?: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "payment_application_lines_payment_application_id_fkey"; columns: ["payment_application_id"]; isOneToOne: false; referencedRelation: "payment_applications"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_application_lines_sov_line_item_id_fkey"; columns: ["sov_line_item_id"]; isOneToOne: false; referencedRelation: "sov_line_items"; referencedColumns: ["id"]; }]; }; payment_applications: { Row: { application_number: number; balance_to_finish: number; certified_amount: number | null; certified_by: string | null; certified_date: string | null; contract_sum_to_date: number; created_at: string; created_by: string | null; current_payment_due: number; g702_pdf_storage_path: string | null; g702_pdf_url: string | null; g703_pdf_storage_path: string | null; g703_pdf_url: string | null; id: string; net_change_orders: number; notes: string | null; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }; Insert: { application_number: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from: string; period_to: string; project_id: string; sov_id: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Update: { application_number?: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from?: string; period_to?: string; project_id?: string; sov_id?: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "payment_applications_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_applications_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; pending_payee_reviews: { Row: { account_full_name: string | null; created_at: string | null; id: string; import_batch_id: string; matched_payee_id: string | null; qb_name: string; resolution: string | null; resolved_at: string | null; suggested_payee_type: string | null; }; Insert: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id: string; matched_payee_id?: string | null; qb_name: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Update: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id?: string; matched_payee_id?: string | null; qb_name?: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Relationships: [{ foreignKeyName: "pending_payee_reviews_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "pending_payee_reviews_matched_payee_id_fkey"; columns: ["matched_payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; profiles: { Row: { can_be_mentioned: boolean; created_at: string; deactivated_at: string | null; deactivated_by: string | null; email: string | null; full_name: string | null; id: string; is_active: boolean; last_active_at: string | null; must_change_password: boolean | null; phone: string | null; sms_notifications_enabled: boolean | null; updated_at: string; }; Insert: { can_be_mentioned?: boolean; created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Update: { can_be_mentioned?: boolean; created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id?: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "profiles_deactivated_by_fkey"; columns: ["deactivated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_aliases: { Row: { alias: string; created_at: string | null; id: string; is_active: boolean | null; match_type: string | null; project_id: string; }; Insert: { alias: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id: string; }; Update: { alias?: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id?: string; }; Relationships: [{ foreignKeyName: "project_aliases_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; project_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_assignments_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_documents: { Row: { created_at: string; description: string | null; document_type: string; expires_at: string | null; file_name: string; file_size: number; file_url: string; id: string; mime_type: string; project_id: string; related_quote_id: string | null; updated_at: string; uploaded_by: string | null; version_number: number | null; }; Insert: { created_at?: string; description?: string | null; document_type: string; expires_at?: string | null; file_name: string; file_size: number; file_url: string; id?: string; mime_type: string; project_id: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Update: { created_at?: string; description?: string | null; document_type?: string; expires_at?: string | null; file_name?: string; file_size?: number; file_url?: string; id?: string; mime_type?: string; project_id?: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "project_documents_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_documents_related_quote_id_fkey"; columns: ["related_quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; project_media: { Row: { altitude: number | null; caption: string | null; category: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; project_id: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; caption?: string | null; category?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; project_id: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; caption?: string | null; category?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; project_id?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "project_media_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_notes: { Row: { attachment_name: string | null; attachment_type: string | null; attachment_url: string | null; created_at: string; id: string; note_text: string; project_id: string; updated_at: string; user_id: string; }; Insert: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text: string; project_id: string; updated_at?: string; user_id: string; }; Update: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text?: string; project_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_notes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_notes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_revenues: { Row: { account_full_name: string | null; account_name: string | null; amount: number; client_id: string | null; created_at: string; description: string | null; id: string; import_batch_id: string | null; invoice_date: string; invoice_number: string | null; is_split: boolean | null; project_id: string; quickbooks_transaction_id: string | null; updated_at: string; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id?: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "project_revenues_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; projects: { Row: { actual_hours: number | null; actual_margin: number | null; address: string | null; adjusted_est_costs: number | null; adjusted_est_margin: number | null; category: Database["public"]["Enums"]["project_category"]; client_id: string | null; client_name: string; contingency_amount: number | null; contingency_remaining: number | null; contracted_amount: number | null; created_at: string | null; current_margin: number | null; customer_po_number: string | null; default_expense_category: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed: number | null; end_date: string | null; estimated_hours: number | null; id: string; job_type: string | null; last_synced_at: string | null; margin_percentage: number | null; minimum_margin_threshold: number | null; notes: string | null; original_est_costs: number | null; original_margin: number | null; owner_id: string | null; payment_terms: string | null; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"] | null; projected_margin: number | null; qb_formatted_number: string | null; quickbooks_job_id: string | null; sequence_number: number | null; start_date: string | null; status: Database["public"]["Enums"]["project_status"] | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; target_margin: number | null; total_accepted_quotes: number | null; updated_at: string | null; work_order_counter: number | null; }; Insert: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name: string; project_number: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Update: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name?: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name?: string; project_number?: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Relationships: [{ foreignKeyName: "projects_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "projects_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; quickbooks_account_mappings: { Row: { app_category: Database["public"]["Enums"]["expense_category"]; created_at: string; id: string; is_active: boolean; qb_account_full_path: string; qb_account_name: string; updated_at: string; }; Insert: { app_category: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path: string; qb_account_name: string; updated_at?: string; }; Update: { app_category?: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path?: string; qb_account_name?: string; updated_at?: string; }; Relationships: []; }; quickbooks_connections: { Row: { access_token: string; company_name: string | null; connected_at: string | null; connected_by: string | null; created_at: string | null; disconnected_at: string | null; disconnected_by: string | null; environment: string; id: string; is_active: boolean | null; last_error: string | null; last_sync_at: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at: string | null; }; Insert: { access_token: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at?: string | null; }; Update: { access_token?: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id?: string; refresh_token?: string; token_expires_at?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_connections_connected_by_fkey"; columns: ["connected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "quickbooks_connections_disconnected_by_fkey"; columns: ["disconnected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_oauth_states: { Row: { created_at: string | null; expires_at: string; state: string; user_id: string; }; Insert: { created_at?: string | null; expires_at: string; state: string; user_id: string; }; Update: { created_at?: string | null; expires_at?: string; state?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "quickbooks_oauth_states_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_sync_log: { Row: { created_at: string | null; duration_ms: number | null; entity_id: string | null; entity_type: string; environment: string | null; error_message: string | null; id: string; initiated_by: string | null; quickbooks_id: string | null; request_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at: string | null; }; Insert: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Update: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type?: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type?: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_sync_log_initiated_by_fkey"; columns: ["initiated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_transaction_syncs: { Row: { created_at: string | null; duplicates_skipped: number | null; end_date: string; environment: string; error_message: string | null; expenses_imported: number | null; id: string; initiated_by: string | null; revenues_imported: number | null; start_date: string; sync_completed_at: string | null; sync_started_at: string; sync_status: string; transactions_fetched: number | null; updated_at: string | null; }; Insert: { created_at?: string | null; duplicates_skipped?: number | null; end_date: string; environment: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Update: { created_at?: string | null; duplicates_skipped?: number | null; end_date?: string; environment?: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date?: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Relationships: []; }; quote_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id: string | null; cost_per_unit: number | null; created_at: string | null; description: string | null; estimate_line_item_id: string | null; id: string; markup_amount: number | null; markup_percent: number | null; quantity: number | null; quote_id: string; rate: number | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { category?: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id?: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "quote_line_items_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; quotes: { Row: { accepted_date: string | null; attachment_url: string | null; created_at: string | null; date_received: string | null; discount_amount: number | null; discount_type: string | null; discount_value: number | null; estimate_id: string | null; id: string; includes_labor: boolean; includes_materials: boolean; notes: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason: string | null; sequence_number: number | null; status: Database["public"]["Enums"]["quote_status"] | null; total_amount: number | null; updated_at: string | null; valid_until: string | null; }; Insert: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Update: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id?: string; project_id?: string; quote_number?: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Relationships: [{ foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; receipts: { Row: { amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; captured_at: string; created_at: string; description: string | null; id: string; image_url: string; payee_id: string | null; project_id: string | null; quickbooks_error_message: string | null; quickbooks_request_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_synced_by: string | null; quickbooks_transaction_id: string | null; rejection_reason: string | null; submitted_for_approval_at: string | null; updated_at: string; user_id: string; }; Insert: { amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id: string; }; Update: { amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url?: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "receipts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_quickbooks_synced_by_fkey"; columns: ["quickbooks_synced_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; report_execution_log: { Row: { config_used: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at: string | null; executed_by: string | null; execution_time_ms: number | null; export_format: string | null; id: string; report_id: string | null; row_count: number | null; }; Insert: { config_used?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Update: { config_used?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Relationships: [{ foreignKeyName: "report_execution_log_report_id_fkey"; columns: ["report_id"]; isOneToOne: false; referencedRelation: "saved_reports"; referencedColumns: ["id"]; }]; }; revenue_splits: { Row: { created_at: string; created_by: string | null; id: string; notes: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id?: string; revenue_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "revenue_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; saved_reports: { Row: { category: string | null; config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at: string | null; created_by: string | null; description: string | null; id: string; is_template: boolean | null; name: string; updated_at: string | null; }; Insert: { category?: string | null; config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name: string; updated_at?: string | null; }; Update: { category?: string | null; config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name?: string; updated_at?: string | null; }; Relationships: []; }; schedule_of_values: { Row: { created_at: string; created_by: string | null; estimate_id: string; id: string; original_contract_sum: number; project_id: string; retainage_percent: number; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; estimate_id: string; id?: string; original_contract_sum?: number; project_id: string; retainage_percent?: number; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; estimate_id?: string; id?: string; original_contract_sum?: number; project_id?: string; retainage_percent?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "schedule_of_values_project_id_fkey"; columns: ["project_id"]; isOneToOne: true; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; scheduled_sms_logs: { Row: { created_at: string | null; error_details: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at: string | null; failure_count: number | null; id: string; recipients_count: number | null; scheduled_sms_id: string | null; success_count: number | null; }; Insert: { created_at?: string | null; error_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Update: { created_at?: string | null; error_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_logs_scheduled_sms_id_fkey"; columns: ["scheduled_sms_id"]; isOneToOne: false; referencedRelation: "scheduled_sms_messages"; referencedColumns: ["id"]; }]; }; scheduled_sms_messages: { Row: { created_at: string | null; created_by: string; cron_expression: string | null; id: string; is_active: boolean | null; last_sent_at: string | null; link_type: string | null; link_url: string | null; message_template: string; name: string; project_id: string | null; schedule_type: string; scheduled_datetime: string | null; target_roles: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone: string; updated_at: string | null; }; Insert: { created_at?: string | null; created_by: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template: string; name: string; project_id?: string | null; schedule_type: string; scheduled_datetime?: string | null; target_roles?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Update: { created_at?: string | null; created_by?: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template?: string; name?: string; project_id?: string | null; schedule_type?: string; scheduled_datetime?: string | null; target_roles?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type?: string; target_user_ids?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_messages_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "scheduled_sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; sms_messages: { Row: { created_at: string | null; delivery_status: string | null; error_message: string | null; id: string; link_type: string | null; link_url: string | null; message_body: string; project_id: string | null; recipient_name: string | null; recipient_phone: string; recipient_user_id: string | null; sent_at: string | null; sent_by: string; status_checked_at: string | null; textbelt_http_status: number | null; textbelt_text_id: string | null; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body: string; project_id?: string | null; recipient_name?: string | null; recipient_phone: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body?: string; project_id?: string | null; recipient_name?: string | null; recipient_phone?: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by?: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; sov_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"] | null; created_at: string; description: string; id: string; item_number: string; retainage_percent_override: number | null; scheduled_value: number; sort_order: number; source_change_order_id: string | null; source_estimate_line_item_id: string | null; sov_id: string; }; Insert: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description: string; id?: string; item_number: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id: string; }; Update: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description?: string; id?: string; item_number?: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id?: string; }; Relationships: [{ foreignKeyName: "sov_line_items_source_change_order_id_fkey"; columns: ["source_change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_source_estimate_line_item_id_fkey"; columns: ["source_estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; system_settings: { Row: { created_at: string; description: string | null; id: string; setting_key: string; setting_value: string; updated_at: string; }; Insert: { created_at?: string; description?: string | null; id?: string; setting_key: string; setting_value: string; updated_at?: string; }; Update: { created_at?: string; description?: string | null; id?: string; setting_key?: string; setting_value?: string; updated_at?: string; }; Relationships: []; }; training_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; due_date: string | null; id: string; notes: string | null; notification_sent_at: string | null; priority: number | null; reminder_sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_completions: { Row: { acknowledged: boolean | null; completed_at: string | null; id: string; notes: string | null; time_spent_minutes: number | null; training_content_id: string; user_id: string; }; Insert: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id: string; user_id: string; }; Update: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_completions_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_completions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_content: { Row: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url: string | null; created_at: string | null; created_by: string | null; description: string | null; duration_minutes: number | null; embed_code: string | null; id: string; is_required: boolean | null; status: Database["public"]["Enums"]["training_status"] | null; storage_path: string | null; target_roles: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url: string | null; title: string; updated_at: string | null; }; Insert: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title: string; updated_at?: string | null; }; Update: { content_type?: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "training_content_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_notifications: { Row: { delivered: boolean | null; email_id: string | null; error_message: string | null; id: string; notification_type: string; sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type: string; sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type?: string; sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_notifications_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; user_notifications: { Row: { body: string | null; created_at: string; id: string; is_read: boolean; link_url: string | null; read_at: string | null; reference_id: string | null; reference_type: string | null; title: string; type: string; user_id: string; }; Insert: { body?: string | null; created_at?: string; id?: string; is_read?: boolean; link_url?: string | null; read_at?: string | null; reference_id?: string | null; reference_type?: string | null; title: string; type?: string; user_id: string; }; Update: { body?: string | null; created_at?: string; id?: string; is_read?: boolean; link_url?: string | null; read_at?: string | null; reference_id?: string | null; reference_type?: string | null; title?: string; type?: string; user_id?: string; }; Relationships: []; }; user_roles: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role?: Database["public"]["Enums"]["app_role"]; user_id?: string; }; Relationships: []; }; }; Views: { estimate_financial_summary: { Row: { contingency_amount: number | null; contingency_percent: number | null; created_at: string | null; cushion_hours_capacity: number | null; estimate_id: string | null; estimate_number: string | null; estimated_gross_margin_percent: number | null; estimated_gross_profit: number | null; max_gross_profit_potential: number | null; max_potential_margin_percent: number | null; project_id: string | null; schedule_buffer_percent: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; subtotal: number | null; total_estimated_cost: number | null; total_labor_actual_cost: number | null; total_labor_billing_cost: number | null; total_labor_capacity: number | null; total_labor_client_price: number | null; total_labor_cushion: number | null; total_labor_hours: number | null; total_with_contingency: number | null; updated_at: string | null; }; Relationships: [{ foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses_search: { Row: { account_full_name: string | null; account_name: string | null; amount: number | null; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"] | null; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string | null; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean | null; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_full_name: string | null; payee_id: string | null; payee_name: string | null; payee_type: string | null; project_category: Database["public"]["Enums"]["project_category"] | null; project_id: string | null; project_name: string | null; project_number: string | null; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; search_text: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"] | null; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; weekly_labor_hours: { Row: { approved_entries: number | null; employee_name: string | null; employee_number: string | null; entry_count: number | null; gross_hours: number | null; hourly_rate: number | null; pending_entries: number | null; rejected_entries: number | null; total_cost: number | null; total_hours: number | null; week_end_saturday: string | null; week_start_sunday: string | null; }; Relationships: []; }; }; Functions: { ai_find_client_by_name: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; email: string; id: string; match_type: string; phone: string; }[]; }; ai_get_project_summary: { Args: { p_project_id: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; ai_resolve_project: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; id: string; match_type: string; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"]; status: Database["public"]["Enums"]["project_status"]; }[]; }; calculate_contingency_remaining: { Args: { project_id_param: string; }; Returns: number; }; calculate_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; calculate_project_margins: { Args: { p_project_id: string; }; Returns: undefined; }; can_access_project: { Args: { _project_id: string; _user_id: string; }; Returns: boolean; }; check_margin_thresholds: { Args: { project_id_param: string; }; Returns: string; }; check_scheduled_sms_cron_job: { Args: never; Returns: { command: string; jobid: number; schedule: string; }[]; }; cleanup_expired_oauth_states: { Args: never; Returns: undefined; }; compute_estimate_totals_for_id: { Args: { target_estimate_id: string; }; Returns: undefined; }; compute_quote_totals_for_id: { Args: { target_quote_id: string; }; Returns: undefined; }; create_estimate_version: { Args: { new_version_number?: number; source_estimate_id: string; }; Returns: string; }; create_payment_application: { Args: { p_period_from: string; p_period_to: string; p_project_id: string; }; Returns: string; }; delete_project_cascade: { Args: { p_project_id: string; }; Returns: undefined; }; duplicate_quote_for_estimate: { Args: { source_quote_id: string; target_estimate_id: string; }; Returns: string; }; execute_ai_query: { Args: { p_query: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; execute_simple_report: { Args: { p_data_source: string; p_filters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_limit?: number; p_sort_by?: string; p_sort_dir?: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; generate_estimate_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; generate_quote_number: { Args: { estimate_id_param?: string; project_id_param: string; project_number_param: string; }; Returns: string; }; generate_sov_from_estimate: { Args: { p_estimate_id: string; p_project_id: string; p_retainage_percent?: number; }; Returns: string; }; generate_work_order_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; get_database_schema: { Args: never; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; get_employees_audit: { Args: never; Returns: { can_be_mentioned: boolean; email: string; full_name: string; linkage_status: string; payee_id: string; payee_is_active: boolean; payee_name: string; payee_user_id: string; profile_is_active: boolean; provides_labor: boolean; roles: string[]; user_id: string; }[]; }; get_expense_category_rollup: { Args: { p_date_from?: string; p_date_to?: string; p_project_category?: Database["public"]["Enums"]["project_category"]; }; Returns: { allocated_count: number; category: Database["public"]["Enums"]["expense_category"]; project_count: number; row_count: number; total_amount: number; }[]; }; get_expense_dashboard_stats: { Args: { p_date_from?: string; p_date_to?: string; p_project_category?: Database["public"]["Enums"]["project_category"]; }; Returns: { split_amount: number; split_count: number; this_month_amount: number; total_amount: number; total_count: number; unallocated_amount: number; unallocated_count: number; unassigned_amount: number; unassigned_count: number; }[]; }; get_mentionable_employees: { Args: never; Returns: { display_name: string; email: string; roles: string[]; user_id: string; }[]; }; get_next_project_number: { Args: never; Returns: string; }; get_payee_usage_counts: { Args: { p_source?: string; }; Returns: { payee_id: string; usage_count: number; }[]; }; get_profit_analysis_data: { Args: { status_filter?: string[]; }; Returns: { accepted_quote_count: number; actual_margin: number; adjusted_est_costs: number; adjusted_est_margin: number; budget_utilization_percent: number; change_order_cost: number; change_order_count: number; change_order_revenue: number; client_name: string; contingency_amount: number; contingency_remaining: number; contingency_used: number; contracted_amount: number; cost_variance: number; cost_variance_percent: number; current_margin: number; end_date: string; expenses_by_category: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; invoice_count: number; job_type: string; margin_percentage: number; original_est_costs: number; original_margin: number; project_name: string; project_number: string; projected_margin: number; start_date: string; status: string; total_accepted_quotes: number; total_expenses: number; total_invoiced: number; }[]; }; get_project_financial_summary: { Args: never; Returns: { accepted_quote_count: number; actual_margin_percentage: number; actual_profit: number; change_order_costs: number; change_order_revenue: number; client_name: string; contingency_amount: number; cost_variance: number; expense_count: number; invoice_count: number; project_id: string; project_name: string; project_number: string; revenue_variance: number; status: Database["public"]["Enums"]["project_status"]; total_estimated: number; total_expenses: number; total_invoiced: number; total_quoted: number; }[]; }; get_project_revenue_total: { Args: { p_project_id: string; }; Returns: number; }; get_receipt_stats: { Args: { p_today_start: string; p_week_start: string; }; Returns: { approved_today_count: number; pending_count: number; rejected_count: number; total_this_week_count: number; }[]; }; get_scheduled_sms_recipients: { Args: { p_target_roles: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_target_type: string; p_target_user_ids: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; Returns: { full_name: string; phone: string; user_id: string; }[]; }; get_time_entry_workers: { Args: never; Returns: { id: string; name: string; }[]; }; get_user_auth_status: { Args: never; Returns: { confirmed_at: string; email: string; full_name: string; has_password: boolean; id: string; is_active: boolean; last_active_at: string; last_sign_in_at: string; must_change_password: boolean; }[]; }; has_any_role: { Args: { _user_id: string; }; Returns: boolean; }; has_role: { Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string; }; Returns: boolean; }; is_linked_payee: { Args: { _payee_id: string; _user_id: string; }; Returns: boolean; }; log_activity: { Args: { p_activity_type: string; p_description: string; p_entity_id: string; p_entity_type: string; p_metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_project_id: string; p_user_id: string; }; Returns: string; }; refresh_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; safe_cast_to_expense_category: { Args: { val: string; }; Returns: Database["public"]["Enums"]["expense_category"]; }; safe_cast_to_project_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["project_status"]; }; safe_cast_to_quote_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["quote_status"]; }; set_user_can_be_mentioned: { Args: { target_user_id: string; value: boolean; }; Returns: undefined; }; sync_change_order_totals_for_id: { Args: { target_co_id: string; }; Returns: undefined; }; }; Enums: { app_role: "admin" | "manager" | "field_worker"; change_order_status: "pending" | "approved" | "rejected"; estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"; expense_category: "labor_internal" | "subcontractors" | "materials" | "equipment" | "other" | "permits" | "management" | "office_expenses" | "vehicle_expenses" | "tools" | "software" | "vehicle_maintenance" | "gas" | "meals"; payment_application_status: "draft" | "submitted" | "certified" | "paid" | "rejected"; project_category: "construction" | "system" | "overhead"; project_status: "estimating" | "approved" | "in_progress" | "complete" | "on_hold" | "cancelled"; project_type: "construction_project" | "work_order"; quote_status: "pending" | "accepted" | "rejected" | "expired"; sync_status: "success" | "failed" | "pending"; sync_type: "import" | "export"; training_content_type: "video_link" | "video_embed" | "document" | "presentation" | "external_link"; training_status: "draft" | "published" | "archived"; transaction_type: "expense" | "bill" | "check" | "credit_card" | "cash"; }; CompositeTypes: { [_ in never]: never; }; }, { PostgrestVersion: "13.0.5"; }>
+import("C:/Dev/profitbuild-dash/node_modules/@supabase/supabase-js/dist/module/SupabaseClient").default<Database, "public", "public", { Tables: { activity_feed: { Row: { activity_type: string; created_at: string; deleted_at: string | null; description: string; entity_id: string; entity_type: string; id: string; metadata: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id: string | null; user_id: string | null; }; Insert: { activity_type: string; created_at?: string; deleted_at?: string | null; description: string; entity_id: string; entity_type: string; id?: string; metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Update: { activity_type?: string; created_at?: string; deleted_at?: string | null; description?: string; entity_id?: string; entity_type?: string; id?: string; metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; project_id?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "activity_feed_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "activity_feed_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; admin_actions: { Row: { action_details: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at: string; id: string; target_user_id: string | null; }; Insert: { action_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type: string; admin_user_id: string; created_at?: string; id?: string; target_user_id?: string | null; }; Update: { action_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; action_type?: string; admin_user_id?: string; created_at?: string; id?: string; target_user_id?: string | null; }; Relationships: []; }; ai_action_log: { Row: { action_type: string; ai_response: string | null; created_at: string | null; entity_id: string | null; entity_type: string; error_message: string | null; execution_time_ms: number | null; id: string; parameters: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by: string | null; success: boolean | null; user_message: string | null; }; Insert: { action_type: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Update: { action_type?: string; ai_response?: string | null; created_at?: string | null; entity_id?: string | null; entity_type?: string; error_message?: string | null; execution_time_ms?: number | null; id?: string; parameters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; performed_by?: string | null; success?: boolean | null; user_message?: string | null; }; Relationships: [{ foreignKeyName: "ai_action_log_performed_by_fkey"; columns: ["performed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; bid_media: { Row: { altitude: number | null; bid_id: string; caption: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; bid_id: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; bid_id?: string; caption?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "bid_media_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; bid_notes: { Row: { bid_id: string; created_at: string; id: string; note_text: string; updated_at: string; user_id: string; }; Insert: { bid_id: string; created_at?: string; id?: string; note_text: string; updated_at?: string; user_id: string; }; Update: { bid_id?: string; created_at?: string; id?: string; note_text?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "bid_notes_bid_id_fkey"; columns: ["bid_id"]; isOneToOne: false; referencedRelation: "branch_bids"; referencedColumns: ["id"]; }]; }; branch_bids: { Row: { address: string | null; client_id: string | null; created_at: string; created_by: string; deleted_at: string | null; description: string | null; estimate_id: string | null; id: string; job_type: string | null; name: string; project_id: string | null; project_type: string | null; updated_at: string; }; Insert: { address?: string | null; client_id?: string | null; created_at?: string; created_by: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Update: { address?: string | null; client_id?: string | null; created_at?: string; created_by?: string; deleted_at?: string | null; description?: string | null; estimate_id?: string | null; id?: string; job_type?: string | null; name?: string; project_id?: string | null; project_type?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "branch_bids_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "branch_bids_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "branch_bids_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; change_order_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit: number | null; created_at: string | null; dependencies: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; expected_delivery_date: string | null; final_cost_amount: number | null; funded_by_contingency: boolean; id: string; is_long_lead: boolean; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; need_by_date: string | null; payee_id: string | null; price_per_unit: number | null; procurement_status: string; quantity: number | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total_cost: number | null; total_price: number | null; unit: string | null; updated_at: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; change_order_id: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; expected_delivery_date?: string | null; final_cost_amount?: number | null; funded_by_contingency?: boolean; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; need_by_date?: string | null; payee_id?: string | null; price_per_unit?: number | null; procurement_status?: string; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; change_order_id?: string; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; expected_delivery_date?: string | null; final_cost_amount?: number | null; funded_by_contingency?: boolean; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; need_by_date?: string | null; payee_id?: string | null; price_per_unit?: number | null; procurement_status?: string; quantity?: number | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total_cost?: number | null; total_price?: number | null; unit?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_order_line_items_change_order_id_fkey"; columns: ["change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "change_order_line_items_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; change_orders: { Row: { amount: number | null; approved_by: string | null; approved_date: string | null; change_order_number: string; client_amount: number | null; contingency_billed_to_client: number | null; contingency_drawdown: number; cost_impact: number | null; created_at: string | null; description: string; discount_amount: number | null; discount_type: string | null; discount_value: number | null; id: string; includes_contingency: boolean | null; margin_impact: number | null; project_id: string; reason_for_change: string | null; requested_date: string | null; status: Database["public"]["Enums"]["change_order_status"] | null; updated_at: string | null; }; Insert: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number: string; client_amount?: number | null; contingency_billed_to_client?: number | null; contingency_drawdown?: number; cost_impact?: number | null; created_at?: string | null; description: string; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Update: { amount?: number | null; approved_by?: string | null; approved_date?: string | null; change_order_number?: string; client_amount?: number | null; contingency_billed_to_client?: number | null; contingency_drawdown?: number; cost_impact?: number | null; created_at?: string | null; description?: string; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; id?: string; includes_contingency?: boolean | null; margin_impact?: number | null; project_id?: string; reason_for_change?: string | null; requested_date?: string | null; status?: Database["public"]["Enums"]["change_order_status"] | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "change_orders_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; clients: { Row: { billing_address: string | null; client_name: string; client_type: string | null; company_name: string | null; contact_person: string | null; created_at: string | null; email: string | null; id: string; is_active: boolean | null; mailing_address: string | null; notes: string | null; payment_terms: string | null; phone: string | null; quickbooks_customer_id: string | null; tax_exempt: boolean | null; updated_at: string | null; }; Insert: { billing_address?: string | null; client_name: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Update: { billing_address?: string | null; client_name?: string; client_type?: string | null; company_name?: string | null; contact_person?: string | null; created_at?: string | null; email?: string | null; id?: string; is_active?: boolean | null; mailing_address?: string | null; notes?: string | null; payment_terms?: string | null; phone?: string | null; quickbooks_customer_id?: string | null; tax_exempt?: boolean | null; updated_at?: string | null; }; Relationships: []; }; company_branding_settings: { Row: { accent_color: string | null; company_abbreviation: string | null; company_address: string | null; company_legal_name: string | null; company_license: string | null; company_name: string | null; company_phone: string | null; created_at: string | null; id: string; light_bg_color: string | null; logo_full_url: string | null; logo_icon_url: string | null; logo_report_header_url: string | null; logo_stacked_url: string | null; primary_color: string | null; secondary_color: string | null; updated_at: string | null; }; Insert: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Update: { accent_color?: string | null; company_abbreviation?: string | null; company_address?: string | null; company_legal_name?: string | null; company_license?: string | null; company_name?: string | null; company_phone?: string | null; created_at?: string | null; id?: string; light_bg_color?: string | null; logo_full_url?: string | null; logo_icon_url?: string | null; logo_report_header_url?: string | null; logo_stacked_url?: string | null; primary_color?: string | null; secondary_color?: string | null; updated_at?: string | null; }; Relationships: []; }; company_settings: { Row: { created_at: string | null; description: string | null; id: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at: string | null; }; Insert: { created_at?: string | null; description?: string | null; id?: string; setting_key: string; setting_value: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at?: string | null; }; Update: { created_at?: string | null; description?: string | null; id?: string; setting_key?: string; setting_value?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; updated_at?: string | null; }; Relationships: []; }; contracts: { Row: { agreement_date: string; contract_number: string | null; contract_type: string; created_at: string; created_by: string | null; docx_storage_path: string | null; docx_url: string | null; estimate_id: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; internal_reference: string | null; notes: string | null; payee_id: string; pdf_storage_path: string | null; pdf_url: string | null; project_end_date: string | null; project_id: string; project_start_date: string | null; quote_id: string | null; status: string; subcontract_price: number; updated_at: string; version: number; }; Insert: { agreement_date: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price: number; updated_at?: string; version?: number; }; Update: { agreement_date?: string; contract_number?: string | null; contract_type?: string; created_at?: string; created_by?: string | null; docx_storage_path?: string | null; docx_url?: string | null; estimate_id?: string | null; field_values?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string | null; notes?: string | null; payee_id?: string; pdf_storage_path?: string | null; pdf_url?: string | null; project_end_date?: string | null; project_id?: string; project_start_date?: string | null; quote_id?: string | null; status?: string; subcontract_price?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "contracts_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "contracts_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; crew_day_assignments: { Row: { admin_notes: string | null; change_order_line_item_id: string | null; created_at: string; created_by: string | null; estimate_line_item_id: string | null; id: string; project_id: string; start_time: string | null; task_note: string | null; updated_at: string; updated_by: string | null; user_id: string; work_date: string; }; Insert: { admin_notes?: string | null; change_order_line_item_id?: string | null; created_at?: string; created_by?: string | null; estimate_line_item_id?: string | null; id?: string; project_id: string; start_time?: string | null; task_note?: string | null; updated_at?: string; updated_by?: string | null; user_id: string; work_date: string; }; Update: { admin_notes?: string | null; change_order_line_item_id?: string | null; created_at?: string; created_by?: string | null; estimate_line_item_id?: string | null; id?: string; project_id?: string; start_time?: string | null; task_note?: string | null; updated_at?: string; updated_by?: string | null; user_id?: string; work_date?: string; }; Relationships: [{ foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "crew_day_assignments_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; email_messages: { Row: { created_at: string | null; delivery_status: string | null; email_type: string; entity_id: string | null; entity_type: string | null; error_message: string | null; id: string; project_id: string | null; recipient_email: string; recipient_name: string | null; recipient_user_id: string | null; resend_email_id: string | null; sent_at: string | null; sent_by: string | null; subject: string; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; email_type: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject: string; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; email_type?: string; entity_id?: string | null; entity_type?: string | null; error_message?: string | null; id?: string; project_id?: string | null; recipient_email?: string; recipient_name?: string | null; recipient_user_id?: string | null; resend_email_id?: string | null; sent_at?: string | null; sent_by?: string | null; subject?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "email_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "email_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; estimate_line_items: { Row: { actual_cost_rate_per_hour: number | null; billing_rate_per_hour: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit: number | null; created_at: string | null; dependencies: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days: number | null; estimate_id: string; expected_delivery_date: string | null; final_cost_amount: number | null; id: string; is_long_lead: boolean; is_milestone: boolean | null; labor_cushion_amount: number | null; labor_hours: number | null; markup_amount: number | null; markup_percent: number | null; need_by_date: string | null; price_per_unit: number; procurement_status: string; quantity: number | null; quickbooks_item_id: string | null; schedule_notes: string | null; scheduled_end_date: string | null; scheduled_start_date: string | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description: string; duration_days?: number | null; estimate_id: string; expected_delivery_date?: string | null; final_cost_amount?: number | null; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; need_by_date?: string | null; price_per_unit?: number; procurement_status?: string; quantity?: number | null; quickbooks_item_id?: string | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { actual_cost_rate_per_hour?: number | null; billing_rate_per_hour?: number | null; category?: Database["public"]["Enums"]["expense_category"]; cost_per_unit?: number | null; created_at?: string | null; dependencies?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; description?: string; duration_days?: number | null; estimate_id?: string; expected_delivery_date?: string | null; final_cost_amount?: number | null; id?: string; is_long_lead?: boolean; is_milestone?: boolean | null; labor_cushion_amount?: number | null; labor_hours?: number | null; markup_amount?: number | null; markup_percent?: number | null; need_by_date?: string | null; price_per_unit?: number; procurement_status?: string; quantity?: number | null; quickbooks_item_id?: string | null; schedule_notes?: string | null; scheduled_end_date?: string | null; scheduled_start_date?: string | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimate_line_items_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }]; }; estimates: { Row: { contingency_amount: number | null; contingency_percent: number | null; contingency_used: number | null; created_at: string | null; created_by: string | null; date_created: string | null; default_markup_percent: number | null; discount_amount: number | null; discount_type: string | null; discount_value: number | null; estimate_number: string; id: string; is_auto_generated: boolean | null; is_current_version: boolean | null; is_draft: boolean; notes: string | null; parent_estimate_id: string | null; project_id: string; revision_number: number | null; sequence_number: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent: number | null; total_amount: number | null; total_cost: number | null; total_labor_cushion: number | null; updated_at: string | null; valid_for_days: number | null; valid_until: string | null; version_number: number | null; }; Insert: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_number: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Update: { contingency_amount?: number | null; contingency_percent?: number | null; contingency_used?: number | null; created_at?: string | null; created_by?: string | null; date_created?: string | null; default_markup_percent?: number | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_number?: string; id?: string; is_auto_generated?: boolean | null; is_current_version?: boolean | null; is_draft?: boolean; notes?: string | null; parent_estimate_id?: string | null; project_id?: string; revision_number?: number | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["estimate_status"] | null; target_margin_percent?: number | null; total_amount?: number | null; total_cost?: number | null; total_labor_cushion?: number | null; updated_at?: string | null; valid_for_days?: number | null; valid_until?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "estimates_parent_estimate_id_fkey"; columns: ["parent_estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expense_line_item_correlations: { Row: { auto_correlated: boolean | null; change_order_line_item_id: string | null; confidence_score: number | null; correlation_type: string; created_at: string; estimate_line_item_id: string | null; expense_id: string | null; expense_split_id: string | null; id: string; notes: string | null; quote_id: string | null; updated_at: string; }; Insert: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Update: { auto_correlated?: boolean | null; change_order_line_item_id?: string | null; confidence_score?: number | null; correlation_type?: string; created_at?: string; estimate_line_item_id?: string | null; expense_id?: string | null; expense_split_id?: string | null; id?: string; notes?: string | null; quote_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_line_item_correlations_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses_search"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_expense_split_id_fkey"; columns: ["expense_split_id"]; isOneToOne: false; referencedRelation: "expense_splits"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_line_item_correlations_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; expense_splits: { Row: { created_at: string; created_by: string | null; expense_id: string; id: string; notes: string | null; project_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; expense_id: string; id?: string; notes?: string | null; project_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; expense_id?: string; id?: string; notes?: string | null; project_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "expense_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_expense_id_fkey"; columns: ["expense_id"]; isOneToOne: false; referencedRelation: "expenses_search"; referencedColumns: ["id"]; }, { foreignKeyName: "expense_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses: { Row: { account_full_name: string | null; account_name: string | null; amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean; is_time_entry: boolean | null; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_id: string | null; project_id: string; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; is_time_entry?: boolean | null; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; attachment_url?: string | null; category?: Database["public"]["Enums"]["expense_category"]; created_at?: string | null; created_offline?: boolean | null; description?: string | null; end_time?: string | null; expense_date?: string | null; gross_hours?: number | null; hours?: number | null; id?: string; import_batch_id?: string | null; invoice_number?: string | null; is_locked?: boolean | null; is_planned?: boolean | null; is_split?: boolean; is_time_entry?: boolean | null; local_id?: string | null; lunch_duration_minutes?: number | null; lunch_taken?: boolean | null; payee_id?: string | null; project_id?: string; quickbooks_transaction_id?: string | null; receipt_id?: string | null; rejection_reason?: string | null; start_time?: string | null; submitted_for_approval_at?: string | null; synced_at?: string | null; transaction_type?: Database["public"]["Enums"]["transaction_type"]; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; feature_flag_audit: { Row: { changed_at: string; changed_by: string | null; flag_id: string; flag_name: string; id: string; new_enabled: boolean | null; old_enabled: boolean | null; target_user_id: string | null; }; Insert: { changed_at?: string; changed_by?: string | null; flag_id: string; flag_name: string; id?: string; new_enabled?: boolean | null; old_enabled?: boolean | null; target_user_id?: string | null; }; Update: { changed_at?: string; changed_by?: string | null; flag_id?: string; flag_name?: string; id?: string; new_enabled?: boolean | null; old_enabled?: boolean | null; target_user_id?: string | null; }; Relationships: []; }; feature_flag_user_overrides: { Row: { created_at: string; enabled: boolean; flag_id: string; id: string; updated_at: string; updated_by: string | null; user_id: string; }; Insert: { created_at?: string; enabled: boolean; flag_id: string; id?: string; updated_at?: string; updated_by?: string | null; user_id: string; }; Update: { created_at?: string; enabled?: boolean; flag_id?: string; id?: string; updated_at?: string; updated_by?: string | null; user_id?: string; }; Relationships: [{ foreignKeyName: "feature_flag_user_overrides_flag_id_fkey"; columns: ["flag_id"]; isOneToOne: false; referencedRelation: "feature_flags"; referencedColumns: ["id"]; }]; }; feature_flags: { Row: { config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at: string | null; description: string | null; enabled: boolean | null; flag_name: string; id: string; updated_at: string | null; updated_by: string | null; }; Insert: { config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Update: { config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; created_at?: string | null; description?: string | null; enabled?: boolean | null; flag_name?: string; id?: string; updated_at?: string | null; updated_by?: string | null; }; Relationships: [{ foreignKeyName: "feature_flags_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; import_batches: { Row: { duplicates_skipped: number | null; errors: number | null; expenses_imported: number | null; file_name: string; id: string; imported_at: string | null; imported_by: string | null; match_log: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported: number | null; status: string | null; total_rows: number | null; }; Insert: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Update: { duplicates_skipped?: number | null; errors?: number | null; expenses_imported?: number | null; file_name?: string; id?: string; imported_at?: string | null; imported_by?: string | null; match_log?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; revenues_imported?: number | null; status?: string | null; total_rows?: number | null; }; Relationships: []; }; invoice_revenues: { Row: { invoice_id: string; revenue_id: string; }; Insert: { invoice_id: string; revenue_id: string; }; Update: { invoice_id?: string; revenue_id?: string; }; Relationships: [{ foreignKeyName: "invoice_revenues_invoice_id_fkey"; columns: ["invoice_id"]; isOneToOne: false; referencedRelation: "invoices"; referencedColumns: ["id"]; }, { foreignKeyName: "invoice_revenues_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; invoices: { Row: { amount: number; client_id: string | null; created_at: string; created_by: string | null; description: string | null; docx_storage_path: string | null; docx_url: string | null; due_date: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; internal_reference: string; invoice_date: string; invoice_number: string | null; notes: string | null; pdf_storage_path: string | null; pdf_url: string | null; project_id: string; status: string; updated_at: string; version: number; }; Insert: { amount: number; client_id?: string | null; created_at?: string; created_by?: string | null; description?: string | null; docx_storage_path?: string | null; docx_url?: string | null; due_date?: string | null; field_values: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference: string; invoice_date: string; invoice_number?: string | null; notes?: string | null; pdf_storage_path?: string | null; pdf_url?: string | null; project_id: string; status?: string; updated_at?: string; version?: number; }; Update: { amount?: number; client_id?: string | null; created_at?: string; created_by?: string | null; description?: string | null; docx_storage_path?: string | null; docx_url?: string | null; due_date?: string | null; field_values?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id?: string; internal_reference?: string; invoice_date?: string; invoice_number?: string | null; notes?: string | null; pdf_storage_path?: string | null; pdf_url?: string | null; project_id?: string; status?: string; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "invoices_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "invoices_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; media_comments: { Row: { comment_text: string; created_at: string; id: string; media_id: string; updated_at: string; user_id: string; }; Insert: { comment_text: string; created_at?: string; id?: string; media_id: string; updated_at?: string; user_id: string; }; Update: { comment_text?: string; created_at?: string; id?: string; media_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "media_comments_media_id_fkey"; columns: ["media_id"]; isOneToOne: false; referencedRelation: "project_media"; referencedColumns: ["id"]; }, { foreignKeyName: "media_comments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; note_mentions: { Row: { created_at: string; id: string; note_id: string; user_id: string; }; Insert: { created_at?: string; id?: string; note_id: string; user_id: string; }; Update: { created_at?: string; id?: string; note_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "note_mentions_note_id_fkey"; columns: ["note_id"]; isOneToOne: false; referencedRelation: "project_notes"; referencedColumns: ["id"]; }]; }; payees: { Row: { account_number: string | null; billing_address: string | null; contact_name: string | null; contact_title: string | null; created_at: string | null; email: string | null; employee_number: string | null; full_name: string | null; hourly_rate: number | null; id: string; insurance_expires: string | null; is_active: boolean | null; is_internal: boolean | null; last_synced_at: string | null; legal_form: string | null; license_number: string | null; notes: string | null; payee_name: string; payee_type: string | null; permit_issuer: boolean | null; phone_numbers: string | null; provides_labor: boolean | null; provides_materials: boolean | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_vendor_id: string | null; quickbooks_vendor_name: string | null; requires_1099: boolean | null; state_of_formation: string | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; terms: string | null; updated_at: string | null; user_id: string | null; }; Insert: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Update: { account_number?: string | null; billing_address?: string | null; contact_name?: string | null; contact_title?: string | null; created_at?: string | null; email?: string | null; employee_number?: string | null; full_name?: string | null; hourly_rate?: number | null; id?: string; insurance_expires?: string | null; is_active?: boolean | null; is_internal?: boolean | null; last_synced_at?: string | null; legal_form?: string | null; license_number?: string | null; notes?: string | null; payee_name?: string; payee_type?: string | null; permit_issuer?: boolean | null; phone_numbers?: string | null; provides_labor?: boolean | null; provides_materials?: boolean | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_vendor_id?: string | null; quickbooks_vendor_name?: string | null; requires_1099?: boolean | null; state_of_formation?: string | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; terms?: string | null; updated_at?: string | null; user_id?: string | null; }; Relationships: []; }; payment_application_lines: { Row: { balance_to_finish: number; created_at: string; current_work: number; id: string; payment_application_id: string; percent_complete: number; previous_work: number; retainage: number; scheduled_value: number; sov_line_item_id: string; stored_materials: number; total_completed: number; updated_at: string; }; Insert: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Update: { balance_to_finish?: number; created_at?: string; current_work?: number; id?: string; payment_application_id?: string; percent_complete?: number; previous_work?: number; retainage?: number; scheduled_value?: number; sov_line_item_id?: string; stored_materials?: number; total_completed?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "payment_application_lines_payment_application_id_fkey"; columns: ["payment_application_id"]; isOneToOne: false; referencedRelation: "payment_applications"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_application_lines_sov_line_item_id_fkey"; columns: ["sov_line_item_id"]; isOneToOne: false; referencedRelation: "sov_line_items"; referencedColumns: ["id"]; }]; }; payment_applications: { Row: { application_number: number; balance_to_finish: number; certified_amount: number | null; certified_by: string | null; certified_date: string | null; contract_sum_to_date: number; created_at: string; created_by: string | null; current_payment_due: number; g702_pdf_storage_path: string | null; g702_pdf_url: string | null; g703_pdf_storage_path: string | null; g703_pdf_url: string | null; id: string; net_change_orders: number; notes: string | null; original_contract_sum: number; period_from: string; period_to: string; project_id: string; sov_id: string; status: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date: number; total_earned_less_retainage: number; total_previous_payments: number; total_retainage: number; updated_at: string; version: number; }; Insert: { application_number: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from: string; period_to: string; project_id: string; sov_id: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Update: { application_number?: number; balance_to_finish?: number; certified_amount?: number | null; certified_by?: string | null; certified_date?: string | null; contract_sum_to_date?: number; created_at?: string; created_by?: string | null; current_payment_due?: number; g702_pdf_storage_path?: string | null; g702_pdf_url?: string | null; g703_pdf_storage_path?: string | null; g703_pdf_url?: string | null; id?: string; net_change_orders?: number; notes?: string | null; original_contract_sum?: number; period_from?: string; period_to?: string; project_id?: string; sov_id?: string; status?: Database["public"]["Enums"]["payment_application_status"]; total_completed_to_date?: number; total_earned_less_retainage?: number; total_previous_payments?: number; total_retainage?: number; updated_at?: string; version?: number; }; Relationships: [{ foreignKeyName: "payment_applications_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "payment_applications_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; pending_payee_reviews: { Row: { account_full_name: string | null; created_at: string | null; id: string; import_batch_id: string; matched_payee_id: string | null; qb_name: string; resolution: string | null; resolved_at: string | null; suggested_payee_type: string | null; }; Insert: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id: string; matched_payee_id?: string | null; qb_name: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Update: { account_full_name?: string | null; created_at?: string | null; id?: string; import_batch_id?: string; matched_payee_id?: string | null; qb_name?: string; resolution?: string | null; resolved_at?: string | null; suggested_payee_type?: string | null; }; Relationships: [{ foreignKeyName: "pending_payee_reviews_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "pending_payee_reviews_matched_payee_id_fkey"; columns: ["matched_payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; profiles: { Row: { can_be_mentioned: boolean; created_at: string; deactivated_at: string | null; deactivated_by: string | null; email: string | null; full_name: string | null; id: string; is_active: boolean; last_active_at: string | null; must_change_password: boolean | null; phone: string | null; sms_notifications_enabled: boolean | null; updated_at: string; }; Insert: { can_be_mentioned?: boolean; created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Update: { can_be_mentioned?: boolean; created_at?: string; deactivated_at?: string | null; deactivated_by?: string | null; email?: string | null; full_name?: string | null; id?: string; is_active?: boolean; last_active_at?: string | null; must_change_password?: boolean | null; phone?: string | null; sms_notifications_enabled?: boolean | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "profiles_deactivated_by_fkey"; columns: ["deactivated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_aliases: { Row: { alias: string; created_at: string | null; id: string; is_active: boolean | null; match_type: string | null; project_id: string; }; Insert: { alias: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id: string; }; Update: { alias?: string; created_at?: string | null; id?: string; is_active?: boolean | null; match_type?: string | null; project_id?: string; }; Relationships: [{ foreignKeyName: "project_aliases_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; project_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; project_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_assignments_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_documents: { Row: { created_at: string; description: string | null; document_type: string; expires_at: string | null; file_name: string; file_size: number; file_url: string; id: string; mime_type: string; project_id: string; related_quote_id: string | null; updated_at: string; uploaded_by: string | null; version_number: number | null; }; Insert: { created_at?: string; description?: string | null; document_type: string; expires_at?: string | null; file_name: string; file_size: number; file_url: string; id?: string; mime_type: string; project_id: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Update: { created_at?: string; description?: string | null; document_type?: string; expires_at?: string | null; file_name?: string; file_size?: number; file_url?: string; id?: string; mime_type?: string; project_id?: string; related_quote_id?: string | null; updated_at?: string; uploaded_by?: string | null; version_number?: number | null; }; Relationships: [{ foreignKeyName: "project_documents_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_documents_related_quote_id_fkey"; columns: ["related_quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; project_media: { Row: { altitude: number | null; caption: string | null; category: string | null; created_at: string; description: string | null; device_model: string | null; duration: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id: string; latitude: number | null; location_name: string | null; longitude: number | null; mime_type: string; project_id: string; taken_at: string | null; thumbnail_url: string | null; updated_at: string; upload_source: string | null; uploaded_by: string | null; }; Insert: { altitude?: number | null; caption?: string | null; category?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name: string; file_size: number; file_type: string; file_url: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type: string; project_id: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Update: { altitude?: number | null; caption?: string | null; category?: string | null; created_at?: string; description?: string | null; device_model?: string | null; duration?: number | null; file_name?: string; file_size?: number; file_type?: string; file_url?: string; id?: string; latitude?: number | null; location_name?: string | null; longitude?: number | null; mime_type?: string; project_id?: string; taken_at?: string | null; thumbnail_url?: string | null; updated_at?: string; upload_source?: string | null; uploaded_by?: string | null; }; Relationships: [{ foreignKeyName: "project_media_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; project_notes: { Row: { attachment_name: string | null; attachment_type: string | null; attachment_url: string | null; created_at: string; id: string; note_text: string; project_id: string; updated_at: string; user_id: string; }; Insert: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text: string; project_id: string; updated_at?: string; user_id: string; }; Update: { attachment_name?: string | null; attachment_type?: string | null; attachment_url?: string | null; created_at?: string; id?: string; note_text?: string; project_id?: string; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "project_notes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "project_notes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; project_revenues: { Row: { account_full_name: string | null; account_name: string | null; amount: number; client_id: string | null; created_at: string; description: string | null; id: string; import_batch_id: string | null; invoice_date: string; invoice_number: string | null; is_split: boolean | null; project_id: string; quickbooks_transaction_id: string | null; updated_at: string; }; Insert: { account_full_name?: string | null; account_name?: string | null; amount: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Update: { account_full_name?: string | null; account_name?: string | null; amount?: number; client_id?: string | null; created_at?: string; description?: string | null; id?: string; import_batch_id?: string | null; invoice_date?: string; invoice_number?: string | null; is_split?: boolean | null; project_id?: string; quickbooks_transaction_id?: string | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "project_revenues_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "project_revenues_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; projects: { Row: { actual_hours: number | null; actual_margin: number | null; address: string | null; adjusted_est_costs: number | null; adjusted_est_margin: number | null; category: Database["public"]["Enums"]["project_category"]; client_id: string | null; client_name: string; contingency_amount: number | null; contingency_remaining: number | null; contracted_amount: number | null; created_at: string | null; current_margin: number | null; customer_po_number: string | null; default_expense_category: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed: number | null; end_date: string | null; estimated_hours: number | null; id: string; job_type: string | null; last_synced_at: string | null; margin_percentage: number | null; minimum_margin_threshold: number | null; notes: string | null; original_est_costs: number | null; original_margin: number | null; owner_id: string | null; payment_terms: string | null; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"] | null; projected_margin: number | null; qb_formatted_number: string | null; quickbooks_job_id: string | null; sequence_number: number | null; start_date: string | null; status: Database["public"]["Enums"]["project_status"] | null; sync_status: Database["public"]["Enums"]["sync_status"] | null; target_margin: number | null; total_accepted_quotes: number | null; updated_at: string | null; work_order_counter: number | null; }; Insert: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name: string; project_number: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Update: { actual_hours?: number | null; actual_margin?: number | null; address?: string | null; adjusted_est_costs?: number | null; adjusted_est_margin?: number | null; category?: Database["public"]["Enums"]["project_category"]; client_id?: string | null; client_name?: string; contingency_amount?: number | null; contingency_remaining?: number | null; contracted_amount?: number | null; created_at?: string | null; current_margin?: number | null; customer_po_number?: string | null; default_expense_category?: Database["public"]["Enums"]["expense_category"] | null; do_not_exceed?: number | null; end_date?: string | null; estimated_hours?: number | null; id?: string; job_type?: string | null; last_synced_at?: string | null; margin_percentage?: number | null; minimum_margin_threshold?: number | null; notes?: string | null; original_est_costs?: number | null; original_margin?: number | null; owner_id?: string | null; payment_terms?: string | null; project_name?: string; project_number?: string; project_type?: Database["public"]["Enums"]["project_type"] | null; projected_margin?: number | null; qb_formatted_number?: string | null; quickbooks_job_id?: string | null; sequence_number?: number | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; sync_status?: Database["public"]["Enums"]["sync_status"] | null; target_margin?: number | null; total_accepted_quotes?: number | null; updated_at?: string | null; work_order_counter?: number | null; }; Relationships: [{ foreignKeyName: "projects_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "clients"; referencedColumns: ["id"]; }, { foreignKeyName: "projects_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }]; }; projects_demographic_backup_20260617: { Row: { contracted_amount: number | null; end_date: string | null; id: string | null; project_number: string | null; start_date: string | null; status: Database["public"]["Enums"]["project_status"] | null; updated_at: string | null; }; Insert: { contracted_amount?: number | null; end_date?: string | null; id?: string | null; project_number?: string | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; updated_at?: string | null; }; Update: { contracted_amount?: number | null; end_date?: string | null; id?: string | null; project_number?: string | null; start_date?: string | null; status?: Database["public"]["Enums"]["project_status"] | null; updated_at?: string | null; }; Relationships: []; }; quickbooks_account_mappings: { Row: { app_category: Database["public"]["Enums"]["expense_category"]; created_at: string; id: string; is_active: boolean; qb_account_full_path: string; qb_account_name: string; updated_at: string; }; Insert: { app_category: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path: string; qb_account_name: string; updated_at?: string; }; Update: { app_category?: Database["public"]["Enums"]["expense_category"]; created_at?: string; id?: string; is_active?: boolean; qb_account_full_path?: string; qb_account_name?: string; updated_at?: string; }; Relationships: []; }; quickbooks_connections: { Row: { access_token: string; company_name: string | null; connected_at: string | null; connected_by: string | null; created_at: string | null; disconnected_at: string | null; disconnected_by: string | null; environment: string; id: string; is_active: boolean | null; last_error: string | null; last_sync_at: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at: string | null; }; Insert: { access_token: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id: string; refresh_token: string; token_expires_at: string; updated_at?: string | null; }; Update: { access_token?: string; company_name?: string | null; connected_at?: string | null; connected_by?: string | null; created_at?: string | null; disconnected_at?: string | null; disconnected_by?: string | null; environment?: string; id?: string; is_active?: boolean | null; last_error?: string | null; last_sync_at?: string | null; realm_id?: string; refresh_token?: string; token_expires_at?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_connections_connected_by_fkey"; columns: ["connected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "quickbooks_connections_disconnected_by_fkey"; columns: ["disconnected_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_oauth_states: { Row: { created_at: string | null; expires_at: string; state: string; user_id: string; }; Insert: { created_at?: string | null; expires_at: string; state: string; user_id: string; }; Update: { created_at?: string | null; expires_at?: string; state?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "quickbooks_oauth_states_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_sync_log: { Row: { created_at: string | null; duration_ms: number | null; entity_id: string | null; entity_type: string; environment: string | null; error_message: string | null; id: string; initiated_by: string | null; quickbooks_id: string | null; request_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at: string | null; }; Insert: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Update: { created_at?: string | null; duration_ms?: number | null; entity_id?: string | null; entity_type?: string; environment?: string | null; error_message?: string | null; id?: string; initiated_by?: string | null; quickbooks_id?: string | null; request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; status?: Database["public"]["Enums"]["sync_status"] | null; sync_type?: Database["public"]["Enums"]["sync_type"]; synced_at?: string | null; }; Relationships: [{ foreignKeyName: "quickbooks_sync_log_initiated_by_fkey"; columns: ["initiated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; quickbooks_transaction_syncs: { Row: { created_at: string | null; duplicates_skipped: number | null; end_date: string; environment: string; error_message: string | null; expenses_imported: number | null; id: string; initiated_by: string | null; revenues_imported: number | null; start_date: string; sync_completed_at: string | null; sync_started_at: string; sync_status: string; transactions_fetched: number | null; updated_at: string | null; }; Insert: { created_at?: string | null; duplicates_skipped?: number | null; end_date: string; environment: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Update: { created_at?: string | null; duplicates_skipped?: number | null; end_date?: string; environment?: string; error_message?: string | null; expenses_imported?: number | null; id?: string; initiated_by?: string | null; revenues_imported?: number | null; start_date?: string; sync_completed_at?: string | null; sync_started_at?: string; sync_status?: string; transactions_fetched?: number | null; updated_at?: string | null; }; Relationships: []; }; quote_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id: string | null; cost_per_unit: number | null; created_at: string | null; description: string | null; estimate_line_item_id: string | null; id: string; markup_amount: number | null; markup_percent: number | null; quantity: number | null; quote_id: string; rate: number | null; sort_order: number | null; total: number | null; total_cost: number | null; total_markup: number | null; unit: string | null; }; Insert: { category: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Update: { category?: Database["public"]["Enums"]["expense_category"]; change_order_line_item_id?: string | null; cost_per_unit?: number | null; created_at?: string | null; description?: string | null; estimate_line_item_id?: string | null; id?: string; markup_amount?: number | null; markup_percent?: number | null; quantity?: number | null; quote_id?: string; rate?: number | null; sort_order?: number | null; total?: number | null; total_cost?: number | null; total_markup?: number | null; unit?: string | null; }; Relationships: [{ foreignKeyName: "quote_line_items_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "quote_line_items_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"]; }]; }; quotes: { Row: { accepted_date: string | null; attachment_url: string | null; created_at: string | null; date_received: string | null; discount_amount: number | null; discount_type: string | null; discount_value: number | null; estimate_id: string | null; id: string; includes_labor: boolean; includes_materials: boolean; notes: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason: string | null; sequence_number: number | null; status: Database["public"]["Enums"]["quote_status"] | null; total_amount: number | null; updated_at: string | null; valid_until: string | null; }; Insert: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id: string; project_id: string; quote_number: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Update: { accepted_date?: string | null; attachment_url?: string | null; created_at?: string | null; date_received?: string | null; discount_amount?: number | null; discount_type?: string | null; discount_value?: number | null; estimate_id?: string | null; id?: string; includes_labor?: boolean; includes_materials?: boolean; notes?: string | null; payee_id?: string; project_id?: string; quote_number?: string; rejection_reason?: string | null; sequence_number?: number | null; status?: Database["public"]["Enums"]["quote_status"] | null; total_amount?: number | null; updated_at?: string | null; valid_until?: string | null; }; Relationships: [{ foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "quotes_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "quotes_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; receipts: { Row: { amount: number; approval_status: string | null; approved_at: string | null; approved_by: string | null; captured_at: string; created_at: string; description: string | null; id: string; image_url: string; payee_id: string | null; project_id: string | null; quickbooks_error_message: string | null; quickbooks_request_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status: string | null; quickbooks_synced_at: string | null; quickbooks_synced_by: string | null; quickbooks_transaction_id: string | null; rejection_reason: string | null; submitted_for_approval_at: string | null; updated_at: string; user_id: string; }; Insert: { amount: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id: string; }; Update: { amount?: number; approval_status?: string | null; approved_at?: string | null; approved_by?: string | null; captured_at?: string; created_at?: string; description?: string | null; id?: string; image_url?: string; payee_id?: string | null; project_id?: string | null; quickbooks_error_message?: string | null; quickbooks_request_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_response_payload?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; quickbooks_sync_status?: string | null; quickbooks_synced_at?: string | null; quickbooks_synced_by?: string | null; quickbooks_transaction_id?: string | null; rejection_reason?: string | null; submitted_for_approval_at?: string | null; updated_at?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "receipts_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "receipts_quickbooks_synced_by_fkey"; columns: ["quickbooks_synced_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; report_execution_log: { Row: { config_used: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at: string | null; executed_by: string | null; execution_time_ms: number | null; export_format: string | null; id: string; report_id: string | null; row_count: number | null; }; Insert: { config_used?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Update: { config_used?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; executed_by?: string | null; execution_time_ms?: number | null; export_format?: string | null; id?: string; report_id?: string | null; row_count?: number | null; }; Relationships: [{ foreignKeyName: "report_execution_log_report_id_fkey"; columns: ["report_id"]; isOneToOne: false; referencedRelation: "saved_reports"; referencedColumns: ["id"]; }]; }; revenue_splits: { Row: { created_at: string; created_by: string | null; id: string; notes: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage: number | null; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id: string; revenue_id: string; split_amount: number; split_percentage?: number | null; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; id?: string; notes?: string | null; project_id?: string; revenue_id?: string; split_amount?: number; split_percentage?: number | null; updated_at?: string; }; Relationships: [{ foreignKeyName: "revenue_splits_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "revenue_splits_revenue_id_fkey"; columns: ["revenue_id"]; isOneToOne: false; referencedRelation: "project_revenues"; referencedColumns: ["id"]; }]; }; saved_reports: { Row: { category: string | null; config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at: string | null; created_by: string | null; description: string | null; id: string; is_template: boolean | null; name: string; updated_at: string | null; }; Insert: { category?: string | null; config: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name: string; updated_at?: string | null; }; Update: { category?: string | null; config?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; created_at?: string | null; created_by?: string | null; description?: string | null; id?: string; is_template?: boolean | null; name?: string; updated_at?: string | null; }; Relationships: []; }; schedule_of_values: { Row: { created_at: string; created_by: string | null; estimate_id: string; id: string; original_contract_sum: number; project_id: string; retainage_percent: number; updated_at: string; }; Insert: { created_at?: string; created_by?: string | null; estimate_id: string; id?: string; original_contract_sum?: number; project_id: string; retainage_percent?: number; updated_at?: string; }; Update: { created_at?: string; created_by?: string | null; estimate_id?: string; id?: string; original_contract_sum?: number; project_id?: string; retainage_percent?: number; updated_at?: string; }; Relationships: [{ foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimate_financial_summary"; referencedColumns: ["estimate_id"]; }, { foreignKeyName: "schedule_of_values_estimate_id_fkey"; columns: ["estimate_id"]; isOneToOne: false; referencedRelation: "estimates"; referencedColumns: ["id"]; }, { foreignKeyName: "schedule_of_values_project_id_fkey"; columns: ["project_id"]; isOneToOne: true; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; scheduled_sms_logs: { Row: { created_at: string | null; error_details: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at: string | null; failure_count: number | null; id: string; recipients_count: number | null; scheduled_sms_id: string | null; success_count: number | null; }; Insert: { created_at?: string | null; error_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Update: { created_at?: string | null; error_details?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; executed_at?: string | null; failure_count?: number | null; id?: string; recipients_count?: number | null; scheduled_sms_id?: string | null; success_count?: number | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_logs_scheduled_sms_id_fkey"; columns: ["scheduled_sms_id"]; isOneToOne: false; referencedRelation: "scheduled_sms_messages"; referencedColumns: ["id"]; }]; }; scheduled_sms_messages: { Row: { created_at: string | null; created_by: string; cron_expression: string | null; id: string; is_active: boolean | null; last_sent_at: string | null; link_type: string | null; link_url: string | null; message_template: string; name: string; project_id: string | null; schedule_type: string; scheduled_datetime: string | null; target_roles: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone: string; updated_at: string | null; }; Insert: { created_at?: string | null; created_by: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template: string; name: string; project_id?: string | null; schedule_type: string; scheduled_datetime?: string | null; target_roles?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type: string; target_user_ids?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Update: { created_at?: string | null; created_by?: string; cron_expression?: string | null; id?: string; is_active?: boolean | null; last_sent_at?: string | null; link_type?: string | null; link_url?: string | null; message_template?: string; name?: string; project_id?: string | null; schedule_type?: string; scheduled_datetime?: string | null; target_roles?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; target_type?: string; target_user_ids?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json | null; timezone?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "scheduled_sms_messages_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "scheduled_sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; sms_messages: { Row: { created_at: string | null; delivery_status: string | null; error_message: string | null; id: string; link_type: string | null; link_url: string | null; message_body: string; project_id: string | null; recipient_name: string | null; recipient_phone: string; recipient_user_id: string | null; sent_at: string | null; sent_by: string; status_checked_at: string | null; textbelt_http_status: number | null; textbelt_text_id: string | null; updated_at: string | null; }; Insert: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body: string; project_id?: string | null; recipient_name?: string | null; recipient_phone: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Update: { created_at?: string | null; delivery_status?: string | null; error_message?: string | null; id?: string; link_type?: string | null; link_url?: string | null; message_body?: string; project_id?: string | null; recipient_name?: string | null; recipient_phone?: string; recipient_user_id?: string | null; sent_at?: string | null; sent_by?: string; status_checked_at?: string | null; textbelt_http_status?: number | null; textbelt_text_id?: string | null; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "sms_messages_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_recipient_user_id_fkey"; columns: ["recipient_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "sms_messages_sent_by_fkey"; columns: ["sent_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; sov_line_items: { Row: { category: Database["public"]["Enums"]["expense_category"] | null; created_at: string; description: string; id: string; item_number: string; retainage_percent_override: number | null; scheduled_value: number; sort_order: number; source_change_order_id: string | null; source_estimate_line_item_id: string | null; sov_id: string; }; Insert: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description: string; id?: string; item_number: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id: string; }; Update: { category?: Database["public"]["Enums"]["expense_category"] | null; created_at?: string; description?: string; id?: string; item_number?: string; retainage_percent_override?: number | null; scheduled_value?: number; sort_order?: number; source_change_order_id?: string | null; source_estimate_line_item_id?: string | null; sov_id?: string; }; Relationships: [{ foreignKeyName: "sov_line_items_source_change_order_id_fkey"; columns: ["source_change_order_id"]; isOneToOne: false; referencedRelation: "change_orders"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_source_estimate_line_item_id_fkey"; columns: ["source_estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "sov_line_items_sov_id_fkey"; columns: ["sov_id"]; isOneToOne: false; referencedRelation: "schedule_of_values"; referencedColumns: ["id"]; }]; }; system_settings: { Row: { created_at: string; description: string | null; id: string; setting_key: string; setting_value: string; updated_at: string; }; Insert: { created_at?: string; description?: string | null; id?: string; setting_key: string; setting_value: string; updated_at?: string; }; Update: { created_at?: string; description?: string | null; id?: string; setting_key?: string; setting_value?: string; updated_at?: string; }; Relationships: []; }; training_assignments: { Row: { assigned_at: string | null; assigned_by: string | null; due_date: string | null; id: string; notes: string | null; notification_sent_at: string | null; priority: number | null; reminder_sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; due_date?: string | null; id?: string; notes?: string | null; notification_sent_at?: string | null; priority?: number | null; reminder_sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_assignments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_completions: { Row: { acknowledged: boolean | null; completed_at: string | null; id: string; notes: string | null; time_spent_minutes: number | null; training_content_id: string; user_id: string; }; Insert: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id: string; user_id: string; }; Update: { acknowledged?: boolean | null; completed_at?: string | null; id?: string; notes?: string | null; time_spent_minutes?: number | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_completions_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_completions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_content: { Row: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url: string | null; created_at: string | null; created_by: string | null; description: string | null; duration_minutes: number | null; embed_code: string | null; id: string; is_required: boolean | null; status: Database["public"]["Enums"]["training_status"] | null; storage_path: string | null; target_roles: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url: string | null; title: string; updated_at: string | null; }; Insert: { content_type: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title: string; updated_at?: string | null; }; Update: { content_type?: Database["public"]["Enums"]["training_content_type"]; content_url?: string | null; created_at?: string | null; created_by?: string | null; description?: string | null; duration_minutes?: number | null; embed_code?: string | null; id?: string; is_required?: boolean | null; status?: Database["public"]["Enums"]["training_status"] | null; storage_path?: string | null; target_roles?: Database["public"]["Enums"]["app_role"][] | null; thumbnail_url?: string | null; title?: string; updated_at?: string | null; }; Relationships: [{ foreignKeyName: "training_content_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; training_notifications: { Row: { delivered: boolean | null; email_id: string | null; error_message: string | null; id: string; notification_type: string; sent_at: string | null; training_content_id: string; user_id: string; }; Insert: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type: string; sent_at?: string | null; training_content_id: string; user_id: string; }; Update: { delivered?: boolean | null; email_id?: string | null; error_message?: string | null; id?: string; notification_type?: string; sent_at?: string | null; training_content_id?: string; user_id?: string; }; Relationships: [{ foreignKeyName: "training_notifications_training_content_id_fkey"; columns: ["training_content_id"]; isOneToOne: false; referencedRelation: "training_content"; referencedColumns: ["id"]; }, { foreignKeyName: "training_notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; user_notifications: { Row: { body: string | null; created_at: string; id: string; is_read: boolean; link_url: string | null; read_at: string | null; reference_id: string | null; reference_type: string | null; title: string; type: string; user_id: string; }; Insert: { body?: string | null; created_at?: string; id?: string; is_read?: boolean; link_url?: string | null; read_at?: string | null; reference_id?: string | null; reference_type?: string | null; title: string; type?: string; user_id: string; }; Update: { body?: string | null; created_at?: string; id?: string; is_read?: boolean; link_url?: string | null; read_at?: string | null; reference_id?: string | null; reference_type?: string | null; title?: string; type?: string; user_id?: string; }; Relationships: []; }; user_roles: { Row: { assigned_at: string | null; assigned_by: string | null; id: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Insert: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role: Database["public"]["Enums"]["app_role"]; user_id: string; }; Update: { assigned_at?: string | null; assigned_by?: string | null; id?: string; role?: Database["public"]["Enums"]["app_role"]; user_id?: string; }; Relationships: []; }; }; Views: { crew_day_assignments_field_view: { Row: { change_order_line_item_id: string | null; created_at: string | null; created_by: string | null; estimate_line_item_id: string | null; id: string | null; project_id: string | null; start_time: string | null; task_note: string | null; updated_at: string | null; updated_by: string | null; user_id: string | null; work_date: string | null; }; Insert: { change_order_line_item_id?: string | null; created_at?: string | null; created_by?: string | null; estimate_line_item_id?: string | null; id?: string | null; project_id?: string | null; start_time?: string | null; task_note?: string | null; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; work_date?: string | null; }; Update: { change_order_line_item_id?: string | null; created_at?: string | null; created_by?: string | null; estimate_line_item_id?: string | null; id?: string | null; project_id?: string | null; start_time?: string | null; task_note?: string | null; updated_at?: string | null; updated_by?: string | null; user_id?: string | null; work_date?: string | null; }; Relationships: [{ foreignKeyName: "crew_day_assignments_change_order_line_item_id_fkey"; columns: ["change_order_line_item_id"]; isOneToOne: false; referencedRelation: "change_order_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "crew_day_assignments_estimate_line_item_id_fkey"; columns: ["estimate_line_item_id"]; isOneToOne: false; referencedRelation: "estimate_line_items"; referencedColumns: ["id"]; }, { foreignKeyName: "crew_day_assignments_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; estimate_financial_summary: { Row: { contingency_amount: number | null; contingency_percent: number | null; created_at: string | null; cushion_hours_capacity: number | null; estimate_id: string | null; estimate_number: string | null; estimated_gross_margin_percent: number | null; estimated_gross_profit: number | null; max_gross_profit_potential: number | null; max_potential_margin_percent: number | null; project_id: string | null; schedule_buffer_percent: number | null; status: Database["public"]["Enums"]["estimate_status"] | null; subtotal: number | null; total_estimated_cost: number | null; total_labor_actual_cost: number | null; total_labor_billing_cost: number | null; total_labor_capacity: number | null; total_labor_client_price: number | null; total_labor_cushion: number | null; total_labor_hours: number | null; total_with_contingency: number | null; updated_at: string | null; }; Relationships: [{ foreignKeyName: "estimates_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }]; }; expenses_search: { Row: { account_full_name: string | null; account_name: string | null; amount: number | null; approval_status: string | null; approved_at: string | null; approved_by: string | null; attachment_url: string | null; category: Database["public"]["Enums"]["expense_category"] | null; created_at: string | null; created_offline: boolean | null; description: string | null; end_time: string | null; expense_date: string | null; gross_hours: number | null; hours: number | null; id: string | null; import_batch_id: string | null; invoice_number: string | null; is_locked: boolean | null; is_planned: boolean | null; is_split: boolean | null; local_id: string | null; lunch_duration_minutes: number | null; lunch_taken: boolean | null; payee_full_name: string | null; payee_id: string | null; payee_name: string | null; payee_type: string | null; project_category: Database["public"]["Enums"]["project_category"] | null; project_id: string | null; project_name: string | null; project_number: string | null; quickbooks_transaction_id: string | null; receipt_id: string | null; rejection_reason: string | null; search_text: string | null; start_time: string | null; submitted_for_approval_at: string | null; synced_at: string | null; transaction_type: Database["public"]["Enums"]["transaction_type"] | null; updated_at: string | null; updated_by: string | null; user_id: string | null; }; Relationships: [{ foreignKeyName: "expenses_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_import_batch_id_fkey"; columns: ["import_batch_id"]; isOneToOne: false; referencedRelation: "import_batches"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_payee_id_fkey"; columns: ["payee_id"]; isOneToOne: false; referencedRelation: "payees"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "receipts"; referencedColumns: ["id"]; }, { foreignKeyName: "expenses_updated_by_fkey"; columns: ["updated_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"]; }]; }; weekly_labor_hours: { Row: { approved_entries: number | null; employee_name: string | null; employee_number: string | null; entry_count: number | null; gross_hours: number | null; hourly_rate: number | null; pending_entries: number | null; rejected_entries: number | null; total_cost: number | null; total_hours: number | null; week_end_saturday: string | null; week_start_sunday: string | null; }; Relationships: []; }; }; Functions: { ai_find_client_by_name: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; email: string; id: string; match_type: string; phone: string; }[]; }; ai_get_project_summary: { Args: { p_project_id: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; ai_resolve_project: { Args: { p_search_term: string; }; Returns: { client_name: string; confidence: number; id: string; match_type: string; project_name: string; project_number: string; project_type: Database["public"]["Enums"]["project_type"]; status: Database["public"]["Enums"]["project_status"]; }[]; }; calculate_contingency_remaining: { Args: { project_id_param: string; }; Returns: number; }; calculate_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; calculate_project_margins: { Args: { p_project_id: string; }; Returns: undefined; }; can_access_project: { Args: { _project_id: string; _user_id: string; }; Returns: boolean; }; check_margin_thresholds: { Args: { project_id_param: string; }; Returns: string; }; check_scheduled_sms_cron_job: { Args: never; Returns: { command: string; jobid: number; schedule: string; }[]; }; cleanup_expired_oauth_states: { Args: never; Returns: undefined; }; compute_estimate_totals_for_id: { Args: { target_estimate_id: string; }; Returns: undefined; }; compute_quote_totals_for_id: { Args: { target_quote_id: string; }; Returns: undefined; }; create_estimate_version: { Args: { new_version_number?: number; p_line_items?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; source_estimate_id: string; }; Returns: string; }; create_payment_application: { Args: { p_period_from: string; p_period_to: string; p_project_id: string; }; Returns: string; }; delete_project_cascade: { Args: { p_project_id: string; }; Returns: undefined; }; duplicate_quote_for_estimate: { Args: { source_quote_id: string; target_estimate_id: string; }; Returns: string; }; execute_ai_query: { Args: { p_query: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; execute_simple_report: { Args: { p_data_source: string; p_filters?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_limit?: number; p_sort_by?: string; p_sort_dir?: string; }; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; generate_estimate_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; generate_quote_number: { Args: { estimate_id_param?: string; project_id_param: string; project_number_param: string; }; Returns: string; }; generate_sov_from_estimate: { Args: { p_estimate_id: string; p_project_id: string; p_retainage_percent?: number; }; Returns: string; }; generate_work_order_number: { Args: { project_id_param: string; project_number_param: string; }; Returns: string; }; get_database_schema: { Args: never; Returns: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; get_employees_audit: { Args: never; Returns: { can_be_mentioned: boolean; email: string; full_name: string; linkage_status: string; payee_id: string; payee_is_active: boolean; payee_name: string; payee_user_id: string; profile_is_active: boolean; provides_labor: boolean; roles: string[]; user_id: string; }[]; }; get_expense_category_rollup: { Args: { p_date_from?: string; p_date_to?: string; p_project_category?: Database["public"]["Enums"]["project_category"]; }; Returns: { allocated_count: number; category: Database["public"]["Enums"]["expense_category"]; project_count: number; row_count: number; total_amount: number; }[]; }; get_expense_dashboard_stats: { Args: { p_date_from?: string; p_date_to?: string; p_project_category?: Database["public"]["Enums"]["project_category"]; }; Returns: { split_amount: number; split_count: number; this_month_amount: number; total_amount: number; total_count: number; unallocated_amount: number; unallocated_count: number; unassigned_amount: number; unassigned_count: number; }[]; }; get_mentionable_employees: { Args: never; Returns: { display_name: string; email: string; roles: string[]; user_id: string; }[]; }; get_next_project_number: { Args: never; Returns: string; }; get_payee_usage_counts: { Args: { p_source?: string; }; Returns: { payee_id: string; usage_count: number; }[]; }; get_profit_analysis_data: { Args: { status_filter?: string[]; }; Returns: { accepted_quote_count: number; actual_margin: number; adjusted_est_costs: number; adjusted_est_margin: number; budget_utilization_percent: number; change_order_cost: number; change_order_count: number; change_order_revenue: number; client_name: string; contingency_amount: number; contingency_remaining: number; contingency_used: number; contracted_amount: number; cost_variance: number; cost_variance_percent: number; current_margin: number; end_date: string; expenses_by_category: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; id: string; invoice_count: number; job_type: string; margin_percentage: number; original_est_costs: number; original_margin: number; project_name: string; project_number: string; projected_margin: number; start_date: string; status: string; total_accepted_quotes: number; total_expenses: number; total_invoiced: number; }[]; }; get_project_financial_summary: { Args: never; Returns: { accepted_quote_count: number; actual_margin_percentage: number; actual_profit: number; change_order_costs: number; change_order_revenue: number; client_name: string; contingency_amount: number; cost_variance: number; expense_count: number; invoice_count: number; project_id: string; project_name: string; project_number: string; revenue_variance: number; status: Database["public"]["Enums"]["project_status"]; total_estimated: number; total_expenses: number; total_invoiced: number; total_quoted: number; }[]; }; get_project_revenue_total: { Args: { p_project_id: string; }; Returns: number; }; get_receipt_stats: { Args: { p_today_start: string; p_week_start: string; }; Returns: { approved_today_count: number; pending_count: number; rejected_count: number; total_this_week_count: number; }[]; }; get_scheduled_sms_recipients: { Args: { p_target_roles: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_target_type: string; p_target_user_ids: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; }; Returns: { full_name: string; phone: string; user_id: string; }[]; }; get_time_entry_workers: { Args: never; Returns: { id: string; name: string; }[]; }; get_user_auth_status: { Args: never; Returns: { confirmed_at: string; email: string; full_name: string; has_password: boolean; id: string; is_active: boolean; last_active_at: string; last_sign_in_at: string; must_change_password: boolean; }[]; }; has_any_role: { Args: { _user_id: string; }; Returns: boolean; }; has_role: { Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string; }; Returns: boolean; }; is_linked_payee: { Args: { _payee_id: string; _user_id: string; }; Returns: boolean; }; log_activity: { Args: { p_activity_type: string; p_description: string; p_entity_id: string; p_entity_type: string; p_metadata?: import("C:/Dev/profitbuild-dash/src/integrations/supabase/types").Json; p_project_id: string; p_user_id: string; }; Returns: string; }; refresh_estimate_labor_cushion: { Args: { p_estimate_id: string; }; Returns: number; }; safe_cast_to_expense_category: { Args: { val: string; }; Returns: Database["public"]["Enums"]["expense_category"]; }; safe_cast_to_project_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["project_status"]; }; safe_cast_to_quote_status: { Args: { val: string; }; Returns: Database["public"]["Enums"]["quote_status"]; }; set_user_can_be_mentioned: { Args: { target_user_id: string; value: boolean; }; Returns: undefined; }; sync_change_order_totals_for_id: { Args: { target_co_id: string; }; Returns: undefined; }; }; Enums: { app_role: "admin" | "manager" | "field_worker"; change_order_status: "pending" | "approved" | "rejected"; estimate_status: "draft" | "sent" | "approved" | "rejected" | "expired"; expense_category: "labor_internal" | "subcontractors" | "materials" | "equipment" | "other" | "permits" | "management" | "office_expenses" | "vehicle_expenses" | "tools" | "software" | "vehicle_maintenance" | "gas" | "meals"; payment_application_status: "draft" | "submitted" | "certified" | "paid" | "rejected"; project_category: "construction" | "system" | "overhead"; project_status: "estimating" | "approved" | "in_progress" | "complete" | "on_hold" | "cancelled"; project_type: "construction_project" | "work_order"; quote_status: "pending" | "accepted" | "rejected" | "expired"; sync_status: "success" | "failed" | "pending"; sync_type: "import" | "export"; training_content_type: "video_link" | "video_embed" | "document" | "presentation" | "external_link"; training_status: "draft" | "published" | "archived"; transaction_type: "expense" | "bill" | "check" | "credit_card" | "cash"; }; CompositeTypes: { [_ in never]: never; }; }, { PostgrestVersion: "13.0.5"; }>
 ```
 
 _No inline documentation provided._

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, useMatch, Outlet, useOutletContext } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, MapPin, ExternalLink, Menu, ChevronDown, Edit } from "lucide-react";
+import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, Menu, ChevronDown, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChangeOrderModal } from "@/components/project-detail/ChangeOrderModal";
@@ -11,10 +11,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatProjectLabel } from "@/components/projects/ProjectOption";
+import { ProjectAddressLocator } from "@/components/projects/ProjectAddressLocator";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "@/components/ui/status-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRoles } from "@/contexts/RoleContext";
+import { useDbFeatureFlag } from "@/hooks/useDbFeatureFlag";
 import { useProjectData } from "@/hooks/useProjectData";
 import { FieldQuickActionBar } from "@/components/schedule/FieldQuickActionBar";
 import { AppBreadcrumbs } from "@/components/layout/AppBreadcrumbs";
@@ -69,6 +71,10 @@ export const ProjectDetailView = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { isFieldWorker, isFieldWorkerOnly } = useRoles();
+  // v2 field shell (PR 3): when the bottom FieldTabBar is mounted by AppLayout,
+  // this view's own FieldQuickActionBar must sit ABOVE it, not under it.
+  const { enabled: fieldHomeEnabled } = useDbFeatureFlag('field_worker_v2');
+  const fieldShellActive = isFieldWorkerOnly && fieldHomeEnabled;
 
   const {
     project,
@@ -101,7 +107,10 @@ export const ProjectDetailView = () => {
   const matchEstimateNew = useMatch('/projects/:id/estimates/new');
   const matchQuoteEdit = useMatch('/projects/:id/estimates/quotes/:quoteId/edit');
   const matchQuoteNew = useMatch('/projects/:id/estimates/quotes/new');
-  const forceCollapsed = Boolean(matchEstimateEdit || matchEstimateNew || matchQuoteEdit || matchQuoteNew);
+  // Pure field workers also force-collapse: their rail holds a single item
+  // (Schedule) and the v2 bottom tabs own navigation — a one-item rail is
+  // dead weight on a 768px iPad.
+  const forceCollapsed = Boolean(matchEstimateEdit || matchEstimateNew || matchQuoteEdit || matchQuoteNew) || isFieldWorkerOnly;
   const effectiveCollapsed = forceCollapsed || panelCollapsed;
 
   // Mobile nav sheet state
@@ -211,11 +220,6 @@ export const ProjectDetailView = () => {
   // Secondary panel navigation logic
   const currentSection = location.pathname.split("/").pop() || "";
   const navigationGroups = getNavigationGroups({ isFieldWorker });
-
-  // Overview route = /projects/:id with no section segment. The Overview page's
-  // own card renders the full address + map link, so the header drops it there
-  // to avoid a duplicate (cut-off) copy.
-  const isOverviewRoute = !location.pathname.split("/").filter(Boolean)[2];
 
   const isActive = (sectionUrl: string) => {
     if (sectionUrl === "" && currentSection === projectId) return true;
@@ -391,12 +395,10 @@ export const ProjectDetailView = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
 
-            {/* Project Info — three rows on mobile (was four). Client name
-                and address now share a single row with a "·" separator
-                (R11). The address link is still a discrete tappable area
-                for the map deep-link; clicking the client name does
-                nothing (it's not a link). Saves ~25px of vertical chrome
-                on portrait phones without losing any information. */}
+            {/* Project Info — three rows: number/status, name, client. The
+                address moved out of the info column into the header-level pin
+                badge (ProjectAddressLocator) so the header always carries it,
+                including on the Overview route. */}
             <div className="flex-1 min-w-0">
               {/* Row 1: Number + Status */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -418,21 +420,15 @@ export const ProjectDetailView = () => {
                 </span>
               </div>
 
-              {/* Row 4: Address (map link) — full width, wraps (no truncation).
-                  Hidden on the Overview route, whose card renders the address. */}
-              {project.address && !isOverviewRoute && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-start gap-1 mt-0.5 text-xs text-muted-foreground active:text-foreground transition-colors"
-                  title={project.address}
-                >
-                  <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
-                  <span className="flex-1 leading-snug">{project.address}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0 mt-0.5 opacity-50" />
-                </a>
-              )}
+              {/* Row 4: Address — FULL text, wraps, always visible (restored
+                  Jul 2026 per Chris: the pin-only badge hid the address behind
+                  a tap; field crews glance at this row constantly). Tap opens
+                  the directions/copy sheet. */}
+              <ProjectAddressLocator
+                address={project.address}
+                variant="header-inline"
+                className="mt-1"
+              />
             </div>
 
             {/* Edit Project — direct icon button. Used to be wrapped in a
@@ -558,7 +554,12 @@ export const ProjectDetailView = () => {
            py-2.5 + border + safe-area ≈ 80px) so scrollable content never
            ends up hidden behind the global action bar. */}
         <div
-          className="flex-1 overflow-auto w-full max-w-full box-border min-w-0 pb-20"
+          className={cn(
+            "flex-1 overflow-auto w-full max-w-full box-border min-w-0 pb-20",
+            // Extra clearance when BOTH bottom bars are present (v2 shell):
+            // FieldTabBar (~64px) + lifted FieldQuickActionBar above it.
+            fieldShellActive && "pb-40"
+          )}
           data-project-detail-content
           style={{ maxWidth: '100%', width: '100%' }}
         >
@@ -592,7 +593,17 @@ export const ProjectDetailView = () => {
            three large pills: Note, Camera, Attach. Replaces per-page FABs and
            per-card inline inputs. Not rendered on /field-schedule/:id because
            that route lives outside ProjectDetailView and has its own bar. */}
-        <FieldQuickActionBar projectId={project.id} onNoteCreated={loadProjectData} />
+        {/* Under the v2 shell the AppLayout FieldTabBar owns bottom-0; lift the
+            capture bar to sit directly above it (Rule 14 override pattern). */}
+        <div
+          className={
+            fieldShellActive
+              ? "[&>div:first-child]:!bottom-[calc(64px+env(safe-area-inset-bottom))]"
+              : undefined
+          }
+        >
+          <FieldQuickActionBar projectId={project.id} onNoteCreated={loadProjectData} />
+        </div>
 
         {/* Change Order Modal */}
         <ChangeOrderModal
@@ -754,30 +765,11 @@ export const ProjectDetailView = () => {
                     {project.client_name}
                   </span>
                 </div>
-                {project.address && !isOverviewRoute && (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors",
-                      isMobile ? "py-1 -ml-1 pl-1 active:text-foreground" : "hover:text-foreground sm:justify-end"
-                    )}
-                    title={project.address}
-                  >
-                    <MapPin className={cn("flex-shrink-0", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
-                    <span className={cn(
-                      "truncate",
-                      isMobile ? "flex-1" : "max-w-xs"
-                    )}>
-                      {project.address}
-                    </span>
-                    <ExternalLink className={cn(
-                      "flex-shrink-0 transition-opacity",
-                      isMobile ? "h-3.5 w-3.5" : "h-3 w-3 opacity-0 group-hover:opacity-100"
-                    )} />
-                  </a>
-                )}
+                {/* Address chip — always rendered (muted "No address" when the
+                    project has none). Whole chip deep-links to Google Maps. */}
+                <div className="flex sm:justify-end">
+                  <ProjectAddressLocator address={project.address} variant="header-chip" />
+                </div>
               </div>
 
               {/* Edit Project — direct icon button (was a single-item dropdown

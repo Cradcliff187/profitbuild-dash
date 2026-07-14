@@ -258,8 +258,12 @@ Compare to: `ls supabase/migrations/*.sql | wc -l`
 | Flag | Status | What it controls |
 |------|--------|-----------------|
 | `quickbooks_auto_sync` | ❌ **DISABLED** | QB Settings card, "Sync from QB" button, Sync History, Backfill modal |
+| `crew_dispatch_board` | ❌ **OFF globally** (per-user overrides ON for both Chris accounts) | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (field-worker redesign PR 2) |
+| `field_worker_v2` | ❌ **OFF globally** | New field-worker experience (field-worker redesign PR 3 — no consumers yet) |
 
 Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quickbooks_auto_sync';`
+
+**Per-user overrides (Jul 2026):** `feature_flag_user_overrides` (`flag_id → feature_flags`, `user_id → auth.users`, `enabled`, UNIQUE per flag+user) lets a flag be ON for specific users while OFF globally (or vice versa). Resolution = override row wins, else global `enabled`. Client-side resolution via the `useDbFeatureFlag(flagName)` hook (reads global + own override; RLS lets every user read only their own override rows, admins read all). Admin UI at `/settings/feature-flags` (global toggles + per-user overrides + audit trail). Every change to `feature_flags.enabled` or any override row is logged to `feature_flag_audit` by the SECURITY DEFINER trigger `log_feature_flag_change()` — do NOT write audit rows from app code, and don't add flag state changes through paths that bypass these two tables.
 
 ### Environment-Based (`.env` / Vite)
 
@@ -872,6 +876,12 @@ When a new estimate version is created via the `create_estimate_version()` RPC, 
 
 **Extended to expense correlations + labor columns (Jun 1, 2026 — see Gotcha #65)**: the same copy loop now ALSO re-points `expense_line_item_correlations.estimate_line_item_id` (allocated actuals carry forward like quotes) AND carries forward the labor columns (`labor_hours`/`billing_rate_per_hour`/`actual_cost_rate_per_hour`) the copy had been silently dropping.
 
+**Rewritten Jul 14, 2026 (field-worker redesign PR 2b — fixes the delete-after-repoint bug, Gotcha #69):**
+the RPC is now `create_estimate_version(source_estimate_id uuid, new_version_number int DEFAULT NULL, p_line_items jsonb DEFAULT NULL)` (the old 2-arg signature was DROPPED — an added defaulted param is a new overload in Postgres, and keeping both made 1-arg calls ambiguous). Two paths:
+- **`p_line_items IS NULL` (legacy)**: copy every source line + re-point dependents onto the copy — unchanged, except the re-point set now also includes `crew_day_assignments.estimate_line_item_id`.
+- **`p_line_items` provided (form path)**: inserts the CALLER's line items directly (no throwaway copies), and re-points `quote_line_items` + `expense_line_item_correlations` + `crew_day_assignments` from each element's `source_line_item_id` to the new line (with an ownership guard — the source line must belong to `source_estimate_id`). `EstimateForm` uses this path: `handleCopyFromChange` stamps `sourceLineItemId` on every seeded item (and now also carries the labor columns it used to drop), and the save branch passes the ACTUAL seeded source (`copyFromEstimate`, falling back to root) — not always root as before. The form's old DELETE-copies-then-reinsert block is gone.
+- `EstimatesCardView.createNewVersion` no longer calls the RPC eagerly on click (it re-pointed production FKs onto a draft the user might never save — Gotcha #39 family); it navigates to `/projects/:id/estimates/new?sourceEstimateId=...` like every other versioning surface.
+
 ### 28. Cost Analysis page — EFC model, single Cost Tracking surface (May 21, 2026, PR #99)
 
 Cost Tracking (`/projects/:id/control`) is **one progressive-disclosure page** — the old
@@ -954,7 +964,10 @@ expense's own correlations, unioned). Still TODO from the review: idempotent bat
 - Don't reintroduce a tab toggle — it's one page. **By Risk / By Category** sorts in place (By
   Risk floats overrun lines up + categories by overage).
 - `expenseAllocation.ts` is financials-critical and shared by 3 surfaces — re-validate all three
-  if you touch it. Allocations must stay human-confirmed (never silent-write).
+  if you touch it. Allocations must stay human-confirmed (never silent-write) — with ONE sanctioned
+  exception: dispatch-derived auto-allocation of time entries (Rule 34, Jul 2026), where the admin's
+  intent was captured explicitly at dispatch time and the trigger-written correlation stays visible
+  and reassignable in every allocation surface.
 - `marginWithOpp` uses `remaining` (eroding), not `bakedIn` (original) — don't swap them, or it
   stops decreasing as the cushion is eaten.
 - Mobile: header is margin-leads stacked; line rows tap-to-expand; ≥44px touch targets.
@@ -1159,6 +1172,149 @@ Receipts tab (`useReceiptFiltering.submittedBy`, matches `receipts.user_id`).
   source of truth; the bar only reads the value bag and emits patches.
 - `multiSelect` popovers use the proper `<CommandList>` shell — keep Gotcha #48's wheel-isolation
   invariant if you touch them.
+
+### 34. `crew_day_assignments` — the per-day dispatch store (Jul 13, 2026, field-worker redesign PR 1)
+
+The source of truth for **who is on what project on which day**. One row = one person dispatched to
+one project for one work date. Provenance: the field-worker experience audit
+([docs/audits/2026-07-12-field-worker-experience.md](docs/audits/2026-07-12-field-worker-experience.md)
+§3 on branch `audit/field-worker-experience`) — per-person-per-day existed nowhere in the schema
+(`project_assignments` is dormant and undated; `schedule_notes` and `expenses` were rejected as
+carriers per §3's cost/benefit). A minimal new table was the locked design decision.
+
+**Schema** (applied to production 2026-07-13; the local migration file is a placeholder per the
+Critical Migration Rules): `id uuid PK`, `user_id → auth.users ON DELETE CASCADE`,
+`project_id → projects ON DELETE CASCADE`, `work_date date NOT NULL`, `start_time time NULL`,
+`task_note text NULL`, `admin_notes text NULL`, `created_at`/`created_by`, `updated_at`/`updated_by`.
+Indexes: `(user_id, work_date)`, `(project_id, work_date)`, plus single-column FK-covering indexes
+on `created_by` and `updated_by` (the `admin-delete-user` hard-delete path fires their
+`ON DELETE SET NULL` actions). `updated_at` is maintained by the house `update_updated_at_column()`
+BEFORE UPDATE trigger; **`created_by`/`updated_by` are writer-set** — nothing at the DB layer
+populates them, so PR 2's write paths must set both explicitly. Note: RLS is row-level, so a field
+worker CAN read `admin_notes` on their own rows — if that column must ever become internal-only,
+it needs a column-omitting view or a separate table, not RLS.
+
+**Multiple rows per `(user_id, work_date)` are VALID — do NOT add a unique constraint or index on
+it.** A worker can be dispatched to two projects on the same day (e.g. morning/afternoon split).
+This is a locked product decision, same class as Gotcha #57's "don't enforce one-accepted-quote-per-line".
+
+**Query pattern for a user's day:**
+```sql
+SELECT * FROM crew_day_assignments
+WHERE user_id = ? AND work_date = ?
+ORDER BY start_time NULLS LAST, created_at;
+```
+
+**RLS** (the DB is the security boundary — the AppLayout allowlist is UX-only per Gotcha #44):
+SELECT = own rows (`user_id = auth.uid()`) OR admin/manager read all; INSERT/UPDATE = admin/manager
+only; DELETE = admin only. All via the existing `has_role()` SECURITY DEFINER helper, mirroring the
+`project_assignments` policy pattern.
+
+**Consumers & the field-view convention (PR 2a, Jul 13 2026):** the admin Crew Dispatch board
+(`/dispatch`, behind `crew_dispatch_board`) is the only reader/writer of the BASE table.
+**Field-worker code paths must query `crew_day_assignments_field_view`** — a `security_invoker`
+view exposing every column EXCEPT `admin_notes` (base-table RLS still applies, so field workers get
+only their own rows). Admin/manager paths query the base table directly. `admin_notes` is
+admin-only by construction; `task_note` is the crew-visible channel (the task + FYIs like gate
+codes). Field-worker UI arrives in PR 3 behind `field_worker_v2`.
+
+**Optional task links + dispatch-driven auto-allocation (PR 2b, Jul 14 2026):** assignments carry
+OPTIONAL dual FKs `estimate_line_item_id` / `change_order_line_item_id` (CHECK at most one set,
+both `ON DELETE SET NULL` — a deleted/superseded line degrades the assignment to project-level,
+never destroys the dispatch row). The board's schedule chips set BOTH the `task_note` **text
+snapshot** AND the FK; unlinking clears the FK but keeps the snapshot (the note is what the
+dispatcher said — it never mutates retroactively). `create_estimate_version` re-points assignment
+links across versions like quotes/correlations (Rule 27). **Auto-allocation**: the
+`auto_correlate_time_entry_from_dispatch` AFTER INSERT trigger on `expenses` fires for
+`is_time_entry` rows — when the worker (resolved `payees.user_id`, fallback `expenses.user_id`)
+has EXACTLY ONE task-linked assignment for (person, project, `expense_date`) whose line category
+matches the expense category, it inserts the `expense_line_item_correlations` row
+(`correlation_type` estimated/change_order, `confidence_score` 95, `auto_correlated` true, note
+citing the assignment id). Ambiguous / no link / category mismatch → no write; the existing
+suggestion sheets handle it. **This is the sanctioned auto-write exception to Rule 28's
+"allocations suggest, never silent-write"** — admin intent was captured explicitly at dispatch
+time, and the row stays visible/reassignable in every existing allocation surface. The durable
+attribution lives in the correlation (which versioning re-points), so the assignment link only
+needs to be valid at the moment the time entry lands. Resolution rule: the board's task picker
+(`useProjectDayTasks`) uses the SAME source rule as both schedule loaders (latest APPROVED
+estimate by `date_created` + approved COs, SCHEDULABLE_CATEGORIES) — keep all three in lockstep.
+
+**Deliberately untouched:** the subcontractor vs W-2 payee model — `payees`, `WorkerPicker`,
+`enforce_time_entry_category_from_payee`, `sync_payee_provides_labor_on_role_change`, and all
+related sync logic are unchanged. Assignments reference `auth.users` directly, not payees.
+
+### 35. Field-Worker Experience v2 (Jul 14 2026, field-worker redesign PR 3, behind `field_worker_v2`)
+
+For **pure field workers** (`isFieldWorkerOnly`) with `field_worker_v2` ON, the app becomes a
+five-tab IA: **Today `/` · Time `/time-tracker` · Receipts `/receipts` · Projects `/my-projects` ·
+Notes `/notes`** — bottom `FieldTabBar` + persistent `NextStopChip` mounted once in
+[AppLayout.tsx](src/components/AppLayout.tsx) (chip is a direct child of `<main>` so sticky works;
+mobile passes `!top-[67px]` to clear the fixed header; tab bar is a sibling of the scroll container
+per Gotcha #41; main gets `pb-20`). Flag OFF = byte-identical to the pre-PR-3 app.
+**The chip is NOT rendered on `/projects/:id/*`** — ProjectDetailView is `h-full` with its own
+header + internal scroll, so a sticky chip both overlapped the project header and added phantom
+outer scroll; the project header already names the site. On those routes ProjectDetailView lifts
+its own `FieldQuickActionBar` above the tab bar (`!bottom-[calc(64px+env(safe-area-inset-bottom))]`
+wrapper + `pb-40` content) so the two bottom bars stack instead of colliding. Under the v2 shell
+the app sidebar starts collapsed (`SidebarProvider defaultOpen`) and PDV's one-item section rail is
+force-collapsed for field-only users. **Field-only users get the tabbed field schedule at EVERY
+width** ([ProjectScheduleRoute](src/components/project-routes/ProjectScheduleRoute.tsx) branches on
+`isMobile || isFieldWorkerOnly`) — iPads land on the desktop side of `useIsMobile()`'s 768 break
+and used to hand field crews the admin Gantt with drag-edit affordances.
+
+- **Routing**: `/` renders [IndexGate](src/pages/IndexGate.tsx) — field-only+flag → `TodayHome`,
+  everyone else → Dashboard. `/time-tracker` renders [TimeTracker](src/pages/TimeTracker.tsx) —
+  field-only+flag → `FieldTimeLanding` (entry-first: Add entry, Copy yesterday / last Friday batch,
+  weekly summary + day dots, recent entries), else the unchanged tabbed `MobileTimeTracker`.
+  `/today` stays as the admin/manager **dogfood door** (same TodayHome, any role with flag ON).
+- **Timer is a supported secondary path — do not remove; do not re-promote to the landing without
+  user-research evidence.** It lives at `/time-tracker/timer` ([TimerPage](src/pages/TimerPage.tsx))
+  which mounts `MobileTimeTracker` with the additive `timerOnly` prop (hides the Timer/Entries/
+  Receipts strip + ignores `?tab=` — those surfaces live on the v2 tabs; default `false` keeps
+  admins/flag-off users untouched, per audit rule R3 on shared contracts).
+- **Allowlist (Gotcha #44)**: `/`, `/receipts`, `/my-projects`, `/notes` are allowed ONLY when the
+  flag is on; `/today` + `/time-tracker/*` unconditionally. Blocked field workers bounce to `/`
+  (flag on) or `/time-tracker` (flag off).
+- **Sidebar under v2**: field-only users lose the Time Tracker + Receipts sidebar entries (tabs own
+  them); the sidebar keeps only what tabs don't cover (Training, Mentions, Field Media, Settings).
+- **Auth discipline (Gotchas #53-56/#63 — the reason this PR was isolated)**: every v2 surface has
+  ZERO realtime subscriptions and never calls `auth.getUser()` on mount paths; flags/data via plain
+  TanStack queries (staleTime 60s, focus refetch). Keep it that way. Known pre-existing debt: the
+  shared Create/EditTimeEntryDialog call `getUser()` internally (save-handler / mount respectively)
+  — v2 pages defer-mount them on first interaction; a shared-side cleanup is queued.
+- **Time-tracking surfaces are mobile + iPad first (Chris's standing rule)**: design and verify at
+  390 / 768 / 1024. iPad is a first-class target — deliberate `md:`/`lg:` layouts, never a stretched
+  phone strip. `useIsMobile()` breaks at 768 (iPads land on the DESKTOP side) — use Tailwind
+  breakpoints, not the hook, for layout decisions on these surfaces.
+- "Unread" on the Today week strip = unread notifications (`useUnreadMentions` — the hook reads ALL
+  `user_notifications` types); there is no per-note read tracking, don't invent one casually.
+- **In-app assignment notifications are LIVE (Jul 14 2026 — the in-app half of PR 4, pulled
+  forward)**: the SECURITY DEFINER trigger `notify_crew_assignment_change()` on
+  `crew_day_assignments` writes `user_notifications` (`type:'assignment'`, `link_url:'/'`) on
+  INSERT / reassignment (old worker "removed" + new worker "new") / detail changes (date, time,
+  project, task_note) / DELETE. Noise rules baked in: self-writes silent, `admin_notes`-only edits
+  silent (admin-note activity never leaks to workers), removal/cancel pings only for today-or-future
+  dates. The bell + sidebar badge + `/mentions` page (retitled "Notifications") render them via the
+  existing rail; the page appends `?tab=notes` ONLY for `type:'mention'`. No realtime (Gotcha #53) —
+  new pings surface on next navigation/focus, and mark-as-read clears optimistically. **PR 4 is now
+  SMS-only** (Textbelt deep-link on same-day changes).
+
+### 36. `ProjectAddressLocator` is the canonical address affordance (Jul 14 2026, PR 3)
+
+Never inline a pin-icon + maps `<a>` again — render
+[`ProjectAddressLocator`](src/components/projects/ProjectAddressLocator.tsx)
+(`address`, `variant: 'card' | 'header-chip' | 'header-badge-icon' | 'header-inline'`,
+`onAddAddress?`, `className?`).
+It owns the maps deep-link (`https://www.google.com/maps/search/?api=1&query=…`), Copy-to-clipboard,
+per-variant empty states (it NEVER returns null), and aria labels. Adopted in `ProjectDetailView`
+(mobile header = **header-inline** — pin + FULL wrapping address text, always glanceable, tap opens
+the directions/copy sheet; per Chris Jul 2026 the address must never hide behind an icon-only tap
+on mobile — the pin-only badge variant remains available for tighter surfaces; desktop header =
+chip — always rendered; the old `isOverviewRoute` suppression is deleted) and the Overview card
+(= card variant). `projects.address` is one free-text
+column (no city/state/zip split); `payees.phone_numbers` is likewise free text despite the plural
+name — parse with `firstUsablePhone()` ([todayData.ts](src/components/today/todayData.ts)), never
+assume structure.
 
 ---
 
@@ -1473,6 +1629,8 @@ Use this list when doing periodic documentation reviews:
 67. **`localStorage['activeTimer']` survives signOut and a shared-device sign-in restores the previous user's name (Jun 3, 2026)** — Field worker Danny reported the manual Time Tracker name field *"greys out and defaults to chris.l.radcliff"* (an admin + field worker). Diagnosis: data was clean (Danny↔his payee, Chris↔his payee on both `user_id` and `email`) and the manual-entry `WorkerPicker` matches strictly by `payee.user_id === user.id` — that surface literally cannot show Chris to Danny. The grey-out + Chris's name came from a different surface entirely: the Timer screen's Team Member tile is `disabled={activeTimer !== null}`, and `MobileTimeTracker`'s mount-time `localStorage.getItem('activeTimer')` restore (a) did **not** validate the cached timer's owner against the current user, AND (b) `AuthContext.signOut` did **not** clear the `activeTimer` key. So a shared device that previously had Chris signed in with a running timer carried Chris's cached timer JSON into Danny's next sign-in → `setSelectedTeamMember(Chris)` → Team Member field locked + greyed out showing Chris's name. The completeClockOut **"This timer belongs to another user"** guard (MobileTimeTracker.tsx ~line 832) was already there for the same scenario — proving the cross-user case was anticipated for the clock-out path but not for the cached-restore path. **Two-layer fix**: (1) `AuthContext` added a `SESSION_TIED_LOCAL_STORAGE_KEYS` registry + `clearSessionTiedLocalStorage()` helper, called from the `onAuthStateChange` SIGNED_OUT branch (catches explicit signOut, cross-tab BroadcastChannel signOut, and supabase-js's internal `_removeSession()` in one chokepoint) plus the three explicit-signOut early-return paths where SIGNED_OUT may not fire; (2) `MobileTimeTracker`'s restore effect gates on `user` and drops the cached timer when `parsed.teamMember?.user_id !== user.id`, calling `removeItem` on the stale key. **Rule for new localStorage keys**: if the value contains a `user_id`, `payee_id`, in-progress form draft, or anything else session-tied, add it to `SESSION_TIED_LOCAL_STORAGE_KEYS` so the SIGNED_OUT chokepoint clears it. UI prefs (`*-visible-columns`, `*-column-order`, `projectSidebarCollapsed`, `budgetAlertThreshold`, `media-report-tip-dismissed`) are intentionally NOT in the registry — they're per-device preferences and safe to carry across users on a shared device. **Diagnostic pattern**: "name greys out + shows wrong person" on a multi-user device almost always means a stale cached identity in localStorage, not a data mislink or matching-logic bug. Check the localStorage key first, then walk back to which event handler should have cleared it.
 
 68. **The Reports AI must define a time entry as `is_time_entry = true`, NOT `category = 'labor_internal'` — the old filter silently hid a labor-providing subcontractor's hours (Jul 1, 2026)** — User reported the Reports AI (`ai-report-assistant`) insisted there were "no time entries for Chris Radcliff over the past 10 weeks" and offered spelling/date-range excuses. The 52 entries (183.4 paid hours) existed and were trivially findable — the bug was entirely in the AI's *instructions*. Three compounding causes, all specific to Chris: (1) **Wrong time-entry definition.** The edge function taught the model *time entries = `expenses WHERE category = 'labor_internal'`*. Chris is a **labor-providing subcontractor** (`payee_type = 'subcontractor'`, `is_internal = false`, `provides_labor = true`), so his logged time lands under `category = 'subcontractors'`. Company-wide, 855 time entries are `labor_internal` and 52 are `subcontractors` — **all 52 are Chris**, the only person who exposes this. The canonical definition is the DB's own generated column `is_time_entry = (category = 'labor_internal' OR start_time IS NOT NULL)`, which is `true` for all 52. This is the exact drift commit `15050be4` ("unify time-approval definition (is_time_entry)") fixed everywhere *except* the AI edge function. (2) **`is_internal = true` employee filter.** ENTITY LOOKUPS + the "how many hours did John work" few-shot gated on `p.is_internal = true`; Chris's time-logging payee (`Christopher L Radcliff`, the user-linked one) is `is_internal = false`, so even a category fix would still return 0. (3) **Literal name matching.** Two payee rows exist for him — `Chris Radcliff` (8 bills, no time) and `Christopher L Radcliff` (52 time entries); `ILIKE '%chris radcliff%'` matches neither. **Why it was hard to spot**: nothing errors — valid SQL returns 0 rows and the model confidently rationalizes; a 0-row result is indistinguishable from "no data." **Fix (AI context only — no schema/data/payee change)**: replaced every time-entry definition + few-shot with `is_time_entry = true`, removed `is_internal = true` from hours-by-person queries, and added a "re-query without is_internal on 0 rows" instruction + Chris/Christopher name-matching guidance. Touched: `supabase/functions/ai-report-assistant/index.ts` (hardcoded prompt), `src/lib/kpi-definitions/{business-rules,few-shot-examples,ai-context-generator,time-entry-kpis}.ts`, and `scripts/sync-edge-kpi-context.ts` (had its OWN hardcoded `preferredSources` copy — a second source of the same string). Then `npm run sync:edge-kpis` → deploy. **Rule for future work**: any query/instruction that means "a time entry" MUST use `is_time_entry = true`. Never reintroduce `category = 'labor_internal'` as a time-entry filter, and never gate hours-by-person queries on `is_internal` — labor-providing subcontractors log time too. When editing the AI's time-entry guidance, remember the definition is hardcoded in **four** places that must stay in lockstep: `index.ts`, `ai-context-generator.ts`, `business-rules.ts`/`few-shot-examples.ts` (source of the generated file), and the `preferredSources` block **duplicated** in both `ai-context-generator.ts` and `scripts/sync-edge-kpi-context.ts`.
+
+69. **Delete-after-repoint: never bulk-DELETE lines `create_estimate_version` just created (fixed Jul 14, 2026, PR 2b of the field-worker redesign)** — Since Sep 2025, `EstimateForm`'s create-with-existing-estimates branch called `create_estimate_version(rootEstimate.id)` then DELETEd the new version's copied lines and re-inserted from form state. Harmless originally — but PR #97 (May 20, 2026) made the RPC re-point `quote_line_items` FKs onto those copies, and the Jun 1 migration added `expense_line_item_correlations`: from then on, the form's DELETE `SET NULL`'d the just-re-pointed links on every first-time versioning, and because the source was always ROOT, links sitting on v2+ lines were never re-pointed at all. Confirmed by static analysis + git archaeology (verification session, task chip `task_4411eef5`) and by live SQL repro/validation on SYS-TEST. **Fix**: the RPC gained a `p_line_items jsonb` form path (inserts the caller's lines directly and re-points by each element's `source_line_item_id`, with an ownership guard); `EstimateForm` seeds `sourceLineItemId` in `handleCopyFromChange` (which also now carries the labor columns it used to drop — the form-path sibling of Gotcha #65's fix) and passes the ACTUAL copy source, not root; `EstimatesCardView`'s eager on-click RPC was replaced with route-based navigation (Gotcha #39). **Audit at fix time**: 3 NULL-linked quote lines on multi-version projects (2 on accepted quotes) + 141 correlations with BOTH line FKs NULL (102 of them carry `quote_id` and may still resolve through quote-based reads — investigate before any cleanup; do NOT bulk-delete them assuming they're junk). **Rule**: any new FK onto `estimate_line_items` must be added to BOTH re-point paths of the RPC, and nothing may DELETE lines the RPC just created.
 
 ---
 

@@ -78,6 +78,8 @@ export function WorkerPicker({
         )}
         onClick={() => !effectiveDisabled && setOpen((o) => !o)}
         disabled={effectiveDisabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
       >
         {selected ? selected.payee_name : 'Select worker...'}
       </Button>

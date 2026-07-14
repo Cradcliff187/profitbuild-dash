@@ -82,7 +82,18 @@ interface ActiveTimer {
   location?: { lat: number; lng: number; address: string };
 }
 
-export const MobileTimeTracker: React.FC = () => {
+interface MobileTimeTrackerProps {
+  /**
+   * PR 3 (field_worker_v2): the demoted /time-tracker/timer surface is
+   * single-purpose — Entries live on FieldTimeLanding and Receipts on
+   * /receipts, so the tab strip would duplicate both one level deep.
+   * Default false: admins and flag-off users keep the tabbed experience
+   * unchanged (additive prop per the audit's shared-contract rule R3).
+   */
+  timerOnly?: boolean;
+}
+
+export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -122,6 +133,7 @@ export const MobileTimeTracker: React.FC = () => {
 
   // Apply URL parameters to set initial view
   useEffect(() => {
+    if (timerOnly) return; // single-purpose timer surface ignores ?tab=
     const tabParam = searchParams.get('tab');
 
     if (tabParam === 'receipts') {
@@ -143,7 +155,7 @@ export const MobileTimeTracker: React.FC = () => {
       });
     }
     // Note: status filtering for receipts is handled by ReceiptsList component
-  }, [searchParams]);
+  }, [searchParams, timerOnly]);
 
   // Prevent body scroll when custom dropdowns are open
   useEffect(() => {
@@ -1096,7 +1108,10 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Tab Navigation — canonical pill strip pattern (matches R2 unification
           across the app). All tabs visible inline, active tab gets the
           background+shadow treatment, badge counts can be added later. ~44px
-          tall vs the previous ~80px stacked-icon style. */}
+          tall vs the previous ~80px stacked-icon style.
+          Hidden under timerOnly (PR 3): the demoted timer surface is
+          single-purpose; Entries/Receipts live on their own v2 tabs. */}
+      {!timerOnly && (
       <div className="px-3 py-2 bg-card border-b border-border sticky top-0 z-10">
         <div role="tablist" className="flex items-center gap-1 bg-muted/40 rounded-xl p-1">
           <button
@@ -1146,6 +1161,7 @@ export const MobileTimeTracker: React.FC = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Stale Timer Warning Banner */}
       {showStaleTimerWarning && activeTimer && (

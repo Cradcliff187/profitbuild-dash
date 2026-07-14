@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FileText, Edit, Trash2, Eye, Plus, Copy, ChevronDown, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Estimate } from "@/types/estimate";
 import { toast } from "sonner";
 import { BudgetComparisonBadge, BudgetComparisonStatus } from "@/components/BudgetComparisonBadge";
 import { formatCurrency } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
 
 export interface EstimatesCardViewProps {
@@ -22,6 +22,7 @@ export interface EstimatesCardViewProps {
 }
 
 export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreateNew }: EstimatesCardViewProps) => {
+  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
   
@@ -114,74 +115,11 @@ export const EstimatesCardView = ({ estimates, onEdit, onDelete, onView, onCreat
     return `Includes ${estimate.contingency_percent}% contingency: ${formatCurrency(contingencyAmount)}`;
   };
 
-  const createNewVersion = async (sourceEstimate: Estimate) => {
-    try {
-      const { data: newId, error } = await supabase.rpc('create_estimate_version', {
-        source_estimate_id: sourceEstimate.id,
-      });
-      if (error) throw error;
-
-      const { data: newVersionData, error: fetchError } = await supabase
-        .from('estimates')
-        .select('*')
-        .eq('id', newId)
-        .single();
-      if (fetchError || !newVersionData) throw fetchError;
-
-      const { data: lineItemsData, error: liError } = await supabase
-        .from('estimate_line_items')
-        .select('*')
-        .eq('estimate_id', newId)
-        .order('sort_order');
-      if (liError) throw liError;
-
-      const lineItems = (lineItemsData || []).map((item: any) => ({
-        id: item.id,
-        category: item.category,
-        description: item.description,
-        quantity: Number(item.quantity ?? 1),
-        pricePerUnit: Number(item.price_per_unit ?? 0),
-        total: Number(item.total ?? 0),
-        unit: item.unit || '',
-        sort_order: item.sort_order || 0,
-        costPerUnit: Number(item.cost_per_unit ?? 0),
-        markupPercent: item.markup_percent,
-        markupAmount: item.markup_amount,
-        totalCost: Number(item.total_cost ?? 0),
-        totalMarkup: Number(item.total_markup ?? 0),
-      }));
-
-      const newVersion: Estimate = {
-        id: newVersionData.id,
-        project_id: newVersionData.project_id,
-        estimate_number: newVersionData.estimate_number,
-        date_created: new Date(newVersionData.date_created),
-        total_amount: Number(newVersionData.total_amount) || 0,
-        status: newVersionData.status,
-        notes: newVersionData.notes,
-        valid_until: newVersionData.valid_until ? new Date(newVersionData.valid_until) : undefined,
-        revision_number: newVersionData.revision_number,
-        contingency_percent: Number(newVersionData.contingency_percent) || 10,
-        contingency_amount: newVersionData.contingency_amount || undefined,
-        contingency_used: Number(newVersionData.contingency_used) || 0,
-        version_number: newVersionData.version_number || 1,
-        parent_estimate_id: newVersionData.parent_estimate_id || undefined,
-        is_current_version: !!newVersionData.is_current_version,
-        valid_for_days: newVersionData.valid_for_days || 30,
-        lineItems,
-        created_at: new Date(newVersionData.created_at),
-        updated_at: new Date(newVersionData.updated_at),
-        project_name: sourceEstimate.project_name,
-        client_name: sourceEstimate.client_name,
-        defaultMarkupPercent: newVersionData.default_markup_percent || 25,
-        targetMarginPercent: newVersionData.target_margin_percent || 20,
-        is_draft: newVersionData.is_draft ?? false,
-      };
-
-      onEdit(newVersion);
-    } catch (err) {
-      console.error('Failed to create version:', err);
-    }
+  const createNewVersion = (sourceEstimate: Estimate) => {
+    // Route-based per Gotcha #39: the form's Save owns ALL DB writes. The previous
+    // eager create_estimate_version RPC here minted a draft version — and re-pointed
+    // quote/correlation/dispatch FKs onto it — even when the user never saved.
+    navigate(`/projects/${sourceEstimate.project_id}/estimates/new?sourceEstimateId=${sourceEstimate.id}`);
   };
 
   if (estimates.length === 0) {

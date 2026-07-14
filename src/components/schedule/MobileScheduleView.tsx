@@ -144,7 +144,10 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
 
   return (
     <div>
-      <div className="flex items-center gap-1 mb-4 bg-muted/40 rounded-xl p-1">
+      {/* Five tabs at 390px is the ceiling — the strip scrolls horizontally
+          instead of squishing/clipping labels ("Materials" was truncating).
+          When everything fits (iPad+), flex-1 still distributes full-width. */}
+      <div className="flex items-center gap-1 mb-4 bg-muted/40 rounded-xl p-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -154,7 +157,7 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all min-h-[44px]",
+                "flex-1 min-w-fit whitespace-nowrap px-2 flex items-center justify-center gap-1.5 py-2.5 rounded-lg transition-all min-h-[44px]",
                 isActive
                   ? "bg-background shadow-sm text-primary font-medium"
                   : "text-muted-foreground hover:text-foreground"

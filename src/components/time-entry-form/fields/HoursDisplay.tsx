@@ -1,7 +1,5 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface HoursDisplayProps {
   grossHours: number;
@@ -22,14 +20,13 @@ export function HoursDisplay({
   onManualHoursChange,
   isPTO,
 }: HoursDisplayProps) {
-  const isMobile = useIsMobile();
-
   return (
     <div className="space-y-2">
       <Label>Hours *</Label>
       {isPTO ? (
         <Input
           type="number"
+          inputMode="decimal"
           step="0.25"
           min="0.25"
           max="24"
@@ -39,8 +36,7 @@ export function HoursDisplay({
             onManualHoursChange(isNaN(v) ? 0 : v);
           }}
           placeholder="8"
-          className={cn('min-h-[48px] min-w-0', isMobile && 'text-base')}
-          style={isMobile ? { fontSize: '16px' } : undefined}
+          className="min-h-[48px] min-w-0 text-base md:text-sm"
         />
       ) : isAutoCalculated && netHours > 0 ? (
         <div className="rounded-lg border bg-muted/30 px-4 py-3 space-y-1 text-sm">
