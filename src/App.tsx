@@ -28,6 +28,8 @@ const KPIGuide = lazy(() => import("./pages/KPIGuide"));
 const Clients = lazy(() => import("./pages/Clients"));
 const ProfitAnalysis = lazy(() => import("./pages/ProfitAnalysis"));
 const Settings = lazy(() => import("./pages/Settings"));
+const FeatureFlagsSettings = lazy(() => import("./pages/FeatureFlagsSettings"));
+const DispatchBoard = lazy(() => import("./pages/DispatchBoard"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const FieldPhotoCapture = lazy(() => import("./pages/FieldPhotoCapture"));
 const FieldVideoCapture = lazy(() => import("./pages/FieldVideoCapture"));
@@ -172,6 +174,8 @@ const App = () => (
                   <Route path="clients" element={<LazyRoute component={Clients} />} />
                   <Route path="profit-analysis" element={<LazyRoute component={ProfitAnalysis} />} />
                   <Route path="settings" element={<LazyRoute component={Settings} />} />
+                  <Route path="settings/feature-flags" element={<LazyRoute component={FeatureFlagsSettings} />} />
+                  <Route path="dispatch" element={<LazyRoute component={DispatchBoard} />} />
                   <Route path="role-management" element={<LazyRoute component={RoleManagement} />} />
                   <Route path="sms" element={<LazyRoute component={SMSAdmin} />} />
                   <Route path="kpi-guide" element={<LazyRoute component={KPIGuide} />} />

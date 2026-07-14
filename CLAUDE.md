@@ -258,8 +258,12 @@ Compare to: `ls supabase/migrations/*.sql | wc -l`
 | Flag | Status | What it controls |
 |------|--------|-----------------|
 | `quickbooks_auto_sync` | ❌ **DISABLED** | QB Settings card, "Sync from QB" button, Sync History, Backfill modal |
+| `crew_dispatch_board` | ❌ **OFF globally** (per-user overrides ON for both Chris accounts) | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (field-worker redesign PR 2) |
+| `field_worker_v2` | ❌ **OFF globally** | New field-worker experience (field-worker redesign PR 3 — no consumers yet) |
 
 Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quickbooks_auto_sync';`
+
+**Per-user overrides (Jul 2026):** `feature_flag_user_overrides` (`flag_id → feature_flags`, `user_id → auth.users`, `enabled`, UNIQUE per flag+user) lets a flag be ON for specific users while OFF globally (or vice versa). Resolution = override row wins, else global `enabled`. Client-side resolution via the `useDbFeatureFlag(flagName)` hook (reads global + own override; RLS lets every user read only their own override rows, admins read all). Admin UI at `/settings/feature-flags` (global toggles + per-user overrides + audit trail). Every change to `feature_flags.enabled` or any override row is logged to `feature_flag_audit` by the SECURITY DEFINER trigger `log_feature_flag_change()` — do NOT write audit rows from app code, and don't add flag state changes through paths that bypass these two tables.
 
 ### Environment-Based (`.env` / Vite)
 
@@ -1197,10 +1201,16 @@ SELECT = own rows (`user_id = auth.uid()`) OR admin/manager read all; INSERT/UPD
 only; DELETE = admin only. All via the existing `has_role()` SECURITY DEFINER helper, mirroring the
 `project_assignments` policy pattern.
 
-**Do NOT consume this table in code paths yet.** UI arrives in PR 2 (admin Crew Dispatch board) and
-PR 3 (field-worker experience); consumers will be feature-flagged (`crew_dispatch_board` admin-side,
-`field_worker_v2` field-side — both default OFF with per-user admin override). Until then the table
-is read-nothing/write-nothing from `src/`.
+**Consumers & the field-view convention (PR 2a, Jul 13 2026):** the admin Crew Dispatch board
+(`/dispatch`, behind `crew_dispatch_board`) is the only reader/writer of the BASE table.
+**Field-worker code paths must query `crew_day_assignments_field_view`** — a `security_invoker`
+view exposing every column EXCEPT `admin_notes` (base-table RLS still applies, so field workers get
+only their own rows). Admin/manager paths query the base table directly. `admin_notes` is
+admin-only by construction; `task_note` is the crew-visible channel (the task + FYIs like gate
+codes). The board's schedule tie-in stores a **text snapshot** of the schedule activity into
+`task_note` — deliberately NOT an FK to `estimate_line_items`/`change_order_line_items` (line ids
+churn on versioning per Rule 27/Gotcha #65, and the Jul 2026 exploration found ~9% of schedulable
+lines dated; see the PR 2 design memo). Field-worker UI arrives in PR 3 behind `field_worker_v2`.
 
 **Deliberately untouched:** the subcontractor vs W-2 payee model — `payees`, `WorkerPicker`,
 `enforce_time_entry_category_from_payee`, `sync_payee_provides_labor_on_role_change`, and all

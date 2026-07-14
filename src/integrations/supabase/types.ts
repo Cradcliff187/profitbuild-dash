@@ -1475,6 +1475,77 @@ export type Database = {
           },
         ]
       }
+      feature_flag_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          flag_id: string
+          flag_name: string
+          id: string
+          new_enabled: boolean | null
+          old_enabled: boolean | null
+          target_user_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          flag_id: string
+          flag_name: string
+          id?: string
+          new_enabled?: boolean | null
+          old_enabled?: boolean | null
+          target_user_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          flag_id?: string
+          flag_name?: string
+          id?: string
+          new_enabled?: boolean | null
+          old_enabled?: boolean | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_flag_user_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          flag_id: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_user_overrides_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           config: Json | null
@@ -3945,6 +4016,53 @@ export type Database = {
       }
     }
     Views: {
+      crew_day_assignments_field_view: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          project_id: string | null
+          start_time: string | null
+          task_note: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+          work_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          project_id?: string | null
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          project_id?: string | null
+          start_time?: string | null
+          task_note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_day_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_financial_summary: {
         Row: {
           contingency_amount: number | null
