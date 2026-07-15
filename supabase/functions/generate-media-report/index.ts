@@ -78,9 +78,16 @@ async function fetchImageAsBase64(
 
     const arrayBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = btoa(
-      uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+
+    // Encode in 32KB chunks. The previous one-concat-per-byte reduce was
+    // O(n²) in CPU + memory and tripped the edge worker resource limit
+    // (HTTP 546 / WORKER_LIMIT) on full-resolution photos.
+    let binary = '';
+    const CHUNK = 0x8000; // 32KB
+    for (let i = 0; i < uint8Array.length; i += CHUNK) {
+      binary += String.fromCharCode(...uint8Array.subarray(i, i + CHUNK));
+    }
+    const base64 = btoa(binary);
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     return `data:${contentType};base64,${base64}`;
@@ -99,24 +106,38 @@ async function convertMediaToBase64(
 
   console.log(`🖼️ Converting ${mediaItems.length} images to base64...`);
 
-  const batchSize = 5;
+  // Keep concurrency low — each in-flight full-res image holds its decoded
+  // bytes + base64 in memory; too many at once pressures the 256MB worker cap.
+  const batchSize = 3;
   const results = [...mediaItems];
 
   for (let i = 0; i < results.length; i += batchSize) {
     const batch = results.slice(i, i + batchSize);
-    const base64Results = await Promise.all(
-      batch.map((media) => fetchImageAsBase64(media.file_url))
+    const convertedBatch = await Promise.all(
+      batch.map(async (media) => {
+        // Embed only what the report actually renders. For videos that's the
+        // thumbnail (the timeline shows thumbnail_url); file_url is the raw video
+        // binary — never rendered as an <img>, and downloading/encoding a
+        // multi-MB video would needlessly blow the worker resource limit.
+        if (media.file_type === 'video') {
+          if (!media.thumbnail_url) return media;
+          const b64 = await fetchImageAsBase64(media.thumbnail_url);
+          return b64 ? { ...media, thumbnail_url: b64 } : media;
+        }
+        const b64 = await fetchImageAsBase64(media.file_url);
+        // If conversion fails, keep the signed URL as fallback
+        return b64 ? { ...media, file_url: b64 } : media;
+      })
     );
 
-    base64Results.forEach((base64Url, idx) => {
-      if (base64Url) {
-        results[i + idx] = { ...results[i + idx], file_url: base64Url };
-      }
-      // If conversion fails, keep the signed URL as fallback
+    convertedBatch.forEach((media, idx) => {
+      results[i + idx] = media;
     });
   }
 
-  const converted = results.filter((m) => m.file_url?.startsWith('data:')).length;
+  const converted = results.filter(
+    (m) => m.file_url?.startsWith('data:') || m.thumbnail_url?.startsWith('data:')
+  ).length;
   console.log(`✅ Base64 conversion: ${converted}/${results.length} succeeded`);
 
   return results;

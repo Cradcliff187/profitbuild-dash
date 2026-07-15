@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
-import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft, RefreshCw } from 'lucide-react';
+import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
@@ -32,6 +32,29 @@ interface MediaReportBuilderModalProps {
 
 type ModalStep = 'configure' | 'preview';
 
+// Turn a Supabase Functions invoke error into a message a field user can act on.
+// The edge function returns a JSON { error } body on its own failures; on a
+// resource-limit kill (HTTP 546) the worker is terminated with no usable body,
+// so we map that to actionable guidance instead of a raw status string.
+async function getFriendlyReportError(error: unknown, itemCount: number): Promise<string> {
+  const ctx = (error as { context?: Response })?.context;
+  try {
+    if (ctx && typeof ctx.clone === 'function') {
+      const status = ctx.status;
+      if (status === 546 || status === 503 || status === 504) {
+        return `This report was too large to generate in one pass (${itemCount} item${itemCount === 1 ? '' : 's'}). Try selecting fewer photos, or switch Image Size to "small", then generate again.`;
+      }
+      const body = await ctx.clone().json().catch(() => null);
+      if (body && typeof body.error === 'string' && body.error.trim()) {
+        return body.error;
+      }
+    }
+  } catch {
+    // fall through to the generic message
+  }
+  return (error as Error)?.message || 'Something went wrong generating the report. Please try again.';
+}
+
 export function MediaReportBuilderModal({
   open,
   onOpenChange,
@@ -52,7 +75,7 @@ export function MediaReportBuilderModal({
   // Config state
   const [reportTitle, setReportTitle] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStage, setGenerationStage] = useState('');
   const [reportSummary, setReportSummary] = useState('');
   const [showVoiceSummaryModal, setShowVoiceSummaryModal] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -229,7 +252,7 @@ export function MediaReportBuilderModal({
 
   const handleGeneratePreview = async () => {
     setIsGenerating(true);
-    setGenerationProgress(0);
+    setGenerationStage('Preparing report...');
 
     try {
       const mediaIds = selectedMedia.map(m => m.id);
@@ -252,7 +275,7 @@ export function MediaReportBuilderModal({
         options: reportOptions,
       };
 
-      setGenerationProgress(selectedMedia.length * 0.3);
+      setGenerationStage('Fetching photos & building report...');
 
       const { data, error } = await supabase.functions.invoke(
         'generate-media-report',
@@ -260,26 +283,25 @@ export function MediaReportBuilderModal({
       );
 
       if (error) {
-        throw new Error(error.message || 'Failed to generate report');
+        throw new Error(await getFriendlyReportError(error, selectedMedia.length));
       }
 
       if (!data || typeof data !== 'string') {
-        throw new Error('Invalid HTML response from server');
+        throw new Error('The server returned an unexpected response. Please try again.');
       }
 
-      setGenerationProgress(selectedMedia.length);
       setPreviewHtml(data);
       setStep('preview');
 
       console.log('✅ Preview ready');
     } catch (error) {
       console.error('❌ Report generation failed:', error);
-      toast.error('Failed to generate report', {
+      toast.error("Couldn't generate report", {
         description: (error as Error).message,
       });
     } finally {
       setIsGenerating(false);
-      setGenerationProgress(0);
+      setGenerationStage('');
     }
   };
 
@@ -355,7 +377,7 @@ export function MediaReportBuilderModal({
         },
       });
 
-      if (emailError) throw new Error(`Failed to send email: ${emailError.message}`);
+      if (emailError) throw new Error(await getFriendlyReportError(emailError, selectedMedia.length));
 
       toast.success('Report emailed!', {
         description: `Sent to ${recipientEmail}`
@@ -791,16 +813,16 @@ export function MediaReportBuilderModal({
               {/* Generation Progress */}
               {isGenerating && (
                 <div className={cn("border rounded-lg", isMobile ? "p-2" : "p-3")}>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-3.5 w-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin flex-shrink-0" />
                     <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>
-                      Generating Preview...
-                    </span>
-                    <span className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
-                      {Math.round((generationProgress / selectedMedia.length) * 100)}%
+                      {generationStage || 'Generating preview...'}
                     </span>
                   </div>
-                  <p className={cn("text-muted-foreground mt-2", isMobile ? "text-[10px]" : "text-xs")}>
-                    Processing media items... Please keep this window open.
+                  <p className={cn("text-muted-foreground mt-1", isMobile ? "text-[10px]" : "text-xs")}>
+                    {selectedMedia.length > 50
+                      ? 'Large reports can take a minute or two. Please keep this window open.'
+                      : 'This usually takes a few seconds. Please keep this window open.'}
                   </p>
                 </div>
               )}
@@ -823,7 +845,7 @@ export function MediaReportBuilderModal({
                 {isGenerating ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                    Generating... {Math.round((generationProgress / selectedMedia.length) * 100)}%
+                    Generating...
                   </>
                 ) : (
                   <>
