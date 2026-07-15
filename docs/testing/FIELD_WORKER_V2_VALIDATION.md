@@ -115,8 +115,10 @@ only at 100%. On any FAIL: stop, capture a screenshot + console errors, still ru
 ## §5 Tab routes
 
 5.1 **Time** (`/time-tracker`): renders FieldTimeLanding — "Add time entry" primary button,
-    "Copy yesterday" + "Copy last Friday", weekly summary with day dots, Recent entries, and an
-    "Open timer" link. NO Timer/Entries/Receipts pill strip. PASS.
+    "Copy yesterday" + "Copy last Friday", weekly summary with day dots, Recent entries.
+    NO Timer/Entries/Receipts pill strip and NO visible timer affordance (all v2 timer entry
+    points removed Jul 15 2026 per usage data — Rule 35; `/time-tracker/timer` survives as the
+    unlisted escape hatch checked in 5.5). PASS.
 5.2 **Receipts** (`/receipts`): header "Add receipt" button present; NO floating circular FAB
     (single affordance); list shows only Tom's receipts (count must equal
     `SELECT count(*) FROM receipts WHERE user_id = '88e6782c-…'`). PASS = UI count == SQL count.
