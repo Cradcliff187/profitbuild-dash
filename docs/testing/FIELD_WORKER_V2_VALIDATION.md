@@ -14,6 +14,7 @@ or role tables.
 | Thing | Value |
 |---|---|
 | Tom Finn (field_worker only) | `88e6782c-edab-458c-a80b-c18a084ca431` |
+| Tom Finn internal payee (for §9) | `0cf39010-7835-42b8-8bdd-eab088119fa4` |
 | Chris admin (used as `created_by` actor) | `8768d927-9096-449f-855a-24fde8a33b0b` |
 | SYS-TEST project | `c63b4dea-4a69-448b-b27b-da7b41179a05` |
 | Danny Boy (second field worker, negative tests) | `ee706884-33a8-4d25-a06e-74a41e05a890` |
@@ -31,9 +32,10 @@ only at 100%. On any FAIL: stop, capture a screenshot + console errors, still ru
     (or check `document.body` includes "Tom Finn" after opening the sidebar user chip). PASS = Tom.
 0.3 Enable sandbox visibility on this device (SYS-TEST is `category='system'`, pickers include it
     only with the toggle; the Settings switch is admin-only, so set it directly):
-    `javascript: localStorage.setItem('rcg.showSandboxProject', 'true')` — then verify via
-    `localStorage.getItem('rcg.showSandboxProject')`. If the key name differs, read
-    `src/utils/sandboxPreferences.ts` for the canonical key and use that. PASS = value `"true"`.
+    `javascript: localStorage.setItem('showSandboxProject', 'true')` — then verify via
+    `localStorage.getItem('showSandboxProject')`. (Canonical key per
+    `src/utils/sandboxPreferences.ts` — verified 2026-07-13; it has NO `rcg.` prefix.)
+    PASS = value `"true"`.
 0.4 SQL: confirm zero pre-existing suite rows:
     ```sql
     SELECT count(*) FROM crew_day_assignments WHERE task_note LIKE 'VALSUITE%';
@@ -113,8 +115,10 @@ only at 100%. On any FAIL: stop, capture a screenshot + console errors, still ru
 ## §5 Tab routes
 
 5.1 **Time** (`/time-tracker`): renders FieldTimeLanding — "Add time entry" primary button,
-    "Copy yesterday" + "Copy last Friday", weekly summary with day dots, Recent entries, and an
-    "Open timer" link. NO Timer/Entries/Receipts pill strip. PASS.
+    "Copy yesterday" + "Copy last Friday", weekly summary with day dots, Recent entries.
+    NO Timer/Entries/Receipts pill strip and NO visible timer affordance (all v2 timer entry
+    points removed Jul 15 2026 per usage data — Rule 35; `/time-tracker/timer` survives as the
+    unlisted escape hatch checked in 5.5). PASS.
 5.2 **Receipts** (`/receipts`): header "Add receipt" button present; NO floating circular FAB
     (single affordance); list shows only Tom's receipts (count must equal
     `SELECT count(*) FROM receipts WHERE user_id = '88e6782c-…'`). PASS = UI count == SQL count.
@@ -189,14 +193,57 @@ only at 100%. On any FAIL: stop, capture a screenshot + console errors, still ru
 
 ## §9 Dispatch auto-allocation (DB chain, positive path)
 
-Run the self-contained SQL block (single batch; creates a draft estimate + labor line + linked
-assignment + time entry on SYS-TEST, asserts the `expense_line_item_correlations` row exists with
-`auto_correlated = true` and `confidence_score = 95`, then deletes everything it made). Use the
-exact block from CLAUDE.md Gotcha/Rule 34 validation or re-derive; PASS = correlation created and
-zero residue afterwards:
+Run the self-contained SQL block below (validated green 2026-07-13). It creates a draft estimate +
+labor line + task-linked assignment + time entry on SYS-TEST, asserts the
+`expense_line_item_correlations` row exists with `auto_correlated = true`,
+`confidence_score = 95`, `correlation_type = 'estimated'`, and a note citing the assignment id —
+then deletes everything it made. The fixed UUIDs make cleanup exact and the block idempotent-safe.
+Bonus negative baked in: any UNLINKED same-day assignment for Tom (e.g. the §3.1 seed) must be
+ignored by the trigger — the correlation must point at the linked line. PASS = 1 correlation row
+as described AND zero residue afterwards.
+
+`{TOM_PAYEE}` = Tom Finn's internal payee = `0cf39010-7835-42b8-8bdd-eab088119fa4`
+(re-derive if ever stale: `SELECT id FROM payees WHERE user_id = '88e6782c-…' AND is_internal`).
+
 ```sql
--- see the 11-check block in the PR #156 description ("Validation") — reuse tests A1/A2/B1 + cleanup
+-- Seed (replace {TODAY}; 12:00Z–16:00Z = 8:00 AM–12:00 PM ET)
+INSERT INTO estimates (id, project_id, estimate_number, status)
+VALUES ('aaaaaaaa-0000-4000-8000-000000000001', 'c63b4dea-4a69-448b-b27b-da7b41179a05', 'VALSUITE-EST-9', 'draft');
+
+INSERT INTO estimate_line_items (id, estimate_id, category, description, quantity, price_per_unit, cost_per_unit, labor_hours)
+VALUES ('aaaaaaaa-0000-4000-8000-000000000002', 'aaaaaaaa-0000-4000-8000-000000000001', 'labor_internal', 'VALSUITE autoalloc labor line', 8, 75, 30, 8);
+
+INSERT INTO crew_day_assignments (id, user_id, project_id, work_date, start_time, task_note, created_by, estimate_line_item_id)
+VALUES ('aaaaaaaa-0000-4000-8000-000000000003', '88e6782c-edab-458c-a80b-c18a084ca431', 'c63b4dea-4a69-448b-b27b-da7b41179a05', '{TODAY}', '13:00', 'VALSUITE autoalloc linked', '8768d927-9096-449f-855a-24fde8a33b0b', 'aaaaaaaa-0000-4000-8000-000000000002');
+
+INSERT INTO expenses (id, project_id, payee_id, user_id, category, transaction_type, amount, hours, gross_hours, start_time, end_time, expense_date, description)
+VALUES ('aaaaaaaa-0000-4000-8000-000000000004', 'c63b4dea-4a69-448b-b27b-da7b41179a05', '{TOM_PAYEE}', '88e6782c-edab-458c-a80b-c18a084ca431', 'labor_internal', 'expense', 120, 4, 4, '{TODAY}T12:00:00Z', '{TODAY}T16:00:00Z', '{TODAY}', 'VALSUITE autoalloc entry');
+
+-- Assert (expect exactly 1 row: line …0002, estimated, 95.00, auto_correlated=true, note cites …0003)
+SELECT expense_id, estimate_line_item_id, correlation_type, confidence_score, auto_correlated, notes
+FROM expense_line_item_correlations
+WHERE expense_id = 'aaaaaaaa-0000-4000-8000-000000000004';
+
+-- Optional UI side-trip BEFORE cleanup (covers §6.4/§6.5 read-side while §6.1 is picker-blocked):
+-- reload `/` → today's dot filled + 4.0 paid hrs; /time-tracker → Recent entries row → edit sheet → Cancel.
+
+-- Cleanup (order matters: correlation → expense → assignment → line → estimate)
+DELETE FROM expense_line_item_correlations WHERE expense_id = 'aaaaaaaa-0000-4000-8000-000000000004';
+DELETE FROM expenses WHERE id = 'aaaaaaaa-0000-4000-8000-000000000004';
+DELETE FROM crew_day_assignments WHERE id = 'aaaaaaaa-0000-4000-8000-000000000003';
+DELETE FROM estimate_line_items WHERE id = 'aaaaaaaa-0000-4000-8000-000000000002';
+DELETE FROM estimates WHERE id = 'aaaaaaaa-0000-4000-8000-000000000001';
+
+-- Verify zero residue (expect 0)
+SELECT (SELECT count(*) FROM estimates WHERE id = 'aaaaaaaa-0000-4000-8000-000000000001')
+     + (SELECT count(*) FROM estimate_line_items WHERE id = 'aaaaaaaa-0000-4000-8000-000000000002')
+     + (SELECT count(*) FROM crew_day_assignments WHERE id = 'aaaaaaaa-0000-4000-8000-000000000003')
+     + (SELECT count(*) FROM expenses WHERE id = 'aaaaaaaa-0000-4000-8000-000000000004')
+     + (SELECT count(*) FROM expense_line_item_correlations WHERE expense_id = 'aaaaaaaa-0000-4000-8000-000000000004') AS s9_residue;
 ```
+
+Note: the §9 assignment INSERT fires `notify_crew_assignment_change()` — the extra unread ping for
+Tom is expected and is swept by §11's notification cleanup.
 
 ## §10 Console + visual sweep
 
@@ -208,16 +255,24 @@ zero residue afterwards:
 ## §11 Cleanup (ALWAYS run, even on failure)
 
 ```sql
+DELETE FROM expense_line_item_correlations
+  WHERE expense_id IN (SELECT id FROM expenses WHERE description LIKE 'VALSUITE%');
 DELETE FROM expenses WHERE description LIKE 'VALSUITE%';
 DELETE FROM crew_day_assignments WHERE task_note LIKE 'VALSUITE%';
+DELETE FROM estimate_line_items WHERE description LIKE 'VALSUITE%';
+DELETE FROM estimates WHERE estimate_number LIKE 'VALSUITE%';
 DELETE FROM user_notifications WHERE reference_type = 'crew_day_assignment'
   AND (title LIKE '%SYS-TEST%' OR body LIKE '%VALSUITE%');
 DELETE FROM activity_feed WHERE project_id = 'c63b4dea-4a69-448b-b27b-da7b41179a05'
   AND created_at > NOW() - INTERVAL '2 hours';
 -- verify
 SELECT (SELECT count(*) FROM expenses WHERE description LIKE 'VALSUITE%')
-     + (SELECT count(*) FROM crew_day_assignments WHERE task_note LIKE 'VALSUITE%') AS residue; -- expect 0
+     + (SELECT count(*) FROM crew_day_assignments WHERE task_note LIKE 'VALSUITE%')
+     + (SELECT count(*) FROM estimates WHERE estimate_number LIKE 'VALSUITE%')
+     + (SELECT count(*) FROM estimate_line_items WHERE description LIKE 'VALSUITE%') AS residue; -- expect 0
 ```
+(The correlation/line/estimate deletes are a safety net for a run that aborts mid-§9 — §9's own
+cleanup normally removes them. Order matters: correlations before expenses/lines.)
 Leave Tom's `field_worker_v2` override in whatever state the operator wants (default: ON for
 dogfooding). Do NOT delete the override rows for Chris's accounts.
 
