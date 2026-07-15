@@ -18,7 +18,14 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCheck2, ChevronDown, Link2, Trash2, X } from "lucide-react";
+import {
+  CalendarCheck2,
+  ChevronDown,
+  Link2,
+  Trash2,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -43,6 +50,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +78,12 @@ interface AssignmentSheetProps {
   workers: DispatchWorker[];
   pickerProjects: DispatchProject[];
   projectsById: Map<string, DispatchProject>;
+  /**
+   * The full (unfiltered) week's assignments — used for the crew picker's
+   * "already at 225-xxx" availability hints. Informational only, never
+   * blocking: multiple same-day assignments per worker are valid (split days).
+   */
+  assignments: CrewAssignment[];
   isAdmin: boolean;
   onSave: (input: SaveAssignmentInput) => Promise<boolean>;
   onDelete: (assignmentId: string) => Promise<boolean>;
@@ -91,6 +105,7 @@ export function AssignmentSheet({
   workers,
   pickerProjects,
   projectsById,
+  assignments,
   isAdmin,
   onSave,
   onDelete,
@@ -106,6 +121,14 @@ export function AssignmentSheet({
    * never by typing in the task note (the note is an independent snapshot).
    */
   const [linkedTask, setLinkedTask] = useState<ScheduleTaskLink | null>(null);
+  /**
+   * CREATE only: additional workers dispatched together with the primary
+   * (clicked-cell) worker. Each gets their OWN row on save — there is
+   * deliberately NO "crew" entity (per Chris, Jul 2026): per-row keeps
+   * day-of edits, notifications, and auto-allocation individual.
+   */
+  const [extraWorkerIds, setExtraWorkerIds] = useState<string[]>([]);
+  const [crewPickerOpen, setCrewPickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -130,6 +153,8 @@ export function AssignmentSheet({
       setTaskNote("");
       setAdminNotes("");
       setLinkedTask(null);
+      setExtraWorkerIds([]);
+      setCrewPickerOpen(false);
     } else {
       const a = state.assignment;
       setProjectId(a.project_id);
@@ -158,6 +183,35 @@ export function AssignmentSheet({
     workDate || null
   );
 
+  // Crew picker candidates + availability hints ("already at 225-xxx" on the
+  // currently selected date). Reacts to the date input; informational only —
+  // same-day multi-assignment is valid (split days), so nothing is blocked.
+  const crewCandidates = useMemo(() => {
+    if (isEdit) return [];
+    return workers
+      .filter((w) => w.user_id !== workerUserId)
+      .map((w) => {
+        const sameDay = assignments.filter(
+          (a) => a.user_id === w.user_id && a.work_date === workDate
+        );
+        const hint = sameDay
+          .map(
+            (a) =>
+              projectsById.get(a.project_id)?.project_number ?? "another site"
+          )
+          .join(", ");
+        return { ...w, hint };
+      });
+  }, [isEdit, workers, workerUserId, assignments, workDate, projectsById]);
+
+  const toggleExtraWorker = (userId: string) => {
+    setExtraWorkerIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
   // Resolve the linked FK back to a task for display. `undefined` while the id
   // doesn't resolve — with lines deleted/superseded on versioning (Rule 27 /
   // Gotcha #65 class) the FK may point at a line no longer on the schedule.
@@ -179,6 +233,7 @@ export function AssignmentSheet({
     const ok = await onSave({
       id: assignment?.id,
       user_id: workerUserId,
+      additional_user_ids: isEdit ? undefined : extraWorkerIds,
       project_id: projectId,
       work_date: workDate,
       start_time: startTime ? startTime : null,
@@ -241,11 +296,84 @@ export function AssignmentSheet({
           <SheetHeader className="shrink-0 space-y-1 border-b px-6 pb-4 pt-6">
             <SheetTitle>{isEdit ? "Edit assignment" : "New assignment"}</SheetTitle>
             <SheetDescription>
-              {workerName}
+              {isEdit || extraWorkerIds.length === 0
+                ? workerName
+                : `${workerName} + ${extraWorkerIds.length} more — each gets their own assignment`}
             </SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+            {/* Crew fan-out (create only): dispatch several people to the same
+                place/time in one save. One ROW per worker — no crew entity —
+                so day-of edits, pings, and auto-allocation stay individual. */}
+            {!isEdit && (
+              <div className="space-y-2">
+                <Label>Crew</Label>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs font-medium">
+                    {workerName}
+                  </span>
+                  {extraWorkerIds.map((id) => {
+                    const w = workers.find((x) => x.user_id === id);
+                    if (!w) return null;
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs font-medium"
+                      >
+                        {w.payee_name}
+                        <button
+                          type="button"
+                          onClick={() => toggleExtraWorker(id)}
+                          aria-label={`Remove ${w.payee_name}`}
+                          className="rounded-full p-0.5 hover:bg-primary/15"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                  {crewCandidates.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCrewPickerOpen((o) => !o)}
+                      aria-expanded={crewPickerOpen}
+                      className={cn(
+                        "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs transition-colors",
+                        crewPickerOpen
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      )}
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Add crew
+                    </button>
+                  )}
+                </div>
+                {crewPickerOpen && (
+                  <div className="divide-y rounded-lg border">
+                    {crewCandidates.map((w) => (
+                      <label
+                        key={w.user_id}
+                        className="flex min-h-[44px] cursor-pointer items-center gap-3 px-3 py-2 hover:bg-accent/50"
+                      >
+                        <Checkbox
+                          checked={extraWorkerIds.includes(w.user_id)}
+                          onCheckedChange={() => toggleExtraWorker(w.user_id)}
+                        />
+                        <span className="flex-1 text-sm">{w.payee_name}</span>
+                        {w.hint && (
+                          <span className="text-xs text-muted-foreground">
+                            already at {w.hint}
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Project</Label>
               {/* Cast to Project type — ProjectSelectorNew only reads id /

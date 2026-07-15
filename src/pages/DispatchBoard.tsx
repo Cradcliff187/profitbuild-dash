@@ -340,6 +340,7 @@ export default function DispatchBoard() {
         workers={roster}
         pickerProjects={pickerProjects}
         projectsById={projectsById}
+        assignments={assignments}
         isAdmin={isAdmin}
         onSave={mutations.saveAssignment}
         onDelete={mutations.deleteAssignment}

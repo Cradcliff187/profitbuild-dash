@@ -144,6 +144,14 @@ export interface SaveAssignmentInput {
   /** Present = update this row; absent = insert a new one. */
   id?: string;
   user_id: string;
+  /**
+   * CREATE only (ignored on update): additional workers dispatched together —
+   * each gets their OWN identical row (crew fan-out; there is deliberately no
+   * "crew" entity, per Chris Jul 2026). Per-row means per-worker edits,
+   * notifications (trigger fires per row), and time-entry auto-allocation all
+   * keep working unchanged.
+   */
+  additional_user_ids?: string[];
   project_id: string;
   work_date: string;
   start_time: string | null;
@@ -191,22 +199,37 @@ export function useDispatchMutations(weekStartISO: string) {
       }
       toast.success("Assignment updated");
     } else {
-      const { error } = await supabase.from("crew_day_assignments").insert({
-        user_id: input.user_id,
-        project_id: input.project_id,
-        work_date: input.work_date,
-        start_time: input.start_time,
-        task_note: input.task_note,
-        admin_notes: input.admin_notes,
-        ...linkColumns,
-        created_by: user.id,
-        updated_by: user.id,
-      });
+      // Crew fan-out: one row per selected worker (deduped; the primary worker
+      // is always included). Single batch insert — the assignment-notification
+      // trigger fires per row, so every worker gets their own ping.
+      const userIds = Array.from(
+        new Set([input.user_id, ...(input.additional_user_ids ?? [])])
+      );
+      const { error } = await supabase.from("crew_day_assignments").insert(
+        userIds.map((uid) => ({
+          user_id: uid,
+          project_id: input.project_id,
+          work_date: input.work_date,
+          start_time: input.start_time,
+          task_note: input.task_note,
+          admin_notes: input.admin_notes,
+          ...linkColumns,
+          created_by: user.id,
+          updated_by: user.id,
+        }))
+      );
       if (error) {
         toast.error("Failed to create assignment", { description: error.message });
         return false;
       }
-      toast.success("Assignment created");
+      toast.success(
+        userIds.length > 1
+          ? `Assigned ${userIds.length} workers`
+          : "Assignment created",
+        userIds.length > 1
+          ? { description: "Each worker got their own assignment and notification." }
+          : undefined
+      );
     }
     invalidate();
     return true;
