@@ -8,8 +8,11 @@
  * - "Receipt" opens the existing `AddReceiptModal` in place (same contract
  *   MobileTimeTracker uses: open / onClose / onSuccess).
  * - "Note" navigates to the Notes tab page.
- * - "Time clock" keeps the live timer one tap away (navigation only — this
- *   page never embeds MobileTimeTracker; Gotcha #55).
+ * - "Projects" navigates to the project list (`/my-projects`). This slot was
+ *   originally "Time clock" (→ /time-tracker) — removed Jul 2026 per Chris:
+ *   it duplicated the Time tab directly below it, and Rule 35 deliberately
+ *   demoted the timer off the landing (it stays reachable via Time tab →
+ *   "Open timer"). The project view is the critical destination on mobile.
  *
  * Gotcha #27: the in-place dialogs WRITE (expenses / receipts), so their
  * success callbacks invalidate the ThisWeekStrip query keys.
@@ -22,7 +25,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Clock, Receipt, StickyNote, Timer } from "lucide-react";
+import { Clock, HardHat, Receipt, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddReceiptModal } from "@/components/time-tracker/AddReceiptModal";
 import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
@@ -82,10 +85,10 @@ export function QuickActionsRow() {
         <Button
           variant="outline"
           className="h-14 min-h-[44px] text-sm font-semibold"
-          onClick={() => navigate("/time-tracker")}
+          onClick={() => navigate("/my-projects")}
         >
-          <Timer className="h-5 w-5 mr-2" />
-          Time clock
+          <HardHat className="h-5 w-5 mr-2" />
+          Projects
         </Button>
       </div>
 

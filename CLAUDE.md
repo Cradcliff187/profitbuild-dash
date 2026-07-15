@@ -1271,6 +1271,16 @@ and used to hand field crews the admin Gantt with drag-edit affordances.
   field-only+flag → `FieldTimeLanding` (entry-first: Add entry, Copy yesterday / last Friday batch,
   weekly summary + day dots, recent entries), else the unchanged tabbed `MobileTimeTracker`.
   `/today` stays as the admin/manager **dogfood door** (same TodayHome, any role with flag ON).
+- **Today hero always resolves to a project (Jul 15 2026, per Chris — "the project view is what's
+  critical on mobile")**: assigned → Next Stop card (unchanged); NO assignment → **"Your last
+  site"** fallback ([LastProjectCard](src/components/today/LastProjectCard.tsx) +
+  `useLastWorkedProject` in todayData.ts — the newest time-entry project that is still
+  approved/in_progress AND category-visible; expenses are the ground truth of "where they
+  worked"); no usable history → the Browse-projects empty card (→ `/my-projects`, not
+  `/projects`). The fallback query is `enabled`-gated so it only fires once assignments resolve
+  to zero. Quick actions are **Log time · Receipt · Note · Projects** — the original "Time clock"
+  slot was removed: it duplicated the Time tab directly below it and re-promoted the deliberately
+  demoted timer (see next bullet); don't add it back.
 - **Timer is a supported secondary path — do not remove; do not re-promote to the landing without
   user-research evidence.** It lives at `/time-tracker/timer` ([TimerPage](src/pages/TimerPage.tsx))
   which mounts `MobileTimeTracker` with the additive `timerOnly` prop (hides the Timer/Entries/

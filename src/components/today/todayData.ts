@@ -16,6 +16,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getShowSandboxProject,
+  isProjectVisibleByCategory,
+} from "@/utils/sandboxPreferences";
 
 /**
  * Query-key constants shared between the ThisWeekStrip reads and the
@@ -172,6 +176,92 @@ export function useTodayProjects(projectIds: string[], options: HookOptions = {}
           owner_phone: firstUsablePhone(owner?.phone_numbers),
         };
       });
+    },
+  });
+}
+
+/**
+ * The signed-in worker's most recently worked ACTIVE project — the "Your last
+ * site" hero fallback when dispatch has no assignment for today.
+ */
+export interface LastWorkedProject {
+  id: string;
+  project_number: string;
+  project_name: string;
+  address: string | null;
+  /** YYYY-MM-DD of the newest time entry on this project (date-only string). */
+  lastWorkedDate: string;
+}
+
+/**
+ * Resolves "where did I last work?" from the worker's own time entries
+ * (`expenses.is_time_entry` — the ground truth of where they clocked hours;
+ * RLS already scopes field workers to their own rows, and the explicit
+ * `eq('user_id')` scopes admins dogfooding `/today`).
+ *
+ * Walks the newest ~15 entries and returns the first project that is still
+ * active (approved / in_progress) AND visible by category (construction, or
+ * SYS-TEST with the sandbox toggle — mirrors `useFieldActiveProjects`).
+ * Returns null when the worker has no usable history — callers fall back to
+ * the browse-projects empty state.
+ *
+ * Same house rules as everything in this file: plain useQuery, no realtime,
+ * no auth calls, bounded reads, errors thrown.
+ */
+export function useLastWorkedProject(
+  userId: string | undefined,
+  options: HookOptions = {}
+) {
+  return useQuery({
+    // Keyed on the sandbox toggle like useFieldActiveProjects — visibility of
+    // SYS-TEST history depends on it and it's localStorage-backed (not reactive).
+    queryKey: ["today-last-worked-project", userId, getShowSandboxProject()],
+    enabled: !!userId && (options.enabled ?? true),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<LastWorkedProject | null> => {
+      const { data: entries, error } = await supabase
+        .from("expenses")
+        .select("project_id, expense_date")
+        .eq("user_id", userId)
+        .eq("is_time_entry", true)
+        .order("expense_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (error) throw error;
+
+      // Newest-first distinct projects + the newest date seen for each.
+      const orderedIds: string[] = [];
+      const dateById = new Map<string, string>();
+      for (const e of entries ?? []) {
+        if (e.project_id && !dateById.has(e.project_id)) {
+          orderedIds.push(e.project_id);
+          dateById.set(e.project_id, e.expense_date);
+        }
+      }
+      if (orderedIds.length === 0) return null;
+
+      const { data: projects, error: projectsError } = await supabase
+        .from("projects")
+        .select("id, project_number, project_name, address, status, category")
+        .in("id", orderedIds)
+        .in("status", ["approved", "in_progress"]);
+      if (projectsError) throw projectsError;
+
+      const byId = new Map((projects ?? []).map((p) => [p.id, p]));
+      for (const id of orderedIds) {
+        const p = byId.get(id);
+        if (p && isProjectVisibleByCategory(p)) {
+          return {
+            id: p.id,
+            project_number: p.project_number,
+            project_name: p.project_name,
+            address: p.address,
+            lastWorkedDate: dateById.get(id)!,
+          };
+        }
+      }
+      return null;
     },
   });
 }
