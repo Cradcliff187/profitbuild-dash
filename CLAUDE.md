@@ -258,8 +258,10 @@ Compare to: `ls supabase/migrations/*.sql | wc -l`
 | Flag | Status | What it controls |
 |------|--------|-----------------|
 | `quickbooks_auto_sync` | ❌ **DISABLED** | QB Settings card, "Sync from QB" button, Sync History, Backfill modal |
-| `crew_dispatch_board` | ❌ **OFF globally** (per-user overrides ON for both Chris accounts) | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (field-worker redesign PR 2) |
-| `field_worker_v2` | ❌ **OFF globally** | New field-worker experience (field-worker redesign PR 3 — no consumers yet) |
+| `crew_dispatch_board` | ❌ **OFF globally** (per-user overrides ON: both Chris accounts + Tom Finn) | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (field-worker redesign PR 2) |
+| `field_worker_v2` | ❌ **OFF globally** (per-user overrides ON: both Chris accounts + Tom Finn) | Field-worker experience v2 (Rule 35): five-tab IA, Today project-first hero (Next Stop → "Your last site" fallback), NextStopChip, FieldTimeLanding, no visible timer. Validated end-to-end 2026-07-15 (docs/testing/FIELD_WORKER_V2_VALIDATION_RUNS.md) |
+
+*(A fourth DB row, `quickbooks_integration`, exists but has zero code consumers — dormant.)*
 
 Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quickbooks_auto_sync';`
 
