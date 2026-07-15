@@ -10,9 +10,10 @@
  * - "Note" navigates to the Notes tab page.
  * - "Projects" navigates to the project list (`/my-projects`). This slot was
  *   originally "Time clock" (→ /time-tracker) — removed Jul 2026 per Chris:
- *   it duplicated the Time tab directly below it, and Rule 35 deliberately
- *   demoted the timer off the landing (it stays reachable via Time tab →
- *   "Open timer"). The project view is the critical destination on mobile.
+ *   it duplicated the Time tab directly below it. The timer has since lost
+ *   its visible affordances entirely under v2 (usage data: 355/356 entries
+ *   were manual — see Rule 35); /time-tracker/timer remains an unlisted
+ *   escape hatch. The project view is the critical destination on mobile.
  *
  * Gotcha #27: the in-place dialogs WRITE (expenses / receipts), so their
  * success callbacks invalidate the ThisWeekStrip query keys.
