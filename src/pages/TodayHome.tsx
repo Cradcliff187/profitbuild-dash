@@ -35,11 +35,13 @@ import { useRoles } from "@/contexts/RoleContext";
 import { useDbFeatureFlag } from "@/hooks/useDbFeatureFlag";
 import { formatDateForDB, parseDateOnly } from "@/utils/dateUtils";
 import { AssignmentHeroCard } from "@/components/today/AssignmentHeroCard";
+import { LastProjectCard } from "@/components/today/LastProjectCard";
 import { TomorrowSection } from "@/components/today/TomorrowSection";
 import { ThisWeekStrip } from "@/components/today/ThisWeekStrip";
 import { QuickActionsRow } from "@/components/today/QuickActionsRow";
 import {
   TodayProject,
+  useLastWorkedProject,
   useMyDayAssignments,
   useTodayProjects,
 } from "@/components/today/todayData";
@@ -83,6 +85,18 @@ export default function TodayHome() {
   );
   const projectsQuery = useTodayProjects(projectIds, {
     enabled: gateSettled && flagEnabled,
+  });
+
+  // Hero fallback: only fetched once assignments have resolved to "none for
+  // today" — the hero slot must always answer "where am I going?", so with no
+  // dispatch row it falls back to the last-worked active project.
+  const lastWorkedQuery = useLastWorkedProject(user?.id, {
+    enabled:
+      gateSettled &&
+      flagEnabled &&
+      !assignmentsQuery.isPending &&
+      !assignmentsQuery.isError &&
+      todayAssignments.length === 0,
   });
   const projectById = useMemo(() => {
     const map = new Map<string, TodayProject>();
@@ -141,24 +155,30 @@ export default function TodayHome() {
                 </Button>
               </Card>
             ) : todayAssignments.length === 0 ? (
-              <Card className="p-8 text-center border-dashed">
-                <div className="mx-auto mb-4 h-14 w-14 rounded-full bg-muted/40 flex items-center justify-center">
-                  <CalendarDays className="h-7 w-7 text-muted-foreground/60" />
-                </div>
-                <p className="text-base font-semibold text-foreground mb-1">
-                  No assignment for today yet
-                </p>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
-                  Check with the office, or browse your projects.
-                </p>
-                <Button
-                  variant="outline"
-                  className="min-h-[44px]"
-                  onClick={() => navigate("/projects")}
-                >
-                  Browse projects
-                </Button>
-              </Card>
+              lastWorkedQuery.isPending ? (
+                <Skeleton className="h-36 w-full rounded-xl" />
+              ) : lastWorkedQuery.data ? (
+                <LastProjectCard project={lastWorkedQuery.data} />
+              ) : (
+                <Card className="p-8 text-center border-dashed">
+                  <div className="mx-auto mb-4 h-14 w-14 rounded-full bg-muted/40 flex items-center justify-center">
+                    <CalendarDays className="h-7 w-7 text-muted-foreground/60" />
+                  </div>
+                  <p className="text-base font-semibold text-foreground mb-1">
+                    No assignment for today yet
+                  </p>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
+                    Check with the office, or browse your projects.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="min-h-[44px]"
+                    onClick={() => navigate("/my-projects")}
+                  >
+                    Browse projects
+                  </Button>
+                </Card>
+              )
             ) : (
               <div className="space-y-3">
                 {todayAssignments.map((a, i) => (
