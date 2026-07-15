@@ -116,6 +116,34 @@ export function useMyDayAssignments(
 }
 
 /**
+ * A single assignment by id, from the field view (RLS scopes it to the
+ * signed-in worker's own rows). Powers the `/my-day/:assignmentId` detail
+ * screen reached from notifications and the Today cards. Returns null when the
+ * row is missing (reassigned/canceled, or not visible to this user).
+ */
+export function useAssignmentById(
+  assignmentId: string | undefined,
+  options: HookOptions = {}
+) {
+  return useQuery({
+    queryKey: ["assignment-detail", assignmentId],
+    enabled: !!assignmentId && (options.enabled ?? true),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<FieldAssignment | null> => {
+      const { data, error } = await supabase
+        .from("crew_day_assignments_field_view")
+        .select("*")
+        .eq("id", assignmentId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data || !data.id || !data.project_id || !data.work_date) return null;
+      return data as FieldAssignment;
+    },
+  });
+}
+
+/**
  * Projects referenced by the visible assignments, plus each project's owner
  * contact (projects.owner_id → payees.payee_name / phone_numbers). The owner
  * read is deliberately NON-FATAL: the Call affordance is secondary, and a

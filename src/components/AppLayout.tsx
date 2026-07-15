@@ -186,6 +186,8 @@ export default function AppLayout() {
   // Allowed for field workers:
   //   /today                             — field home (PR 3, behind field_worker_v2;
   //                                        becomes the bounce target when the flag is ON)
+  //   /my-day/:assignmentId              — assignment detail (flag-gated; opened
+  //                                        from an assignment notification or a Today card)
   //   /time-tracker[?tab=...]            — primary daily surface
   //   /training, /training/:id           — My Training + viewer
   //   /mentions                          — @mention notifications
@@ -210,6 +212,7 @@ export default function AppLayout() {
       if (path === '/') return true;
       if (path === '/receipts') return true;
       if (path === '/my-projects') return true;
+      if (path.startsWith('/my-day/')) return true;
       if (path === '/notes') return true;
     }
     if (path === '/today') return true;

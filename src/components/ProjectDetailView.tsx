@@ -384,13 +384,24 @@ export const ProjectDetailView = () => {
         <header className="border-b border-border/60 bg-background">
           {/* Project Identity Row */}
           <div className="flex items-start gap-3 px-4 py-3">
-            {/* Back Button - replaces hamburger. Field workers hop back to
-               the time tracker (they can't access the projects list). */}
+            {/* Back Button - replaces hamburger. Natural "back": return to
+               wherever they tapped in from (Today, an assignment, the
+               Notifications list). Only when there's no in-app history
+               (location.key === 'default' — a cold deep-link) do we fall back
+               to a role-appropriate home. Never force /time-tracker: for an
+               admin-who-also-holds-field that route renders the OLD
+               MobileTimeTracker (Rule 24 isFieldWorker vs isFieldWorkerOnly). */}
             <Button
               variant="ghost"
               size="icon"
               className="h-10 w-10 shrink-0 -ml-2 -mt-0.5"
-              onClick={() => navigate(isFieldWorker ? "/time-tracker" : "/projects")}
+              onClick={() => {
+                if (location.key !== "default") {
+                  navigate(-1);
+                } else {
+                  navigate(isFieldWorkerOnly ? "/" : "/projects");
+                }
+              }}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

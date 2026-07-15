@@ -2,8 +2,10 @@
  * Prominent "Next stop" / "Then" card for today's crew assignments.
  *
  * Structure: the top region (label, time chip, project identity, dispatcher
- * note) is ONE navigation button that taps through to the field-safe schedule
- * route (`/projects/:id/schedule` — Rule 18). The contact/location region
+ * note) is ONE navigation button that taps through to the assignment detail
+ * screen (`/my-day/:assignmentId`) — the same destination an assignment
+ * notification opens, so tapping an assignment is consistent everywhere. The
+ * contact/location region
  * below it hosts interactive children — `ProjectAddressLocator` (canonical
  * address affordance) and the optional Call button — as SIBLINGS of the nav
  * button, never nested inside it (no nested-interactive bubbling traps).
@@ -52,7 +54,7 @@ export function AssignmentHeroCard({
       {/* Navigation region — identity + dispatcher instruction */}
       <button
         type="button"
-        onClick={() => navigate(`/projects/${assignment.project_id}/schedule`)}
+        onClick={() => navigate(`/my-day/${assignment.id}`)}
         className="w-full text-left p-4 pb-3 hover:bg-accent/50 active:bg-accent transition-colors min-h-[44px]"
       >
         <div className="flex items-center justify-between gap-2 mb-2">

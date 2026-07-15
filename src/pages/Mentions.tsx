@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { AtSign, Bell, CheckCheck, Clock } from 'lucide-react';
+import { AtSign, Bell, CalendarClock, CheckCheck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -13,9 +13,22 @@ export default function Mentions() {
 
   const handleTap = async (notification: typeof notifications[0]) => {
     await markAsRead(notification.id);
+
+    // Assignment pings carry the dispatch row id (reference_id); route to the
+    // detail screen that actually shows the assignment (date, time, full note,
+    // address). The stored link_url is "/", which only lands on Today — no
+    // detail — so we deep-link off the reference instead.
+    if (
+      notification.type === 'assignment' &&
+      notification.reference_type === 'crew_day_assignment' &&
+      notification.reference_id
+    ) {
+      navigate(`/my-day/${notification.reference_id}`);
+      return;
+    }
+
     if (notification.link_url) {
-      // ?tab=notes is a mention-specific deep-link into the project Notes
-      // tab; other types (assignment → "/") navigate to link_url as-is.
+      // ?tab=notes is a mention-specific deep-link into the project Notes tab.
       navigate(
         notification.type === 'mention'
           ? notification.link_url + '?tab=notes'
@@ -59,7 +72,7 @@ export default function Mentions() {
             </div>
             <p className="text-base font-semibold text-foreground mb-1">All caught up</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              When a teammate tags you in a project note, it'll appear here.
+              New assignments and note mentions will appear here.
             </p>
           </Card>
         ) : (
@@ -71,7 +84,11 @@ export default function Mentions() {
             >
               <div className="flex items-start gap-3">
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <AtSign className="h-4 w-4 text-primary" />
+                  {n.type === 'assignment' ? (
+                    <CalendarClock className="h-4 w-4 text-primary" />
+                  ) : (
+                    <AtSign className="h-4 w-4 text-primary" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{n.title}</p>
