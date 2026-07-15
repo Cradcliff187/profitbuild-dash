@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useRoles } from '@/contexts/RoleContext';
 import {
+  getProjectCategoryOrFilter,
   getShowSandboxProject,
   SANDBOX_PROJECT_NUMBER,
 } from '@/utils/sandboxPreferences';
@@ -57,9 +58,12 @@ export function ProjectPicker({
     } else {
       // Field workers / subs clocking time on themselves see only their
       // construction work + the three PTO buckets (sick / vacation / holiday).
+      // getProjectCategoryOrFilter() widens to SYS-TEST only when the
+      // per-device sandbox toggle is on — same rule as MobileTimeTracker
+      // and fieldProjects.ts.
       query = query
         .in('status', ['approved', 'in_progress'])
-        .or(`category.eq.construction,project_number.in.(${PTO_PROJECT_NUMBERS.join(',')})`);
+        .or(`${getProjectCategoryOrFilter()},project_number.in.(${PTO_PROJECT_NUMBERS.join(',')})`);
     }
 
     query
