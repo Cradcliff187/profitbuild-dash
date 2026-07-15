@@ -5,6 +5,42 @@ Append one section per run of [FIELD_WORKER_V2_VALIDATION.md](FIELD_WORKER_V2_VA
 
 ---
 
+## Run 3 (§6 money path, full) — 2026-07-15 — dev, agent-executed, signed in as Tom Finn
+
+Scope: Run 1's BLOCKED section, re-run after the ProjectPicker sandbox fix
+(PR [#162](https://github.com/Cradcliff187/profitbuild-dash/pull/162), commit authored in the
+task_ce6d4f8c session and adopted/cherry-picked). Verified **on the PR branch pre-merge**, then
+squash-merged to `main` as `c38bab37`. Tree also included the Today project-first change
+(PR [#161](https://github.com/Cradcliff187/profitbuild-dash/pull/161), merged `09abfd4e` — hero
+falls back to "Your last site"; quick actions now Log time · Receipt · Note · Projects).
+
+```
+§6.1 PASS ✓ — Add Time Entry sheet: worker locked to Tom; SYS-TEST now appears in the project
+   dropdown and selects ("SYS-TEST - Sandbox (Test Project)"); 8:00 AM–12:00 PM committed via the
+   time pickers (Shift 4.0h / Paid 4.0h, lunch off); description "VALSUITE manual entry";
+   Save → "Time entry created" toast, sheet closes.
+§6.2 PASS ✓ — SQL: 1 row, hours = 4.0000, gross_hours = 4.0000, expense_date = today,
+   is_time_entry = true.
+§6.3 PASS ✓ — 0 expense_line_item_correlations for the VALSUITE entry (the seeded UNLINKED
+   same-day assignment was correctly ignored by the auto-allocation trigger).
+§6.4 PASS ✓ — Today week strip: today's dot filled ("time logged"), 4.0 paid hrs.
+§6.5 PASS ✓ — Recent entries row → Edit Time Entry sheet with all values; the Run-1 caveat is
+   RESOLVED: the Project field now displays "SYS-TEST - Sandbox (Test Project)" (was blank);
+   Cancel leaves the row untouched.
+§6.6 PASS ✓ (carried from Run 1 — no entries yesterday → button disabled, sane state).
+§10.1 (this run): "[hmr] Failed to reload" noise from live-editing during the dev session —
+   ignorable per the rule. One REAL pre-existing error observed twice: batch createSignedUrls
+   called with an empty paths array (StorageApiError) on a field-worker surface — not from the
+   changed files (none touch storage); guard-fix chip spawned (task_319611b1).
+Cleanup: residue 0 (expenses, assignments, notifications, activity_feed).
+```
+
+**Suite status after Run 3: every agent-executable check (§0–§11) has now PASSed.**
+Remaining: §12 operator-only appendix (sign-in cycles ×3 both flag states; real-device
+iPhone/iPad pass), and production publish + `/version.json` buildTime confirmation.
+
+---
+
 ## Run 2 (targeted §5.4 re-verify) — 2026-07-13 — dev, agent-executed, signed in as Tom Finn
 
 Scope: re-run of Run 1's FAIL after the chip fix (PR [#159](https://github.com/Cradcliff187/profitbuild-dash/pull/159)).
