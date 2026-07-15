@@ -4,9 +4,15 @@
  *
  * GATING ASSUMPTION: this page performs NO self-gating. The route
  * orchestrator mounts it at `/time-tracker` only for field-only users with
- * the `field_worker_v2` flag ON (the classic `MobileTimeTracker` timer moves
- * to `/time-tracker/timer`). If mounting rules change, gate at the router —
- * not here.
+ * the `field_worker_v2` flag ON. If mounting rules change, gate at the
+ * router — not here.
+ *
+ * TIMER: this page intentionally has NO visible timer affordance (removed
+ * Jul 15 2026 per Chris, backed by usage data: 355/356 time entries in the
+ * prior 90 days were quarter-hour manual-form values; live clock-in was used
+ * once). `/time-tracker/timer` still exists as an unlisted escape hatch
+ * during rollout — delete the route too once v2 has been stable in the
+ * field. The flag-off legacy timer is untouched.
  *
  * House rules — this is the field-worker post-login critical path, i.e. the
  * auth-loop danger zone (Gotchas #53/#54/#55/#56/#63):
@@ -25,7 +31,6 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   addDays,
@@ -34,14 +39,8 @@ import {
   startOfWeek,
   subDays,
 } from "date-fns";
-import { Clock, Copy, Plus, Settings } from "lucide-react";
+import { Copy, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -111,7 +110,6 @@ function CopySourceButton({
 }
 
 export default function FieldTimeLanding() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -214,32 +212,9 @@ export default function FieldTimeLanding() {
       >
         <div className="mx-auto max-w-2xl space-y-5 px-4 sm:px-0 md:max-w-4xl">
           {/* Header */}
-          <header className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold leading-tight">Time</h1>
-              <p className="text-sm text-muted-foreground">{friendlyDate}</p>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-11 w-11"
-                  aria-label="Time options"
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="min-h-[44px]"
-                  onClick={() => navigate("/time-tracker/timer")}
-                >
-                  <Clock className="mr-2 h-4 w-4" />
-                  Timer
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <header>
+            <h1 className="text-2xl font-bold leading-tight">Time</h1>
+            <p className="text-sm text-muted-foreground">{friendlyDate}</p>
           </header>
 
           {/* Weekly summary — internally responsive (halves side-by-side at md+) */}
@@ -290,17 +265,6 @@ export default function FieldTimeLanding() {
             />
           </section>
 
-          {/* Timer access — demoted but supported */}
-          <div className="flex justify-center pb-2">
-            <Button
-              variant="ghost"
-              className="min-h-[44px] text-muted-foreground"
-              onClick={() => navigate("/time-tracker/timer")}
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Open timer
-            </Button>
-          </div>
         </div>
 
         {/* Shared dialogs — lazily mounted (see Gotcha #63 note above) */}

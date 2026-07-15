@@ -1281,11 +1281,15 @@ and used to hand field crews the admin Gantt with drag-edit affordances.
   to zero. Quick actions are **Log time · Receipt · Note · Projects** — the original "Time clock"
   slot was removed: it duplicated the Time tab directly below it and re-promoted the deliberately
   demoted timer (see next bullet); don't add it back.
-- **Timer is a supported secondary path — do not remove; do not re-promote to the landing without
-  user-research evidence.** It lives at `/time-tracker/timer` ([TimerPage](src/pages/TimerPage.tsx))
-  which mounts `MobileTimeTracker` with the additive `timerOnly` prop (hides the Timer/Entries/
-  Receipts strip + ignores `?tab=` — those surfaces live on the v2 tabs; default `false` keeps
-  admins/flag-off users untouched, per audit rule R3 on shared contracts).
+- **Timer has NO visible affordance under v2 (Jul 15 2026)** — the evidence Rule 35 originally
+  demanded arrived: 355/356 time entries in the prior 90 days (all 5 workers) were quarter-hour
+  manual-form values; live clock-in was used exactly once. Per Chris, every v2 timer entry point
+  was removed (Today quick action, FieldTimeLanding header menu + "Open timer" footer link).
+  `/time-tracker/timer` ([TimerPage](src/pages/TimerPage.tsx), mounting `MobileTimeTracker
+  timerOnly`) still EXISTS as an unlisted escape hatch during rollout — delete the route once v2
+  is stable in the field. The flag-off legacy timer is untouched (default `timerOnly=false`
+  keeps admins/flag-off users byte-identical, per audit rule R3 on shared contracts). Don't
+  re-add a visible timer affordance without new usage evidence.
 - **Allowlist (Gotcha #44)**: `/`, `/receipts`, `/my-projects`, `/notes` are allowed ONLY when the
   flag is on; `/today` + `/time-tracker/*` unconditionally. Blocked field workers bounce to `/`
   (flag on) or `/time-tracker` (flag off).
