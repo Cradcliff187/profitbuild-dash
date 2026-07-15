@@ -136,8 +136,10 @@ Estimating → Approved → In Progress → Complete
 Two flag-gated surfaces reshape this module (flags `crew_dispatch_board` + `field_worker_v2`,
 per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding completes):
 
-- **Crew Dispatch board** (`/dispatch`, admin/manager): assign any labor-providing worker to a
-  project per day — multi-assignment chip stacks, drag to move, copy-last-week with merge preview,
+- **Crew Dispatch board** (`/dispatch`, admin/manager): assign any labor-providing worker — or a
+  whole crew in one save (multi-worker create with same-day availability hints; each worker gets
+  their own assignment and notification) — to a project per day. Multi-assignment chip stacks,
+  drag to move, copy-last-week with merge preview,
   optional link to a schedule activity that (a) snapshots the task into the crew-visible note and
   (b) drives **automatic allocation of that worker's time entries to the right estimate line**
   (DB trigger; ambiguous cases fall back to the existing suggestion sheets).

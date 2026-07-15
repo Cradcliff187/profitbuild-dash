@@ -1220,6 +1220,16 @@ only their own rows). Admin/manager paths query the base table directly. `admin_
 admin-only by construction; `task_note` is the crew-visible channel (the task + FYIs like gate
 codes). Field-worker UI arrives in PR 3 behind `field_worker_v2`.
 
+**Crew fan-out (PR [#165](https://github.com/Cradcliff187/profitbuild-dash/pull/165), Jul 15
+2026):** the AssignmentSheet's CREATE mode dispatches several workers in one save — a "Crew"
+chips row + checkbox picker (with informational "already at 225-xxx" same-day hints, never
+blocking). The save is a single batch insert of one row PER worker with identical fields (incl.
+the schedule-task link); the notification trigger fires per row so every worker gets their own
+ping, and day-of edits/auto-allocation stay per-person. **There is deliberately NO crews entity**
+(locked with Chris, Jul 2026) — "Copy last week" covers recurring crews; a saved-crews table
+needs new evidence (the same combo picked daily) before it earns a build. Edit mode stays
+single-worker: a chip = one row.
+
 **Optional task links + dispatch-driven auto-allocation (PR 2b, Jul 14 2026):** assignments carry
 OPTIONAL dual FKs `estimate_line_item_id` / `change_order_line_item_id` (CHECK at most one set,
 both `ON DELETE SET NULL` — a deleted/superseded line degrades the assignment to project-level,
