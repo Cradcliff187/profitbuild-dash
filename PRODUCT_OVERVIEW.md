@@ -141,18 +141,26 @@ per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding 
   optional link to a schedule activity that (a) snapshots the task into the crew-visible note and
   (b) drives **automatic allocation of that worker's time entries to the right estimate line**
   (DB trigger; ambiguous cases fall back to the existing suggestion sheets).
-- **Field experience v2** (pure field workers): five-tab IA — **Today** (Next Stop card with
-  dispatcher note, address + Apple/Google/Waze directions chooser, Call button; this-week strip
-  with day dots; quick actions), **Time** (entry-first landing: add entry, copy yesterday/last
-  Friday, weekly summary; the timer lives on at `/time-tracker/timer`), **Receipts**, **Projects**,
-  **Notes** — plus a persistent "Next stop" chip and in-app notifications when dispatch changes
-  (bell + Notifications page; SMS for same-day changes planned).
+- **Field experience v2** (pure field workers): five-tab IA — **Today** (the hero always resolves
+  to a project: dispatched **Next Stop** card with dispatcher note, address + Apple/Google/Waze
+  directions chooser, and Call button; with no assignment it falls back to **"Your last site"**,
+  the worker's most recently worked active project; this-week strip with day dots; quick actions
+  Log time · Receipt · Note · Projects), **Time** (entry-first landing: add entry, copy
+  yesterday/last Friday, weekly summary — **no timer affordance**; see note below), **Receipts**,
+  **Projects**, **Notes** — plus a persistent "Next stop" chip and in-app notifications when
+  dispatch changes (bell + Notifications page; SMS for same-day changes planned).
 - `admin_notes` on assignments is admin-only by construction (field reads go through a view that
   excludes it); `task_note` is the crew-visible channel.
 
 ### Mobile Time Tracking
 
 The field worker experience is optimized for mobile devices (PWA with Capacitor):
+
+> **Timer status under `field_worker_v2` (Jul 15, 2026):** usage analysis showed 355 of 356 time
+> entries in the prior 90 days were manual-form entries (live clock-in used once), so the v2
+> experience is **entry-first** and exposes no clock-in/out affordance. The flow below remains
+> the live behavior for flag-off users, and `/time-tracker/timer` survives as an unlisted
+> escape hatch during rollout.
 
 #### Clock In/Out Flow
 1. **Select Worker**: Choose from internal labor team members
