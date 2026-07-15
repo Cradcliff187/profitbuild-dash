@@ -220,14 +220,32 @@ export function useLastWorkedProject(
     staleTime: 60 * 1000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<LastWorkedProject | null> => {
-      const { data: entries, error } = await supabase
+      // Admin-entered time carries the WORKER's payee but not necessarily
+      // their user_id (Gotcha #68 resolution order: payees.user_id first,
+      // expenses.user_id fallback) — so match on either. A user can have
+      // multiple linked payees (internal W-2 shadow AND labor-providing
+      // subcontractor record), hence the list.
+      const { data: myPayees, error: payeesError } = await supabase
+        .from("payees")
+        .select("id")
+        .eq("user_id", userId);
+      if (payeesError) throw payeesError;
+      const payeeIds = (myPayees ?? []).map((p) => p.id);
+
+      let entriesQuery = supabase
         .from("expenses")
         .select("project_id, expense_date")
-        .eq("user_id", userId)
         .eq("is_time_entry", true)
         .order("expense_date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(15);
+      entriesQuery =
+        payeeIds.length > 0
+          ? entriesQuery.or(
+              `user_id.eq.${userId},payee_id.in.(${payeeIds.join(",")})`
+            )
+          : entriesQuery.eq("user_id", userId);
+      const { data: entries, error } = await entriesQuery;
       if (error) throw error;
 
       // Newest-first distinct projects + the newest date seen for each.
