@@ -154,9 +154,22 @@ per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding 
 - **Assignment detail** — tapping an assignment anywhere (a dispatch notification, or the Today
   Next Stop / Tomorrow card) opens one consistent screen showing the job: date, start time,
   project, the **full dispatcher note** (gate codes and all — never truncated), address with
-  one-tap directions, Call the project owner, and Open project schedule. Works for any date, so a
+  one-tap directions, Call the project owner, and **Open job**. Works for any date, so a
   ping about next week's work resolves to something readable. Note: dispatching a job to
   *yourself* sends no notification by design — assign to another worker to see one.
+- **The job hub** (`/projects/:id/schedule` on mobile, and at every width for pure field workers)
+  is what "Open job" reaches: today's dispatch note at the top, then peer rows for **Schedule ·
+  Photos & video · Drawings & docs · Materials · Notes**, each opening full-screen. It replaced a
+  five-tab strip nested inside the app's own tab bar, which at 390px scrolled sideways and hid
+  Materials off the edge. The **schedule is a row, not the headline** — of 65 schedulable lines on
+  active projects only 2 have ever been marked complete, and dispatch is the real scheduling model;
+  tasks now also group **Overdue** (previously late work was filed under "Upcoming"). Capture stays
+  on the bottom bar (Note · Camera · Attach).
+- **Field workers never see cost.** The Materials list shows quantity, procurement status, need-by
+  and expected delivery — never unit cost, line total, or the project's materials spend (those are
+  admin/manager only). ⚠️ **Estimating caveat:** a line item's *description* becomes the task name on
+  the field schedule, so naming a line "Cushion at $75 labor rate" (8 completed projects do) shows
+  that rate to the crew. Keep rate/margin assumptions out of line descriptions.
 - `admin_notes` on assignments is admin-only by construction (field reads go through a view that
   excludes it); `task_note` is the crew-visible channel.
 

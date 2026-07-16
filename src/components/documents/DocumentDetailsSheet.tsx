@@ -42,6 +42,7 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
   const [fileName, setFileName] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("other");
   const [description, setDescription] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -49,14 +50,21 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
       setFileName(document.file_name ?? "");
       setDocumentType(document.document_type);
       setDescription(document.description ?? "");
+      // `expires_at` is a Postgres date; <input type="date"> wants YYYY-MM-DD.
+      setExpiresAt(document.expires_at ?? "");
     }
   }, [document]);
+
+  // Only permits and licenses expire. Everything else has no expiry concept, so
+  // the field would be noise on 213 of 224 documents.
+  const supportsExpiry = documentType === "permit" || documentType === "license";
 
   const isDirty =
     !!document &&
     (fileName.trim() !== (document.file_name ?? "") ||
       documentType !== document.document_type ||
-      description.trim() !== (document.description ?? ""));
+      description.trim() !== (document.description ?? "") ||
+      (expiresAt || null) !== (document.expires_at ?? null));
 
   const handleSave = async () => {
     if (!document) return;
@@ -73,6 +81,9 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
           file_name: fileName.trim(),
           document_type: documentType,
           description: description.trim() || null,
+          // Cleared when the type no longer supports expiry, so a doc retyped
+          // permit -> drawing can't keep a stale expiry driving a warning.
+          expires_at: supportsExpiry ? expiresAt || null : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", document.id);
@@ -124,9 +135,10 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
                     <span className="font-medium text-foreground">Uploaded:</span>{" "}
                     {format(new Date(document.created_at), "MMM d, yyyy")}
                   </p>
-                  <p>
-                    <span className="font-medium text-foreground">Version:</span> v{document.version_number}
-                  </p>
+                  {/* No "Version" row. version_number is written by nothing, so
+                      it rendered "v1" on every document in the database —
+                      fabricated information about drawing currency. Restore it
+                      only if revisioning gets wired. */}
                   <p className="truncate">
                     <span className="font-medium text-foreground">Type:</span> {document.mime_type}
                   </p>
@@ -161,6 +173,27 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Expiry. `expires_at` had NO writer anywhere in the app — not
+                  here, not uploadProjectDocument — so it was null on all 11
+                  permits/licenses and the expiry warnings in FieldDocumentsList
+                  and ProjectDocumentsTable were unreachable code. An expired
+                  permit is the one signal on a field doc list with legal
+                  consequence; this is what makes it reachable. */}
+              {supportsExpiry && (
+                <div className="space-y-2">
+                  <Label htmlFor="document-expires-at">Expires</Label>
+                  <Input
+                    id="document-expires-at"
+                    type="date"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Field crews see a warning 30 days out, and in red once expired.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="document-description">Description</Label>

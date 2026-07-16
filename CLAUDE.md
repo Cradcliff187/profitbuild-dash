@@ -1508,12 +1508,22 @@ drawing?" — the highest-stakes question on a field doc surface — with a numb
 Either wire revisioning or stop displaying it. **Don't treat the display as evidence the feature
 exists.**
 
-**`project_documents.expires_at` is unsettable from the app** (Jul 16 2026). No UI writes it —
-`DocumentDetailsSheet` doesn't expose the field, and `uploadProjectDocument` doesn't set it — so it is
-null on all 11 permits/licenses and the expiry warnings in `FieldDocumentsList` +
-`ProjectDocumentsTable` are unreachable code. An expired permit is the one signal on the field doc
-list with legal consequence. Completing it means adding an expiry input to the editor (sensibly gated
-to permit/license), not writing more display logic.
+**`project_documents.expires_at` — now settable** (fixed Jul 16 2026). It previously had NO writer
+anywhere in the app, so it was null on all 11 permits/licenses and the expiry warnings in
+`FieldDocumentsList` + `ProjectDocumentsTable` were unreachable code. `DocumentDetailsSheet` now
+exposes an **Expires** date input, gated to `permit`/`license` (nothing else expires, and the field
+would be noise on 213 of 224 docs). Retyping away from permit/license **clears** the date, so a
+stale expiry can't drive a warning on a doc that no longer expires.
+
+**A line item's DESCRIPTION becomes the task name on the field schedule** (Jul 16 2026). There is no
+separate task-name field — `useScheduleTasks` projects `estimate_line_items.description` straight onto
+`FieldTaskCard`. So anything an estimator writes in a description is crew-visible. Live example: 8
+projects carry `labor_internal` lines named "Cushion with $75 per labor hour assumption" / "Cushion at
+$75 labor rate" — i.e. **the internal labor rate rendered to the field as a task**. All 8 are
+`complete` today so nothing leaks right now, but the convention is habitual and the next active
+estimate with one exposes it. This is a **naming/process fix, not a code fix** — do NOT add a
+"cushion"-keyword filter; that's guessing at data, the same trap as a `Plan-*` filename heuristic.
+Same family as the materials cost gate (Rule 32): field surfaces must not carry margin data.
 
 ---
 
