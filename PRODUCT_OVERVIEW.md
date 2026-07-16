@@ -151,6 +151,12 @@ per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding 
   yesterday/last Friday, weekly summary — **no timer affordance**; see note below), **Receipts**,
   **Projects**, **Notes** — plus a persistent "Next stop" chip and in-app notifications when
   dispatch changes (bell + Notifications page; SMS for same-day changes planned).
+- **Assignment detail** — tapping an assignment anywhere (a dispatch notification, or the Today
+  Next Stop / Tomorrow card) opens one consistent screen showing the job: date, start time,
+  project, the **full dispatcher note** (gate codes and all — never truncated), address with
+  one-tap directions, Call the project owner, and Open project schedule. Works for any date, so a
+  ping about next week's work resolves to something readable. Note: dispatching a job to
+  *yourself* sends no notification by design — assign to another worker to see one.
 - `admin_notes` on assignments is admin-only by construction (field reads go through a view that
   excludes it); `task_note` is the crew-visible channel.
 
