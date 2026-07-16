@@ -1446,10 +1446,28 @@ has no **Overdue** group — `isDateInRange` needs today inside the window and `
 open (tasks are the payload; on most projects Today/Active and This Week are empty, so a collapsed
 Upcoming meant opening the schedule and seeing zero tasks); `Completed` stays closed.
 
-**Open product question:** the schedule is largely unpopulated — of 65 schedulable lines on active
-construction projects, **2 have ever been marked complete**, and only **2 of 18** active projects have
-dated tasks. If it stays vestigial, Schedule should become a peer drill-down row rather than the
-inline payload. Deferred pending a decision on whether scheduling gets activated.
+**Schedule is a PEER ROW, not the payload** (decided Jul 16 2026 on evidence, PR
+[#170](https://github.com/Cradcliff187/profitbuild-dash/pull/170)). Of 65 schedulable lines on active
+construction projects, **2 have ever been marked complete**; only **2 of 18** active projects have
+dated tasks; and the inline list was actively misleading (bulk-defaulted `Jun 1 – Jun 8` on every
+line, in the past, filed under "Upcoming"). Revealed preference agrees: dispatch shipped crew fan-out
++ notifications + auto-allocation in Jul 2026 while estimate scheduling went untouched — **dispatch IS
+the scheduling model here**, and it's the hero. Same evidentiary bar as the timer removal (355/356).
+The Gantt is unaffected (desktop only). **This is reversible** — if estimate scheduling ever gets
+adopted, promote the row back to inline. Revisit on evidence, not on principle.
+
+**The mobile section label is "Job", not "Schedule"** (`getSectionLabel(section, isMobile)` +
+`getNavigationGroups({ isMobile })` — **keep the two in lockstep** or the selector pill and the nav
+sheet disagree). `/projects/:id/schedule` serves two screens (Rule 18 — one URL, two layouts): a Gantt
+on desktop, which really is a schedule, and this hub, which is the whole job with the schedule as one
+row inside it. Calling the section "Schedule" on mobile meant **Schedule contains Schedule**. The label
+follows the LAYOUT, not the URL. Do NOT "fix" the phone/desktop naming split by renaming globally
+(breaks the Gantt's truth) or by splitting routes (breaks every `?tab=` deep-link for no payoff).
+
+**No Delete on the field docs list** (Jul 16 2026). `FieldDocumentsList`'s kebab is Download + Edit
+details only. Rule 29 put the *editor* on more surfaces so the unnamed Drive imports were reachable —
+that intent doesn't extend to destroying a construction document from a phone on a jobsite through a
+confirm you'll tap past. Deletion lives in the desktop Documents hub, which does it properly.
 
 ---
 

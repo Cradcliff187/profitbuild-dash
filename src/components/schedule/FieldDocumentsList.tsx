@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Download, AlertTriangle, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { FileText, Download, AlertTriangle, Pencil, MoreVertical } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,26 +8,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { EntityFilterBar } from '@/components/filters/EntityFilterBar';
 import type { FilterFieldDef } from '@/components/filters/filterTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
 import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsSheet';
-import { deleteProjectDocument } from '@/utils/projectDocumentDelete';
 import { useRoles } from '@/contexts/RoleContext';
 import { DOCUMENT_TYPE_LABELS, type DocumentType, type ProjectDocument } from '@/types/document';
 import { DOCUMENT_TYPE_LUCIDE_ICONS, DOCUMENT_TYPE_ICON_COLORS, getDocumentDisplayDescription } from '@/utils/documentFileType';
@@ -84,7 +72,6 @@ function DocumentCard({
   showTypeBadge,
   onPreview,
   onEdit,
-  onDelete,
 }: {
   doc: ProjectDocument;
   /**
@@ -96,7 +83,6 @@ function DocumentCard({
   showTypeBadge: boolean;
   onPreview: () => void;
   onEdit?: () => void;
-  onDelete?: () => void;
 }) {
   const Icon = DOCUMENT_TYPE_LUCIDE_ICONS[doc.document_type] || FileText;
   const iconColor = DOCUMENT_TYPE_ICON_COLORS[doc.document_type] || 'text-muted-foreground';
@@ -111,7 +97,7 @@ function DocumentCard({
   // nesting interactive elements is invalid HTML, and a Radix trigger inside a
   // clickable row needs stopPropagation to survive (Gotcha #25). Siblings avoid
   // both problems by construction.
-  const hasMenu = Boolean(onEdit || onDelete);
+  const hasMenu = Boolean(onEdit);
 
   return (
     <Card className="p-0 overflow-hidden hover:bg-muted/30 transition-colors">
@@ -173,18 +159,6 @@ function DocumentCard({
                   Edit details
                 </DropdownMenuItem>
               )}
-              {onDelete && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={onDelete}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
@@ -205,32 +179,11 @@ function DocumentCard({
 
 export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
   const preview = useDocumentPreview();
-  const queryClient = useQueryClient();
   const { isAdmin, isManager } = useRoles();
   const canEdit = isAdmin || isManager;
   const [documentToEdit, setDocumentToEdit] = useState<ProjectDocument | null>(null);
-  const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState('');
 
-  const handleDelete = async () => {
-    if (!documentToDelete) return;
-    setIsDeleting(true);
-    const { error } = await deleteProjectDocument(documentToDelete);
-    setIsDeleting(false);
-
-    if (error) {
-      toast.error("Delete failed", { description: error.message || "Failed to delete document" });
-      return;
-    }
-
-    toast.success("Document deleted", { description: "Document removed successfully" });
-    queryClient.invalidateQueries({ queryKey: ['field-documents', projectId] });
-    queryClient.invalidateQueries({ queryKey: ['project-documents', projectId] });
-    queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] });
-    queryClient.invalidateQueries({ queryKey: ['project-docs-count', projectId] });
-    setDocumentToDelete(null);
-  };
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ['field-documents', projectId],
@@ -344,7 +297,6 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
                   })
                 }
                 onEdit={canEdit ? () => setDocumentToEdit(doc) : undefined}
-                onDelete={canEdit ? () => setDocumentToDelete(doc) : undefined}
               />
             ))}
           </div>
@@ -372,29 +324,6 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
         }}
       />
 
-      <AlertDialog open={!!documentToDelete} onOpenChange={(o) => !o && !isDeleting && setDocumentToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{documentToDelete?.file_name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

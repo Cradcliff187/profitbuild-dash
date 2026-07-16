@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Camera,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   FileText,
   Package,
@@ -46,28 +47,72 @@ import { toast } from "sonner";
  * Verbs live in the `FieldQuickActionBar` (Note / Camera / Attach) mounted by
  * ProjectDetailView — this surface is reference + navigation only.
  *
- *   hub          → "Today here" dispatch note · tasks · drill-down rows
+ *   hub          → "Today here" dispatch note · peer rows for everything else
  *   sub-page     → one section, full viewport, with a back row
+ *
+ * The SCHEDULE IS A PEER ROW, not the hub's payload (Jul 16 2026). It was
+ * inline, on the theory that tasks are why this screen exists. The data says
+ * otherwise: of 65 schedulable lines on active construction projects, TWO have
+ * ever been marked complete, and 2 of 18 active projects have dated tasks — and
+ * the inline list was actively misleading, showing bulk-defaulted past dates
+ * under "Upcoming". Dispatch (`crew_day_assignments`) is the real scheduling
+ * model here, and it's the hero. If estimate scheduling ever gets adopted,
+ * promoting this row back to inline is a small change — revisit on evidence,
+ * not on principle.
  *
  * URL contract is UNCHANGED — `?tab=` still selects the section, so mention
  * notifications deep-linking to `?tab=notes` (Rule 18 / the legacy
  * `/field-schedule/:id` redirect) land exactly where they always did. The
- * param now picks a sub-page instead of a tab; absent (or the legacy
- * `?tab=tasks`) means the hub, where tasks live inline.
+ * param picks a sub-page; absent means the hub. The pre-hub `?tab=tasks`
+ * aliases to the schedule sub-page.
  *
  * House rules shared with Today (Gotchas #53/#54/#55/#56/#63): no realtime,
  * user from `useAuth()` context — never `supabase.auth.getUser()` — plain
  * `useQuery`, errors thrown.
  */
 
-type SubPage = "notes" | "media" | "docs" | "materials";
+type SubPage = "schedule" | "notes" | "media" | "docs" | "materials";
 
-const SUB_PAGES: { id: SubPage; icon: React.ElementType; label: string; blurb: string }[] = [
-  { id: "media", icon: Camera, label: "Photos & video", blurb: "Site progress and issues" },
-  { id: "docs", icon: FileText, label: "Drawings & docs", blurb: "Plans, permits, specs" },
-  { id: "materials", icon: Package, label: "Materials", blurb: "Deliveries and long-lead items" },
-  { id: "notes", icon: StickyNote, label: "Notes", blurb: "Messages about this job" },
+const SUB_PAGES: {
+  id: SubPage;
+  icon: React.ElementType;
+  label: string;
+  blurb: string;
+}[] = [
+  {
+    id: "schedule",
+    icon: ClipboardCheck,
+    label: "Schedule",
+    blurb: "Tasks and dates for this job",
+  },
+  {
+    id: "media",
+    icon: Camera,
+    label: "Photos & video",
+    blurb: "Site progress and issues",
+  },
+  {
+    id: "docs",
+    icon: FileText,
+    label: "Drawings & docs",
+    blurb: "Plans, permits, specs",
+  },
+  {
+    id: "materials",
+    icon: Package,
+    label: "Materials",
+    blurb: "Deliveries and long-lead items",
+  },
+  {
+    id: "notes",
+    icon: StickyNote,
+    label: "Notes",
+    blurb: "Messages about this job",
+  },
 ];
+
+/** `?tab=tasks` was the pre-hub default. Tasks now live on the schedule sub-page. */
+const LEGACY_TAB_ALIASES: Record<string, SubPage> = { tasks: "schedule" };
 
 interface MobileScheduleViewProps {
   projectId: string;
@@ -75,16 +120,20 @@ interface MobileScheduleViewProps {
   projectEndDate: Date | null | undefined;
 }
 
-export function MobileScheduleView({ projectId, projectStartDate, projectEndDate }: MobileScheduleViewProps) {
+export function MobileScheduleView({
+  projectId,
+  projectStartDate,
+  projectEndDate,
+}: MobileScheduleViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const urlTab = searchParams.get("tab");
-  // Anything that isn't a known sub-page — including the legacy "tasks" value,
-  // which now lives on the hub — resolves to the hub.
-  const subPage: SubPage | null = SUB_PAGES.some((p) => p.id === urlTab)
-    ? (urlTab as SubPage)
+  const resolvedTab = urlTab ? (LEGACY_TAB_ALIASES[urlTab] ?? urlTab) : null;
+  // Anything that isn't a known sub-page resolves to the hub.
+  const subPage: SubPage | null = SUB_PAGES.some((p) => p.id === resolvedTab)
+    ? (resolvedTab as SubPage)
     : null;
 
   const openSubPage = (id: SubPage) => {
@@ -96,7 +145,7 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
       },
       // Push (not replace) so the device Back gesture returns to the hub —
       // matching the back row and the platform expectation for a drill-down.
-      { replace: false }
+      { replace: false },
     );
   };
 
@@ -107,17 +156,11 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
         next.delete("tab");
         return next;
       },
-      { replace: false }
+      { replace: false },
     );
   };
 
-  const {
-    tasks,
-    isLoading,
-    error,
-    updateTask,
-    loadTasks,
-  } = useScheduleTasks({
+  const { tasks, isLoading, error, updateTask, loadTasks } = useScheduleTasks({
     projectId,
     projectStartDate: projectStartDate ?? new Date(),
     projectEndDate: projectEndDate ?? new Date(),
@@ -134,9 +177,15 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
     month: "short",
     day: "numeric",
   });
-  const assignmentQuery = useProjectDayAssignment(user?.id, projectId, todayISO);
+  const assignmentQuery = useProjectDayAssignment(
+    user?.id,
+    projectId,
+    todayISO,
+  );
   const assignment = assignmentQuery.data ?? null;
-  const assignmentTime = assignment ? formatStartTime12h(assignment.start_time) : null;
+  const assignmentTime = assignment
+    ? formatStartTime12h(assignment.start_time)
+    : null;
 
   const notesCount = useQuery({
     queryKey: ["project-notes-count", projectId],
@@ -182,7 +231,13 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
         .from("project_documents")
         .select("id")
         .eq("project_id", projectId)
-        .in("document_type", ["drawing", "permit", "license", "specification", "other"]);
+        .in("document_type", [
+          "drawing",
+          "permit",
+          "license",
+          "specification",
+          "other",
+        ]);
       if (error) throw error;
       return data?.length || 0;
     },
@@ -192,6 +247,7 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
   const { materials } = useProjectMaterials(projectId);
 
   const counts: Record<SubPage, number | undefined> = {
+    schedule: tasks.length || undefined,
     notes: notesCount.data,
     media: mediaCount.data,
     docs: docsCount.data,
@@ -224,11 +280,49 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h2 className="text-lg font-semibold">{meta.label}</h2>
+          {subPage === "schedule" && (
+            <span className="ml-auto text-xs text-muted-foreground shrink-0">
+              {friendlyDate}
+            </span>
+          )}
         </div>
 
+        {subPage === "schedule" &&
+          (error ? (
+            <Card className="p-6 text-center">
+              <p className="text-sm font-medium mb-1">
+                Couldn't load the schedule
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Check your connection and try again.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[44px]"
+                onClick={() => loadTasks()}
+              >
+                Try again
+              </Button>
+            </Card>
+          ) : isLoading && !tasks.length ? (
+            <div className="space-y-2">
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </div>
+          ) : (
+            <FieldScheduleTable
+              tasks={tasks}
+              projectId={projectId}
+              onTaskUpdate={handleTaskUpdate}
+            />
+          ))}
         {subPage === "media" && <FieldMediaGallery projectId={projectId} />}
         {subPage === "docs" && <FieldDocumentsList projectId={projectId} />}
-        {subPage === "materials" && <ProjectMaterialsList projectId={projectId} />}
+        {subPage === "materials" && (
+          <ProjectMaterialsList projectId={projectId} />
+        )}
         {subPage === "notes" && (
           <ProjectNotesTimeline projectId={projectId} inSheet hideComposer />
         )}
@@ -245,145 +339,105 @@ export function MobileScheduleView({ projectId, projectStartDate, projectEndDate
   // Tailwind breakpoints only — never useIsMobile() (it breaks at 768 and
   // buckets iPads as desktop).
   return (
-    <div className="mx-auto max-w-2xl md:max-w-3xl lg:max-w-5xl">
-      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
-        {/* Main column: the dispatch note + the work */}
-        <div className="space-y-4 lg:col-span-2">
-          {/* Hero — the dispatcher's instruction, carried from Today to the
-              site. Rendered only when this worker is actually dispatched here
-              today; otherwise the tasks below are the answer and an empty
-              state would be pure noise (an admin browsing a project never has
-              an assignment). Note treatment matches AssignmentHeroCard and
-              AssignmentDetail so the same content wears the same chrome on all
-              three screens. */}
-          {assignment && (
-            <div className="rounded-xl border border-primary/40 bg-card shadow-sm overflow-hidden">
-              {/* The WHOLE hero is one nav button to `/my-day/:assignmentId`.
+    <div className="mx-auto max-w-2xl md:max-w-3xl space-y-4">
+      {/* Hero — the dispatcher's instruction, carried from Today to the site.
+          Rendered only when this worker is actually dispatched here today; an
+          admin browsing a project never has an assignment, so an empty state
+          would be pure noise. Note treatment matches AssignmentHeroCard and
+          AssignmentDetail so the same content wears the same chrome on all
+          three screens. */}
+      {assignment && (
+        <div className="rounded-xl border border-primary/40 bg-card shadow-sm overflow-hidden">
+          {/* The WHOLE hero is one nav button to `/my-day/:assignmentId`.
                   Rule 35: everything representing an assignment routes to the
                   canonical detail screen — it's the only place a worker gets
                   the date, Call owner, and the untruncated note for ANY date.
                   Structure mirrors AssignmentHeroCard so the same object
                   behaves identically on Today and on the project. */}
-              <button
-                type="button"
-                onClick={() => navigate(`/my-day/${assignment.id}`)}
-                className="w-full text-left p-4 hover:bg-accent/50 active:bg-accent transition-colors min-h-[44px]"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-                    Today here
-                  </span>
-                  {assignmentTime && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-semibold shrink-0">
-                      <Clock className="h-3 w-3" />
-                      {assignmentTime}
-                    </span>
-                  )}
-                </div>
-
-                {/* Never truncate — may carry gate codes. Line breaks preserved. */}
-                {assignment.task_note ? (
-                  <div className="mt-3 flex items-start gap-2">
-                    <div className="flex-1 min-w-0 rounded-lg border-l-2 border-primary bg-primary/5 px-3 py-2">
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {assignment.task_note}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-2" />
-                  </div>
-                ) : (
-                  <div className="mt-2 flex items-center gap-2">
-                    <p className="flex-1 text-sm text-muted-foreground">
-                      You're on this site today. No note from the office.
-                    </p>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                  </div>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Tasks — inline, because they're the reason this screen exists. */}
-          <section>
-            <div className="flex items-baseline justify-between gap-2 mb-2">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Tasks
-              </h2>
-              <span className="text-xs text-muted-foreground shrink-0">
-                {friendlyDate}
+          <button
+            type="button"
+            onClick={() => navigate(`/my-day/${assignment.id}`)}
+            className="w-full text-left p-4 hover:bg-accent/50 active:bg-accent transition-colors min-h-[44px]"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                Today here
               </span>
+              {assignmentTime && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-semibold shrink-0">
+                  <Clock className="h-3 w-3" />
+                  {assignmentTime}
+                </span>
+              )}
             </div>
-            {error ? (
-              <Card className="p-6 text-center">
-                <p className="text-sm font-medium mb-1">Couldn't load the schedule</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Check your connection and try again.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-h-[44px]"
-                  onClick={() => loadTasks()}
-                >
-                  Try again
-                </Button>
-              </Card>
-            ) : isLoading && !tasks.length ? (
-              <div className="space-y-2">
-                <Skeleton className="h-14 w-full rounded-xl" />
-                <Skeleton className="h-14 w-full rounded-xl" />
-                <Skeleton className="h-14 w-full rounded-xl" />
+
+            {/* Never truncate — may carry gate codes. Line breaks preserved. */}
+            {assignment.task_note ? (
+              <div className="mt-3 flex items-start gap-2">
+                <div className="flex-1 min-w-0 rounded-lg border-l-2 border-primary bg-primary/5 px-3 py-2">
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {assignment.task_note}
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-2" />
               </div>
             ) : (
-              <FieldScheduleTable tasks={tasks} projectId={projectId} onTaskUpdate={handleTaskUpdate} />
+              <div className="mt-2 flex items-center gap-2">
+                <p className="flex-1 text-sm text-muted-foreground">
+                  You're on this site today. No note from the office.
+                </p>
+                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+              </div>
             )}
-          </section>
+          </button>
         </div>
+      )}
 
-        {/* Rail on lg; stacked below tasks on phones/iPad portrait.
-            Counts are context on the row, not a nav badge — and each section
-            gets the full viewport rather than being nested inside this scroll
-            container (Gotcha #40's nested-scroll class). */}
-        <div className="lg:col-span-1">
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              On this job
-            </h2>
-            <div className="rounded-xl border bg-card overflow-hidden">
-              {SUB_PAGES.map((p, i) => {
-                const Icon = p.icon;
-                const count = counts[p.id];
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => openSubPage(p.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left",
-                      "hover:bg-accent/50 active:bg-accent transition-colors",
-                      i > 0 && "border-t border-border"
-                    )}
-                  >
-                    <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-base font-medium truncate">{p.label}</div>
-                      <div className="text-xs text-muted-foreground truncate">{p.blurb}</div>
-                    </div>
-                    {count !== undefined && count > 0 && (
-                      <span className="text-sm font-semibold text-muted-foreground tabular-nums shrink-0">
-                        {count}
-                      </span>
-                    )}
-                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+      {/* Everything on the job, as peers. Counts are context on the row,
+              not a nav badge — and each section gets the full viewport rather
+              than being nested inside this scroll container (Gotcha #40's
+              nested-scroll class). */}
+      <section>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          On this job
+        </h2>
+        <div className="rounded-xl border bg-card overflow-hidden">
+          {SUB_PAGES.map((p, i) => {
+            const Icon = p.icon;
+            const count = counts[p.id];
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => openSubPage(p.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left",
+                  "hover:bg-accent/50 active:bg-accent transition-colors",
+                  i > 0 && "border-t border-border",
+                )}
+              >
+                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-base font-medium truncate">
+                    {p.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {p.blurb}
+                  </div>
+                </div>
+                {count !== undefined && count > 0 && (
+                  <span className="text-sm font-semibold text-muted-foreground tabular-nums shrink-0">
+                    {count}
+                  </span>
+                )}
+                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

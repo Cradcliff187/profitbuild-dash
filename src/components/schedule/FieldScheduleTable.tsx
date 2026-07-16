@@ -23,6 +23,22 @@ function isThisWeek(dateStr: string): boolean {
   return date > today && date <= weekFromNow;
 }
 
+/**
+ * An incomplete task whose window has already closed. Previously there was no
+ * such group, and the fallthrough put late work under "Upcoming": `isDateInRange`
+ * needs today INSIDE the window and `isThisWeek` needs `start > today`, so a task
+ * that ended in the past and was never completed matched neither and landed in
+ * the else-branch. A crew being told late work is upcoming is misinformation,
+ * not a cosmetic gap.
+ */
+function isOverdue(endStr: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = parseDateOnly(endStr);
+  end.setHours(0, 0, 0, 0);
+  return end < today;
+}
+
 function isTaskComplete(task: ScheduleTask): boolean {
   if (task.has_multiple_phases && task.phases) {
     return task.phases.every((p) => p.completed);
@@ -35,9 +51,12 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
   projectId,
   onTaskUpdate,
 }) => {
-  // Group tasks into sections
-  const { active, thisWeek, upcoming, completed } = useMemo(() => {
+  // Group tasks into sections. Order matters: overdue is checked BEFORE the
+  // window/upcoming tests, since a closed-window task fails both and would
+  // otherwise fall through to "Upcoming".
+  const { overdue, active, thisWeek, upcoming, completed } = useMemo(() => {
     const groups = {
+      overdue: [] as ScheduleTask[],
       active: [] as ScheduleTask[],
       thisWeek: [] as ScheduleTask[],
       upcoming: [] as ScheduleTask[],
@@ -49,6 +68,8 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
         groups.completed.push(task);
       } else if (isDateInRange(task.start, task.end)) {
         groups.active.push(task);
+      } else if (isOverdue(task.end)) {
+        groups.overdue.push(task);
       } else if (isThisWeek(task.start)) {
         groups.thisWeek.push(task);
       } else {
@@ -60,6 +81,7 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
     const byStartDate = (a: ScheduleTask, b: ScheduleTask) =>
       new Date(a.start).getTime() - new Date(b.start).getTime();
 
+    groups.overdue.sort(byStartDate);
     groups.active.sort(byStartDate);
     groups.thisWeek.sort(byStartDate);
     groups.upcoming.sort(byStartDate);
@@ -78,6 +100,15 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
 
   return (
     <div className="space-y-3">
+      {/* Overdue leads and opens: it's the only group that needs a decision. */}
+      <FieldTaskSection
+        title="Overdue"
+        tasks={overdue}
+        defaultOpen={true}
+        tone="destructive"
+        projectId={projectId}
+        onTaskUpdate={onTaskUpdate}
+      />
       <FieldTaskSection
         title="Today / Active"
         tasks={active}
