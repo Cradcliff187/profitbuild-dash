@@ -508,7 +508,17 @@ export function ProjectOperationalDashboard({
         {/* Schedule pulse */}
         <Card className="p-3">
           <button
-            onClick={() => navigate(`/projects/${project.id}/schedule`)}
+            // This card is labelled "Schedule", so it must land on a schedule.
+            // On mobile that route renders the job hub (Rule 37) and the
+            // schedule is a row inside it — hence ?tab=schedule. On desktop the
+            // same route IS the Gantt, so no param is needed.
+            onClick={() =>
+              navigate(
+                isMobile
+                  ? `/projects/${project.id}/schedule?tab=schedule`
+                  : `/projects/${project.id}/schedule`
+              )
+            }
             className="w-full flex items-center justify-between text-left gap-2"
           >
             {isMobile ? (

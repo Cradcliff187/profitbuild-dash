@@ -1841,11 +1841,13 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       </AlertDialog>
 
       {/* FAB Buttons - Root level for proper z-index stacking */}
-      {/* Schedule FAB - Always visible, bottom-left */}
+      {/* Job FAB - Always visible, bottom-left. Picks a project, then lands on
+          that project's field hub (Rule 37) — NOT a schedule, despite the old
+          label; the schedule is one row inside the hub. */}
       <button
         onClick={() => setShowScheduleSelector(true)}
         className="fixed bottom-6 left-6 lg:left-[calc(12.5rem+1.5rem)] bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 z-50"
-        aria-label="View project schedule"
+        aria-label="Open a job"
       >
         <BarChart3 className="w-6 h-6" />
       </button>

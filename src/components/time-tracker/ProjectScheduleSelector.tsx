@@ -83,7 +83,8 @@ export const ProjectScheduleSelector: React.FC<ProjectScheduleSelectorProps> = (
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-semibold">View Project Schedule</h2>
+              {/* Lands on the project's field hub (Rule 37), not a schedule. */}
+              <h2 className="text-base font-semibold">Open a Job</h2>
             </div>
             <Button
               variant="ghost"

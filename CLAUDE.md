@@ -1456,9 +1456,25 @@ the scheduling model here**, and it's the hero. Same evidentiary bar as the time
 The Gantt is unaffected (desktop only). **This is reversible** — if estimate scheduling ever gets
 adopted, promote the row back to inline. Revisit on evidence, not on principle.
 
+**Everything that POINTS at this route must call it a job, not a schedule.** Renaming the destination
+and not tracing its referrers is how "Open project schedule" survived on
+[AssignmentDetail](src/pages/AssignmentDetail.tsx) while opening the hub. The full referrer set —
+check it if you rename again: `AssignmentDetail` ("Open job"), `MobileTimeTracker`'s FAB + its
+`ProjectScheduleSelector` sheet ("Open a Job"), `NextStopChip`, `LastProjectCard`, `MyProjects`,
+`Projects.tsx` (identity-only, no claim → fine), and
+[ProjectOperationalDashboard](src/components/ProjectOperationalDashboard.tsx)'s **"Schedule" pulse
+card**, which keeps its accurate label and instead deep-links `?tab=schedule` on mobile so it lands on
+what it names (desktop needs no param — that route IS the Gantt). Grep
+`` /schedule` `` before assuming you've found them all.
+
 **The mobile section label is "Job", not "Schedule"** (`getSectionLabel(section, isMobile)` +
-`getNavigationGroups({ isMobile })` — **keep the two in lockstep** or the selector pill and the nav
-sheet disagree). `/projects/:id/schedule` serves two screens (Rule 18 — one URL, two layouts): a Gantt
+`getNavigationGroups({ isMobile })` + **`useProjectBreadcrumbs(..., isMobile)`** — **keep all three in
+lockstep** or the pill, the nav sheet, and the breadcrumb trail disagree about one section. The
+breadcrumb was missed initially and stayed invisible only because the mobile trail is gated to 4+
+crumbs while schedule stops at 3.) Note "Job" coexists with AppLayout's generic **"Project Details"**
+header — that's a level up (it names the whole `/projects/*` tree, not the section) and is
+intentional; "job" and "project" are synonyms on site, and the destination's own three labels (pill,
+"ON THIS JOB", row blurbs) agree with each other. `/projects/:id/schedule` serves two screens (Rule 18 — one URL, two layouts): a Gantt
 on desktop, which really is a schedule, and this hub, which is the whole job with the schedule as one
 row inside it. Calling the section "Schedule" on mobile meant **Schedule contains Schedule**. The label
 follows the LAYOUT, not the URL. Do NOT "fix" the phone/desktop naming split by renaming globally

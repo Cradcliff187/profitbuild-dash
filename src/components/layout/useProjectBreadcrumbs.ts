@@ -14,7 +14,13 @@ import type { AppBreadcrumbItem } from "@/components/layout/AppBreadcrumbs";
 export function useProjectBreadcrumbs(
   project: ProjectWithFinancials | null | undefined,
   estimates: Estimate[] | undefined,
-  quotes: Quote[] | undefined
+  quotes: Quote[] | undefined,
+  // Must match what the section-selector pill renders, or the trail and the pill
+  // disagree about the same section: `schedule` reads "Schedule" on desktop (a
+  // Gantt) and "Job" on mobile (the field hub) — Rule 37. Invisible today only
+  // because the mobile trail is gated to 4+ crumbs and schedule stops at 3;
+  // threaded anyway so the next sub-route under it can't inherit the bug.
+  isMobile = false
 ): AppBreadcrumbItem[] {
   const location = useLocation();
   const params = useParams<{ id?: string; estimateId?: string; quoteId?: string }>();
@@ -39,7 +45,7 @@ export function useProjectBreadcrumbs(
     return items;
   }
 
-  const sectionLabel = getSectionLabel(section);
+  const sectionLabel = getSectionLabel(section, isMobile);
   const sectionHref = `/projects/${params.id}/${section}`;
   items.push({ label: sectionLabel, href: sectionHref });
 

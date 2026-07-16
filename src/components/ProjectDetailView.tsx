@@ -123,7 +123,7 @@ export const ProjectDetailView = () => {
 
   // Breadcrumbs for current project route. Returns [] when project hasn't
   // loaded yet; the AppBreadcrumbs component renders null for <2 items.
-  const breadcrumbItems = useProjectBreadcrumbs(project, estimates, quotes);
+  const breadcrumbItems = useProjectBreadcrumbs(project, estimates, quotes, isMobile);
 
   useEffect(() => {
     if (projectId) {
