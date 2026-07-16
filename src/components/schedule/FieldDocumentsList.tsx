@@ -21,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { EntityFilterBar } from '@/components/filters/EntityFilterBar';
+import type { FilterFieldDef } from '@/components/filters/filterTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import { DocumentPreviewModals } from '@/components/documents/DocumentPreviewModals';
@@ -49,6 +51,13 @@ const SECTION_LABELS: Record<string, { title: string; types: DocumentType[] }> =
   attachments: { title: 'Field Attachments', types: ['other'] },
 };
 
+/** Show the search input once the list is too long to scan with gloves on. */
+const SEARCH_THRESHOLD = 10;
+
+const FILTER_FIELDS: FilterFieldDef[] = [
+  { kind: 'search', key: 'search', placeholder: 'Search documents…' },
+];
+
 function ExpirationWarning({ expiresAt }: { expiresAt: string }) {
   const daysUntil = differenceInDays(new Date(expiresAt), new Date());
 
@@ -72,11 +81,19 @@ function ExpirationWarning({ expiresAt }: { expiresAt: string }) {
 
 function DocumentCard({
   doc,
+  showTypeBadge,
   onPreview,
   onEdit,
   onDelete,
 }: {
   doc: ProjectDocument;
+  /**
+   * Only true in sections that actually mix types (Permits & Licenses). In a
+   * single-type section the badge restates the section header on every row —
+   * "Drawing/Plan" under "PLANS & DRAWINGS" — and the row's second line is
+   * scarce on a 375px screen.
+   */
+  showTypeBadge: boolean;
   onPreview: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -108,17 +125,22 @@ function DocumentCard({
             <Icon className={`w-5 h-5 ${iconColor}`} />
           </div>
 
+          {/* The file name is the only thing that identifies these documents,
+              so it gets the room. The upload date used to render on every row;
+              it's `created_at`, which across the live corpus is a bulk-import
+              timestamp (42 drawings share 6 upload days) — and the list is
+              already ordered newest-first, so position conveys recency without
+              spending a line per row. Exact date still lives in Edit details. */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{doc.file_name}</p>
             {displayDescription && (
               <p className="text-xs text-muted-foreground truncate mt-0.5">{displayDescription}</p>
             )}
-            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-              <Badge variant="outline" className="text-[9px] h-4 px-1">
+            {showTypeBadge && (
+              <Badge variant="outline" className="text-[9px] h-4 px-1 mt-1">
                 {DOCUMENT_TYPE_LABELS[doc.document_type]}
               </Badge>
-              <span>{format(new Date(doc.created_at), 'MMM d, yyyy')}</span>
-            </div>
+            )}
             {doc.expires_at && <ExpirationWarning expiresAt={doc.expires_at} />}
           </div>
         </button>
@@ -189,6 +211,7 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
   const [documentToEdit, setDocumentToEdit] = useState<ProjectDocument | null>(null);
   const [documentToDelete, setDocumentToDelete] = useState<ProjectDocument | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [search, setSearch] = useState('');
 
   const handleDelete = async () => {
     if (!documentToDelete) return;
@@ -225,18 +248,33 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
     enabled: !!projectId,
   });
 
-  // Group documents by section
-  const sections = useMemo(() => {
+  // Search across name + description. A real project carries 40+ drawings and
+  // this is a gloves-on surface — scrolling a flat list is not a find strategy.
+  const filtered = useMemo(() => {
     if (!documents) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return documents;
+    return documents.filter(
+      (d) =>
+        d.file_name?.toLowerCase().includes(q) ||
+        d.description?.toLowerCase().includes(q)
+    );
+  }, [documents, search]);
 
-    return Object.entries(SECTION_LABELS)
-      .map(([key, { title, types }]) => ({
-        key,
-        title,
-        docs: documents.filter((d) => types.includes(d.document_type)),
-      }))
-      .filter((section) => section.docs.length > 0);
-  }, [documents]);
+  // Group documents by section. `showTypeBadge` is derived from the section's
+  // own definition, so a single-type section never restates itself per row.
+  const sections = useMemo(
+    () =>
+      Object.entries(SECTION_LABELS)
+        .map(([key, { title, types }]) => ({
+          key,
+          title,
+          showTypeBadge: types.length > 1,
+          docs: filtered.filter((d) => types.includes(d.document_type)),
+        }))
+        .filter((section) => section.docs.length > 0),
+    [filtered]
+  );
 
   if (isLoading) {
     return (
@@ -258,8 +296,35 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
     );
   }
 
+  const showSearch = documents.length > SEARCH_THRESHOLD;
+
   return (
     <div className="space-y-4">
+      {showSearch && (
+        <EntityFilterBar
+          entityName="Documents"
+          fields={FILTER_FIELDS}
+          values={{ search }}
+          onChange={(patch) => setSearch((patch.search as string) ?? '')}
+          onClearAll={() => setSearch('')}
+          resultCount={filtered.length}
+        />
+      )}
+
+      {sections.length === 0 && (
+        <Card className="p-8 text-center">
+          <p className="text-sm font-medium">No documents match "{search}"</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 min-h-[44px]"
+            onClick={() => setSearch('')}
+          >
+            Clear search
+          </Button>
+        </Card>
+      )}
+
       {sections.map((section) => (
         <div key={section.key}>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
@@ -270,6 +335,7 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
               <DocumentCard
                 key={doc.id}
                 doc={doc}
+                showTypeBadge={section.showTypeBadge}
                 onPreview={() =>
                   preview.openPreview({
                     fileUrl: doc.file_url,
@@ -287,10 +353,23 @@ export function FieldDocumentsList({ projectId }: FieldDocumentsListProps) {
 
       <DocumentPreviewModals preview={preview} />
 
+      {/* The editor offers every ASSIGNABLE_DOCUMENT_TYPE, but this list only
+          shows FIELD_DOCUMENT_TYPES — so retyping a document to contract /
+          report / invoice / quote moves it OUT of the field list. Without this
+          it just disappeared from under the admin's finger with no toast and
+          no explanation, which reads as data loss. Say what happened and where
+          it went; the doc is still on the project's Documents hub. */}
       <DocumentDetailsSheet
         document={documentToEdit}
         open={!!documentToEdit}
         onOpenChange={(o) => !o && setDocumentToEdit(null)}
+        onSaved={(saved) => {
+          if (!FIELD_DOCUMENT_TYPES.includes(saved.document_type)) {
+            toast.info('Moved to Documents', {
+              description: `"${saved.file_name}" is now a ${DOCUMENT_TYPE_LABELS[saved.document_type]} and no longer appears in the field list.`,
+            });
+          }
+        }}
       />
 
       <AlertDialog open={!!documentToDelete} onOpenChange={(o) => !o && !isDeleting && setDocumentToDelete(null)}>

@@ -1007,6 +1007,18 @@ manager only). The Hub **defaults to the `All` sub-tab**, which renders a differ
 invoice docs only live in `All`. Keep `DocumentType` and its label/icon `Record`s in lockstep (they're
 full `Record<DocumentType,…>`, so a missing key fails `type-check` loudly — that's the safety net).
 
+**`ASSIGNABLE_DOCUMENT_TYPES` ⊅ `FIELD_DOCUMENT_TYPES` — retyping can move a doc off the surface you're
+on (Jul 16, 2026, PR [#169](https://github.com/Cradcliff187/profitbuild-dash/pull/169))**. The editor
+offers drawing/permit/license/**contract**/specification/**report**/**invoice**/**quote**/other;
+[`FieldDocumentsList`](src/components/schedule/FieldDocumentsList.tsx) renders only
+`drawing/permit/license/specification/other`. So an admin retyping a doc to contract/report/invoice/
+quote from the FIELD list watched it vanish under their finger — no toast, no explanation, reads as
+data loss. `DocumentDetailsSheet.onSaved` now passes `{document_type, file_name}` back (a no-arg
+`() => void` is still assignable, so existing callers are untouched) and the field list toasts
+"Moved to Documents". **Any surface that filters documents by type must handle this** — either
+constrain its editor's type list or explain where the row went. Don't fix it by widening
+`FIELD_DOCUMENT_TYPES`; contracts and invoices do not belong in a field worker's doc list.
+
 ### 30. Labor Cushion on Approved Change Orders (May 24, 2026, PR #114)
 
 A change order is an incremental estimate, and the labor-cushion model (Rules 13/28) now treats it as
