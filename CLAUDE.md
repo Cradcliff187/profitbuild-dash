@@ -1398,18 +1398,18 @@ assume structure.
 
 [`MobileScheduleView`](src/components/schedule/MobileScheduleView.tsx) (`/projects/:id/schedule` on
 mobile, and at EVERY width for `isFieldWorkerOnly` — `ProjectScheduleRoute` branches on
-`isMobile || isFieldWorkerOnly`) renders a **hub**: dispatch hero → tasks inline → a list of
-drill-down rows (Photos & video · Drawings & docs · Materials · Notes). It replaced a five-tab strip
+`isMobile || isFieldWorkerOnly`) renders a **hub**: dispatch hero → peer drill-down rows (Schedule ·
+Photos & video · Drawings & docs · Materials · Notes), each opening full-viewport. It replaced a five-tab strip
 that was **a second tab bar nested inside the app's `FieldTabBar`** — the same interaction pattern
 twice, 500px apart, in two visual languages. At 390px that strip also scrolled horizontally, parking
 **Materials off the right edge with no affordance**: a shipped feature undiscoverable on the device it
 was built for. Don't reintroduce a tab strip here; one navigation layer per screen.
 
-**The `?tab=` URL contract is UNCHANGED** — `?tab=notes|media|docs|materials` still selects the
-section, so assignment/mention notification deep-links and the legacy `/field-schedule/:id` redirect
-(Rule 18) land exactly where they always did. The param now picks a **sub-page** (full viewport, back
-row, push nav so the device Back gesture returns to the hub) instead of a tab. Absent — or the legacy
-`?tab=tasks` — means the hub, where tasks live inline.
+**The `?tab=` URL contract is UNCHANGED** — `?tab=schedule|notes|media|docs|materials` still selects
+the section, so assignment/mention notification deep-links and the legacy `/field-schedule/:id`
+redirect (Rule 18) land exactly where they always did. The param now picks a **sub-page** (full
+viewport, back row, push nav so the device Back gesture returns to the hub) instead of a tab. Absent
+means the hub; the pre-hub `?tab=tasks` aliases to the schedule sub-page (`LEGACY_TAB_ALIASES`).
 
 **Alignment with the Today home is the point** (Rule 35): the hero answers the question, payload beats
 counts, and the layout mirrors Today exactly — `mx-auto max-w-2xl md:max-w-3xl lg:max-w-5xl` +
@@ -1425,14 +1425,20 @@ owner, and the untruncated note for ANY date. Backed by `useProjectDayAssignment
 EARLIEST row when someone is dispatched twice to one site in a day, and renders NOTHING when there's
 no assignment (an admin browsing a project would otherwise always see an empty state).
 
-**House rules** (Gotchas #53/#54/#55/#56/#63): the hub adds zero realtime, never calls
-`auth.getUser()`, user comes from `useAuth()`, plain `useQuery`. **Known violation, pre-existing:**
-[`useScheduleTasks`](src/components/schedule/hooks/useScheduleTasks.ts) opens an **unfiltered**
-`postgres_changes` subscription on `estimate_line_items` + `change_order_line_items` with a hardcoded
-`'schedule-changes'` channel name — so any admin editing any estimate on any project reloads this
-worker's task list, and it's the exact auth-loop shape Rule 35 forbids. It is **field-only** (the
-desktop Gantt has its own loader and does NOT import this hook), so removing it cannot regress the
-Gantt. Queued, not done.
+**House rules** (Gotchas #53/#54/#55/#56/#63): the field path now has **ZERO realtime** — verified
+live via `supabase.getChannels() === []` + `realtime.conn === "no socket"`.
+[`useScheduleTasks`](src/components/schedule/hooks/useScheduleTasks.ts) was the last violation and its
+subscription is **removed** (Jul 16 2026): it opened an **unfiltered** `postgres_changes` channel on
+`estimate_line_items` + `change_order_line_items` under the hardcoded name `'schedule-changes'`, so any
+admin editing any estimate on any project reloaded this worker's task list, on the exact auth-loop
+shape Rule 35 forbids. Replaced with a visibility/focus refetch; `loadTasks` is held in a **ref, not a
+dep** — callers pass `projectStartDate ?? new Date()`, so its identity changes every render on a
+project with no start date and depending on it would re-register the listeners each time. The Gantt
+never imported this hook (it has its own correctly-scoped `schedule-updates-${projectId}` channel), so
+this could not regress it. **Don't add a channel back here.** Caveat: the removal is proven, the focus
+refetch is **not instrumented** — supabase-js binds `fetch` at construction and never routes through
+`window.fetch`, and `performance.getEntriesByType('resource')` doesn't record its calls either, so the
+browser pane can't observe it. Real check: background the PWA and reopen.
 
 **Freshness is invalidation-driven, not subscription-driven.** The hub's counts read
 `['project-notes-count'|'project-media-count'|'project-docs-count', projectId]` — the exact keys
@@ -1498,15 +1504,16 @@ misclassification**: many are plainly drawings/proposals sitting under `other`, 
 field list's "Field Attachments" section instead of "Plans & Drawings". Fix is admin retyping via the
 editor (Rule 29), or a reviewed bulk retype — NOT a filename heuristic, which would just be guessing.
 
-**`project_documents.version_number` is a DEAD column that the UI presents as fact** (Jul 16 2026).
-Nothing in the codebase ever writes it — not the upload path, not the editor — so every row sits at
-the DB default and all 224 field-visible docs share ONE distinct value. Yet
-[`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) renders "Version: v1" and
-[`ProjectDocumentsTable`](src/components/ProjectDocumentsTable.tsx) renders a `v1` badge. That is
-fabricated information, same class as the old "Upcoming" bug: it answers "is this the current
-drawing?" — the highest-stakes question on a field doc surface — with a number that means nothing.
-Either wire revisioning or stop displaying it. **Don't treat the display as evidence the feature
-exists.**
+**`project_documents.version_number` is a DEAD column — no longer displayed** (Jul 16 2026). Nothing
+in the codebase ever writes it — not the upload path, not the editor — so every row sits at the DB
+default and all 224 field-visible docs share ONE distinct value. It used to render anyway:
+`DocumentDetailsSheet` showed "Version: v1" and `ProjectDocumentsTable` showed a `v1` badge. **Both
+displays are removed** — that was fabricated information, same class as the old "Upcoming" bug,
+answering "is this the current drawing?" (the highest-stakes question on a field doc surface) with a
+number that means nothing. **Don't restore either display unless revisioning is actually wired**, and
+don't treat the column's existence as evidence the feature exists. Revisioning itself is unbuilt and
+needs a process decision first (does RCG receive revised sets? who uploads? how is supersession
+marked?) — not a schema guess.
 
 **`project_documents.expires_at` — now settable** (fixed Jul 16 2026). It previously had NO writer
 anywhere in the app, so it was null on all 11 permits/licenses and the expiry warnings in
