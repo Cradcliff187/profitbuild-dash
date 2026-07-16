@@ -1131,11 +1131,23 @@ columns** (migration `add_material_procurement_tracking`): `procurement_status`
 `need_by_date`, `is_long_lead`. NOT JSON — these are first-class columns on both line-item tables,
 consistent with how `scheduled_start_date`/`schedule_notes`/`dependencies` already live there. Surfaced
 by [`ProjectMaterialsList`](src/components/materials/ProjectMaterialsList.tsx) + `MaterialProcurementSheet`
-(edit gated to admin/manager). Mounted as a **Materials** tab on mobile (`MobileScheduleView`) and a
-third view toggle on desktop (`ProjectScheduleView`). Long-lead items sort first and render as
+(edit gated to admin/manager). Mounted as a drill-down on the field project hub (`MobileScheduleView`,
+Rule 37) and a third view toggle on desktop (`ProjectScheduleView`). Long-lead items sort first and render as
 **informational milestone diamonds** on the Gantt (id prefix `material:`, `isDisabled`, ignored by the
 drag/click handlers) so a casework/door delivery is visible next to the work it gates without being a
 duration bar.
+
+**COST IS ADMIN/MANAGER-ONLY on the materials surface (Jul 16, 2026, PR [#169](https://github.com/Cradcliff187/profitbuild-dash/pull/169))** —
+`ProjectMaterialsList` gates unit cost, line total, AND the project-wide materials-spend cell in the
+summary strip behind `isAdmin || isManager`. Field workers see `Qty N` + procurement status + need-by
++ expected delivery: **what is coming and when, never what it cost**. This surface is mounted on the
+field project hub, so before the gate a worker could read the whole materials budget off their phone
+(it was only hidden by accident — the Materials tab sat off-screen in the old horizontally-scrolling
+strip at 390px). Don't remove the gate to "simplify"; don't add a cost column to a field-visible
+materials view. **It is a UX boundary, not a security boundary** — same distinction as the AppLayout
+route allowlist (Gotcha #44). `estimate_line_items.cost_per_unit` stays readable via the API to anyone
+who can read the rows, and field workers MUST read those rows for the schedule. The durable fix is a
+cost-omitting field view mirroring `crew_day_assignments_field_view` (Rule 34) — queued, not built.
 
 **Known limitation (consistent with pre-existing behavior)**: `create_estimate_version` copies only
 financial columns — it has never carried scheduling state forward, and procurement state is the same.
@@ -1369,6 +1381,63 @@ chip — always rendered; the old `isOverviewRoute` suppression is deleted) and 
 column (no city/state/zip split); `payees.phone_numbers` is likewise free text despite the plural
 name — parse with `firstUsablePhone()` ([todayData.ts](src/components/today/todayData.ts)), never
 assume structure.
+
+### 37. Field project view is a HUB + drill-downs, not tabs (Jul 16 2026, PR [#169](https://github.com/Cradcliff187/profitbuild-dash/pull/169))
+
+[`MobileScheduleView`](src/components/schedule/MobileScheduleView.tsx) (`/projects/:id/schedule` on
+mobile, and at EVERY width for `isFieldWorkerOnly` — `ProjectScheduleRoute` branches on
+`isMobile || isFieldWorkerOnly`) renders a **hub**: dispatch hero → tasks inline → a list of
+drill-down rows (Photos & video · Drawings & docs · Materials · Notes). It replaced a five-tab strip
+that was **a second tab bar nested inside the app's `FieldTabBar`** — the same interaction pattern
+twice, 500px apart, in two visual languages. At 390px that strip also scrolled horizontally, parking
+**Materials off the right edge with no affordance**: a shipped feature undiscoverable on the device it
+was built for. Don't reintroduce a tab strip here; one navigation layer per screen.
+
+**The `?tab=` URL contract is UNCHANGED** — `?tab=notes|media|docs|materials` still selects the
+section, so assignment/mention notification deep-links and the legacy `/field-schedule/:id` redirect
+(Rule 18) land exactly where they always did. The param now picks a **sub-page** (full viewport, back
+row, push nav so the device Back gesture returns to the hub) instead of a tab. Absent — or the legacy
+`?tab=tasks` — means the hub, where tasks live inline.
+
+**Alignment with the Today home is the point** (Rule 35): the hero answers the question, payload beats
+counts, and the layout mirrors Today exactly — `mx-auto max-w-2xl md:max-w-3xl lg:max-w-5xl` +
+`lg:grid-cols-3` (tasks in the main column, "On this job" in the rail), `Skeleton` loading, error card
+with **Try again** (wired to `useScheduleTasks`'s exported `loadTasks`), and the dispatch note in
+Today's `border-l-2 border-primary bg-primary/5` block. Tailwind breakpoints only — never
+`useIsMobile()` (it breaks at 768 and buckets iPads as desktop).
+
+**The hero is one nav button to `/my-day/:assignmentId`** — Rule 35's "everything representing an
+assignment routes here" applies to this surface too. It's the only place a worker gets the date, Call
+owner, and the untruncated note for ANY date. Backed by `useProjectDayAssignment` (todayData.ts) on
+`crew_day_assignments_field_view` (Rule 34 — never the base table from field code); it takes the
+EARLIEST row when someone is dispatched twice to one site in a day, and renders NOTHING when there's
+no assignment (an admin browsing a project would otherwise always see an empty state).
+
+**House rules** (Gotchas #53/#54/#55/#56/#63): the hub adds zero realtime, never calls
+`auth.getUser()`, user comes from `useAuth()`, plain `useQuery`. **Known violation, pre-existing:**
+[`useScheduleTasks`](src/components/schedule/hooks/useScheduleTasks.ts) opens an **unfiltered**
+`postgres_changes` subscription on `estimate_line_items` + `change_order_line_items` with a hardcoded
+`'schedule-changes'` channel name — so any admin editing any estimate on any project reloads this
+worker's task list, and it's the exact auth-loop shape Rule 35 forbids. It is **field-only** (the
+desktop Gantt has its own loader and does NOT import this hook), so removing it cannot regress the
+Gantt. Queued, not done.
+
+**Freshness is invalidation-driven, not subscription-driven.** The hub's counts read
+`['project-notes-count'|'project-media-count'|'project-docs-count', projectId]` — the exact keys
+`FieldQuickActionBar` and `useProjectNotes` already invalidate — so a note/photo/attachment from the
+bar updates the hub instantly (verified live: 2 → 3, no reload). Remote changes land on focus refetch
+(60s staleTime). Don't "fix" perceived staleness by adding a channel.
+
+**Known bug, not fixed here:** [`FieldScheduleTable`](src/components/schedule/FieldScheduleTable.tsx)
+has no **Overdue** group — `isDateInRange` needs today inside the window and `isThisWeek` needs
+`date > today`, so a past-due incomplete task falls through to **"Upcoming"**. `Upcoming` now defaults
+open (tasks are the payload; on most projects Today/Active and This Week are empty, so a collapsed
+Upcoming meant opening the schedule and seeing zero tasks); `Completed` stays closed.
+
+**Open product question:** the schedule is largely unpopulated — of 65 schedulable lines on active
+construction projects, **2 have ever been marked complete**, and only **2 of 18** active projects have
+dated tasks. If it stays vestigial, Schedule should become a peer drill-down row rather than the
+inline payload. Deferred pending a decision on whether scheduling gets activated.
 
 ---
 

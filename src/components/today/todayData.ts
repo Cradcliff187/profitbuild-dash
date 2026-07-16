@@ -144,6 +144,48 @@ export function useAssignmentById(
 }
 
 /**
+ * The signed-in worker's assignment for ONE project on ONE date — powers the
+ * "Today here" hero on the project field view, so the dispatcher's instruction
+ * follows the worker from Today → assignment detail → the site itself (before
+ * this, the note died at the project header).
+ *
+ * Multiple rows per (user, project, date) are valid (Rule 34 — a morning and
+ * an afternoon block on the same site), so this takes the EARLIEST by
+ * start_time and ignores the rest; the full set stays visible on Today.
+ * Returns null when the worker isn't dispatched here today — callers omit the
+ * hero entirely rather than rendering an empty state (an admin browsing a
+ * project would otherwise always see "nothing scheduled").
+ */
+export function useProjectDayAssignment(
+  userId: string | undefined,
+  projectId: string | undefined,
+  workDateISO: string,
+  options: HookOptions = {}
+) {
+  return useQuery({
+    queryKey: ["project-day-assignment", userId, projectId, workDateISO],
+    enabled: !!userId && !!projectId && (options.enabled ?? true),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<FieldAssignment | null> => {
+      const { data, error } = await supabase
+        .from("crew_day_assignments_field_view")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("project_id", projectId)
+        .eq("work_date", workDateISO)
+        .order("start_time", { ascending: true, nullsFirst: false })
+        .order("created_at")
+        .limit(1);
+      if (error) throw error;
+      const row = (data ?? [])[0];
+      if (!row || !row.id || !row.project_id || !row.work_date) return null;
+      return row as FieldAssignment;
+    },
+  });
+}
+
+/**
  * Projects referenced by the visible assignments, plus each project's owner
  * contact (projects.owner_id → payees.payee_name / phone_numbers). The owner
  * read is deliberately NON-FATAL: the Call affordance is secondary, and a

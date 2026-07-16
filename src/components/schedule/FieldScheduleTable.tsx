@@ -92,10 +92,15 @@ export const FieldScheduleTable: React.FC<FieldScheduleTableProps> = ({
         projectId={projectId}
         onTaskUpdate={onTaskUpdate}
       />
+      {/* Open by default. Tasks are this screen's payload, and on a project
+          whose work is all in the future (common — most projects aren't in
+          their active window today) Today/Active and This Week render nothing,
+          so a collapsed Upcoming meant a worker opened the schedule and saw
+          zero tasks. Completed stays closed: it's history, not payload. */}
       <FieldTaskSection
         title="Upcoming"
         tasks={upcoming}
-        defaultOpen={false}
+        defaultOpen={true}
         projectId={projectId}
         onTaskUpdate={onTaskUpdate}
       />
