@@ -50,7 +50,7 @@ export function TomorrowSection({
               <button
                 key={a.id}
                 type="button"
-                onClick={() => navigate(`/projects/${a.project_id}/schedule`)}
+                onClick={() => navigate(`/my-day/${a.id}`)}
                 className="w-full text-left bg-card border border-border rounded-lg px-3 py-2.5 flex items-center gap-3 hover:bg-accent/50 active:bg-accent transition-colors min-h-[44px]"
               >
                 <div className="flex-1 min-w-0">
