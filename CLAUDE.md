@@ -1466,12 +1466,38 @@ follows the LAYOUT, not the URL. Do NOT "fix" the phone/desktop naming split by 
 
 **Delete STAYS on the field docs list, admin/manager-only** (revisited Jul 16 2026). It was briefly
 removed on the reasoning that destroying a construction document from a phone is all downside and the
-Documents hub does it properly — **that reasoning was wrong on the facts**: admins do triage from the
-field, and with 171 of 224 field-visible docs being unnamed Drive imports, cleanup-in-place is exactly
-what Rule 29 existed to enable. Forcing a nav hop to the hub to delete a junk row you're looking at is
-friction with no safety payoff (the confirm dialog is the guard). Field workers never see it —
-`canEdit = isAdmin || isManager` gates Edit and Delete together. Don't remove it again without
-evidence that admins aren't using it.
+Documents hub does it properly — **that reasoning was wrong on the facts**: admins do triage documents
+from the field, and cleanup-in-place is exactly what Rule 29 existed to enable. Forcing a nav hop to
+the hub to act on a row you're already looking at is friction with no safety payoff (the confirm
+dialog is the guard). Field workers never see it — `canEdit = isAdmin || isManager` gates Edit and
+Delete together. Don't remove it again without evidence that admins aren't using it.
+
+**Do NOT repeat the "unnamed Drive imports" claim — it is false** (checked Jul 16 2026). Rule 29
+describes a PAST problem with names like `Migrated from Drive: 1za1Ck…`; **zero** `project_documents`
+rows have such a `file_name` today. That string lives in `description`, and
+[`getDocumentDisplayDescription`](src/utils/documentFileType.ts) already returns null for it, so it
+never renders. The 171 `other` rows are well-named (`Plan-Integrative Medicine.pdf`, `UC Midtown 1st
+Floor.pdf`, `Bon Secours Mercy Health (BSMH) - Work Order 369661.pdf`). **The real issue is
+misclassification**: many are plainly drawings/proposals sitting under `other`, so they surface in the
+field list's "Field Attachments" section instead of "Plans & Drawings". Fix is admin retyping via the
+editor (Rule 29), or a reviewed bulk retype — NOT a filename heuristic, which would just be guessing.
+
+**`project_documents.version_number` is a DEAD column that the UI presents as fact** (Jul 16 2026).
+Nothing in the codebase ever writes it — not the upload path, not the editor — so every row sits at
+the DB default and all 224 field-visible docs share ONE distinct value. Yet
+[`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) renders "Version: v1" and
+[`ProjectDocumentsTable`](src/components/ProjectDocumentsTable.tsx) renders a `v1` badge. That is
+fabricated information, same class as the old "Upcoming" bug: it answers "is this the current
+drawing?" — the highest-stakes question on a field doc surface — with a number that means nothing.
+Either wire revisioning or stop displaying it. **Don't treat the display as evidence the feature
+exists.**
+
+**`project_documents.expires_at` is unsettable from the app** (Jul 16 2026). No UI writes it —
+`DocumentDetailsSheet` doesn't expose the field, and `uploadProjectDocument` doesn't set it — so it is
+null on all 11 permits/licenses and the expiry warnings in `FieldDocumentsList` +
+`ProjectDocumentsTable` are unreachable code. An expired permit is the one signal on the field doc
+list with legal consequence. Completing it means adding an expiry input to the editor (sensibly gated
+to permit/license), not writing more display logic.
 
 ---
 
