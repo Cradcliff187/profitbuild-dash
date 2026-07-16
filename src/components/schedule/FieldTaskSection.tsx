@@ -10,6 +10,8 @@ interface FieldTaskSectionProps {
   title: string;
   tasks: ScheduleTask[];
   defaultOpen: boolean;
+  /** 'destructive' tints the header — used by Overdue, the one group that demands action. */
+  tone?: 'default' | 'destructive';
   projectId: string;
   onTaskUpdate: (task: ScheduleTask) => void;
 }
@@ -18,6 +20,7 @@ export function FieldTaskSection({
   title,
   tasks,
   defaultOpen,
+  tone = 'default',
   projectId,
   onTaskUpdate,
 }: FieldTaskSectionProps) {
@@ -42,10 +45,27 @@ export function FieldTaskSection({
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 active:bg-muted/80 transition-colors min-h-[44px]">
+        <button
+          className={cn(
+            'w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors min-h-[44px]',
+            tone === 'destructive'
+              ? 'bg-destructive/10 hover:bg-destructive/15 active:bg-destructive/20'
+              : 'bg-muted/40 hover:bg-muted/60 active:bg-muted/80'
+          )}
+        >
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">{title}</span>
-            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium">
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                tone === 'destructive' ? 'text-destructive' : 'text-foreground'
+              )}
+            >
+              {title}
+            </span>
+            <Badge
+              variant={tone === 'destructive' ? 'destructive' : 'secondary'}
+              className="text-[10px] h-5 px-1.5 font-medium"
+            >
               {tasks.length}
             </Badge>
           </div>

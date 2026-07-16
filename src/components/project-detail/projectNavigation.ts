@@ -19,7 +19,19 @@ export interface NavGroup {
 
 interface NavigationOptions {
   isFieldWorker?: boolean;
+  /**
+   * `/projects/:id/schedule` serves TWO different screens (Rule 18 — one URL,
+   * two layouts): a Gantt on desktop, and the field project hub on mobile. The
+   * Gantt really is a schedule; the hub is the whole job — tasks, photos,
+   * drawings, materials, notes — with the schedule as one row inside it. So on
+   * mobile the label follows the LAYOUT, not the URL, and calling it "Schedule"
+   * there would mean Schedule contains Schedule.
+   */
+  isMobile?: boolean;
 }
+
+/** Mobile label for the `schedule` section. See NavigationOptions.isMobile. */
+const FIELD_HUB_LABEL = 'Job';
 
 export const getNavigationGroups = (options: NavigationOptions = {}): NavGroup[] => {
   const groups: NavGroup[] = [
@@ -54,7 +66,12 @@ export const getNavigationGroups = (options: NavigationOptions = {}): NavGroup[]
   // Add Schedule if feature flag is enabled. This is the one project-scoped
   // route field workers can reach, so it gets fieldWorkerSafe.
   if (isFeatureEnabled("scheduleView")) {
-    groups[0].items.push({ title: "Schedule", url: "schedule", icon: Calendar, fieldWorkerSafe: true });
+    groups[0].items.push({
+      title: options.isMobile ? FIELD_HUB_LABEL : "Schedule",
+      url: "schedule",
+      icon: Calendar,
+      fieldWorkerSafe: true,
+    });
   }
 
   // Add AIA Billing if feature flag is enabled
@@ -71,8 +88,10 @@ export const getNavigationGroups = (options: NavigationOptions = {}): NavGroup[]
   return groups;
 };
 
-// Helper: Get section display label from URL segment
-export const getSectionLabel = (section: string): string => {
+// Helper: Get section display label from URL segment. Pass `isMobile` so the
+// `schedule` section reads "Job" on the field hub — must stay in lockstep with
+// getNavigationGroups, or the selector pill and the nav sheet disagree.
+export const getSectionLabel = (section: string, isMobile = false): string => {
   const labels: Record<string, string> = {
     '': 'Overview',
     'overview': 'Overview',
@@ -81,7 +100,7 @@ export const getSectionLabel = (section: string): string => {
     'expenses': 'Expenses',
     'control': 'Cost Tracking',
     'documents': 'Documents',
-    'schedule': 'Schedule',
+    'schedule': isMobile ? FIELD_HUB_LABEL : 'Schedule',
     'billing': 'Billing (AIA)',
     'edit': 'Edit Project',
   };

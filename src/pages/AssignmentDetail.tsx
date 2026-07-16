@@ -204,14 +204,19 @@ export default function AssignmentDetail() {
               </div>
             )}
 
-            {/* Primary action — into the project's field schedule */}
+            {/* Primary action — into the project's field hub (Rule 37).
+                NOT "Open project schedule": that URL stopped being a schedule
+                when the hub landed. It opens the job — tasks, photos, drawings,
+                materials, notes — with the schedule as one row inside. The label
+                tracks the destination's own copy ("Job" pill, "ON THIS JOB"),
+                so we don't introduce a fourth noun for one screen. */}
             <Button
               className="w-full min-h-[48px] justify-between"
               onClick={() =>
                 navigate(`/projects/${assignment.project_id}/schedule`)
               }
             >
-              <span>Open project schedule</span>
+              <span>Open job</span>
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>

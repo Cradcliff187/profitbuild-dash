@@ -2,7 +2,7 @@
  * Hook for loading and managing schedule tasks
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduleTask, TaskDependency } from '@/types/schedule';
 import { useProgressTracking } from './useProgressTracking';
@@ -34,46 +34,7 @@ export function useScheduleTasks({
     refetch: refreshProgress
   } = useProgressTracking(projectId);
   
-  // Real-time subscription for schedule updates
-  useEffect(() => {
-    console.log('[Realtime] Setting up subscription for project:', projectId);
-    
-    const channel = supabase
-      .channel('schedule-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'estimate_line_items'
-        },
-        (payload) => {
-          console.log('[Realtime] Estimate line item changed:', payload);
-          loadTasks();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'change_order_line_items'
-        },
-        (payload) => {
-          console.log('[Realtime] Change order line item changed:', payload);
-          loadTasks();
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status);
-      });
 
-    return () => {
-      console.log('[Realtime] Cleaning up subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [projectId]);
-  
   /**
    * Load tasks from database
    */
@@ -160,6 +121,44 @@ export function useScheduleTasks({
     }
   }, [projectId, projectStartDate, projectEndDate]);
   
+  // Freshness is invalidation/refocus-driven here, NOT subscription-driven.
+  //
+  // This hook used to open a `postgres_changes` channel on estimate_line_items
+  // + change_order_line_items. That is the exact shape behind the P0 login loop
+  // (Gotchas #53/#55): `channel.subscribe()` calls `_getAccessToken` →
+  // `auth.getSession()` → `__loadSession`, which can fire a token refresh; do
+  // that on a field surface and you are one bad clock away from the cascade
+  // (Gotcha #56). Rule 35 requires zero realtime on the field experience, and
+  // this hook backs the field project view — it was the last violation.
+  //
+  // It was also indiscriminate: no `filter:` clause, so ANY admin editing ANY
+  // estimate line on ANY project in the company triggered a full reload of this
+  // worker's task list; and the channel name was the hardcoded string
+  // 'schedule-changes', so two mounts would collide on one channel.
+  //
+  // Nothing is lost that mattered: local edits already call loadTasks() through
+  // updateTask/updateTaskDates, and a refocus covers changes made elsewhere —
+  // the same model every other field surface uses (Rule 37). Do not reintroduce
+  // a channel here.
+  // Held in a ref, not a dep: callers pass `projectStartDate ?? new Date()`, so
+  // loadTasks' identity changes on every render whenever the project has no
+  // start date — depending on it directly would add/remove these listeners on
+  // every render.
+  const loadTasksRef = useRef(loadTasks);
+  loadTasksRef.current = loadTasks;
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') loadTasksRef.current();
+    };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
   // Load tasks on mount and when project changes
   useEffect(() => {
     console.log('[useScheduleTasks] Loading tasks for project:', projectId);

@@ -123,7 +123,7 @@ export const ProjectDetailView = () => {
 
   // Breadcrumbs for current project route. Returns [] when project hasn't
   // loaded yet; the AppBreadcrumbs component renders null for <2 items.
-  const breadcrumbItems = useProjectBreadcrumbs(project, estimates, quotes);
+  const breadcrumbItems = useProjectBreadcrumbs(project, estimates, quotes, isMobile);
 
   useEffect(() => {
     if (projectId) {
@@ -219,7 +219,9 @@ export const ProjectDetailView = () => {
 
   // Secondary panel navigation logic
   const currentSection = location.pathname.split("/").pop() || "";
-  const navigationGroups = getNavigationGroups({ isFieldWorker });
+  // isMobile renames the `schedule` section to "Job" — same route, different
+  // screen (Gantt vs field hub). See NavigationOptions.isMobile.
+  const navigationGroups = getNavigationGroups({ isFieldWorker, isMobile });
 
   const isActive = (sectionUrl: string) => {
     if (sectionUrl === "" && currentSection === projectId) return true;
@@ -507,7 +509,7 @@ export const ProjectDetailView = () => {
                     );
                   })()}
                   <span className="text-base font-semibold text-foreground">
-                    {getSectionLabel(currentSection)}
+                    {getSectionLabel(currentSection, true)}
                   </span>
                 </div>
                 <ChevronDown className="h-5 w-5 text-primary transition-transform duration-300" />

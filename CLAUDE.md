@@ -1446,10 +1446,74 @@ has no **Overdue** group — `isDateInRange` needs today inside the window and `
 open (tasks are the payload; on most projects Today/Active and This Week are empty, so a collapsed
 Upcoming meant opening the schedule and seeing zero tasks); `Completed` stays closed.
 
-**Open product question:** the schedule is largely unpopulated — of 65 schedulable lines on active
-construction projects, **2 have ever been marked complete**, and only **2 of 18** active projects have
-dated tasks. If it stays vestigial, Schedule should become a peer drill-down row rather than the
-inline payload. Deferred pending a decision on whether scheduling gets activated.
+**Schedule is a PEER ROW, not the payload** (decided Jul 16 2026 on evidence, PR
+[#170](https://github.com/Cradcliff187/profitbuild-dash/pull/170)). Of 65 schedulable lines on active
+construction projects, **2 have ever been marked complete**; only **2 of 18** active projects have
+dated tasks; and the inline list was actively misleading (bulk-defaulted `Jun 1 – Jun 8` on every
+line, in the past, filed under "Upcoming"). Revealed preference agrees: dispatch shipped crew fan-out
++ notifications + auto-allocation in Jul 2026 while estimate scheduling went untouched — **dispatch IS
+the scheduling model here**, and it's the hero. Same evidentiary bar as the timer removal (355/356).
+The Gantt is unaffected (desktop only). **This is reversible** — if estimate scheduling ever gets
+adopted, promote the row back to inline. Revisit on evidence, not on principle.
+
+**Everything that POINTS at this route must call it a job, not a schedule.** Renaming the destination
+and not tracing its referrers is how "Open project schedule" survived on
+[AssignmentDetail](src/pages/AssignmentDetail.tsx) while opening the hub. The full referrer set —
+check it if you rename again: `AssignmentDetail` ("Open job"), `MobileTimeTracker`'s FAB + its
+`ProjectScheduleSelector` sheet ("Open a Job"), `NextStopChip`, `LastProjectCard`, `MyProjects`,
+`Projects.tsx` (identity-only, no claim → fine), and
+[ProjectOperationalDashboard](src/components/ProjectOperationalDashboard.tsx)'s **"Schedule" pulse
+card**, which keeps its accurate label and instead deep-links `?tab=schedule` on mobile so it lands on
+what it names (desktop needs no param — that route IS the Gantt). Grep
+`` /schedule` `` before assuming you've found them all.
+
+**The mobile section label is "Job", not "Schedule"** (`getSectionLabel(section, isMobile)` +
+`getNavigationGroups({ isMobile })` + **`useProjectBreadcrumbs(..., isMobile)`** — **keep all three in
+lockstep** or the pill, the nav sheet, and the breadcrumb trail disagree about one section. The
+breadcrumb was missed initially and stayed invisible only because the mobile trail is gated to 4+
+crumbs while schedule stops at 3.) Note "Job" coexists with AppLayout's generic **"Project Details"**
+header — that's a level up (it names the whole `/projects/*` tree, not the section) and is
+intentional; "job" and "project" are synonyms on site, and the destination's own three labels (pill,
+"ON THIS JOB", row blurbs) agree with each other. `/projects/:id/schedule` serves two screens (Rule 18 — one URL, two layouts): a Gantt
+on desktop, which really is a schedule, and this hub, which is the whole job with the schedule as one
+row inside it. Calling the section "Schedule" on mobile meant **Schedule contains Schedule**. The label
+follows the LAYOUT, not the URL. Do NOT "fix" the phone/desktop naming split by renaming globally
+(breaks the Gantt's truth) or by splitting routes (breaks every `?tab=` deep-link for no payoff).
+
+**Delete STAYS on the field docs list, admin/manager-only** (revisited Jul 16 2026). It was briefly
+removed on the reasoning that destroying a construction document from a phone is all downside and the
+Documents hub does it properly — **that reasoning was wrong on the facts**: admins do triage documents
+from the field, and cleanup-in-place is exactly what Rule 29 existed to enable. Forcing a nav hop to
+the hub to act on a row you're already looking at is friction with no safety payoff (the confirm
+dialog is the guard). Field workers never see it — `canEdit = isAdmin || isManager` gates Edit and
+Delete together. Don't remove it again without evidence that admins aren't using it.
+
+**Do NOT repeat the "unnamed Drive imports" claim — it is false** (checked Jul 16 2026). Rule 29
+describes a PAST problem with names like `Migrated from Drive: 1za1Ck…`; **zero** `project_documents`
+rows have such a `file_name` today. That string lives in `description`, and
+[`getDocumentDisplayDescription`](src/utils/documentFileType.ts) already returns null for it, so it
+never renders. The 171 `other` rows are well-named (`Plan-Integrative Medicine.pdf`, `UC Midtown 1st
+Floor.pdf`, `Bon Secours Mercy Health (BSMH) - Work Order 369661.pdf`). **The real issue is
+misclassification**: many are plainly drawings/proposals sitting under `other`, so they surface in the
+field list's "Field Attachments" section instead of "Plans & Drawings". Fix is admin retyping via the
+editor (Rule 29), or a reviewed bulk retype — NOT a filename heuristic, which would just be guessing.
+
+**`project_documents.version_number` is a DEAD column that the UI presents as fact** (Jul 16 2026).
+Nothing in the codebase ever writes it — not the upload path, not the editor — so every row sits at
+the DB default and all 224 field-visible docs share ONE distinct value. Yet
+[`DocumentDetailsSheet`](src/components/documents/DocumentDetailsSheet.tsx) renders "Version: v1" and
+[`ProjectDocumentsTable`](src/components/ProjectDocumentsTable.tsx) renders a `v1` badge. That is
+fabricated information, same class as the old "Upcoming" bug: it answers "is this the current
+drawing?" — the highest-stakes question on a field doc surface — with a number that means nothing.
+Either wire revisioning or stop displaying it. **Don't treat the display as evidence the feature
+exists.**
+
+**`project_documents.expires_at` is unsettable from the app** (Jul 16 2026). No UI writes it —
+`DocumentDetailsSheet` doesn't expose the field, and `uploadProjectDocument` doesn't set it — so it is
+null on all 11 permits/licenses and the expiry warnings in `FieldDocumentsList` +
+`ProjectDocumentsTable` are unreachable code. An expired permit is the one signal on the field doc
+list with legal consequence. Completing it means adding an expiry input to the editor (sensibly gated
+to permit/license), not writing more display logic.
 
 ---
 
