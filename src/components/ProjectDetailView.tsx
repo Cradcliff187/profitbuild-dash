@@ -219,9 +219,17 @@ export const ProjectDetailView = () => {
 
   // Secondary panel navigation logic
   const currentSection = location.pathname.split("/").pop() || "";
+  // isFieldWorkerOnly, NOT isFieldWorker (Rule 24). This filters the sheet down
+  // to fieldWorkerSafe items — today a single entry — so passing isFieldWorker
+  // gave an admin who ALSO holds field_worker a one-item "Navigate to" sheet on
+  // mobile: no Overview, Expenses, Estimates, Cost Tracking, Documents or
+  // Billing. That contradicted this view's own contract ("Admins-who-also-clock-
+  // time keep the section selector and can navigate the full project") and made
+  // the whole project unreachable from a phone for that account. Pure field
+  // workers never reach this — their selector is hidden entirely below.
   // isMobile renames the `schedule` section to "Job" — same route, different
   // screen (Gantt vs field hub). See NavigationOptions.isMobile.
-  const navigationGroups = getNavigationGroups({ isFieldWorker, isMobile });
+  const navigationGroups = getNavigationGroups({ isFieldWorker: isFieldWorkerOnly, isMobile });
 
   const isActive = (sectionUrl: string) => {
     if (sectionUrl === "" && currentSection === projectId) return true;

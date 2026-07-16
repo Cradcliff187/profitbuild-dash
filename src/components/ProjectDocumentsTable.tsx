@@ -214,10 +214,13 @@ export function ProjectDocumentsTable({ projectId, documentType, projectNumber, 
                   label: DOCUMENT_TYPE_LABELS[doc.document_type] ?? 'Document',
                   className: '',
                 }}
-                secondaryBadge={{
-                  label: `v${doc.version_number}`,
-                  className: '',
-                }}
+                // No secondaryBadge: it rendered `v${doc.version_number}`, but
+                // project_documents.version_number is written by NOTHING — not
+                // the upload path, not the editor — so every row sits at the DB
+                // default and the badge read "v1" on all 224 documents. That is
+                // fabricated information about the one question that matters
+                // most on a drawing ("is this current?"). Don't restore it
+                // unless revisioning is actually wired.
                 metrics={[
                   { label: 'Size', value: formatFileSize(doc.file_size) },
                   { label: 'Uploaded', value: format(new Date(doc.created_at), 'MMM d, yyyy') },
