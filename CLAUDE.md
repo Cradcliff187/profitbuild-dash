@@ -1516,14 +1516,23 @@ would be noise on 213 of 224 docs). Retyping away from permit/license **clears**
 stale expiry can't drive a warning on a doc that no longer expires.
 
 **A line item's DESCRIPTION becomes the task name on the field schedule** (Jul 16 2026). There is no
-separate task-name field — `useScheduleTasks` projects `estimate_line_items.description` straight onto
-`FieldTaskCard`. So anything an estimator writes in a description is crew-visible. Live example: 8
-projects carry `labor_internal` lines named "Cushion with $75 per labor hour assumption" / "Cushion at
-$75 labor rate" — i.e. **the internal labor rate rendered to the field as a task**. All 8 are
-`complete` today so nothing leaks right now, but the convention is habitual and the next active
-estimate with one exposes it. This is a **naming/process fix, not a code fix** — do NOT add a
-"cushion"-keyword filter; that's guessing at data, the same trap as a `Plan-*` filename heuristic.
-Same family as the materials cost gate (Rule 32): field surfaces must not carry margin data.
+separate task-name field — `useScheduleTasks:182` is literally `const taskName = item.description;`,
+projected straight onto `FieldTaskCard`. So whatever an estimator types in a description is what the
+crew reads as their work. **This mechanism is permanent; treat it as the constraint when writing
+estimate descriptions.**
+
+**Severity: currently zero, and NOT an active practice** (validated Jul 16 2026 — an earlier note in
+this file overstated it). Historical `labor_internal` lines named "Cushion at $75 labor rate" exist on
+~8 projects, which would have shown the internal labor-rate assumption to crews. But: the **newest is
+dated 2025-12-07** (7 months stale), every one sits on a `complete`/`cancelled`/stale-`estimating`
+project, and field workers' list is `.in('status', ['approved','in_progress'])` — so they cannot even
+reach them. All **23** labor lines on active projects are clean work names (Demo, Framing, Ceilings,
+Flooring, Painting). Don't re-raise this as a live incident.
+
+**Do NOT "fix" it with a keyword filter.** Hiding tasks whose name matches `/cushion/i` would silently
+drop real work ("Install cushioned flooring") from a crew's schedule — and a hidden task is work that
+doesn't get done, with nobody noticing. Same trap as a `Plan-*` filename heuristic for document
+retyping. Guessing from text and then hiding or rewriting is worse than the thing it fixes.
 
 ---
 
