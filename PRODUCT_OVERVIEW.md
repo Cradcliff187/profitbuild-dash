@@ -167,9 +167,11 @@ per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding 
   on the bottom bar (Note · Camera · Attach).
 - **Field workers never see cost.** The Materials list shows quantity, procurement status, need-by
   and expected delivery — never unit cost, line total, or the project's materials spend (those are
-  admin/manager only). ⚠️ **Estimating caveat:** a line item's *description* becomes the task name on
-  the field schedule, so naming a line "Cushion at $75 labor rate" (8 completed projects do) shows
-  that rate to the crew. Keep rate/margin assumptions out of line descriptions.
+  admin/manager only). **Estimating note:** a line item's *description* is what the crew reads as the
+  task name on the field schedule (there's no separate task-name field), so keep rate and margin
+  assumptions out of line descriptions. Older estimates (newest 2025-12-07, all on closed projects)
+  used lines like "Cushion at $75 labor rate"; every labor line on an active project today is a clean
+  work name.
 - `admin_notes` on assignments is admin-only by construction (field reads go through a view that
   excludes it); `task_note` is the crew-visible channel.
 
