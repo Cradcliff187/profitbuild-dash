@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Download, Eye, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Download, AlertTriangle, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,57 +85,97 @@ function DocumentCard({
   const iconColor = DOCUMENT_TYPE_ICON_COLORS[doc.document_type] || 'text-muted-foreground';
   const displayDescription = getDocumentDisplayDescription(doc.description);
 
+  // Row shape matches the project hub's drill-down rows (Rule 37): tap the row
+  // to open the document, secondary actions behind a kebab. The four actions
+  // used to stack VERTICALLY (`flex-col`), making every card ~156px tall for an
+  // admin — a doc list that showed two files per screen on a phone.
+  //
+  // The tap region is a <button> and the kebab is its SIBLING, never a child:
+  // nesting interactive elements is invalid HTML, and a Radix trigger inside a
+  // clickable row needs stopPropagation to survive (Gotcha #25). Siblings avoid
+  // both problems by construction.
+  const hasMenu = Boolean(onEdit || onDelete);
+
   return (
-    <Card className="p-3 hover:bg-muted/30 active:bg-muted/50 transition-colors">
-      <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-muted/50 p-2 flex-shrink-0">
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{doc.file_name}</p>
-          {displayDescription && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{displayDescription}</p>
-          )}
-          <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-            <Badge variant="outline" className="text-[9px] h-4 px-1">
-              {DOCUMENT_TYPE_LABELS[doc.document_type]}
-            </Badge>
-            <span>{format(new Date(doc.created_at), 'MMM d, yyyy')}</span>
+    <Card className="p-0 overflow-hidden hover:bg-muted/30 transition-colors">
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={onPreview}
+          className="flex-1 min-w-0 flex items-start gap-3 p-3 text-left min-h-[56px] active:bg-muted/50 transition-colors"
+        >
+          <div className="rounded-lg bg-muted/50 p-2 flex-shrink-0">
+            <Icon className={`w-5 h-5 ${iconColor}`} />
           </div>
-          {doc.expires_at && <ExpirationWarning expiresAt={doc.expires_at} />}
-        </div>
 
-        <div className="flex flex-col gap-1 flex-shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onPreview}
-            className="h-9 w-9 p-0"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <a href={doc.file_url} download={doc.file_name} onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-              <Download className="h-4 w-4" />
-            </Button>
-          </a>
-          {onEdit && (
-            <Button variant="ghost" size="sm" onClick={onEdit} className="h-9 w-9 p-0">
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{doc.file_name}</p>
+            {displayDescription && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{displayDescription}</p>
+            )}
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+              <Badge variant="outline" className="text-[9px] h-4 px-1">
+                {DOCUMENT_TYPE_LABELS[doc.document_type]}
+              </Badge>
+              <span>{format(new Date(doc.created_at), 'MMM d, yyyy')}</span>
+            </div>
+            {doc.expires_at && <ExpirationWarning expiresAt={doc.expires_at} />}
+          </div>
+        </button>
+
+        {/* Field workers get Download as a direct button rather than a
+            single-item kebab — same call ProjectDetailView made when it
+            un-wrapped Edit from a one-item dropdown (extra tap, visual noise). */}
+        {hasMenu ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 p-0 mr-1 flex-shrink-0"
+                aria-label={`Actions for ${doc.file_name}`}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <a href={doc.file_url} download={doc.file_name}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </a>
+              </DropdownMenuItem>
+              {onEdit && (
+                <DropdownMenuItem onClick={onEdit}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit details
+                </DropdownMenuItem>
+              )}
+              {onDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={onDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button asChild variant="ghost" size="sm" className="h-10 w-10 p-0 mr-1 flex-shrink-0">
+            <a
+              href={doc.file_url}
+              download={doc.file_name}
+              aria-label={`Download ${doc.file_name}`}
             >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+              <Download className="h-4 w-4" />
+            </a>
+          </Button>
+        )}
       </div>
     </Card>
   );
