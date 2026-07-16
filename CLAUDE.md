@@ -1464,10 +1464,14 @@ row inside it. Calling the section "Schedule" on mobile meant **Schedule contain
 follows the LAYOUT, not the URL. Do NOT "fix" the phone/desktop naming split by renaming globally
 (breaks the Gantt's truth) or by splitting routes (breaks every `?tab=` deep-link for no payoff).
 
-**No Delete on the field docs list** (Jul 16 2026). `FieldDocumentsList`'s kebab is Download + Edit
-details only. Rule 29 put the *editor* on more surfaces so the unnamed Drive imports were reachable —
-that intent doesn't extend to destroying a construction document from a phone on a jobsite through a
-confirm you'll tap past. Deletion lives in the desktop Documents hub, which does it properly.
+**Delete STAYS on the field docs list, admin/manager-only** (revisited Jul 16 2026). It was briefly
+removed on the reasoning that destroying a construction document from a phone is all downside and the
+Documents hub does it properly — **that reasoning was wrong on the facts**: admins do triage from the
+field, and with 171 of 224 field-visible docs being unnamed Drive imports, cleanup-in-place is exactly
+what Rule 29 existed to enable. Forcing a nav hop to the hub to delete a junk row you're looking at is
+friction with no safety payoff (the confirm dialog is the guard). Field workers never see it —
+`canEdit = isAdmin || isManager` gates Edit and Delete together. Don't remove it again without
+evidence that admins aren't using it.
 
 ---
 
