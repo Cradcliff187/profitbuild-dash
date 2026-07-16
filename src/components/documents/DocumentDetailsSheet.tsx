@@ -20,7 +20,14 @@ interface DocumentDetailsSheetProps {
   document: ProjectDocument | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved?: () => void;
+  /**
+   * Fired after a successful save, with the values that were written. Callers
+   * that filter their list by `document_type` need this: retyping a document
+   * can move it OUT of the caller's list, and a silent disappearance reads as
+   * a bug (see FieldDocumentsList). A no-arg `() => void` callback is still
+   * assignable here, so existing callers are unaffected.
+   */
+  onSaved?: (saved: { document_type: DocumentType; file_name: string }) => void;
 }
 
 function formatFileSize(bytes: number) {
@@ -79,7 +86,7 @@ export function DocumentDetailsSheet({ document, open, onOpenChange, onSaved }: 
       queryClient.invalidateQueries({ queryKey: ["project-documents-timeline", projectId] });
 
       toast.success("Document updated");
-      onSaved?.();
+      onSaved?.({ document_type: documentType, file_name: fileName.trim() });
       onOpenChange(false);
     } catch (error) {
       toast.error("Failed to update document", {

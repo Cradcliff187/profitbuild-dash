@@ -54,10 +54,12 @@ function sortMaterials(materials: ProjectMaterial[]): ProjectMaterial[] {
 function MaterialRow({
   material,
   canEdit,
+  canSeeCost,
   onEdit,
 }: {
   material: ProjectMaterial;
   canEdit: boolean;
+  canSeeCost: boolean;
   onEdit: (m: ProjectMaterial) => void;
 }) {
   const statusMeta = PROCUREMENT_STATUS_META[material.procurementStatus];
@@ -84,12 +86,20 @@ function MaterialRow({
           )}
         </div>
 
+        {/* Money is admin/manager-only. A field worker needs to know WHAT is
+            coming and WHEN — never what it cost. See the note in the parent. */}
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-          <span>
-            {material.quantity} × {formatCurrency(material.costPerUnit)}
-          </span>
-          <span>•</span>
-          <span className="font-medium text-foreground">{formatCurrency(material.totalCost)}</span>
+          {canSeeCost ? (
+            <>
+              <span>
+                {material.quantity} × {formatCurrency(material.costPerUnit)}
+              </span>
+              <span>•</span>
+              <span className="font-medium text-foreground">{formatCurrency(material.totalCost)}</span>
+            </>
+          ) : (
+            <span>Qty {material.quantity}</span>
+          )}
         </div>
 
         <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -141,9 +151,25 @@ function MaterialRow({
   );
 }
 
+/**
+ * Materials & procurement for a project.
+ *
+ * COST IS ADMIN/MANAGER-ONLY. Field workers see what's coming and when —
+ * quantity, procurement status, need-by, expected delivery — and never unit
+ * cost, line total, or the project's materials spend. This surface is mounted
+ * in the field project view, so before the gate a worker could read the whole
+ * materials budget off their phone.
+ *
+ * NOTE: this is a UX boundary, not a security boundary — the same distinction
+ * as the AppLayout route allowlist (Gotcha #44). `estimate_line_items.cost_per_unit`
+ * is still readable via the API by anyone who can read the rows, and field
+ * workers must be able to read them for the schedule. The durable fix is a
+ * cost-omitting field view, mirroring `crew_day_assignments_field_view` (Rule 34).
+ */
 export function ProjectMaterialsList({ projectId }: ProjectMaterialsListProps) {
   const { isAdmin, isManager } = useRoles();
   const canEdit = isAdmin || isManager;
+  const canSeeCost = isAdmin || isManager;
   const { materials, isLoading, error, updateMaterial, isUpdating } = useProjectMaterials(projectId);
 
   const [editing, setEditing] = useState<ProjectMaterial | null>(null);
@@ -203,13 +229,24 @@ export function ProjectMaterialsList({ projectId }: ProjectMaterialsListProps) {
 
   return (
     <div className="space-y-3">
-      {/* Summary strip */}
+      {/* Summary strip. The lead cell is the project's materials spend for
+          admins/managers; for field workers it's a plain item count — the
+          money never renders. */}
       <Card className="p-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div>
-            <div className="text-lg font-semibold tabular-nums">{formatCurrency(summary.totalCost)}</div>
-            <div className="text-[11px] text-muted-foreground">{summary.count} materials</div>
-          </div>
+          {canSeeCost ? (
+            <div>
+              <div className="text-lg font-semibold tabular-nums">{formatCurrency(summary.totalCost)}</div>
+              <div className="text-[11px] text-muted-foreground">{summary.count} materials</div>
+            </div>
+          ) : (
+            <div>
+              <div className="text-lg font-semibold tabular-nums">{summary.count}</div>
+              <div className="text-[11px] text-muted-foreground">
+                Material{summary.count === 1 ? '' : 's'}
+              </div>
+            </div>
+          )}
           <div>
             <div className="text-lg font-semibold tabular-nums text-amber-600">{summary.longLead}</div>
             <div className="text-[11px] text-muted-foreground">Long-lead</div>
@@ -233,7 +270,13 @@ export function ProjectMaterialsList({ projectId }: ProjectMaterialsListProps) {
 
       <div className="space-y-2">
         {sorted.map((m) => (
-          <MaterialRow key={m.id} material={m} canEdit={canEdit} onEdit={openEdit} />
+          <MaterialRow
+            key={m.id}
+            material={m}
+            canEdit={canEdit}
+            canSeeCost={canSeeCost}
+            onEdit={openEdit}
+          />
         ))}
       </div>
 

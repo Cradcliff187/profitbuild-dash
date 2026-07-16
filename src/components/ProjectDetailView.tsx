@@ -406,35 +406,54 @@ export const ProjectDetailView = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
 
-            {/* Project Info — three rows: number/status, name, client. The
-                address moved out of the info column into the header-level pin
-                badge (ProjectAddressLocator) so the header always carries it,
-                including on the Overview route. */}
+            {/* Project Info. This header is PERSISTENT (it sits outside the
+                scroll container), so every row it carries is permanent chrome.
+                Pure field workers get two rows — identity and address — because
+                client name and contract status are admin data on a field
+                screen, and at 390px they were costing ~40px of the viewport for
+                the whole session. Admins (incl. admins who also clock time,
+                Rule 24) keep the full four-row header. */}
             <div className="flex-1 min-w-0">
-              {/* Row 1: Number + Status */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-sm font-semibold text-muted-foreground">
-                  {project.project_number}
-                </span>
-                <ProjectStatusBadge status={project.status} size="sm" />
-              </div>
+              {isFieldWorkerOnly ? (
+                /* Row 1: Number + Name on one line — number is fixed-width and
+                   short, so the name gets the rest and truncates alone. */
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-mono text-xs font-semibold text-muted-foreground shrink-0">
+                    {project.project_number}
+                  </span>
+                  <h1 className="text-base font-semibold text-foreground leading-tight truncate min-w-0">
+                    {project.project_name}
+                  </h1>
+                </div>
+              ) : (
+                <>
+                  {/* Row 1: Number + Status */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-sm font-semibold text-muted-foreground">
+                      {project.project_number}
+                    </span>
+                    <ProjectStatusBadge status={project.status} size="sm" />
+                  </div>
 
-              {/* Row 2: Project Name — prominent, allows wrapping */}
-              <h1 className="text-base font-semibold text-foreground leading-tight mt-1 line-clamp-2">
-                {project.project_name}
-              </h1>
+                  {/* Row 2: Project Name — prominent, allows wrapping */}
+                  <h1 className="text-base font-semibold text-foreground leading-tight mt-1 line-clamp-2">
+                    {project.project_name}
+                  </h1>
 
-              {/* Row 3: Client Name */}
-              <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-                <span className="text-sm text-muted-foreground truncate min-w-0">
-                  {project.client_name}
-                </span>
-              </div>
+                  {/* Row 3: Client Name */}
+                  <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                    <span className="text-sm text-muted-foreground truncate min-w-0">
+                      {project.client_name}
+                    </span>
+                  </div>
+                </>
+              )}
 
-              {/* Row 4: Address — FULL text, wraps, always visible (restored
-                  Jul 2026 per Chris: the pin-only badge hid the address behind
-                  a tap; field crews glance at this row constantly). Tap opens
-                  the directions/copy sheet. */}
+              {/* Address — FULL text, wraps, always visible (restored Jul 2026
+                  per Chris: the pin-only badge hid the address behind a tap;
+                  field crews glance at this row constantly). Tap opens the
+                  directions/copy sheet. Kept for BOTH personas — it's the one
+                  header row a field worker actually reads. */}
               <ProjectAddressLocator
                 address={project.address}
                 variant="header-inline"
