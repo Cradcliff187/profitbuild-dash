@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
 import { useContractData } from '@/hooks/useContractData';
+import { ContactQuickPick } from '@/components/contacts/ContactQuickPick';
 import { validateContractFields } from '@/utils/contractValidation';
 import { formatAgreementDate, formatProjectDate, formatCurrency } from '@/utils/contractFormatters';
 import { LEGAL_FORM_OPTIONS, US_STATE_OPTIONS } from '@/constants/contractFields';
@@ -415,6 +416,16 @@ export function ContractGenerationModal({
                   Subcontractor Information
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-4">
+                  <ContactQuickPick
+                    payeeId={payeeId}
+                    selectedName={form.watch('subcontractorContactName')}
+                    onSelect={(c) => {
+                      form.setValue('subcontractorContactName', c.name);
+                      form.setValue('subcontractorContactTitle', c.title ?? '');
+                      form.setValue('subcontractorEmail', c.email ?? '');
+                      form.setValue('subcontractorPhone', c.phone ?? '');
+                    }}
+                  />
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}

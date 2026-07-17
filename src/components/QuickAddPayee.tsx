@@ -48,6 +48,7 @@ export function QuickAddPayee({
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [payeeType, setPayeeType] = useState<PayeeType>(defaultPayeeType);
+  const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
@@ -55,6 +56,7 @@ export function QuickAddPayee({
   const reset = () => {
     setName('');
     setPayeeType(defaultPayeeType);
+    setContactName('');
     setPhone('');
     setEmail('');
   };
@@ -82,6 +84,7 @@ export function QuickAddPayee({
         .insert({
           payee_name: trimmed,
           payee_type: payeeType,
+          contact_name: contactName.trim() || null,
           phone_numbers: phone.trim() || null,
           email: email.trim() || null,
           provides_labor: providesLabor,
@@ -97,6 +100,19 @@ export function QuickAddPayee({
           return;
         }
         throw error;
+      }
+
+      // Contact row is best-effort: the payee is already created; a contact
+      // failure must not fail the add (mirrors admin-disable-user's payee step).
+      if (!defaultIsInternal && (contactName.trim() || phone.trim() || email.trim())) {
+        const { error: contactError } = await supabase.from('contacts').insert({
+          payee_id: data.id,
+          name: contactName.trim() || trimmed,
+          phone: phone.trim() || null,
+          email: email.trim() || null,
+          is_primary: true,
+        });
+        if (contactError) console.error('Failed to create payee contact:', contactError);
       }
 
       await queryClient.invalidateQueries({ queryKey: ['payees'] });
@@ -161,6 +177,20 @@ export function QuickAddPayee({
                 </option>
               ))}
             </NativeSelect>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="quick-payee-contact" className={cn('text-muted-foreground', isMobile && 'text-base')}>
+              Contact person (optional)
+            </Label>
+            <Input
+              id="quick-payee-contact"
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              placeholder="e.g. Jane Doe"
+              className={cn(isMobile && 'h-12 text-base')}
+              style={{ fontSize: isMobile ? '16px' : undefined }}
+            />
           </div>
 
           <div className="space-y-2">

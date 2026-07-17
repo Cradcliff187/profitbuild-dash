@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { InvoiceFieldValues, InvoiceRCGInfo } from '@/types/invoice';
+import type { Contact } from '@/types/contact';
+import { resolveContact } from '@/utils/contactResolution';
 import {
   computeDueDate,
   formatCurrency,
@@ -99,18 +101,31 @@ export function useInvoiceData({
         phone?: string | null;
         payment_terms?: string | null;
       } | null = null;
+      let clientContacts: Contact[] = [];
       if (resolvedClientId) {
-        const clientRes = await supabase
-          .from('clients')
-          .select(
-            'client_name, company_name, contact_person, billing_address, mailing_address, email, phone, payment_terms'
-          )
-          .eq('id', resolvedClientId)
-          .single();
+        const [clientRes, contactsRes] = await Promise.all([
+          supabase
+            .from('clients')
+            .select(
+              'client_name, company_name, contact_person, billing_address, mailing_address, email, phone, payment_terms'
+            )
+            .eq('id', resolvedClientId)
+            .single(),
+          supabase
+            .from('contacts')
+            .select('*')
+            .eq('client_id', resolvedClientId)
+            .eq('is_active', true),
+        ]);
         if (clientRes.error) {
           console.warn('Client load failed (will use project.client_name fallback):', clientRes.error.message);
         } else {
           client = clientRes.data;
+        }
+        if (contactsRes.error) {
+          console.warn('Contacts load failed (falling back to flat client fields):', contactsRes.error.message);
+        } else {
+          clientContacts = (contactsRes.data ?? []) as Contact[];
         }
       }
 
@@ -157,14 +172,18 @@ export function useInvoiceData({
 
       const amount = Number(revenue.amount ?? 0);
 
+      // Billing chain (docs/CONTACTS_FEATURE_PLAN.md): billing contact →
+      // primary contact → the client's legacy flat fields.
+      const billingContact = resolveContact(clientContacts, 'billing');
+
       const values: InvoiceFieldValues = {
         customer: {
           name: customerName,
           streetAddress: parsedAddr.street,
           cityStateZip: parsedAddr.cityStateZip,
-          contactPerson: client?.contact_person ?? '',
-          email: client?.email ?? '',
-          phone: client?.phone ?? '',
+          contactPerson: billingContact?.name ?? client?.contact_person ?? '',
+          email: billingContact?.email ?? client?.email ?? '',
+          phone: billingContact?.phone ?? client?.phone ?? '',
         },
         project: {
           // No client-name suffix here — the customer is already shown in

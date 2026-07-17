@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { ContractFieldValues, RCGInfo } from '@/types/contract';
 import type { LegalFormType, USState } from '@/types/contract';
+import type { Contact } from '@/types/contact';
+import { resolveContact } from '@/utils/contactResolution';
 import {
   formatAgreementDate,
   formatProjectDate,
@@ -63,6 +65,7 @@ export function useContractData({
         quoteLineItemsResult,
         settingsResult,
         existingContractsResult,
+        contactsResult,
       ] = await Promise.all([
         supabase
           .from('projects')
@@ -85,6 +88,7 @@ export function useContractData({
           : Promise.resolve({ data: null, error: null }),
         supabase.from('company_settings').select('setting_key, setting_value'),
         supabase.from('contracts').select('contract_number').eq('project_id', projectId),
+        supabase.from('contacts').select('*').eq('payee_id', payeeId).eq('is_active', true),
       ]);
 
       if (projectResult.error) throw new Error(`Project: ${projectResult.error.message}`);
@@ -127,15 +131,25 @@ export function useContractData({
         Number(quote?.total_amount ?? 0) ||
         Number(estimate?.total_amount ?? 0);
 
+      // Signatory chain (docs/CONTACTS_FEATURE_PLAN.md): signatory contact →
+      // primary contact → the payee's legacy flat fields.
+      const payeeContacts: Contact[] = contactsResult.error
+        ? []
+        : ((contactsResult.data ?? []) as Contact[]);
+      if (contactsResult.error) {
+        console.warn('Contacts load failed (falling back to flat payee fields):', contactsResult.error.message);
+      }
+      const signatoryContact = resolveContact(payeeContacts, 'signatory');
+
       const values: ContractFieldValues = {
         subcontractor: {
           company: payee?.payee_name ?? '',
           legalForm: (payee?.legal_form as LegalFormType) ?? 'LLC',
           stateOfFormation: (payee?.state_of_formation as USState) ?? 'KY',
-          contactName: payee?.contact_name ?? '',
-          contactTitle: payee?.contact_title ?? '',
-          phone: payee?.phone_numbers ?? '',
-          email: payee?.email ?? '',
+          contactName: signatoryContact?.name ?? payee?.contact_name ?? '',
+          contactTitle: signatoryContact?.title ?? payee?.contact_title ?? '',
+          phone: signatoryContact?.phone ?? payee?.phone_numbers ?? '',
+          email: signatoryContact?.email ?? payee?.email ?? '',
           address: payee?.billing_address ?? '',
           // Canonical address only. The template's {{SUBCONTRACTOR_ADDRESS_FORMATTED}}
           // placeholder is left blank so the address isn't duplicated in the contract.
