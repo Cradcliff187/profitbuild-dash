@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface BulkActionsBarProps {
   selectedIds: string[];
@@ -11,10 +12,19 @@ interface BulkActionsBarProps {
 }
 
 export const BulkActionsBar = ({ selectedIds, onClearSelection, onRefresh }: BulkActionsBarProps) => {
+  // Hook must run unconditionally — keep it above the empty-selection early return.
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
   if (selectedIds.length === 0) return null;
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Delete ${selectedIds.length} time ${selectedIds.length === 1 ? 'entry' : 'entries'}?`)) {
+    const proceed = await confirm({
+      title: `Delete ${selectedIds.length} time ${selectedIds.length === 1 ? 'entry' : 'entries'}?`,
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) {
       return;
     }
 
@@ -131,6 +141,7 @@ export const BulkActionsBar = ({ selectedIds, onClearSelection, onRefresh }: Bul
           Clear
         </Button>
       </div>
+      {confirmDialog}
     </div>
   );
 };

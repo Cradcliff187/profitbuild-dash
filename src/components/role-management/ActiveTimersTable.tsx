@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Clock, Square, AlertTriangle, Trash2, ArrowLeftRight } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { checkStaleTimer } from '@/utils/timeEntryValidation';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { LunchToggle } from '@/components/time-tracker/LunchToggle';
 import { DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
 import { isPTOProject } from '@/utils/timeEntries';
@@ -65,6 +66,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
   const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [convertPtoConfirmOpen, setConvertPtoConfirmOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadActiveTimers = async () => {
     try {
@@ -191,11 +193,14 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       // we refuse without explicit re-acknowledgement so a stuck-timer × rate
       // can't sneak through as a 5-figure labor expense.
       if (grossHours > HARD_CAP_HOURS) {
-        const proceed = window.confirm(
-          `⚠️ This will create a ${grossHours.toFixed(1)}-hour entry — well over a normal day.\n\n` +
-          `Amount: $${(netHours * selectedTimer.hourly_rate).toFixed(2)}\n\n` +
-          `Continue, or cancel and pick a more accurate end time?`
-        );
+        const proceed = await confirm({
+          title: 'Unusually long entry',
+          description:
+            `This will create a ${grossHours.toFixed(1)}-hour entry — well over a normal day — ` +
+            `totaling $${(netHours * selectedTimer.hourly_rate).toFixed(2)}. ` +
+            `Continue, or cancel and pick a more accurate end time?`,
+          confirmLabel: 'Create entry',
+        });
         if (!proceed) {
           setProcessing(false);
           return;
@@ -632,6 +637,9 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* >24h hard-cap acknowledgement (Gotcha #73) */}
+      {confirmDialog}
     </>
   );
 }

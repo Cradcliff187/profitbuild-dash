@@ -10,6 +10,7 @@ import { NoteCard } from '@/components/notes/NoteCard';
 import { NoteComposer } from '@/components/notes/NoteComposer';
 import { NoteLightbox } from '@/components/notes/NoteLightbox';
 import { ProjectNote } from '@/types/projectNote';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface ProjectNotesTimelineProps {
   projectId: string;
@@ -24,6 +25,7 @@ interface ProjectNotesTimelineProps {
 
 export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer = false }: ProjectNotesTimelineProps) {
   const { notes, isLoading, updateNote, deleteNote } = useProjectNotes(projectId);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -52,8 +54,14 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
     setEditText('');
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this note? This cannot be undone.')) {
+  const handleDelete = async (id: string) => {
+    const proceed = await confirm({
+      title: 'Delete this note?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (proceed) {
       deleteNote(id);
     }
   };
@@ -180,6 +188,7 @@ export function ProjectNotesTimeline({ projectId, inSheet = false, hideComposer 
         pdfUrl={pdfUrl}
         pdfFileName={selectedAttachment?.name || 'attachment.pdf'}
       />
+      {confirmDialog}
     </>
   );
 }

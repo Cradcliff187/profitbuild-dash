@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { isIOSPWA } from '@/utils/platform';
 import { createReceiptSignedUrl } from '@/utils/receiptUrls';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Project {
   id: string;
@@ -53,6 +54,7 @@ interface EditReceiptDialogProps {
 export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: EditReceiptDialogProps) => {
   const isMobile = useIsMobile();
   const { isAdmin, isManager } = useRoles();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [amount, setAmount] = useState('0.00');
   const [payeeId, setPayeeId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -311,7 +313,13 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
   const handleDelete = async () => {
     if (!receipt || !canDelete) return;
 
-    if (!confirm('Are you sure you want to delete this receipt?')) return;
+    const proceed = await confirm({
+      title: 'Delete this receipt?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) return;
 
     setLoading(true);
     try {
@@ -530,6 +538,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
           )}
         </div>
       </div>
+      {confirmDialog}
     </TimeEntryDialog>
   );
 };

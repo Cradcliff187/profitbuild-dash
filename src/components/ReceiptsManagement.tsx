@@ -444,6 +444,8 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    {/* Single-receipt delete confirmation from useReceiptActions — must be mounted here (Gotcha #73) */}
+    {actions.confirmDialog}
     </>
   );
 });

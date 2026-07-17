@@ -116,7 +116,15 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         <SheetOverlay />
         <SheetPrimitive.Content 
           ref={ref} 
-          className={cn(sheetVariants({ side }), "no-horizontal-scroll pointer-events-auto", className)}
+          className={cn(
+            sheetVariants({ side }),
+            // overflow-x-hidden only — NOT the no-horizontal-scroll class, whose
+            // @apply'd w-full/max-w-full silently beat every caller width cap
+            // (w-[92%] etc.) in the cascade; twMerge can't see inside a custom
+            // class, so callers couldn't win. Gotcha #72.
+            "overflow-x-hidden pointer-events-auto",
+            className
+          )}
           onPointerDownOutside={(e) => {
             // Allow dropdowns and pickers to work
             if (isDropdownLikeInteraction(e.target)) {
