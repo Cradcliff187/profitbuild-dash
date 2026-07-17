@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface UseReceiptActionsProps {
   loadReceipts: () => void;
@@ -19,11 +20,14 @@ interface UseReceiptActionsProps {
  * @returns {Function} handleApproveReceipt - Handler to approve a single receipt
  * @returns {Function} handleRejectReceipt - Handler to reject a single receipt with reason
  * @returns {Function} handleDeleteReceipt - Handler to delete a single receipt
- * 
+ * @returns {ReactNode} confirmDialog - MUST be rendered by the consumer (Gotcha #73);
+ *   the delete confirmation never resolves if this node isn't mounted.
+ *
  * @example
  * ```tsx
  * const actions = useReceiptActions({ loadReceipts });
  * <Button onClick={() => actions.handleApproveReceipt(receiptId)}>Approve</Button>
+ * {actions.confirmDialog}
  * ```
  */
 export const useReceiptActions = ({
@@ -31,6 +35,7 @@ export const useReceiptActions = ({
   setRejectDialogOpen,
   setReceiptToReject,
 }: UseReceiptActionsProps) => {
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const handleApproveReceipt = useCallback(async (receiptId: string) => {
     if (!receiptId) {
       toast.error('Invalid receipt ID');
@@ -143,7 +148,13 @@ export const useReceiptActions = ({
       return;
     }
 
-    if (!confirm('Are you sure you want to delete this receipt?')) return;
+    const proceed = await confirm({
+      title: 'Delete this receipt?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) return;
 
     try {
       const { error } = await supabase
@@ -173,12 +184,13 @@ export const useReceiptActions = ({
       });
       toast.error(`Failed to delete receipt: ${errorMessage}`);
     }
-  }, [loadReceipts]);
+  }, [loadReceipts, confirm]);
 
   return {
     handleApproveReceipt,
     handleRejectReceipt,
     handleDeleteReceipt,
+    confirmDialog,
   };
 };
 

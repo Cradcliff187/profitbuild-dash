@@ -16,6 +16,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from 'sonner';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface ReceiptData {
   id: string;
@@ -50,6 +51,7 @@ interface ReceiptsListProps {
 
 export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => {
   const queryClient = useQueryClient();
+  const { confirm: confirmDelete, dialog: confirmDialog } = useConfirmDialog();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortType>('date-desc');
@@ -186,7 +188,13 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
   }, [hasMore, visibleReceipts.length]);
 
   const handleDelete = async (receiptId: string) => {
-    if (!confirm('Are you sure you want to delete this receipt?')) return;
+    const proceed = await confirmDelete({
+      title: 'Delete this receipt?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) return;
 
     try {
       const { error } = await supabase
@@ -206,7 +214,13 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Delete ${selectedIds.length} selected receipts?`)) return;
+    const proceed = await confirmDelete({
+      title: `Delete ${selectedIds.length} selected receipts?`,
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) return;
 
     try {
       const { error } = await supabase
@@ -542,6 +556,7 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
             : undefined
         }
       />
+      {confirmDialog}
     </div>
   );
 };

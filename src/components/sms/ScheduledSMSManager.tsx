@@ -23,6 +23,7 @@ import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScheduledSMSLogs } from '@/components/sms/ScheduledSMSLogs';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface ScheduledSMS {
@@ -87,6 +88,7 @@ const DAY_MAP: Record<string, number> = {
 };
 
 export function ScheduledSMSManager() {
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [schedules, setSchedules] = useState<ScheduledSMS[]>([]);
@@ -379,7 +381,13 @@ export function ScheduledSMSManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this scheduled message?')) {
+    const proceed = await confirm({
+      title: 'Delete this scheduled message?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) {
       return;
     }
 
@@ -1341,6 +1349,7 @@ export function ScheduledSMSManager() {
           </div>
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

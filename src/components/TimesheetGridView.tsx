@@ -13,6 +13,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Payee, PayeeType } from "@/types/payee";
 import { Project } from "@/types/project";
 import { useQuery } from "@tanstack/react-query";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface TimesheetEntry {
   workerId: string;
@@ -35,6 +36,7 @@ interface TimesheetGridViewProps {
 }
 
 export function TimesheetGridView({ open, onClose, onSuccess, preselectedProjectId }: TimesheetGridViewProps) {
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [projectId, setProjectId] = useState(preselectedProjectId || "");
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [startDate, setStartDate] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -192,10 +194,12 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
     }
 
     const totalAmount = expenseRecords.reduce((sum, r) => sum + r.amount, 0);
-    const confirmed = window.confirm(
-      `Create ${expenseRecords.length} expense records totaling $${totalAmount.toFixed(2)}?`
-    );
-    
+    const confirmed = await confirm({
+      title: 'Create timesheet entries?',
+      description: `${expenseRecords.length} expense records totaling $${totalAmount.toFixed(2)} will be created.`,
+      confirmLabel: 'Create',
+    });
+
     if (!confirmed) return;
 
     setLoading(true);
@@ -432,6 +436,7 @@ export function TimesheetGridView({ open, onClose, onSuccess, preselectedProject
           />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </>
   );
 }
