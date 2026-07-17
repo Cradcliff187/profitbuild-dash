@@ -681,6 +681,69 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          name: string
+          notes: string | null
+          payee_id: string | null
+          phone: string | null
+          role: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          name: string
+          notes?: string | null
+          payee_id?: string | null
+          phone?: string | null
+          role?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          name?: string
+          notes?: string | null
+          payee_id?: string | null
+          phone?: string | null
+          role?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           agreement_date: string
