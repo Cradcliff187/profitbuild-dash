@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 import { useInvoiceData } from '@/hooks/useInvoiceData';
+import { ContactQuickPick } from '@/components/contacts/ContactQuickPick';
 import { useGenerateInvoiceDescription } from '@/hooks/useGenerateInvoiceDescription';
 import { validateInvoiceFields } from '@/utils/invoiceValidation';
 import {
@@ -371,6 +372,15 @@ export function InvoiceGenerationModal({
                     Bill To
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-4">
+                    <ContactQuickPick
+                      clientId={clientId}
+                      selectedName={form.watch('customerContact')}
+                      onSelect={(c) => {
+                        form.setValue('customerContact', c.name);
+                        form.setValue('customerEmail', c.email ?? '');
+                        form.setValue('customerPhone', c.phone ?? '');
+                      }}
+                    />
                     <FormField
                       control={form.control}
                       name="customerName"
