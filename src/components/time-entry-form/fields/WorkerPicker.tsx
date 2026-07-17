@@ -3,6 +3,7 @@ import { User, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface WorkerOption {
@@ -27,6 +28,7 @@ export function WorkerPicker({
   showRates = false,
   restrictToCurrentUser = false,
 }: WorkerPickerProps) {
+  const { user } = useAuth();
   const [workers, setWorkers] = useState<WorkerOption[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -52,13 +54,10 @@ export function WorkerPicker({
   }, []);
 
   useEffect(() => {
-    if (!restrictToCurrentUser || value || workers.length === 0) return;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user?.id) return;
-      const myPayee = workers.find((w) => w.user_id === user.id);
-      if (myPayee) onChange(myPayee.id);
-    });
-  }, [restrictToCurrentUser, workers, value, onChange]);
+    if (!restrictToCurrentUser || value || workers.length === 0 || !user?.id) return;
+    const myPayee = workers.find((w) => w.user_id === user.id);
+    if (myPayee) onChange(myPayee.id);
+  }, [restrictToCurrentUser, workers, value, onChange, user?.id]);
 
   const selected = workers.find((w) => w.id === value);
   const effectiveDisabled = disabled || (restrictToCurrentUser && !!selected);

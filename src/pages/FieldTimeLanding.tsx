@@ -148,9 +148,11 @@ export default function FieldTimeLanding() {
   // one fetch fires for both buttons.
   const fridayQuery = useMyDayTimeEntries(user?.id, lastFridayISO);
 
-  // --- Dialog state. The shared dialogs are mounted lazily (first use) so
-  // their internal `supabase.auth.getUser()` calls stay OFF this page's
-  // mount path (Gotcha #63); after first use they stay mounted so close
+  // --- Dialog state. The shared dialogs are mounted lazily (first use) —
+  // originally because their internal `supabase.auth.getUser()` calls had to
+  // stay OFF this page's mount path (Gotcha #63). Those calls were removed
+  // Jul 17 2026 (dialogs now read useAuth() context); the lazy-mount stays as
+  // cheap deferral, and after first use the dialogs stay mounted so close
   // animations work. ---
   const [createOpen, setCreateOpen] = useState(false);
   const [createEverOpened, setCreateEverOpened] = useState(false);
