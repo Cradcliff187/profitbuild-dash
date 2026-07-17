@@ -261,7 +261,7 @@ export function CopyDayEntriesSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="left-1/2 right-auto flex max-h-[90vh] w-[94%] -translate-x-1/2 flex-col rounded-t-2xl p-0 sm:max-w-2xl"
+        className="inset-x-0 mx-auto flex max-h-[90vh] w-[94%] flex-col rounded-t-2xl p-0 sm:max-w-2xl"
       >
         <SheetHeader className="space-y-1 border-b px-5 pb-4 pt-5 sm:px-6">
           <SheetTitle>

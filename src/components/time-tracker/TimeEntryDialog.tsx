@@ -26,7 +26,7 @@ export const TimeEntryDialog = ({
         className={cn(
           "flex flex-col p-0",
           isMobile 
-            ? "w-[92%] max-h-[92vh] rounded-t-2xl left-1/2 -translate-x-1/2 right-auto" 
+            ? "w-[92%] max-h-[92vh] rounded-t-2xl inset-x-0 mx-auto"
             : "w-full sm:max-w-[500px]"
         )}
         side={isMobile ? "bottom" : "right"}
