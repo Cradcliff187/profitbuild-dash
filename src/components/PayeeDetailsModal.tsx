@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Edit2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Payee } from '@/types/payee';
+import { ContactsCard } from '@/components/contacts/ContactsCard';
 
 interface PayeeDetailsModalProps {
   payee: Payee | null;
@@ -211,6 +212,7 @@ export const PayeeDetailsModal: React.FC<PayeeDetailsModalProps> = ({
                 </div>
               </div>
             ))}
+            {!payee.is_internal && <ContactsCard parent={{ payeeId: payee.id }} />}
           </div>
         </div>
 

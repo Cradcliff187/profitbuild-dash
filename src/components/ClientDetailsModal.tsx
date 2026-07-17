@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Edit2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Client, CLIENT_TYPES } from '@/types/client';
+import { ContactsCard } from '@/components/contacts/ContactsCard';
 
 interface ClientDetailsModalProps {
   client: Client | null;
@@ -143,6 +144,7 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                 </div>
               </div>
             ))}
+            <ContactsCard parent={{ clientId: client.id }} />
           </div>
         </div>
 
