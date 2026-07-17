@@ -205,6 +205,29 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* iOS Safari auto-zooms (and never un-zooms) any focused form control with
+     font-size < 16px. Enforce a 16px floor on ALL form controls on touch
+     devices (pointer: coarse ⇒ phones + iPads regardless of viewport width,
+     which Tailwind md: can't express — useIsMobile() breaks at 768px so
+     iPads land on the "desktop" side of md: while still being touch-primary).
+     Desktop keeps the compact 12/14px density untouched.
+
+     The :root prefix is load-bearing: Tailwind v3 @layer is source-order
+     hoisting, NOT native cascade layers, so bare `textarea`/`select` (0,0,1)
+     would LOSE to utility classes like .text-sm (0,1,0). :root lifts every
+     selector to at least (0,1,1) so the floor beats any single font-size
+     utility. Note max(16px, 1em) resolves 1em against the PARENT's font-size,
+     not the element's own class — see CLAUDE.md Gotcha #74.
+     Do NOT "fix" this with maximum-scale=1 in the viewport meta instead —
+     Android Chrome honors it and it breaks pinch-zoom accessibility. */
+  @media (pointer: coarse) {
+    :root input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    :root select,
+    :root textarea {
+      font-size: max(16px, 1em);
+    }
+  }
 }
 
 /* Enhanced focus indicators for accessibility */
