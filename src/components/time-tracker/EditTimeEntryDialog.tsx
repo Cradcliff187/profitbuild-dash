@@ -4,6 +4,7 @@ import { ManualTimeEntrySheet } from '@/components/time-entry-form';
 import type { TimeEntryFormData } from '@/components/time-entry-form';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { checkTimeOverlap, validateTimeEntryHoursV2 } from '@/utils/timeEntryValidation';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -45,19 +46,11 @@ export const EditTimeEntryDialog = ({
   onOpenChange,
   onSaved,
 }: EditTimeEntryDialogProps) => {
+  const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
   const [loading, setLoading] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [projectNumber, setProjectNumber] = useState<string | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id);
-    };
-    loadUser();
-  }, []);
 
   useEffect(() => {
     if (!entry?.project_id) {
@@ -72,7 +65,7 @@ export const EditTimeEntryDialog = ({
       .then(({ data }) => setProjectNumber(data?.project_number ?? null));
   }, [entry?.project_id]);
 
-  const isOwner = entry?.user_id === currentUserId;
+  const isOwner = entry?.user_id === user?.id;
   const canEdit =
     !entry?.is_locked &&
     ((isAdmin || isManager) ||
@@ -189,8 +182,6 @@ export const EditTimeEntryDialog = ({
 
       const rate = workerData?.hourly_rate || 75;
       const amount = calculateTimeEntryAmount(formData.hours, rate);
-
-      const { data: { user } } = await supabase.auth.getUser();
 
       const { error } = await supabase
         .from('expenses')

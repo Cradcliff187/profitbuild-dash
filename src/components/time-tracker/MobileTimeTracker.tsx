@@ -718,9 +718,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         location: loc || undefined
       };
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
       if (isOnline) {
         // Create database entry immediately when clocking in
         const { error } = await supabase
@@ -856,9 +853,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       }
 
       const amount = calculateTimeEntryAmount(netHours, activeTimer.teamMember.hourly_rate);
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
 
       // SAFETY CHECK: Verify this is the user's own timer
       if (activeTimer.teamMember.user_id && activeTimer.teamMember.user_id !== user?.id) {

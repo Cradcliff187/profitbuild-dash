@@ -4,6 +4,7 @@ import { ManualTimeEntrySheet } from '@/components/time-entry-form';
 import type { TimeEntryFormData } from '@/components/time-entry-form';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { checkTimeOverlap, validateTimeEntryHoursV2 } from '@/utils/timeEntryValidation';
 import { calculateTimeEntryAmount } from '@/utils/timeEntryCalculations';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -24,6 +25,7 @@ export const AdminEditTimeEntrySheet = ({
   onOpenChange,
   onSuccess,
 }: AdminEditTimeEntrySheetProps) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -128,8 +130,6 @@ export const AdminEditTimeEntrySheet = ({
 
       const rate = workerData?.hourly_rate || 75;
       const amount = calculateTimeEntryAmount(formData.hours, rate);
-
-      const { data: { user } } = await supabase.auth.getUser();
 
       const { error } = await supabase
         .from('expenses')
