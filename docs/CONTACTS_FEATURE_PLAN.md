@@ -1,8 +1,9 @@
 # Contacts Feature Plan — Multiple Contacts per Client / Payee
 
-**Status:** DESIGN — approved direction (Option B), awaiting spec review
+**Status:** SHIPPED — Phases 1+2 merged 2026-07-17 (PR [#180](https://github.com/Cradcliff187/profitbuild-dash/pull/180)); Phase 3 deferred (see Phasing)
 **Date:** 2026-07-17
 **Decision owner:** Chris Radcliff
+**Implementation plan:** [docs/superpowers/plans/2026-07-17-contacts-feature.md](superpowers/plans/2026-07-17-contacts-feature.md) · **Architecture:** CLAUDE.md Rule 38
 
 ---
 

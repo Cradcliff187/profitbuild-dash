@@ -606,6 +606,7 @@ Centralized branding used across emails, reports, and exports:
 
 - **Client Roster**: Manage customer information
 - **Contact Details**: Name, company, contact person, email, phone
+- **Multiple Contacts** (Jul 2026): unlimited role-tagged contacts per client (Billing/AP, Estimating, PM, Site, Signatory, Insurance, Sales) with a starred primary — managed from the client detail view. Invoices auto-address the Billing/AP contact; tappable chips switch contacts in the invoice modal. See CLAUDE.md Rule 38.
 - **Addresses**: Billing and mailing addresses
 - **Client Type**: Categorization
 - **Payment Terms**: Default payment terms
@@ -617,6 +618,7 @@ Centralized branding used across emails, reports, and exports:
 
 - **Unified Structure**: Vendors, subcontractors, internal labor in one table
 - **Payee Types**: Vendor, subcontractor, internal
+- **Multiple Contacts** (Jul 2026): same role-tagged contacts model as clients (external payees only). Contracts auto-fill the Signatory contact; quick-add payee captures a contact person inline.
 - **Capabilities**: Provides labor, provides materials, permit issuer
 - **1099 Tracking**: Requires 1099 flag
 - **Insurance Tracking**: Expiration date tracking
