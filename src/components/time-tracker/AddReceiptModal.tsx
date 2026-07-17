@@ -172,6 +172,9 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
   };
 
   const handleSave = async () => {
+    // Blur first so the iOS keyboard/dictation session tears down before the
+    // save chain runs (mirrors ManualTimeEntrySheet — Gotcha #71 family).
+    (document.activeElement as HTMLElement | null)?.blur?.();
     if (!capturedPhoto) {
       toast.error('Please capture a photo first');
       return;
