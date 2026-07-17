@@ -1,4 +1,5 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -31,9 +32,11 @@ export interface ManualTimeEntrySheetProps {
     receiptUrl?: string;
     notes?: string;
   };
-  onSave: (data: TimeEntryFormData) => Promise<void>;
+  /** Return true when the save persisted (sheet closes) or false to keep the sheet open. */
+  onSave: (data: TimeEntryFormData) => Promise<boolean>;
   onCancel: () => void;
-  onDelete?: () => Promise<void>;
+  /** Return true when the delete persisted (sheet closes) or false to keep the sheet open. */
+  onDelete?: () => Promise<boolean>;
   disabled?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -61,12 +64,41 @@ export function ManualTimeEntrySheet({
 }: ManualTimeEntrySheetProps) {
   const isMobile = useIsMobile();
   const getFormDataRef = useRef<() => TimeEntryFormData>(() => ({} as TimeEntryFormData));
+  const [busy, setBusy] = useState<'save' | 'delete' | null>(null);
+  // Re-entry guard lives in a ref, not state — two taps in the same tick both
+  // read stale `busy` state, but the ref flips synchronously on the first tap.
+  const busyRef = useRef(false);
 
   const handleSave = useCallback(async () => {
-    const data = getFormDataRef.current();
-    await onSave(data);
-    onOpenChange(false);
+    if (busyRef.current) return;
+    busyRef.current = true;
+    // Blur first so the iOS keyboard/dictation session tears down before the
+    // save chain runs.
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setBusy('save');
+    try {
+      const data = getFormDataRef.current();
+      const ok = await onSave(data);
+      if (ok === true) onOpenChange(false);
+    } finally {
+      busyRef.current = false;
+      setBusy(null);
+    }
   }, [onSave, onOpenChange]);
+
+  const handleDelete = useCallback(async () => {
+    if (!onDelete || busyRef.current) return;
+    busyRef.current = true;
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setBusy('delete');
+    try {
+      const ok = await onDelete();
+      if (ok === true) onOpenChange(false);
+    } finally {
+      busyRef.current = false;
+      setBusy(null);
+    }
+  }, [onDelete, onOpenChange]);
 
   const handleCancel = useCallback(() => {
     onCancel();
@@ -109,6 +141,7 @@ export function ManualTimeEntrySheet({
             variant="ghost"
             className="flex-1 min-h-[48px]"
             onClick={handleCancel}
+            disabled={busy !== null || disabled}
           >
             Cancel
           </Button>
@@ -117,20 +150,33 @@ export function ManualTimeEntrySheet({
               type="button"
               variant="destructive"
               className="flex-1 min-h-[48px]"
-              onClick={async () => {
-                await onDelete?.();
-                onOpenChange(false);
-              }}
+              onClick={handleDelete}
+              disabled={busy !== null || disabled}
             >
-              Delete
+              {busy === 'delete' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                'Delete'
+              )}
             </Button>
           )}
           <Button
             type="button"
             className="flex-1 min-h-[48px]"
             onClick={handleSave}
+            disabled={busy !== null || disabled}
           >
-            Save
+            {busy === 'save' ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              'Save'
+            )}
           </Button>
         </footer>
       </SheetContent>

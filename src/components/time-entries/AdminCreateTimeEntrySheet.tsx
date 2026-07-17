@@ -19,15 +19,17 @@ export const AdminCreateTimeEntrySheet = ({
 }: AdminCreateTimeEntrySheetProps) => {
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async (formData: TimeEntryFormData) => {
+  // Returns true only when the insert persisted — ManualTimeEntrySheet owns
+  // the close and stays open on false, preserving the user's form state.
+  const handleSave = async (formData: TimeEntryFormData): Promise<boolean> => {
     if (!formData.workerId || !formData.projectId || !formData.date) {
       toast.error('Please fill in all required fields');
-      return;
+      return false;
     }
 
     if (formData.hours < 0.25 || formData.hours > 24) {
       toast.error('Hours must be between 0.25 and 24');
-      return;
+      return false;
     }
 
     setLoading(true);
@@ -39,14 +41,12 @@ export const AdminCreateTimeEntrySheet = ({
         );
         if (!hoursValidation.valid) {
           toast.error(hoursValidation.message);
-          setLoading(false);
-          return;
+          return false;
         }
 
         if (formData.hours <= 0) {
           toast.error('Lunch duration cannot exceed shift duration');
-          setLoading(false);
-          return;
+          return false;
         }
 
         const overlapCheck = await checkTimeOverlap(
@@ -61,8 +61,7 @@ export const AdminCreateTimeEntrySheet = ({
             `⚠️ ${overlapCheck.message}\n\nOverlapping entries may cause payment issues. Continue anyway?`
           );
           if (!proceed) {
-            setLoading(false);
-            return;
+            return false;
           }
         }
       }
@@ -108,12 +107,13 @@ export const AdminCreateTimeEntrySheet = ({
 
       toast.success('Time entry created successfully');
       onSuccess();
-      onOpenChange(false);
+      return true;
     } catch (error: unknown) {
       console.error('Error creating time entry:', error);
       toast.error(
         error instanceof Error ? error.message : 'Failed to create time entry'
       );
+      return false;
     } finally {
       setLoading(false);
     }

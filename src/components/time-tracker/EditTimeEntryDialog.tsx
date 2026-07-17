@@ -119,17 +119,19 @@ export const EditTimeEntryDialog = ({
     };
   }, [entry, projectNumber]);
 
-  const handleSave = async (formData: TimeEntryFormData) => {
-    if (!entry || !canEdit) return;
+  // Returns true only when the update persisted — ManualTimeEntrySheet owns
+  // the close and stays open on false, preserving the user's form state.
+  const handleSave = async (formData: TimeEntryFormData): Promise<boolean> => {
+    if (!entry || !canEdit) return false;
 
     if (!formData.workerId || !formData.projectId || !formData.date) {
       toast.error('Please fill in all required fields');
-      return;
+      return false;
     }
 
     if (formData.hours < 0.25 || formData.hours > 24) {
       toast.error('Hours must be between 0.25 and 24');
-      return;
+      return false;
     }
 
     setLoading(true);
@@ -145,8 +147,7 @@ export const EditTimeEntryDialog = ({
         );
         if (!hoursValidation.valid) {
           toast.error(hoursValidation.message);
-          setLoading(false);
-          return;
+          return false;
         }
 
         const overlapCheck = await checkTimeOverlap(
@@ -162,8 +163,7 @@ export const EditTimeEntryDialog = ({
             `⚠️ ${overlapCheck.message}\n\nContinue saving?`
           );
           if (!proceed) {
-            setLoading(false);
-            return;
+            return false;
           }
         }
       }
@@ -175,8 +175,7 @@ export const EditTimeEntryDialog = ({
         formData.hours <= 0
       ) {
         toast.error('Lunch duration cannot exceed shift duration');
-        setLoading(false);
-        return;
+        return false;
       }
 
       const { data: workerData } = await supabase
@@ -224,19 +223,20 @@ export const EditTimeEntryDialog = ({
 
       toast.success('Time entry updated');
       onSaved();
-      onOpenChange(false);
+      return true;
     } catch (error) {
       console.error('Error updating time entry:', error);
       toast.error('Failed to update time entry');
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!entry || !canDelete) return;
+  const handleDelete = async (): Promise<boolean> => {
+    if (!entry || !canDelete) return false;
 
-    if (!confirm('Are you sure you want to delete this time entry?')) return;
+    if (!confirm('Are you sure you want to delete this time entry?')) return false;
 
     setLoading(true);
     try {
@@ -249,10 +249,11 @@ export const EditTimeEntryDialog = ({
 
       toast.success('Time entry deleted');
       onSaved();
-      onOpenChange(false);
+      return true;
     } catch (error) {
       console.error('Error deleting time entry:', error);
       toast.error('Failed to delete time entry');
+      return false;
     } finally {
       setLoading(false);
     }
