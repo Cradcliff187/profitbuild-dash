@@ -3,6 +3,12 @@ import { format } from 'date-fns';
 
 export interface OverlapCheckResult {
   hasOverlap: boolean;
+  /**
+   * True when the overlap query itself failed (fail-closed path): hasOverlap
+   * is forced true so the caller still asks the user, but there are no
+   * structured entries to show — use honest "couldn't verify" copy instead.
+   */
+  checkFailed: boolean;
   overlappingEntries?: Array<{
     id: string;
     startTime: string;
@@ -56,6 +62,7 @@ export const checkTimeOverlap = async (
     if (data && data.length > 0) {
       return {
         hasOverlap: true,
+        checkFailed: false,
         overlappingEntries: data.map(e => ({
           id: e.id,
           startTime: format(new Date(e.start_time), 'h:mm a'),
@@ -67,13 +74,14 @@ export const checkTimeOverlap = async (
       };
     }
 
-    return { hasOverlap: false };
+    return { hasOverlap: false, checkFailed: false };
   } catch (error) {
     console.error('Error checking time overlap:', error);
     // Return overlap=true on error to prevent potentially overlapping entries
     // being created when we can't verify. The user can retry.
     return {
       hasOverlap: true,
+      checkFailed: true,
       message: 'Unable to verify time overlap. Please try again.'
     };
   }

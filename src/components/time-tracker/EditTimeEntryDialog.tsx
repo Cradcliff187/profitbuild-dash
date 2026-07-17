@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRoles } from '@/contexts/RoleContext';
 import { checkTimeOverlap, validateTimeEntryHoursV2 } from '@/utils/timeEntryValidation';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { overlapConfirmOptions } from '@/components/time-entry-form/overlapConfirm';
 import {
   calculateTimeEntryHours,
   calculateTimeEntryAmount,
@@ -47,6 +49,7 @@ export const EditTimeEntryDialog = ({
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [projectNumber, setProjectNumber] = useState<string | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -159,8 +162,8 @@ export const EditTimeEntryDialog = ({
         );
 
         if (overlapCheck.hasOverlap) {
-          const proceed = window.confirm(
-            `⚠️ ${overlapCheck.message}\n\nContinue saving?`
+          const proceed = await confirm(
+            overlapConfirmOptions(overlapCheck, 'Continue saving?')
           );
           if (!proceed) {
             return false;
@@ -236,7 +239,13 @@ export const EditTimeEntryDialog = ({
   const handleDelete = async (): Promise<boolean> => {
     if (!entry || !canDelete) return false;
 
-    if (!confirm('Are you sure you want to delete this time entry?')) return false;
+    const proceed = await confirm({
+      title: 'Delete this time entry?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!proceed) return false;
 
     setLoading(true);
     try {
@@ -260,22 +269,25 @@ export const EditTimeEntryDialog = ({
   };
 
   return (
-    <ManualTimeEntrySheet
-      open={open}
-      onOpenChange={onOpenChange}
-      mode="edit"
-      title="Edit Time Entry"
-      description="Update time entry details"
-      initialValues={initialValues}
-      onSave={handleSave}
-      onCancel={() => onOpenChange(false)}
-      onDelete={handleDelete}
-      disabled={loading}
-      canEdit={canEdit}
-      canDelete={canDelete}
-      showReceipt={true}
-      showRates={false}
-      restrictToCurrentUser={false}
-    />
+    <>
+      <ManualTimeEntrySheet
+        open={open}
+        onOpenChange={onOpenChange}
+        mode="edit"
+        title="Edit Time Entry"
+        description="Update time entry details"
+        initialValues={initialValues}
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+        onDelete={handleDelete}
+        disabled={loading}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        showReceipt={true}
+        showRates={false}
+        restrictToCurrentUser={false}
+      />
+      {confirmDialog}
+    </>
   );
 };

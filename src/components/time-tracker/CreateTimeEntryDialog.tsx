@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { useRoles } from '@/contexts/RoleContext';
 import { checkTimeOverlap, validateTimeEntryHoursV2 } from '@/utils/timeEntryValidation';
 import { calculateTimeEntryAmount } from '@/utils/timeEntryCalculations';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { overlapConfirmOptions } from '@/components/time-entry-form/overlapConfirm';
 
 interface CreateTimeEntryDialogProps {
   open: boolean;
@@ -20,6 +22,7 @@ export const CreateTimeEntryDialog = ({
 }: CreateTimeEntryDialogProps) => {
   const { isAdmin, isManager } = useRoles();
   const [loading, setLoading] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   // Returns true only when the insert persisted — ManualTimeEntrySheet owns
   // the close and stays open on false, preserving the user's form state.
@@ -59,8 +62,11 @@ export const CreateTimeEntryDialog = ({
         );
 
         if (overlapCheck.hasOverlap) {
-          const proceed = window.confirm(
-            `⚠️ ${overlapCheck.message}\n\nOverlapping entries may cause payment issues. Continue anyway?`
+          const proceed = await confirm(
+            overlapConfirmOptions(
+              overlapCheck,
+              'Overlapping entries may cause payment issues. Continue anyway?'
+            )
           );
           if (!proceed) {
             return false;
@@ -120,18 +126,21 @@ export const CreateTimeEntryDialog = ({
   };
 
   return (
-    <ManualTimeEntrySheet
-      open={open}
-      onOpenChange={onOpenChange}
-      mode="create"
-      title="Add Time Entry"
-      description="Create a new time entry for internal labor"
-      onSave={handleSave}
-      onCancel={() => onOpenChange(false)}
-      disabled={loading}
-      showReceipt={false}
-      showRates={false}
-      restrictToCurrentUser={!isAdmin && !isManager}
-    />
+    <>
+      <ManualTimeEntrySheet
+        open={open}
+        onOpenChange={onOpenChange}
+        mode="create"
+        title="Add Time Entry"
+        description="Create a new time entry for internal labor"
+        onSave={handleSave}
+        onCancel={() => onOpenChange(false)}
+        disabled={loading}
+        showReceipt={false}
+        showRates={false}
+        restrictToCurrentUser={!isAdmin && !isManager}
+      />
+      {confirmDialog}
+    </>
   );
 };

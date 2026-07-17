@@ -32,6 +32,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { overlapConfirmOptions } from '@/components/time-entry-form/overlapConfirm';
 import { getProjectCategoryOrFilter, isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { useRoles } from '@/contexts/RoleContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -99,6 +101,7 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
   const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
   const { isOnline } = useOnlineStatus();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -124,7 +127,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
   const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
   const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
-  const [showSuccess, setShowSuccess] = useState(false);
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
   const [showLunchPrompt, setShowLunchPrompt] = useState(false);
@@ -715,9 +717,7 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         startTime: startTime,
         location: loc || undefined
       };
-      
-      setActiveTimer(timerData);
-      
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -752,7 +752,13 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
           timestamp: Date.now()
         });
       }
-      
+
+      // Only reflect a running timer once the entry persisted (online) or was
+      // durably queued (offline). Setting it before the insert left a phantom
+      // timer card — and a phantom localStorage['activeTimer'] via the
+      // persistence effect — whenever the insert failed.
+      setActiveTimer(timerData);
+
       toast.success(`Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`);
 
       // Refresh active timers list
@@ -834,8 +840,13 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         );
 
         if (overlapCheck.hasOverlap) {
-          const proceed = window.confirm(
-            `⚠️ Overlap Warning\n\n${overlapCheck.message}\n\nThis entry overlaps with existing time entries. Continue anyway?`
+          // completeClockOut returns expenseId | null, NOT the wrappers'
+          // Promise<boolean> contract (Gotcha #71) — cancel stays return null.
+          const proceed = await confirm(
+            overlapConfirmOptions(
+              overlapCheck,
+              'This entry overlaps with existing time entries. Continue anyway?'
+            )
           );
           if (!proceed) {
             setLoading(false);
@@ -927,11 +938,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
           expenseId = data.id;
         }
 
-        // Show success card
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-
-        // Keep toast for accessibility
         toast.success(lunchTaken
             ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch)`
             : `Saved ${netHours.toFixed(2)} hours`);
@@ -962,11 +968,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         };
         setTodayEntries(prev => [localEntry, ...prev]);
 
-        // Show success card
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-
-        // Keep toast for accessibility
         toast.success(lunchTaken
             ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch) - will sync when online`
             : `Saved ${netHours.toFixed(2)} hours - will sync when online`);
@@ -1058,23 +1059,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       </div>
     );
   }
-
-  // Clock out success feedback overlay
-  {showSuccess && (
-    <div className="fixed top-20 left-4 right-4 z-50 animate-in slide-in-from-top">
-      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-4 shadow-2xl">
-        <div className="flex items-center gap-3">
-          <Check className="w-8 h-8 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-lg">Successfully Clocked Out!</p>
-            <p className="text-sm text-green-100">
-              {todayTotal.toFixed(2)} hours worked
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 w-full max-w-[100vw] overflow-x-hidden">
@@ -1879,6 +1863,9 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         }}
         onClose={() => setShowScheduleSelector(false)}
       />
+
+      {/* Clock-out overlap / shared confirm dialog */}
+      {confirmDialog}
     </div>
   );
 };
