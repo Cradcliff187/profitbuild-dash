@@ -94,6 +94,16 @@ export function NoteComposer({
     setAttachment(null);
   };
 
+  // Opening a native picker (camera / photo library / file sheet) suspends the
+  // page on iOS Safari. If that happens while the attach menu's 150ms exit
+  // animation is mid-flight, the animation never finishes and the menu is
+  // stranded on screen — the user returns from the picker to find the menu
+  // "popped up again". Defer the picker past the exit animation so the menu is
+  // fully unmounted before the page can be suspended.
+  const runAfterMenuClose = (action: () => void) => {
+    window.setTimeout(action, 200);
+  };
+
   const handleTakePhoto = async () => {
     const result = await capturePhoto();
     if (!result?.dataUrl) return;
@@ -257,15 +267,21 @@ export function NoteComposer({
               {/* z-[60] keeps the menu above the bottom Sheet overlay (z-50)
                  when presentation='sheet'. Inline usage is unaffected. */}
               <DropdownMenuContent align="start" side="top" className="z-[60]">
-                <DropdownMenuItem onClick={handleTakePhoto} disabled={isCapturingPhoto}>
+                <DropdownMenuItem
+                  onClick={() => runAfterMenuClose(handleTakePhoto)}
+                  disabled={isCapturingPhoto}
+                >
                   <Camera className="h-4 w-4 mr-2" />
                   Take Photo
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleRecordVideo} disabled={isCapturingVideo}>
+                <DropdownMenuItem
+                  onClick={() => runAfterMenuClose(handleRecordVideo)}
+                  disabled={isCapturingVideo}
+                >
                   <Video className="h-4 w-4 mr-2" />
                   Record Video
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleUploadFile}>
+                <DropdownMenuItem onClick={() => runAfterMenuClose(handleUploadFile)}>
                   <FileText className="h-4 w-4 mr-2" />
                   Upload File
                 </DropdownMenuItem>
