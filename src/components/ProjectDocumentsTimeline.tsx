@@ -29,6 +29,7 @@ import { useRoles } from '@/contexts/RoleContext';
 import { DocumentDetailsSheet } from '@/components/documents/DocumentDetailsSheet';
 import { deleteProjectDocument } from '@/utils/projectDocumentDelete';
 import { getDocumentDisplayDescription } from '@/utils/documentFileType';
+import { parseDateOnly } from '@/utils/dateUtils';
 import { toast } from 'sonner';
 
 interface ProjectDocumentsTimelineProps {
@@ -213,7 +214,10 @@ export function ProjectDocumentsTimeline({ projectId, projectNumber }: ProjectDo
           timelineItems.push({
             id: q.id,
             type: 'quote-pdf',
-            timestamp: new Date(q.date_received),
+            // date_received is date-only; new Date('YYYY-MM-DD') parses as UTC midnight,
+            // which lands on the previous evening in US timezones. Use the real entry
+            // instant, falling back to a local-parsed received date.
+            timestamp: q.created_at ? new Date(q.created_at) : parseDateOnly(q.date_received),
             title: `${q.quote_number} - ${(q.payees as any)?.payee_name || 'Quote'}`,
             subtitle: q.notes || undefined,
             fileUrl: q.attachment_url!,
