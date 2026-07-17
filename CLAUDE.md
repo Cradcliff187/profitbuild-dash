@@ -1543,6 +1543,36 @@ drop real work ("Install cushioned flooring") from a crew's schedule — and a h
 doesn't get done, with nobody noticing. Same trap as a `Plan-*` filename heuristic for document
 retyping. Guessing from text and then hiding or rewriting is worse than the thing it fixes.
 
+### 38. Contacts — multiple role-tagged people per client/payee (Jul 17 2026)
+
+The `contacts` table holds N contacts per client OR payee (CHECK `num_nonnulls(client_id, payee_id) = 1`,
+both FKs `ON DELETE CASCADE`). Columns: `name/title/email/phone`, optional `role`
+(`billing/estimating/project_management/site/signatory/insurance/sales/other`), `is_primary`
+(partial unique: one primary per parent), `is_active`. RLS = admin/manager only, all four commands.
+Backfilled Jul 17 2026 from the flat fields (25 client + 53 payee primaries). Spec:
+[docs/CONTACTS_FEATURE_PLAN.md](docs/CONTACTS_FEATURE_PLAN.md).
+
+**The flat columns (`clients.contact_person/email/phone`, `payees.contact_name/contact_title/email/phone_numbers`)
+stay** — they're the last link of every consumer's fallback chain, NOT deprecated-and-dropped (Gotcha #19 philosophy).
+Resolution goes through [`resolveContact`](src/utils/contactResolution.ts): active role match → active primary → null
+(caller falls back to flat fields). Wired into [`useInvoiceData`](src/hooks/useInvoiceData.ts) (Bill To: `billing` chain)
+and [`useContractData`](src/hooks/useContractData.ts) (signatory: `signatory` chain). `ContactQuickPick` chips in the
+invoice/contract modals appear only when a parent has 2+ active contacts.
+
+**Surfaces**: `ContactsCard` (CRUD) on `ClientDetailsModal` + `PayeeDetailsModal` (hidden for `is_internal` payees —
+employees are auth users per Rule 11, never directory contacts). `QuickAddPayee` writes the flat fields AND a primary
+contact row (best-effort, non-blocking). Query keys: `['contacts', 'client'|'payee', id]` — `useContacts` mutations
+invalidate them; `ContactQuickPick` shares the same keys deliberately (Gotcha #27).
+
+**Common pitfalls**:
+- Don't write a role-resolution chain inline — use `resolveContact` so all pipelines agree.
+- Don't add contacts UI for internal payees, and don't source @mentions from `contacts`
+  (mentions come from `get_mentionable_employees()` only — Rule 11 pitfall 4).
+- Field workers have zero `contacts` access by RLS. The field "Call owner" button still reads
+  `payees.phone_numbers` (Rule 36). If crews ever need site contacts, build a column-safe view
+  mirroring `crew_day_assignments_field_view` — don't widen the RLS.
+- QB customer sync still reads the flat client fields (unchanged, deliberate).
+
 ---
 
 ## TypeScript Configuration
