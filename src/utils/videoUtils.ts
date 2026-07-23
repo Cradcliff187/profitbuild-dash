@@ -65,6 +65,77 @@ export function getTimeRemainingBeforeSizeLimit(currentDuration: number): number
 }
 
 /**
+ * Grab a still frame from a video file as a JPEG blob, for use as a
+ * thumbnail. Runs entirely client-side (canvas frame-grab) — the hosted
+ * Supabase edge runtime cannot run ffmpeg, so this is the only viable
+ * thumbnail pipeline (Gotcha #75). Resolves null on any failure or after
+ * a 10s timeout; callers treat a missing thumbnail as non-fatal.
+ */
+export async function captureVideoThumbnail(
+  file: File | Blob,
+  maxWidth = 640,
+  seekToSeconds = 1
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const video = document.createElement('video');
+    const objectUrl = URL.createObjectURL(file);
+
+    const finish = (result: Blob | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      URL.revokeObjectURL(objectUrl);
+      video.removeAttribute('src');
+      video.load();
+      resolve(result);
+    };
+
+    const timer = setTimeout(() => finish(null), 10000);
+
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+
+    video.onerror = () => finish(null);
+
+    video.onloadedmetadata = () => {
+      // Seek into the clip (mid-point for very short videos) so we don't
+      // capture a black first frame
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      video.currentTime = duration > 0 ? Math.min(seekToSeconds, duration / 2) : 0;
+    };
+
+    video.onseeked = () => {
+      try {
+        const sourceWidth = video.videoWidth;
+        const sourceHeight = video.videoHeight;
+        if (!sourceWidth || !sourceHeight) {
+          finish(null);
+          return;
+        }
+        const width = Math.min(maxWidth, sourceWidth);
+        const height = Math.round(width * (sourceHeight / sourceWidth));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          finish(null);
+          return;
+        }
+        ctx.drawImage(video, 0, 0, width, height);
+        canvas.toBlob((blob) => finish(blob), 'image/jpeg', 0.8);
+      } catch {
+        finish(null);
+      }
+    };
+
+    video.src = objectUrl;
+  });
+}
+
+/**
  * Extract video duration from a video file or blob
  * Returns duration in seconds
  */

@@ -88,54 +88,38 @@ are pre-existing exhaustive-deps patterns shared with the rest of the codebase.
 
 ---
 
+## 2b. Round 2 (same day) — report redesign + PDF reliability + video thumbnails
+
+Implemented after Chris's direction: comments will rarely exist, the report should read as
+a photo-first overview (CompanyCam-style), and PDF generation felt like a coin flip.
+Deployed as `generate-media-report` **v124** (byte-verified against this branch).
+
+| # | Change | Where |
+|---|--------|-------|
+| 1 | **Photo Grid layout (new default)** — CompanyCam-style photo-first tiles grouped by date; caption/time render in a slim strip under a photo only when they exist; "No caption" filler removed everywhere; GPS pill only when there's no location name. `imageSize` now maps to grid density (Small=3-across, Medium=2, Large=full-width). The old side-by-side card survives as the "Detailed Cards" option for caption-heavy projects. Visible "Report Style" toggle in the modal (not buried in collapsed options). | edge fn + `MediaReportBuilderModal` |
+| 2 | **PDF "wonkiness" root cause fixed** — html2pdf renders the entire report into ONE canvas; Chrome caps a canvas dimension at 32,767px and **Safari caps total area at ~16.7M px² (≈5 pages at scale 2)** — beyond that the canvas fails SILENTLY and the PDF comes out blank or truncated. `generatePdfBlob` now measures the real preview height and scales the render down to fit both caps. Also: dropped the `'avoid-all'` pagebreak mode and `.date-group`'s `page-break-inside: avoid` (a 30-photo day must be allowed to span pages — forcing it whole created the giant gaps). | `MediaReportBuilderModal`, edge fn CSS |
+| 3 | **Video thumbnails now work** — generated client-side at upload (`captureVideoThumbnail` in `videoUtils.ts`: canvas frame-grab at ~1s, 640px JPEG), uploaded to `project-media-thumbnails` at `thumbnails/{id}.jpg`, PATH stored in `thumbnail_url` (readers sign by convention; the report fn signs path-based thumbnails for 30 days). The dead ffmpeg edge-function invoke is removed; `deleteProjectMedia` also cleans the thumbnail. Storage policies already permitted authenticated upload — no migration needed. | `videoUtils.ts`, `projectMedia.ts`, edge fn |
+| 4 | **Honest progress** — the fake 30%→100% indicator replaced with an indeterminate spinner + item count. | `MediaReportBuilderModal` |
+| 5 | **Data cleanup executed** (authorized) — the 2 broken `project_media` rows deleted with a re-verification guard (`photo-1762703330931.jpg`, `IMG_8617.jpeg`). The 5 orphaned storage objects (~10 MB, incl. two test files) left in place — harmless. | production DB |
+| 6 | **Dead code removed** — `mediaMetadata.ts` placeholder helpers (stub EXIF/device-info, duplicate `formatFileSize`, unused coordinate/mime helpers); `MediaDetailsSheet` now uses the shared `formatFileSize`; `getProjectMediaList` warns loudly if a project ever hits the 1,000-row cap. | utils |
+
+The pre-existing single video (uploaded before this fix) has no thumbnail and can't get
+one retroactively without re-upload — it renders the honest placeholder.
+
 ## 3. Open findings — needs a decision or a follow-up session
-
-### P1 — Video thumbnails have never worked (pipeline is dead-on-arrival)
-
-`generate-video-thumbnail` spawns `ffmpeg` via `Deno.Command` — the hosted Supabase edge
-runtime has **no ffmpeg binary and does not permit subprocess spawn**. The
-`project-media-thumbnails` bucket has **0 objects ever**; the single video in
-`project_media` has `thumbnail_url NULL`. Every video upload fire-and-forget invokes a
-function that can only fail (harmless but pointless).
-
-**Recommended fix shape** (follow-up, not this branch): generate the thumbnail
-client-side at capture — draw a frame to `<canvas>` (`video.currentTime = 1` →
-`canvas.toBlob`), upload alongside the video, store the **path** (not a signed URL — the
-current function stores a 1-year signed URL, which is an expiring value in a permanent
-column). Then delete the edge function. Until then: video tiles show a generic play
-placeholder (gallery) and the new placeholder block (reports) — degraded but honest.
-
-### P1 — Broken media rows in production (cleanup SQL, needs your go-ahead)
-
-Two `project_media` rows point at storage objects that no longer exist (the delete-order
-bug, §2.7) — they render as broken tiles forever. Five storage objects have no DB row
-(upload-rollback leftovers, incl. two Apr-21 test files). I did **not** delete production
-data without your sign-off. To clean up:
-
-```sql
--- 1) The two broken DB rows (verified: no storage object behind them)
-DELETE FROM project_media WHERE id IN (
-  '59cc57be-24e2-4c2a-a041-a5fa3625296a',  -- 2025-11-09
-  '685aaeb8-cbdb-4983-acb3-a0933b599e49'   -- 2026-07-20 (img_8617.jpeg)
-);
-```
-
-The 5 orphaned storage objects (~10 MB) can be removed from the `project-media` bucket via
-dashboard or storage API; exact paths are in the session notes — harmless to leave.
 
 ### P2 — Report modal & pipeline polish
 
-- **iPad layout**: `MediaReportBuilderModal` drives its whole bottom-sheet vs dialog
-  split off `useIsMobile()` (768px) — iPads get the desktop dialog. House rule for field
-  surfaces is Tailwind breakpoints (Rule 35). Same one-off in `FieldMedia.tsx`'s FAB
-  gate and `BidMediaGallery`.
-- **Fake progress** — the progress indicator jumps 30% → 100% (no real signal). Cosmetic.
+- **iPad layout**: `MediaReportBuilderModal` drives its bottom-sheet vs dialog split off
+  `useIsMobile()` (768px) — iPads get the desktop dialog, which is acceptable UX, but the
+  house rule for field surfaces is Tailwind breakpoints (Rule 35). Same one-off in
+  `BidMediaGallery`.
 - **Stale thumbnails in the modal strip** — uses the gallery's 7-day signed URLs; fine in
   practice, but a report generated from a very stale tab could show broken thumbs.
-- **html2pdf ceiling** — the client-side PDF render (html2canvas at scale 2) will get slow
-  past ~50 items even with resized images. The 50-item warning already exists; a
-  server-side PDF (or print-to-PDF-only path) is the eventual answer if large reports
-  become routine.
+- **html2pdf ceiling** — the dynamic-scale fix makes large reports *reliable*, but a
+  50+ item report trades resolution for fitting the canvas caps. If big reports become
+  routine, the eventual answer is server-side PDF rendering (or a print-to-PDF-only
+  path, which is vector and has no canvas limits).
 
 ### P2 — Data quality: the classification features have zero adoption
 

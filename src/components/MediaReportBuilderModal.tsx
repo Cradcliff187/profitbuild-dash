@@ -54,7 +54,6 @@ export function MediaReportBuilderModal({
   // Config state
   const [reportTitle, setReportTitle] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const [reportSummary, setReportSummary] = useState('');
   const [showVoiceSummaryModal, setShowVoiceSummaryModal] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -67,6 +66,10 @@ export function MediaReportBuilderModal({
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [showNumbering, setShowNumbering] = useState(true);
   const [imageSize, setImageSize] = useState<'small' | 'medium' | 'large'>('medium');
+  // Photo Grid is the default: photo-first tiles that read well without
+  // captions/comments (the normal case in the field). Detailed keeps the
+  // side-by-side info-column cards for caption-heavy projects.
+  const [layout, setLayout] = useState<'photo-grid' | 'detailed'>('photo-grid');
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
 
   // Delivery state (used from preview step)
@@ -111,16 +114,38 @@ export function MediaReportBuilderModal({
     showTimestamps,
     showNumbering,
     imageSize,
+    layout,
   };
 
   // ── Shared helpers ──────────────────────────────────────
 
   const generatePdfBlob = async (htmlString: string): Promise<Blob> => {
+    // html2pdf renders the ENTIRE report into ONE canvas at `scale`, then
+    // slices it into pages. Browsers cap canvases hard — Chrome/Firefox at
+    // ~32,767px per dimension, Safari at ~16.7M px² total AREA — and a
+    // too-big canvas fails SILENTLY: blank or truncated PDFs with no error.
+    // At scale 2 Safari breaks past roughly five pages, which is why PDF
+    // generation felt like a coin flip. Scale down as the report grows so
+    // the canvas always fits; the preview iframe gives us the real height.
+    const CONTENT_WIDTH = 850;               // report render width incl. margin
+    const MAX_DIMENSION = 30000;             // under the 32,767px hard cap
+    const MAX_AREA = 16_000_000;             // under Safari's ~16.7M px² cap
+    const measuredHeight = iframeRef.current?.contentDocument?.body?.scrollHeight ?? null;
+
+    let scale = 2;
+    if (measuredHeight && measuredHeight > 0) {
+      const height = measuredHeight * 1.15; // safety margin for width differences
+      const maxByDimension = MAX_DIMENSION / height;
+      const maxByArea = Math.sqrt(MAX_AREA / (CONTENT_WIDTH * height));
+      scale = Math.max(0.75, Math.min(2, maxByDimension, maxByArea));
+      scale = Math.floor(scale * 100) / 100;
+    }
+
     const pdfOptions = {
       margin: [10, 10, 10, 10] as [number, number, number, number],
       image: { type: 'jpeg' as const, quality: 0.95 },
       html2canvas: {
-        scale: 2,
+        scale,
         useCORS: true,
         logging: false,
         letterRendering: true,
@@ -132,10 +157,12 @@ export function MediaReportBuilderModal({
         compress: true,
       },
       pagebreak: {
-        mode: ['avoid-all', 'css', 'legacy'],
+        // 'avoid-all' is deliberately NOT used — it tries to keep every
+        // element unbroken and produces huge gaps on photo-heavy reports.
+        mode: ['css', 'legacy'],
         before: '.page-break',
         after: '.page-break-after',
-        avoid: ['img', '.no-break'],
+        avoid: ['.media-card', '.media-tile', '.no-break'],
       },
     };
 
@@ -238,7 +265,6 @@ export function MediaReportBuilderModal({
 
   const handleGeneratePreview = async () => {
     setIsGenerating(true);
-    setGenerationProgress(0);
 
     try {
       const mediaIds = selectedMedia.map(m => m.id);
@@ -260,8 +286,6 @@ export function MediaReportBuilderModal({
         delivery: 'download', // always get HTML for preview
         options: reportOptions,
       };
-
-      setGenerationProgress(selectedMedia.length * 0.3);
 
       const { data, error } = await supabase.functions.invoke(
         'generate-media-report',
@@ -291,7 +315,6 @@ export function MediaReportBuilderModal({
         throw new Error('Invalid HTML response from server');
       }
 
-      setGenerationProgress(selectedMedia.length);
       setPreviewHtml(data);
       setStep('preview');
 
@@ -303,7 +326,6 @@ export function MediaReportBuilderModal({
       });
     } finally {
       setIsGenerating(false);
-      setGenerationProgress(0);
     }
   };
 
@@ -625,6 +647,39 @@ export function MediaReportBuilderModal({
                   />
                 </div>
 
+                {/* Report Style — kept visible (not in the collapsed options)
+                   because it's the biggest visual decision in the report */}
+                <div className={cn(isMobile ? "space-y-1" : "space-y-1.5")}>
+                  <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Report Style</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={layout === 'photo-grid' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setLayout('photo-grid')}
+                      className="flex-1"
+                      disabled={isGenerating}
+                    >
+                      Photo Grid
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={layout === 'detailed' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setLayout('detailed')}
+                      className="flex-1"
+                      disabled={isGenerating}
+                    >
+                      Detailed Cards
+                    </Button>
+                  </div>
+                  <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                    {layout === 'photo-grid'
+                      ? 'Photo-first pages — captions and comments appear under a photo only when they exist.'
+                      : 'Side-by-side cards with a full info column — best when photos have captions or comments.'}
+                  </p>
+                </div>
+
                 {/* Report Summary Section - Collapsible */}
                 <div className={cn("border rounded-lg", isMobile ? "p-2" : "p-3")}>
                   <button
@@ -755,6 +810,11 @@ export function MediaReportBuilderModal({
                             </Button>
                           ))}
                         </div>
+                        <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                          {layout === 'photo-grid'
+                            ? 'Photos per row: Small = 3 across, Medium = 2 across, Large = full width.'
+                            : 'Photo column width on each card.'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -812,19 +872,12 @@ export function MediaReportBuilderModal({
                 </div>
               </div>
 
-              {/* Generation Progress */}
+              {/* Generation status — honest indeterminate state, no fake % */}
               {isGenerating && (
-                <div className={cn("border rounded-lg", isMobile ? "p-2" : "p-3")}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>
-                      Generating Preview...
-                    </span>
-                    <span className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
-                      {Math.round((generationProgress / selectedMedia.length) * 100)}%
-                    </span>
-                  </div>
-                  <p className={cn("text-muted-foreground mt-2", isMobile ? "text-[10px]" : "text-xs")}>
-                    Processing media items... Please keep this window open.
+                <div className={cn("border rounded-lg flex items-center gap-2", isMobile ? "p-2" : "p-3")}>
+                  <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                  <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                    Building your report ({selectedMedia.length} items)... Please keep this window open.
                   </p>
                 </div>
               )}
@@ -847,7 +900,7 @@ export function MediaReportBuilderModal({
                 {isGenerating ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                    Generating... {Math.round((generationProgress / selectedMedia.length) * 100)}%
+                    Generating...
                   </>
                 ) : (
                   <>

@@ -28,6 +28,14 @@ interface ReportOptions {
   showTimestamps?: boolean;
   showNumbering?: boolean;
   imageSize?: 'small' | 'medium' | 'large';
+  /**
+   * 'photo-grid' (default): CompanyCam-style photo-first tiles — the image
+   * dominates, caption/time render in a slim strip only when present. Reads
+   * well even when nothing is captioned (the normal case in the field).
+   * 'detailed': side-by-side card with a full info column — better when the
+   * team writes captions/descriptions or comments matter.
+   */
+  layout?: 'photo-grid' | 'detailed';
 }
 
 type ResolvedOptions = Required<ReportOptions>;
@@ -224,6 +232,7 @@ Deno.serve(async (req) => {
       showTimestamps: true,
       showNumbering: true,
       imageSize: 'medium',
+      layout: 'photo-grid',
       ...body.options,
     };
 
@@ -270,6 +279,23 @@ Deno.serve(async (req) => {
     }
     console.log(`✅ Batch signed URLs generated: ${signedUrlMap.size}`);
 
+    // Video thumbnails are stored as PATHS in the private
+    // project-media-thumbnails bucket (client-side capture writes
+    // 'thumbnails/{id}.jpg') — sign them so they render in the report/email.
+    const thumbPaths = mediaItems
+      .filter((m: any) => m.thumbnail_url && !String(m.thumbnail_url).startsWith('http'))
+      .map((m: any) => m.thumbnail_url as string);
+
+    const thumbUrlMap = new Map<string, string>();
+    if (thumbPaths.length > 0) {
+      const { data: thumbSigned } = await supabase.storage
+        .from('project-media-thumbnails')
+        .createSignedUrls(thumbPaths, 2592000); // 30 days — email links must outlive the session
+      (thumbSigned || []).forEach((item: any) => {
+        if (item.signedUrl && item.path) thumbUrlMap.set(item.path, item.signedUrl);
+      });
+    }
+
     const mediaWithUrls = mediaItems.map((media: any) => ({
       ...media,
       // Original storage path, kept so the base64 converter can request
@@ -279,6 +305,13 @@ Deno.serve(async (req) => {
           ? media.file_url
           : null,
       file_url: signedUrlMap.get(media.file_url) || media.file_url,
+      // A path that failed to sign becomes null so the video placeholder
+      // renders instead of a broken <img>.
+      thumbnail_url: media.thumbnail_url
+        ? String(media.thumbnail_url).startsWith('http')
+          ? media.thumbnail_url
+          : thumbUrlMap.get(media.thumbnail_url) || null
+        : null,
     }));
 
     // ── Convert images to base64 for PDF (fixes CORS/blank images) ─
@@ -605,6 +638,57 @@ function buildEmailBody(
 // Story Timeline Generator
 // ================================================================
 
+// Shared per-item fragments used by both layouts ------------------
+
+function renderMediaImage(media: any, globalIndex: number, opts: ResolvedOptions): string {
+  const isVideo = media.file_type === 'video';
+  // Videos without a generated thumbnail get a styled placeholder —
+  // a raw video file URL inside <img> renders as a broken image.
+  const imgSrc = isVideo ? media.thumbnail_url : media.file_url;
+
+  return `
+    ${imgSrc
+      ? `<img src="${imgSrc}"
+         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">`
+      : `<div class="video-placeholder">
+           <div class="video-placeholder-icon">&#9658;</div>
+           <div class="video-placeholder-text">Video${media.duration ? ` &middot; ${Math.round(media.duration)}s` : ''}<br>View in project portal</div>
+         </div>`}
+    ${opts.showNumbering
+      ? `<span class="media-number">#${globalIndex + 1}</span>`
+      : ''}
+    <span class="media-type-badge">${isVideo ? 'Video' : 'Photo'}</span>
+  `;
+}
+
+function renderMetaTags(media: any, opts: ResolvedOptions): string {
+  // GPS coordinates only when there's no human-readable location — matching
+  // the option's description ("display coordinates when no location name").
+  const locationTag = media.location_name
+    ? `<span class="meta-tag">${escapeHtml(media.location_name)}</span>`
+    : opts.showGps && media.latitude && media.longitude
+      ? `<span class="meta-tag">GPS: ${media.latitude.toFixed(4)}&deg;, ${media.longitude.toFixed(4)}&deg;</span>`
+      : '';
+  return locationTag ? `<div class="media-meta">${locationTag}</div>` : '';
+}
+
+function renderComments(mediaComments: MediaComment[], opts: ResolvedOptions): string {
+  if (!opts.showComments || mediaComments.length === 0) return '';
+  return `
+    <div class="media-comments">
+      ${mediaComments.map((comment: any) => `
+        <div class="comment-item">
+          <div class="comment-avatar">${(comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase()}</div>
+          <div>
+            <span class="comment-author">${escapeHtml(comment.profiles?.full_name || 'User')}</span> —
+            ${escapeHtml(comment.comment_text)}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function generateStoryTimeline(
   branding: BrandingConfig,
   mediaItems: any[],
@@ -627,6 +711,74 @@ function generateStoryTimeline(
     photosByDate.get(dateKey)!.push(media);
   });
 
+  const isGrid = opts.layout === 'photo-grid';
+
+  // Photo-first tile: the image carries the page; text renders in a slim
+  // strip only when it exists. No "No caption" placeholders anywhere — an
+  // uncaptioned photo is the normal case, not an omission to call out.
+  const renderTile = (media: any) => {
+    const mediaComments = comments.get(media.id) || [];
+    const timestamp = new Date(media.taken_at || media.created_at);
+    const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
+    const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const stripParts: string[] = [];
+    if (opts.showTimestamps) stripParts.push(`<span class="tile-time">${timeStr}</span>`);
+    if (media.caption) stripParts.push(`<span class="tile-caption">${escapeHtml(media.caption)}</span>`);
+
+    const metaHtml = renderMetaTags(media, opts);
+    const commentsHtml = renderComments(mediaComments, opts);
+    const hasStrip = stripParts.length > 0 || metaHtml || commentsHtml;
+
+    return `
+      <div class="media-tile">
+        <div class="tile-image">
+          ${renderMediaImage(media, globalIndex, opts)}
+        </div>
+        ${hasStrip ? `
+          <div class="tile-strip">
+            ${stripParts.length > 0 ? `<div class="tile-strip-row">${stripParts.join('')}</div>` : ''}
+            ${metaHtml}
+            ${commentsHtml}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  };
+
+  // Detailed card: side-by-side image + info column (the pre-Jul-2026 look,
+  // minus the "No caption" filler) — best when captions/descriptions exist.
+  const renderCard = (media: any) => {
+    const mediaComments = comments.get(media.id) || [];
+    const timestamp = new Date(media.taken_at || media.created_at);
+    const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
+
+    return `
+      <div class="media-card">
+        <div class="media-image">
+          ${renderMediaImage(media, globalIndex, opts)}
+        </div>
+        <div class="media-info">
+          ${opts.showTimestamps ? `
+            <div class="media-time">
+              ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          ` : ''}
+          ${media.caption
+            ? `<div class="media-caption">${escapeHtml(media.caption)}</div>`
+            : ''
+          }
+          ${media.description
+            ? `<div class="media-description">${escapeHtml(media.description)}</div>`
+            : ''
+          }
+          ${renderMetaTags(media, opts)}
+          ${renderComments(mediaComments, opts)}
+        </div>
+      </div>
+    `;
+  };
+
   return `
     <div class="timeline-section">
       ${Array.from(photosByDate.entries())
@@ -637,72 +789,9 @@ function generateStoryTimeline(
               <div class="date-line"></div>
               <div class="date-count">${photos.length} item${photos.length !== 1 ? 's' : ''}</div>
             </div>
-            ${photos.map((media: any) => {
-              const mediaComments = comments.get(media.id) || [];
-              const timestamp = new Date(media.taken_at || media.created_at);
-              const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
-              const isVideo = media.file_type === 'video';
-
-              // Videos without a generated thumbnail get a styled placeholder —
-              // a raw video file URL inside <img> renders as a broken image.
-              const imgSrc = isVideo ? media.thumbnail_url : media.file_url;
-
-              return `
-                <div class="media-card">
-                  <div class="media-image">
-                    ${imgSrc
-                      ? `<img src="${imgSrc}"
-                         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">`
-                      : `<div class="video-placeholder">
-                           <div class="video-placeholder-icon">&#9658;</div>
-                           <div class="video-placeholder-text">Video${media.duration ? ` &middot; ${Math.round(media.duration)}s` : ''}<br>View in project portal</div>
-                         </div>`}
-                    ${opts.showNumbering
-                      ? `<span class="media-number">#${globalIndex + 1}</span>`
-                      : ''}
-                    <span class="media-type-badge">${isVideo ? 'Video' : 'Photo'}</span>
-                  </div>
-                  <div class="media-info">
-                    ${opts.showTimestamps ? `
-                      <div class="media-time">
-                        ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    ` : ''}
-                    ${media.caption
-                      ? `<div class="media-caption">${escapeHtml(media.caption)}</div>`
-                      : '<div class="media-caption empty">No caption</div>'
-                    }
-                    ${media.description
-                      ? `<div class="media-description">${escapeHtml(media.description)}</div>`
-                      : ''
-                    }
-                    <div class="media-meta">
-                      ${media.location_name
-                        ? `<span class="meta-tag">${escapeHtml(media.location_name)}</span>`
-                        : ''
-                      }
-                      ${opts.showGps && media.latitude && media.longitude
-                        ? `<span class="meta-tag">GPS: ${media.latitude.toFixed(4)}&deg;, ${media.longitude.toFixed(4)}&deg;</span>`
-                        : ''
-                      }
-                    </div>
-                    ${opts.showComments && mediaComments.length > 0 ? `
-                      <div class="media-comments">
-                        ${mediaComments.map((comment: any) => `
-                          <div class="comment-item">
-                            <div class="comment-avatar">${(comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase()}</div>
-                            <div>
-                              <span class="comment-author">${escapeHtml(comment.profiles?.full_name || 'User')}</span> —
-                              ${escapeHtml(comment.comment_text)}
-                            </div>
-                          </div>
-                        `).join('')}
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
+            ${isGrid
+              ? `<div class="media-grid">${photos.map(renderTile).join('')}</div>`
+              : photos.map(renderCard).join('')}
           </div>
         `).join('')}
     </div>
@@ -714,7 +803,7 @@ function generateStoryTimeline(
 // ================================================================
 
 function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): string {
-  // Map imageSize option to media card image column width
+  // Map imageSize option to media card image column width (detailed layout)
   const imgColMap = {
     small: '200px',
     medium: '260px',
@@ -722,15 +811,23 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
   };
   const imgColWidth = imgColMap[opts.imageSize];
 
+  // In the photo-grid layout, imageSize drives density instead:
+  // small = 3-across, medium = 2-across, large = one full-width photo per row
+  const gridColsMap = { small: 3, medium: 2, large: 1 };
+  const gridCols = gridColsMap[opts.imageSize];
+
   return `
     /* ── Timeline Section ────────────────────── */
     .timeline-section {
       padding: 36px 56px 56px;
     }
 
+    /* No page-break-inside:avoid here — a date group can hold dozens of
+       photos and MUST be allowed to span pages (forcing it whole created
+       giant gaps / overflow in generated PDFs). Individual cards/tiles
+       carry their own avoid rules instead. */
     .date-group {
       margin-bottom: 48px;
-      page-break-inside: avoid;
     }
 
     .date-group:last-child { margin-bottom: 0; }
@@ -765,7 +862,67 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       white-space: nowrap;
     }
 
-    /* ── Media Card ──────────────────────────── */
+    /* ── Photo Grid (photo-first layout) ─────── */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(${gridCols}, 1fr);
+      gap: 16px;
+    }
+
+    .media-tile {
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .tile-image {
+      position: relative;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #F8F6F3;
+    }
+
+    .tile-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .tile-strip {
+      padding: 10px 14px 12px;
+    }
+
+    .tile-strip-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .tile-time {
+      font-size: 11px;
+      font-weight: 600;
+      color: ${branding.primaryColor};
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tile-caption {
+      font-size: ${gridCols === 3 ? '11px' : '13px'};
+      font-weight: 500;
+      color: ${branding.secondaryColor};
+      line-height: 1.45;
+      min-width: 0;
+    }
+
+    .tile-strip .media-meta { margin-top: 6px; }
+    .tile-strip .media-comments { margin-top: 10px; padding-top: 10px; }
+
+    /* ── Media Card (detailed layout) ────────── */
     .media-card {
       display: grid;
       grid-template-columns: ${imgColWidth} 1fr;
@@ -872,12 +1029,6 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       margin-bottom: 12px;
     }
 
-    .media-caption.empty {
-      color: #94A3B8;
-      font-style: italic;
-      font-weight: 400;
-    }
-
     .media-description {
       font-size: 12px;
       color: #64748B;
@@ -939,7 +1090,7 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       color: ${branding.secondaryColor};
     }
 
-    /* ── Print Styles ──────────────────────── */
+    /* ── Print Styles ──────────────────── */
     @media print {
       body {
         background: white !important;
@@ -954,8 +1105,12 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
         print-color-adjust: exact !important;
       }
 
-      .date-group { page-break-inside: avoid; }
+      /* Cards/tiles stay whole across pages; date groups may split (a
+         30-photo day MUST be allowed to span pages or the browser pushes
+         the whole group to a fresh page, leaving huge gaps). */
       .media-card { page-break-inside: avoid; break-inside: avoid; }
+      .media-tile { page-break-inside: avoid; break-inside: avoid; }
+      .date-header { page-break-after: avoid; }
       .report-footer { page-break-inside: avoid; }
     }
 

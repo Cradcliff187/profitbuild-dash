@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateMediaMetadata } from "@/utils/projectMedia";
 import { formatDeviceLabel } from "@/utils/formatDeviceLabel";
+import { formatFileSize } from "@/utils/videoUtils";
 import { toast } from "sonner";
 import { MEDIA_CATEGORY_LABELS } from "@/types/project";
 import type { MediaCategory, ProjectMedia } from "@/types/project";
@@ -23,11 +24,10 @@ interface MediaDetailsSheetProps {
 
 const UNCLASSIFIED = "__unclassified__";
 
-function formatFileSize(bytes?: number) {
+// Shared formatter, with the sheet's em-dash fallback for missing sizes
+function displayFileSize(bytes?: number) {
   if (!bytes && bytes !== 0) return "—";
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / 1024 / 1024).toFixed(1) + " MB";
+  return formatFileSize(bytes);
 }
 
 export function MediaDetailsSheet({ media, open, onOpenChange, onSaved }: MediaDetailsSheetProps) {
@@ -109,7 +109,7 @@ export function MediaDetailsSheet({ media, open, onOpenChange, onSaved }: MediaD
                     {media.file_type === "video" ? "Video" : "Photo"}
                   </p>
                   <p>
-                    <span className="font-medium text-foreground">Size:</span> {formatFileSize(media.file_size)}
+                    <span className="font-medium text-foreground">Size:</span> {displayFileSize(media.file_size)}
                   </p>
                   <p>
                     <span className="font-medium text-foreground">Captured:</span>{" "}

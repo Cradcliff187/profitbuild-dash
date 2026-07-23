@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectMedia, MediaCategory } from "@/types/project";
 import { generateStoragePath, validateMediaFile } from "./mediaMetadata";
+import { captureVideoThumbnail } from "./videoUtils";
 
 export interface UploadProjectMediaParams {
   projectId: string;
@@ -112,21 +113,39 @@ export async function uploadProjectMedia(
       .from('project-media')
       .createSignedUrl(uploadData.path, 604800); // 7 days expiry
 
-    // Generate thumbnail for videos in background (don't await)
+    // Generate a thumbnail for videos in the background (don't await).
+    // Client-side canvas frame-grab — the old generate-video-thumbnail edge
+    // function spawned ffmpeg, which the hosted edge runtime can't run, so
+    // it never produced a single thumbnail (Gotcha #75). The DB stores the
+    // storage PATH ('thumbnails/{id}.jpg'); readers sign it by convention.
     if (fileType === 'video') {
-      supabase.functions
-        .invoke('generate-video-thumbnail', {
-          body: { 
-            mediaId: mediaRecord.id, 
-            videoPath: uploadData.path 
+      (async () => {
+        try {
+          const thumbBlob = await captureVideoThumbnail(file);
+          if (!thumbBlob) return;
+
+          const thumbPath = `thumbnails/${mediaRecord.id}.jpg`;
+          const { error: thumbUploadError } = await supabase.storage
+            .from('project-media-thumbnails')
+            .upload(thumbPath, thumbBlob, { contentType: 'image/jpeg' });
+
+          if (thumbUploadError) {
+            console.warn('Thumbnail upload failed:', thumbUploadError.message);
+            return;
           }
-        })
-        .then(({ error }) => {
-          if (error) {
-            console.error('Thumbnail generation failed:', error);
+
+          const { error: thumbDbError } = await supabase
+            .from('project_media')
+            .update({ thumbnail_url: thumbPath })
+            .eq('id', mediaRecord.id);
+
+          if (thumbDbError) {
+            console.warn('Thumbnail record update failed:', thumbDbError.message);
           }
-        })
-        .catch(err => console.error('Thumbnail generation error:', err));
+        } catch (err) {
+          console.warn('Thumbnail generation error:', err);
+        }
+      })();
     }
 
     return {
@@ -195,7 +214,7 @@ export async function deleteProjectMedia(
       };
     }
 
-    // Best-effort storage cleanup
+    // Best-effort storage cleanup (file + any generated video thumbnail)
     const { error: storageError } = await supabase.storage
       .from('project-media')
       .remove([media.file_url]);
@@ -203,6 +222,11 @@ export async function deleteProjectMedia(
     if (storageError) {
       console.warn('Media DB row deleted but storage cleanup failed:', storageError.message);
     }
+
+    await supabase.storage
+      .from('project-media-thumbnails')
+      .remove([`thumbnails/${mediaId}.jpg`])
+      .catch(() => { /* thumbnail may not exist — fine */ });
 
     return {
       success: true,
@@ -254,6 +278,13 @@ export async function getProjectMediaList(
         data: [],
         error,
       };
+    }
+
+    // PostgREST caps every response at 1,000 rows (Gotcha #23) — largest
+    // project holds ~20 media today, but surface the truncation loudly if a
+    // project ever gets there so it doesn't fail silently.
+    if ((data || []).length === 1000) {
+      console.warn(`getProjectMediaList: hit the 1,000-row cap for project ${projectId} — media list is truncated; pagination needed`);
     }
 
     // Batch generate signed URLs for all media (7 days expiry)
