@@ -85,6 +85,7 @@ export async function captureVideoThumbnail(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearTimeout(fallbackTimer);
       URL.revokeObjectURL(objectUrl);
       video.removeAttribute('src');
       video.load();
@@ -92,21 +93,34 @@ export async function captureVideoThumbnail(
     };
 
     const timer = setTimeout(() => finish(null), 10000);
+    // If seeking never fires 'seeked' (e.g. target time equals current time,
+    // or a platform quirk), grab whatever frame is decoded rather than
+    // burning the full timeout.
+    let fallbackTimer: ReturnType<typeof setTimeout>;
 
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'auto';
-
-    video.onerror = () => finish(null);
-
-    video.onloadedmetadata = () => {
-      // Seek into the clip (mid-point for very short videos) so we don't
-      // capture a black first frame
-      const duration = Number.isFinite(video.duration) ? video.duration : 0;
-      video.currentTime = duration > 0 ? Math.min(seekToSeconds, duration / 2) : 0;
+    // iOS can hand back an undecoded (all-black) frame — better to detect it
+    // and return null (callers show an honest placeholder) than to save a
+    // black thumbnail everywhere the video appears.
+    const looksBlack = (ctx: CanvasRenderingContext2D, width: number, height: number): boolean => {
+      try {
+        const step = Math.max(1, Math.floor(Math.min(width, height) / 5));
+        let samples = 0;
+        let dark = 0;
+        for (let y = step; y < height; y += step) {
+          for (let x = step; x < width; x += step) {
+            const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+            samples++;
+            if (r < 10 && g < 10 && b < 10) dark++;
+          }
+        }
+        return samples > 0 && dark === samples;
+      } catch {
+        return false;
+      }
     };
 
-    video.onseeked = () => {
+    const capture = () => {
+      if (settled) return;
       try {
         const sourceWidth = video.videoWidth;
         const sourceHeight = video.videoHeight;
@@ -125,11 +139,36 @@ export async function captureVideoThumbnail(
           return;
         }
         ctx.drawImage(video, 0, 0, width, height);
+        if (looksBlack(ctx, width, height)) {
+          finish(null);
+          return;
+        }
         canvas.toBlob((blob) => finish(blob), 'image/jpeg', 0.8);
       } catch {
         finish(null);
       }
     };
+
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+
+    video.onerror = () => finish(null);
+
+    video.onloadedmetadata = () => {
+      // Seek into the clip (mid-point for very short videos) so we don't
+      // capture a black first frame
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      video.currentTime = duration > 0 ? Math.min(seekToSeconds, duration / 2) : 0;
+    };
+
+    video.onloadeddata = () => {
+      // Frame 0 is decoded; if the seek's 'seeked' event never arrives,
+      // capture what we have after a short grace period.
+      fallbackTimer = setTimeout(capture, 3000);
+    };
+
+    video.onseeked = capture;
 
     video.src = objectUrl;
   });

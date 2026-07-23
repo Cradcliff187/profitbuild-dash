@@ -106,6 +106,29 @@ Deployed as `generate-media-report` **v124** (byte-verified against this branch)
 The pre-existing single video (uploaded before this fix) has no thumbnail and can't get
 one retroactively without re-upload — it renders the honest placeholder.
 
+## 2c. Round 3 (same day) — multi-recipient email + adversarial review pass
+
+Per Chris's follow-up ("do another review… and why can't we send multiple email
+recipients?"). Deployed as `generate-media-report` **v126** (byte-verified against this
+branch).
+
+| # | Change | Where |
+|---|--------|-------|
+| 1 | **Multi-recipient report email** — the request now takes `recipientEmails: string[]` (legacy `recipientEmail` still honored). `resolveRecipients()` trims, validates, dedupes case-insensitively, caps at 20; Resend receives the whole array in one send; `email_messages` logs one row per recipient. The modal accepts comma/semicolon/newline-separated addresses with live "N valid / N invalid" feedback, blocks send while any address is invalid, and the Email button shows the recipient count. Both email inputs switched to `type="text" inputMode="email"` — a `type="email"` field strips commas on some browsers. | edge fn + `MediaReportBuilderModal` |
+| 2 | **Video thumbnails embed in reports** — `convertMediaToBase64` now includes videos with a `thumbnail_url` in the embed pass (was images-only), so emailed/printed reports show the video still instead of relying on a signed URL that may expire. | edge fn |
+| 3 | **PDF aspect-ratio fix** — html2canvas 1.4.1 does not implement CSS `aspect-ratio`; tiles using it render fine in the preview but collapse to zero height in the PDF canvas. Swapped to the `padding-bottom: 75%` + absolutely-positioned img technique. Verified by re-rendering all four sample reports — pixel-identical heights before/after. | edge fn CSS |
+| 4 | **XSS hardening** — comment-avatar initials are now `escapeHtml`ed (they come from profile names). | edge fn |
+| 5 | **iOS video-thumbnail hardening** — `captureVideoThumbnail` gained a pixel-sampling black-frame detector (an undecoded all-black frame resolves null → honest placeholder, never a black thumbnail) and a 3s `loadeddata` fallback capture for platforms that never fire `seeked`. | `videoUtils.ts` |
+| 6 | **Mobile preview fit-to-width** — the preview iframe applies `body.style.zoom = frameWidth/816` on narrow screens so phones see the whole page width; `naturalHeightRef` keeps the unzoomed height for the PDF scale math (measuring the zoomed body would corrupt the canvas-cap calculation). | `MediaReportBuilderModal` |
+
+**Review verdicts (fresh-eyes pass over the full branch diff):** mobile + desktop layouts,
+button wiring, cache-key fanout, delete order, note-media guards, and the upload/queue
+paths all verified good by code review + build + rendered-screenshot inspection
+(Playwright at 900px and 390px-with-zoom; no horizontal overflow in any layout/size
+combination). Items P3/P4/C1/C2 from the review were judged working-as-designed and left
+alone. Caveat stated honestly: no live authenticated click-through was possible from this
+environment — Chris's on-device smoke test after Lovable Publish is the final gate.
+
 ## 3. Open findings — needs a decision or a follow-up session
 
 ### P2 — Report modal & pipeline polish
@@ -173,7 +196,8 @@ independent of code.
 1. **Report generation**: Field Media → select the biggest project (225-088, 20 items ≈
    49 MB of originals) → Select All → Generate Report. Preview should appear in seconds;
    edge logs should show `POST | 200` and a `transforms ON/OFF` console line. Download PDF
-   and Email both work from the preview.
+   and Email both work from the preview — for Email, enter two addresses
+   comma-separated and confirm both arrive (`email_messages` gets a row per recipient).
 2. **Comments**: open a photo → add a comment → it appears in the thread immediately, and
    the grid badge count updates without a reload.
 3. **Delete**: delete a photo from the lightbox → grid updates without F5; schedule-hub

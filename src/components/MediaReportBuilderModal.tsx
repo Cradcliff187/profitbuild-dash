@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
@@ -33,6 +33,31 @@ interface MediaReportBuilderModalProps {
 
 type ModalStep = 'configure' | 'preview';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Parse a comma/semicolon-separated recipient string into valid and invalid
+ * email lists (deduped case-insensitively, original casing preserved).
+ */
+function parseRecipientEmails(input: string): { valid: string[]; invalid: string[] } {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+
+  input
+    .split(/[,;\n]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((part) => {
+      const key = part.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      (EMAIL_RE.test(part) ? valid : invalid).push(part);
+    });
+
+  return { valid, invalid };
+}
+
 export function MediaReportBuilderModal({
   open,
   onOpenChange,
@@ -45,6 +70,9 @@ export function MediaReportBuilderModal({
 }: MediaReportBuilderModalProps) {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  // Unzoomed report height, captured at preview render — generatePdfBlob's
+  // canvas-cap math needs the natural size, not the mobile fit-to-width one
+  const naturalHeightRef = useRef<number | null>(null);
   const queryClient = useQueryClient();
 
   // Modal step
@@ -97,6 +125,7 @@ export function MediaReportBuilderModal({
       setPreviewHtml(null);
       setIsDelivering(false);
       setSavedReport(null);
+      naturalHeightRef.current = null;
     }
   }, [open, projectNumber, projectName]);
 
@@ -107,6 +136,9 @@ export function MediaReportBuilderModal({
 
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
+
+  // Comma/semicolon-separated recipients, parsed live for validation + gating
+  const recipients = useMemo(() => parseRecipientEmails(recipientEmail), [recipientEmail]);
 
   const reportOptions = {
     showComments,
@@ -130,7 +162,12 @@ export function MediaReportBuilderModal({
     const CONTENT_WIDTH = 850;               // report render width incl. margin
     const MAX_DIMENSION = 30000;             // under the 32,767px hard cap
     const MAX_AREA = 16_000_000;             // under Safari's ~16.7M px² cap
-    const measuredHeight = iframeRef.current?.contentDocument?.body?.scrollHeight ?? null;
+    // Prefer the natural height captured before the mobile fit-to-width zoom;
+    // a zoomed body's scrollHeight would understate the real render size.
+    const measuredHeight =
+      naturalHeightRef.current ??
+      iframeRef.current?.contentDocument?.body?.scrollHeight ??
+      null;
 
     let scale = 2;
     if (measuredHeight && measuredHeight > 0) {
@@ -371,8 +408,14 @@ export function MediaReportBuilderModal({
 
   const handleEmail = async () => {
     if (!previewHtml) return;
-    if (!recipientEmail) {
-      toast.error('Please enter a recipient email address');
+    if (recipients.valid.length === 0) {
+      toast.error('Please enter at least one recipient email address');
+      return;
+    }
+    if (recipients.invalid.length > 0) {
+      toast.error('Some email addresses look invalid', {
+        description: recipients.invalid.join(', '),
+      });
       return;
     }
 
@@ -393,7 +436,8 @@ export function MediaReportBuilderModal({
           format: 'story',
           summary: reportSummary.trim() || undefined,
           delivery: 'email',
-          recipientEmail,
+          recipientEmails: recipients.valid,
+          recipientEmail: recipients.valid[0], // back-compat with older fn versions
           recipientName,
           pdfDownloadUrl: signedUrl,
           mediaCount: selectedMedia.length,
@@ -404,7 +448,10 @@ export function MediaReportBuilderModal({
       if (emailError) throw new Error(`Failed to send email: ${emailError.message}`);
 
       toast.success('Report emailed!', {
-        description: `Sent to ${recipientEmail}`
+        description:
+          recipients.valid.length === 1
+            ? `Sent to ${recipients.valid[0]}`
+            : `Sent to ${recipients.valid.length} recipients`,
       });
 
       onComplete();
@@ -419,14 +466,33 @@ export function MediaReportBuilderModal({
 
   // Write HTML into preview iframe when it mounts or html changes
   const writePreviewToIframe = useCallback(() => {
-    if (iframeRef.current && previewHtml) {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(previewHtml);
-        doc.close();
+    const iframe = iframeRef.current;
+    if (!iframe || !previewHtml) return;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(previewHtml);
+    doc.close();
+
+    // The report is a fixed-width print document (~800px). On phones, scale
+    // it to fit the iframe instead of forcing sideways panning. Natural
+    // height is captured FIRST — generatePdfBlob's canvas-cap math needs the
+    // unzoomed size. (Item heights use fixed aspect-ratio boxes, so layout
+    // is stable before images finish loading.)
+    requestAnimationFrame(() => {
+      const body = doc.body;
+      if (!body) return;
+      naturalHeightRef.current = body.scrollHeight || null;
+
+      const contentWidth = 816; // .report-container 800px + body padding
+      const frameWidth = iframe.clientWidth;
+      if (frameWidth && frameWidth < contentWidth) {
+        (body.style as CSSStyleDeclaration & { zoom?: string }).zoom = String(
+          Math.round((frameWidth / contentWidth) * 1000) / 1000
+        );
       }
-    }
+    });
   }, [previewHtml]);
 
   useEffect(() => {
@@ -496,12 +562,13 @@ export function MediaReportBuilderModal({
             {recipientEmail === '' && (
               <div className={cn("flex gap-2 items-end", isMobile ? "flex-col" : "")}>
                 <div className="flex-1">
-                  <Label className={cn(isMobile ? "text-[10px]" : "text-xs")}>Recipient Email (for email delivery)</Label>
+                  <Label className={cn(isMobile ? "text-[10px]" : "text-xs")}>Recipient Email(s) — commas for multiple</Label>
                   <Input
-                    type="email"
+                    type="text"
+                    inputMode="email"
                     value={recipientEmail}
                     onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="client@example.com"
+                    placeholder="client@example.com, pm@example.com"
                     className={cn("mt-1", isMobile ? "h-8 text-xs" : "h-9")}
                     disabled={isDelivering}
                   />
@@ -541,11 +608,15 @@ export function MediaReportBuilderModal({
               </Button>
               <Button
                 onClick={handleEmail}
-                disabled={isDelivering || !recipientEmail}
+                disabled={isDelivering || recipients.valid.length === 0}
                 size={isMobile ? "sm" : "default"}
               >
                 <Mail className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
-                {isDelivering ? 'Sending...' : 'Email Report'}
+                {isDelivering
+                  ? 'Sending...'
+                  : recipients.valid.length > 1
+                    ? `Email Report (${recipients.valid.length})`
+                    : 'Email Report'}
               </Button>
             </DialogFooter>
           </>
@@ -823,15 +894,21 @@ export function MediaReportBuilderModal({
                 {/* Email fields (pre-fill so they're ready at preview step) */}
                 <div className={cn("space-y-2")}>
                   <div>
-                    <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Recipient Email</Label>
+                    <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Recipient Email(s)</Label>
                     <Input
-                      type="email"
+                      type="text"
+                      inputMode="email"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
-                      placeholder="client@example.com (optional — needed for email delivery)"
+                      placeholder="client@example.com, pm@example.com"
                       className={cn("mt-1", isMobile ? "h-8 text-xs" : "h-9")}
                       disabled={isGenerating}
                     />
+                    <p className={cn("text-muted-foreground mt-1", isMobile ? "text-[10px]" : "text-xs")}>
+                      Optional — needed for email delivery. Separate multiple addresses with commas.
+                      {recipients.valid.length > 1 && ` ${recipients.valid.length} recipients.`}
+                      {recipients.invalid.length > 0 && ` Invalid: ${recipients.invalid.join(', ')}`}
+                    </p>
                   </div>
                   <div>
                     <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Recipient Name</Label>

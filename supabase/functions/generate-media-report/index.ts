@@ -47,11 +47,38 @@ interface ReportRequest {
   format?: string;  // Accepted but only 'story' is used
   summary?: string;
   delivery?: 'print' | 'download' | 'email';
+  /** Preferred: all recipients. One email is sent with every address on it. */
+  recipientEmails?: string[];
+  /** Legacy single-recipient field — merged into recipientEmails when present. */
   recipientEmail?: string;
   recipientName?: string;
   pdfDownloadUrl?: string;
   mediaCount?: number;
   options?: ReportOptions;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_RECIPIENTS = 20;
+
+/** Merge, trim, validate, and dedupe (case-insensitively) recipient emails. */
+function resolveRecipients(body: ReportRequest): string[] {
+  const candidates = [
+    ...(Array.isArray(body.recipientEmails) ? body.recipientEmails : []),
+    ...(body.recipientEmail ? [body.recipientEmail] : []),
+  ];
+
+  const seen = new Set<string>();
+  const recipients: string[] = [];
+  for (const raw of candidates) {
+    const email = String(raw).trim();
+    if (!EMAIL_RE.test(email)) continue;
+    const key = email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    recipients.push(email);
+    if (recipients.length >= MAX_EMAIL_RECIPIENTS) break;
+  }
+  return recipients;
 }
 
 interface MediaComment {
@@ -160,10 +187,19 @@ async function convertMediaToBase64(
   if (delivery === 'email') return mediaItems;
 
   const images = mediaItems.filter((m) => m.file_type === 'image' && m.storage_path);
-  if (images.length === 0) return mediaItems;
+  const embeddable = mediaItems.filter(
+    (m) =>
+      (m.file_type === 'image' && m.storage_path) ||
+      // Video thumbnails must be embedded too — a remote signed URL is the
+      // exact thing that goes blank in html2canvas-generated PDFs.
+      (m.file_type === 'video' && m.thumbnail_url)
+  );
+  if (embeddable.length === 0) return mediaItems;
 
-  const transformsAvailable = await probeImageTransforms(supabaseUrl, images[0].storage_path);
-  console.log(`🖼️ Converting ${images.length} images to base64 (transforms ${transformsAvailable ? 'ON' : 'OFF — using originals'})...`);
+  const transformsAvailable = images.length > 0
+    ? await probeImageTransforms(supabaseUrl, images[0].storage_path)
+    : false;
+  console.log(`🖼️ Converting ${embeddable.length} items to base64 (transforms ${transformsAvailable ? 'ON' : 'OFF — using originals'})...`);
 
   const batchSize = 4;
   const results = [...mediaItems];
@@ -176,17 +212,27 @@ async function convertMediaToBase64(
     const batch = results.slice(i, i + batchSize);
     const base64Results = await Promise.all(
       batch.map((media) => {
-        if (media.file_type !== 'image' || !media.storage_path) return Promise.resolve(null);
-        const fetchUrl = transformsAvailable
-          ? transformedMediaUrl(supabaseUrl, media.storage_path)
-          : media.file_url;
-        return fetchImageAsBase64(fetchUrl);
+        if (media.file_type === 'image' && media.storage_path) {
+          const fetchUrl = transformsAvailable
+            ? transformedMediaUrl(supabaseUrl, media.storage_path)
+            : media.file_url;
+          return fetchImageAsBase64(fetchUrl);
+        }
+        if (media.file_type === 'video' && media.thumbnail_url) {
+          return fetchImageAsBase64(media.thumbnail_url);
+        }
+        return Promise.resolve(null);
       })
     );
 
     base64Results.forEach((result, idx) => {
       if (result) {
-        results[i + idx] = { ...results[i + idx], file_url: result.dataUrl };
+        const target = results[i + idx];
+        if (target.file_type === 'video') {
+          results[i + idx] = { ...target, thumbnail_url: result.dataUrl };
+        } else {
+          results[i + idx] = { ...target, file_url: result.dataUrl };
+        }
         totalEmbedded += result.bytes;
         converted++;
       }
@@ -197,7 +243,7 @@ async function convertMediaToBase64(
   if (totalEmbedded > MAX_TOTAL_EMBED_BYTES) {
     console.warn(`⚠️ Embed budget reached (${(totalEmbedded / 1048576).toFixed(1)}MB) — remaining items keep remote URLs`);
   }
-  console.log(`✅ Base64 conversion: ${converted}/${images.length} embedded, ${(totalEmbedded / 1048576).toFixed(1)}MB`);
+  console.log(`✅ Base64 conversion: ${converted}/${embeddable.length} embedded, ${(totalEmbedded / 1048576).toFixed(1)}MB`);
 
   return results;
 }
@@ -221,7 +267,7 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as ReportRequest;
     const {
       projectId, mediaIds, reportTitle, summary,
-      delivery, recipientEmail, recipientName,
+      delivery, recipientName,
       pdfDownloadUrl, mediaCount,
     } = body;
 
@@ -411,14 +457,15 @@ Deno.serve(async (req) => {
 
     // ── Handle email delivery ───────────────────────────────
     if (delivery === 'email') {
-      if (!recipientEmail) {
+      const recipients = resolveRecipients(body);
+      if (recipients.length === 0) {
         return new Response(
-          JSON.stringify({ error: 'recipientEmail is required for email delivery' }),
+          JSON.stringify({ error: 'At least one valid recipient email is required for email delivery' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log(`📧 Sending report via email to ${recipientEmail}`);
+      console.log(`📧 Sending report via email to ${recipients.length} recipient(s)`);
 
       const resendApiKey = Deno.env.get('ResendAPI');
       if (!resendApiKey) {
@@ -453,7 +500,7 @@ Deno.serve(async (req) => {
 
       const { data: emailResult, error: emailError } = await resend.emails.send({
         from: `${branding.companyName} <noreply@rcgwork.com>`,
-        to: [recipientEmail],
+        to: recipients,
         subject: `${project.project_number} - Media Report: ${project.project_name}`,
         html: emailHtml,
       });
@@ -465,22 +512,24 @@ Deno.serve(async (req) => {
 
       console.log('✅ Report email sent:', emailResult?.id);
 
-      // Log email to database
+      // Log to database — one row per recipient so history stays queryable
       try {
-        await supabase.from('email_messages').insert({
-          recipient_email: recipientEmail,
-          recipient_name: recipientName || null,
-          recipient_user_id: null,
-          email_type: 'media-report',
-          subject: `${project.project_number} - Media Report: ${project.project_name}`,
-          entity_type: 'media-report',
-          entity_id: projectId,
-          project_id: projectId,
-          sent_by: null,
-          resend_email_id: emailResult?.id || null,
-          delivery_status: emailResult?.id ? 'sent' : 'failed',
-          error_message: null,
-        });
+        await supabase.from('email_messages').insert(
+          recipients.map((email) => ({
+            recipient_email: email,
+            recipient_name: recipientName || null,
+            recipient_user_id: null,
+            email_type: 'media-report',
+            subject: `${project.project_number} - Media Report: ${project.project_name}`,
+            entity_type: 'media-report',
+            entity_id: projectId,
+            project_id: projectId,
+            sent_by: null,
+            resend_email_id: emailResult?.id || null,
+            delivery_status: emailResult?.id ? 'sent' : 'failed',
+            error_message: null,
+          }))
+        );
       } catch (logError) {
         console.error('Failed to log email to database:', logError);
       }
@@ -490,7 +539,7 @@ Deno.serve(async (req) => {
           success: true,
           delivery: 'email',
           emailId: emailResult?.id,
-          recipientEmail,
+          recipientEmails: recipients,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -678,7 +727,7 @@ function renderComments(mediaComments: MediaComment[], opts: ResolvedOptions): s
     <div class="media-comments">
       ${mediaComments.map((comment: any) => `
         <div class="comment-item">
-          <div class="comment-avatar">${(comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase()}</div>
+          <div class="comment-avatar">${escapeHtml((comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase())}</div>
           <div>
             <span class="comment-author">${escapeHtml(comment.profiles?.full_name || 'User')}</span> —
             ${escapeHtml(comment.comment_text)}
@@ -878,18 +927,30 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       break-inside: avoid;
     }
 
+    /* padding-bottom keeps the 4:3 box — html2canvas 1.4.1 (the PDF
+       renderer) does not implement CSS aspect-ratio, which collapses the
+       image boxes in generated PDFs */
     .tile-image {
       position: relative;
-      aspect-ratio: 4/3;
+      padding-bottom: 75%;
       overflow: hidden;
       background: #F8F6F3;
     }
 
     .tile-image img {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+
+    .tile-image .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
     .tile-strip {
@@ -938,15 +999,24 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
 
     .media-image {
       position: relative;
-      aspect-ratio: 4/3;
+      padding-bottom: 75%;
       overflow: hidden;
       background: #F8F6F3;
     }
 
     .media-image img {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .media-image .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
     .video-placeholder {
@@ -1090,7 +1160,7 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       color: ${branding.secondaryColor};
     }
 
-    /* ── Print Styles ──────────────────── */
+    /* ── Print Styles ────────────────── */
     @media print {
       body {
         background: white !important;
