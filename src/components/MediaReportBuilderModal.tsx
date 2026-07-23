@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
-import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft, RefreshCw } from 'lucide-react';
+import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -44,6 +45,7 @@ export function MediaReportBuilderModal({
 }: MediaReportBuilderModalProps) {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const queryClient = useQueryClient();
 
   // Modal step
   const [step, setStep] = useState<ModalStep>('configure');
@@ -222,6 +224,13 @@ export function MediaReportBuilderModal({
       documentId: result.documentId,
     };
     setSavedReport(cached);
+
+    // The save inserted a project_documents row — every surface reading that
+    // table needs to hear about it (Gotcha #27 fanout)
+    queryClient.invalidateQueries({ queryKey: ['project-documents', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-docs-count', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] });
+
     return cached;
   };
 
@@ -260,7 +269,22 @@ export function MediaReportBuilderModal({
       );
 
       if (error) {
-        throw new Error(error.message || 'Failed to generate report');
+        // FunctionsHttpError's message is a generic "non-2xx status code" —
+        // surface the real failure from the response when we can. 546 is the
+        // platform's WORKER_LIMIT status (report too large for the function).
+        let message = error.message || 'Failed to generate report';
+        const context = (error as { context?: Response }).context;
+        if (context?.status === 546) {
+          message = 'Report too large to generate — try selecting fewer items.';
+        } else if (context && typeof context.json === 'function') {
+          try {
+            const body = await context.json();
+            if (body?.error) message = body.error;
+          } catch {
+            // response body wasn't JSON — keep the generic message
+          }
+        }
+        throw new Error(message);
       }
 
       if (!data || typeof data !== 'string') {

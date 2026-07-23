@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { X, ChevronLeft, ChevronRight, MapPin, Clock, Smartphone, Trash2, MessageSquare, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
   const [currentPhoto, setCurrentPhoto] = useState(photo);
   const { isAdmin, isManager } = useRoles();
   const canEdit = isAdmin || isManager;
+  const queryClient = useQueryClient();
   
   const currentIndex = allPhotos.findIndex((p) => p.id === photo.id);
   const hasPrevious = currentIndex > 0;
@@ -84,9 +86,13 @@ export function PhotoLightbox({ photo, allPhotos, onClose, onNavigate }: PhotoLi
   const handleDelete = async () => {
     setIsDeleting(true);
     const result = await deleteProjectMedia(currentPhoto.id);
-    
+
     if (result.success) {
       toast.success('Photo deleted');
+      // No realtime on media queries — the galleries and count badges only
+      // learn about the delete through this invalidation (Gotcha #27).
+      queryClient.invalidateQueries({ queryKey: ['project-media', currentPhoto.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['project-media-count', currentPhoto.project_id] });
       onClose();
     } else {
       toast.error('Failed to delete photo');

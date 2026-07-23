@@ -40,9 +40,12 @@ export async function uploadProjectMedia(
       };
     }
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Read the user from the local session — getUser() is a network
+    // round-trip that serializes concurrent queries behind the auth lock
+    // (Gotcha #63)
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) {
       return {
         data: null,
         error: new Error('User not authenticated'),
@@ -144,7 +147,13 @@ export async function uploadProjectMedia(
 }
 
 /**
- * Delete media file from storage and database
+ * Delete media from database, then storage — in that order.
+ *
+ * DB first is load-bearing: RLS can block the row delete WITHOUT an error
+ * (0 rows affected), and the old storage-first order then left a DB row
+ * pointing at a removed object — a permanently broken tile in every gallery.
+ * An orphaned storage object (DB gone, storage remove failed) is the
+ * harmless direction, so storage cleanup is best-effort.
  */
 export async function deleteProjectMedia(
   mediaId: string
@@ -164,29 +173,35 @@ export async function deleteProjectMedia(
       };
     }
 
-    // Delete from storage
-    const { error: storageError } = await supabase.storage
-      .from('project-media')
-      .remove([media.file_url]);
-
-    if (storageError) {
-      return {
-        success: false,
-        error: storageError,
-      };
-    }
-
-    // Delete database record
-    const { error: dbError } = await supabase
+    // Delete database record and verify a row was actually removed —
+    // RLS silently deletes 0 rows for callers without permission.
+    const { data: deletedRows, error: dbError } = await supabase
       .from('project_media')
       .delete()
-      .eq('id', mediaId);
+      .eq('id', mediaId)
+      .select('id');
 
     if (dbError) {
       return {
         success: false,
         error: dbError,
       };
+    }
+
+    if (!deletedRows || deletedRows.length === 0) {
+      return {
+        success: false,
+        error: new Error('You do not have permission to delete this item'),
+      };
+    }
+
+    // Best-effort storage cleanup
+    const { error: storageError } = await supabase.storage
+      .from('project-media')
+      .remove([media.file_url]);
+
+    if (storageError) {
+      console.warn('Media DB row deleted but storage cleanup failed:', storageError.message);
     }
 
     return {
@@ -410,11 +425,6 @@ export async function refreshMediaSignedUrl(
   mediaId: string
 ): Promise<{ signedUrl: string | null; thumbnailUrl: string | null; error: Error | null }> {
   try {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
-      return { signedUrl: null, thumbnailUrl: null, error: new Error('Not authenticated') };
-    }
-
     // Fetch the media item to get file paths
     const { data: media, error: fetchError } = await supabase
       .from('project_media')

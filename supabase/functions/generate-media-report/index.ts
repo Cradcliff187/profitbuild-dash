@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts';
 import {
   fetchBranding,
   buildBrandedReport,
@@ -59,11 +60,63 @@ interface MediaComment {
 // ================================================================
 // Base64 Image Conversion (fixes blank images in PDF)
 // ================================================================
+//
+// Resource discipline: this function runs inside the edge isolate's
+// CPU/memory caps (exceeding them returns HTTP 546 WORKER_LIMIT before
+// our code can respond). Field photos average ~3MB and reach 8MB, so:
+//  - images are fetched as resized variants via Storage image
+//    transforms when available (probed once at runtime, silent fallback
+//    to originals when the feature is off),
+//  - base64 encoding uses std encodeBase64 (linear, allocation-cheap),
+//  - a hard byte budget stops embedding before the isolate dies; items
+//    past the budget keep their remote URL (the public bucket serves
+//    them with CORS, so preview and html2canvas still render them).
+
+const TRANSFORM_WIDTH = 1200;
+const TRANSFORM_QUALITY = 75;
+const MAX_SINGLE_EMBED_BYTES = 12 * 1024 * 1024;  // skip base64 for any one file larger than this
+const MAX_TOTAL_EMBED_BYTES = 48 * 1024 * 1024;   // stop embedding once total raw bytes exceed this
+
+function encodeStoragePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
+function publicMediaUrl(supabaseUrl: string, path: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/project-media/${encodeStoragePath(path)}`;
+}
+
+function transformedMediaUrl(supabaseUrl: string, path: string): string {
+  return `${supabaseUrl}/storage/v1/render/image/public/project-media/${encodeStoragePath(path)}?width=${TRANSFORM_WIDTH}&quality=${TRANSFORM_QUALITY}`;
+}
+
+/** Probe once whether Storage image transforms are enabled on this project. */
+async function probeImageTransforms(
+  supabaseUrl: string,
+  samplePath: string
+): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    // GET, not HEAD — the gateway can report misleading headers on HEAD
+    const response = await fetch(transformedMediaUrl(supabaseUrl, samplePath), {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (response.ok) {
+      await response.arrayBuffer(); // drain so the connection is reusable
+      return true;
+    }
+    await response.body?.cancel();
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 async function fetchImageAsBase64(
   url: string,
   timeoutMs = 15000
-): Promise<string | null> {
+): Promise<{ dataUrl: string; bytes: number } | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -77,13 +130,13 @@ async function fetchImageAsBase64(
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = btoa(
-      uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
-
+    if (arrayBuffer.byteLength > MAX_SINGLE_EMBED_BYTES) {
+      console.warn(`⚠️ Skipping embed, file too large (${(arrayBuffer.byteLength / 1048576).toFixed(1)}MB): ${url.slice(0, 80)}`);
+      return null;
+    }
+    const base64 = encodeBase64(new Uint8Array(arrayBuffer));
     const contentType = response.headers.get('content-type') || 'image/jpeg';
-    return `data:${contentType};base64,${base64}`;
+    return { dataUrl: `data:${contentType};base64,${base64}`, bytes: arrayBuffer.byteLength };
   } catch (error) {
     console.warn(`⚠️ Failed to convert image to base64: ${(error as Error).message}`);
     return null;
@@ -92,32 +145,51 @@ async function fetchImageAsBase64(
 
 async function convertMediaToBase64(
   mediaItems: any[],
-  delivery: string | undefined
+  delivery: string | undefined,
+  supabaseUrl: string
 ): Promise<any[]> {
   // Only convert for print/download — email uses external image refs which is fine
   if (delivery === 'email') return mediaItems;
 
-  console.log(`🖼️ Converting ${mediaItems.length} images to base64...`);
+  const images = mediaItems.filter((m) => m.file_type === 'image' && m.storage_path);
+  if (images.length === 0) return mediaItems;
 
-  const batchSize = 5;
+  const transformsAvailable = await probeImageTransforms(supabaseUrl, images[0].storage_path);
+  console.log(`🖼️ Converting ${images.length} images to base64 (transforms ${transformsAvailable ? 'ON' : 'OFF — using originals'})...`);
+
+  const batchSize = 4;
   const results = [...mediaItems];
+  let totalEmbedded = 0;
+  let converted = 0;
 
   for (let i = 0; i < results.length; i += batchSize) {
+    if (totalEmbedded > MAX_TOTAL_EMBED_BYTES) break;
+
     const batch = results.slice(i, i + batchSize);
     const base64Results = await Promise.all(
-      batch.map((media) => fetchImageAsBase64(media.file_url))
+      batch.map((media) => {
+        if (media.file_type !== 'image' || !media.storage_path) return Promise.resolve(null);
+        const fetchUrl = transformsAvailable
+          ? transformedMediaUrl(supabaseUrl, media.storage_path)
+          : media.file_url;
+        return fetchImageAsBase64(fetchUrl);
+      })
     );
 
-    base64Results.forEach((base64Url, idx) => {
-      if (base64Url) {
-        results[i + idx] = { ...results[i + idx], file_url: base64Url };
+    base64Results.forEach((result, idx) => {
+      if (result) {
+        results[i + idx] = { ...results[i + idx], file_url: result.dataUrl };
+        totalEmbedded += result.bytes;
+        converted++;
       }
       // If conversion fails, keep the signed URL as fallback
     });
   }
 
-  const converted = results.filter((m) => m.file_url?.startsWith('data:')).length;
-  console.log(`✅ Base64 conversion: ${converted}/${results.length} succeeded`);
+  if (totalEmbedded > MAX_TOTAL_EMBED_BYTES) {
+    console.warn(`⚠️ Embed budget reached (${(totalEmbedded / 1048576).toFixed(1)}MB) — remaining items keep remote URLs`);
+  }
+  console.log(`✅ Base64 conversion: ${converted}/${images.length} embedded, ${(totalEmbedded / 1048576).toFixed(1)}MB`);
 
   return results;
 }
@@ -200,11 +272,17 @@ Deno.serve(async (req) => {
 
     const mediaWithUrls = mediaItems.map((media: any) => ({
       ...media,
+      // Original storage path, kept so the base64 converter can request
+      // resized variants and the email builder can mint stable public URLs.
+      storage_path:
+        media.file_url && !String(media.file_url).startsWith('http')
+          ? media.file_url
+          : null,
       file_url: signedUrlMap.get(media.file_url) || media.file_url,
     }));
 
     // ── Convert images to base64 for PDF (fixes CORS/blank images) ─
-    const mediaWithBase64 = await convertMediaToBase64(mediaWithUrls, delivery);
+    const mediaWithBase64 = await convertMediaToBase64(mediaWithUrls, delivery, supabaseUrl);
 
     // ── Fetch comments (skip query if comments hidden) ──────
     const commentsByMedia = new Map<string, MediaComment[]>();
@@ -317,8 +395,21 @@ Deno.serve(async (req) => {
       const { Resend } = await import('https://esm.sh/resend@2.0.0');
       const resend = new Resend(resendApiKey);
 
+      // Email thumbnails must outlive the 1-hour signed URLs — the bucket is
+      // public, so mint stable public URLs (images only; videos have no
+      // renderable still unless a thumbnail exists).
+      const emailMedia = mediaWithUrls.map((m: any) => ({
+        ...m,
+        email_img_url:
+          m.file_type === 'image' && m.storage_path
+            ? publicMediaUrl(supabaseUrl, m.storage_path)
+            : m.file_type === 'video' && m.thumbnail_url
+              ? m.thumbnail_url
+              : null,
+      }));
+
       const emailBodyHtml = buildEmailBody(
-        branding, project, mediaWithUrls, opts,
+        branding, project, emailMedia, opts,
         { reportTitle, recipientName, summary, pdfDownloadUrl, mediaCount }
       );
 
@@ -444,14 +535,16 @@ function buildEmailBody(
     </table>
   `;
 
-  // Thumbnail previews (up to 3 images)
-  const previewItems = mediaItems.slice(0, 3);
+  // Thumbnail previews (up to 3 items with a stable renderable image)
+  const previewItems = mediaItems
+    .filter((m: any) => m.email_img_url)
+    .slice(0, 3);
   const thumbnailRowHtml = previewItems.length > 0 ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 24px 0;">
       <tr>
         ${previewItems.map((m: any) => `
           <td style="width: ${Math.floor(100 / previewItems.length)}%; padding: 0 4px; vertical-align: top;">
-            <img src="${m.file_url}" alt="Preview"
+            <img src="${m.email_img_url}" alt="Preview"
               width="${Math.floor(500 / previewItems.length)}"
               style="display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid ${EMAIL_COLORS.borderLight};" />
           </td>
@@ -550,11 +643,20 @@ function generateStoryTimeline(
               const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
               const isVideo = media.file_type === 'video';
 
+              // Videos without a generated thumbnail get a styled placeholder —
+              // a raw video file URL inside <img> renders as a broken image.
+              const imgSrc = isVideo ? media.thumbnail_url : media.file_url;
+
               return `
                 <div class="media-card">
                   <div class="media-image">
-                    <img src="${isVideo && media.thumbnail_url ? media.thumbnail_url : media.file_url}"
-                         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">
+                    ${imgSrc
+                      ? `<img src="${imgSrc}"
+                         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">`
+                      : `<div class="video-placeholder">
+                           <div class="video-placeholder-icon">&#9658;</div>
+                           <div class="video-placeholder-text">Video${media.duration ? ` &middot; ${Math.round(media.duration)}s` : ''}<br>View in project portal</div>
+                         </div>`}
                     ${opts.showNumbering
                       ? `<span class="media-number">#${globalIndex + 1}</span>`
                       : ''}
@@ -690,6 +792,36 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       object-fit: cover;
     }
 
+    .video-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: ${branding.secondaryColor};
+    }
+
+    .video-placeholder-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      padding-left: 4px;
+    }
+
+    .video-placeholder-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.65);
+      text-align: center;
+      line-height: 1.5;
+    }
+
     .media-number {
       position: absolute;
       top: 12px;
@@ -807,7 +939,7 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       color: ${branding.secondaryColor};
     }
 
-    /* ── Print Styles ────────────────────────── */
+    /* ── Print Styles ──────────────────────── */
     @media print {
       body {
         background: white !important;

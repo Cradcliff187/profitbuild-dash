@@ -33,6 +33,7 @@ function MediaThumbnail({
               src={item.thumbnail_url}
               alt={item.caption || 'Video'}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           ) : (
             <Video className="h-8 w-8 text-muted-foreground/40" />
@@ -128,8 +129,9 @@ export function FieldMediaGallery({ projectId }: FieldMediaGalleryProps) {
         )}
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Grid — responsive: field-only users see this at every width
+         (iPad/desktop included), so a fixed 2-col becomes giant tiles */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         {media.map((item) => (
           <MediaThumbnail key={item.id} item={item} onTap={() => handleTap(item)} />
         ))}

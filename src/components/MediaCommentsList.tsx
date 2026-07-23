@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Comment {
   id: string;
@@ -25,22 +25,16 @@ interface MediaCommentsListProps {
 }
 
 export function MediaCommentsList({ mediaId }: MediaCommentsListProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
 
-  // Get current user
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id || null);
-    });
-  }, []);
-
-  // Fetch comments
-  useEffect(() => {
-    const fetchComments = async () => {
-      setIsLoading(true);
+  // 'media-comments' is the key MediaCommentForm invalidates after a submit —
+  // that pairing is what makes a new comment appear without reopening the
+  // lightbox. No realtime here (banned on field-worker paths).
+  const { data: comments = [], isLoading } = useQuery({
+    queryKey: ['media-comments', mediaId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('media_comments')
         .select(`
@@ -57,41 +51,11 @@ export function MediaCommentsList({ mediaId }: MediaCommentsListProps) {
         .eq('media_id', mediaId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching comments:', error);
-        toast.error('Failed to load comments');
-      } else {
-        setComments(data || []);
-      }
-      setIsLoading(false);
-    };
-
-    fetchComments();
-  }, [mediaId]);
-
-  // Real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel(`media-comments-${mediaId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'media_comments',
-          filter: `media_id=eq.${mediaId}`,
-        },
-        () => {
-          // Refetch comments on any change
-          queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [mediaId, queryClient]);
+      if (error) throw error;
+      return (data || []) as Comment[];
+    },
+    enabled: !!mediaId,
+  });
 
   const handleDelete = async (commentId: string) => {
     const { error } = await supabase
@@ -103,7 +67,8 @@ export function MediaCommentsList({ mediaId }: MediaCommentsListProps) {
       toast.error('Failed to delete comment');
     } else {
       toast.success('Comment deleted');
-      setComments(comments.filter(c => c.id !== commentId));
+      queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
+      queryClient.invalidateQueries({ queryKey: ['media-comment-counts'] });
     }
   };
 
@@ -132,7 +97,7 @@ export function MediaCommentsList({ mediaId }: MediaCommentsListProps) {
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
               </Avatar>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <span className="font-medium text-foreground">{userName}</span>

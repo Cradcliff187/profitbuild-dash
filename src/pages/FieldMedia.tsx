@@ -14,6 +14,9 @@ import { BrandedLoader } from '@/components/ui/branded-loader';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
+import { useRoles } from '@/contexts/RoleContext';
+import { useDbFeatureFlag } from '@/hooks/useDbFeatureFlag';
+import { cn } from '@/lib/utils';
 
 type MediaTab = 'all' | 'photos' | 'videos' | 'timeline';
 
@@ -28,6 +31,12 @@ export default function FieldMedia() {
   const { id: routeProjectId } = useParams();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  // When AppLayout mounts the v2 FieldTabBar (fixed bottom-0, ~64px), the
+  // capture FABs must sit above it or they overlap the right-most tab —
+  // same clearance pattern as ProjectDetailView's FieldQuickActionBar lift.
+  const { isFieldWorkerOnly } = useRoles();
+  const { enabled: fieldHomeEnabled } = useDbFeatureFlag('field_worker_v2');
+  const fieldShellActive = isFieldWorkerOnly && fieldHomeEnabled;
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(routeProjectId);
   const [activeTab, setActiveTab] = useState<MediaTab>('all');
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -180,7 +189,14 @@ export default function FieldMedia() {
 
               {/* Floating Capture Buttons - Mobile Only */}
               {isMobile && (
-                <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+                <div
+                  className={cn(
+                    'fixed right-6 flex flex-col gap-3 z-40',
+                    fieldShellActive
+                      ? 'bottom-[calc(88px+env(safe-area-inset-bottom))]'
+                      : 'bottom-6'
+                  )}
+                >
                   <Button
                     size="lg"
                     className="rounded-full h-14 w-14 shadow-lg"

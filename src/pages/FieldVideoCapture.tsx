@@ -179,12 +179,16 @@ export default function FieldVideoCapture() {
       }
 
       const meta = metadata.getMetadataForUpload();
-      await upload({
+      const uploaded = await upload({
         file,
         caption: captions.pendingCaption,
         ...meta,
         duration,
       });
+
+      // upload() returns null on failure (it toasts the error itself). Keep
+      // the preview so the user can retry instead of losing the recording.
+      if (!uploaded) return;
 
       setCapturedVideo(null);
       captions.setPendingCaption('');
@@ -222,12 +226,15 @@ export default function FieldVideoCapture() {
       }
 
       const meta = metadata.getMetadataForUpload();
-      await upload({
+      const uploaded = await upload({
         file,
         caption: captions.pendingCaption,
         ...meta,
         duration,
       });
+
+      // Don't navigate away from a failed upload — the recording would be lost
+      if (!uploaded) return;
 
       navigateToProjectMedia(projectId!);
     } catch (error) {
