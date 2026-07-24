@@ -45,6 +45,9 @@ import {
 import { EstimateTotalsRow } from "@/components/estimates/EstimateTotalsRow";
 import { EstimateSummaryCard } from "@/components/estimates/EstimateSummaryCard";
 import { ImportEstimateModal } from "@/components/estimates/ImportEstimateModal";
+import { useCarryForwardReview, type DroppedLineReview } from "@/components/estimates/CarryForwardReviewDialog";
+import { fetchLineItemConnections, lineHasConnections } from "@/utils/estimateConnections";
+import type { Tables } from "@/integrations/supabase/types";
 
 
 
@@ -99,6 +102,11 @@ export const EstimateForm = ({ mode = 'edit', initialEstimate, preselectedProjec
   
   // Copy estimate workflow
   const [copyFromEstimate, setCopyFromEstimate] = useState<string | null>(sourceEstimateIdFromUrl || null);
+
+  // Pre-save review for removed lines that still have quotes / expense
+  // allocations / dispatch links attached (the informed-consent half of
+  // Rule 27's automatic carry-forward).
+  const { review: reviewDroppedLines, dialog: carryForwardDialog } = useCarryForwardReview();
   
   // Fetch default labor rates for auto-populating new labor line items
   const { data: defaultLaborRates } = useInternalLaborRates();
@@ -578,6 +586,127 @@ useEffect(() => {
   // Memoize labor metrics to avoid recalculating 10+ times per render
   const laborMetrics = useMemo(() => calculateLaborMetrics(), [lineItems]);
 
+  // Rebuild a form LineItem from a DB row when the user chooses "Restore" in
+  // the carry-forward review. Edit path keeps the real id (the diff-based save
+  // then treats it as an update, not a delete); new-version path mints a local
+  // id and stamps sourceLineItemId so the RPC re-points attachments (Rule 27).
+  const mapRowToRestoredLineItem = (
+    row: Tables<'estimate_line_items'>,
+    opts: { keepId: boolean }
+  ): LineItem => ({
+    id: opts.keepId ? row.id : `new-${Date.now()}-${Math.random()}`,
+    category: row.category as LineItemCategory,
+    description: row.description,
+    quantity: Number(row.quantity ?? 1),
+    pricePerUnit: Number(row.price_per_unit ?? 0),
+    total: Number(row.total ?? 0),
+    unit: row.unit ?? undefined,
+    sort_order: row.sort_order ?? undefined,
+    costPerUnit: Number(row.cost_per_unit ?? 0),
+    markupPercent: row.markup_percent,
+    markupAmount: row.markup_amount,
+    totalCost: Number(row.total_cost ?? 0),
+    totalMarkup: Number(row.total_markup ?? 0),
+    laborHours: row.labor_hours != null ? Number(row.labor_hours) : null,
+    billingRatePerHour: row.billing_rate_per_hour != null ? Number(row.billing_rate_per_hour) : null,
+    actualCostRatePerHour: row.actual_cost_rate_per_hour != null ? Number(row.actual_cost_rate_per_hour) : null,
+    sourceLineItemId: opts.keepId ? undefined : row.id,
+  });
+
+  // Pre-save guard: lines this save would leave behind that still have quotes,
+  // expense allocations, or dispatch links attached get an explicit review
+  // dialog instead of silently orphaning those records. Read-only until the
+  // user decides; 'halt' means the save must not proceed.
+  const reviewDroppedLineConnections = async (
+    validLineItems: LineItem[]
+  ): Promise<'proceed' | 'halt'> => {
+    let dropped: Tables<'estimate_line_items'>[] = [];
+    // Lines belonging to this estimate can be restored with attachments intact;
+    // lines on other estimates render informational-only (the RPC's ownership
+    // guard skips re-pointing for them).
+    let restorableEstimateId: string | null = null;
+    let labelByEstimateId = new Map<string, string>();
+
+    if (initialEstimate) {
+      // Edit-in-place: removed rows are about to be DELETEd (quote FKs go NULL
+      // via ON DELETE SET NULL; correlations cascade away).
+      const currentIds = new Set(validLineItems.map(li => li.id).filter(Boolean));
+      const droppedIds = Array.from(originalLineItemIds.current).filter(id => !currentIds.has(id));
+      if (droppedIds.length === 0) return 'proceed';
+
+      const { data, error } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .in('id', droppedIds);
+      if (error) throw error;
+      dropped = data ?? [];
+      restorableEstimateId = initialEstimate.id;
+    } else {
+      // New-version save: anything on the version source (or the currently
+      // approved estimate) not claimed via sourceLineItemId stays on the old
+      // version and drops out of cost tracking once this version is approved.
+      if (!projectId) return 'proceed';
+
+      const { data: existing, error: existingError } = await supabase
+        .from('estimates')
+        .select('id, parent_estimate_id, status, estimate_number')
+        .eq('project_id', projectId);
+      if (existingError) throw existingError;
+      if (!existing || existing.length === 0) return 'proceed';
+
+      const root = existing.find(e => e.parent_estimate_id === null);
+      restorableEstimateId = copyFromEstimate || root?.id || null;
+      if (!restorableEstimateId) return 'proceed';
+
+      labelByEstimateId = new Map(existing.map(e => [e.id, e.estimate_number]));
+      const approvedIds = existing.filter(e => e.status === 'approved').map(e => e.id);
+      const checkIds = Array.from(new Set([restorableEstimateId, ...approvedIds]));
+
+      const { data, error } = await supabase
+        .from('estimate_line_items')
+        .select('*')
+        .in('estimate_id', checkIds);
+      if (error) throw error;
+
+      const claimed = new Set(validLineItems.map(li => li.sourceLineItemId).filter(Boolean));
+      dropped = (data ?? []).filter(row => !claimed.has(row.id));
+    }
+
+    if (dropped.length === 0) return 'proceed';
+
+    const connectionsByLine = await fetchLineItemConnections(dropped.map(d => d.id));
+    const flagged = dropped.filter(row => {
+      const conn = connectionsByLine.get(row.id);
+      return conn && lineHasConnections(conn);
+    });
+    if (flagged.length === 0) return 'proceed';
+
+    const reviewLines: DroppedLineReview[] = flagged.map(row => ({
+      lineItemId: row.id,
+      description: row.description,
+      category: row.category,
+      restorable: row.estimate_id === restorableEstimateId,
+      sourceLabel: labelByEstimateId.get(row.estimate_id),
+      connections: connectionsByLine.get(row.id)!,
+    }));
+
+    const decision = await reviewDroppedLines(reviewLines);
+    if (decision.action === 'save') return 'proceed';
+
+    if (decision.action === 'restore') {
+      const rowsToRestore = flagged.filter(row => decision.lineItemIds.includes(row.id));
+      setLineItems(prev => [
+        ...prev,
+        ...rowsToRestore.map(row => mapRowToRestoredLineItem(row, { keepId: !!initialEstimate })),
+      ]);
+      toast.info(
+        `Restored ${rowsToRestore.length} line item${rowsToRestore.length === 1 ? '' : 's'}`,
+        { description: 'Totals updated — review the estimate, then save again.' }
+      );
+    }
+    return 'halt';
+  };
+
   const handleSave = async (targetStatus: EstimateStatus = 'draft') => {
     const validLineItems = lineItems.filter(item => item.description.trim());
 
@@ -604,7 +733,21 @@ useEffect(() => {
     }
 
     setIsLoading(true);
-    
+
+    // Connected-records pre-flight: surface removed lines with attached quotes /
+    // allocations / dispatch links BEFORE any write (and before the saving
+    // toast, so the review dialog isn't racing a spinner). Fail-open — a flaky
+    // read must never block saving.
+    try {
+      const preflight = await reviewDroppedLineConnections(validLineItems);
+      if (preflight === 'halt') {
+        setIsLoading(false);
+        return;
+      }
+    } catch (preflightError) {
+      console.error('Dropped-line connections preflight failed (continuing with save):', preflightError);
+    }
+
     // Optimistic update: Show saving state
     const toastId = toast.loading(initialEstimate ? "Updating Estimate" : "Creating Estimate", { description: "Processing estimate details..." });
     
@@ -1977,6 +2120,9 @@ useEffect(() => {
         onClose={() => setShowImportModal(false)}
         onImport={handleImportItems}
       />
+
+      {/* Carry-forward review for removed lines with attached records */}
+      {carryForwardDialog}
 
       {/* Project Creation Sheet */}
       <Sheet open={showProjectCreation} onOpenChange={setShowProjectCreation}>
