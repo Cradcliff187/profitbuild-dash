@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { ClientSelector } from "@/components/ClientSelector";
+import { FormSection } from "@/components/forms/FormSection";
 import { generateProjectNumber } from "@/types/project";
 import { toast } from "sonner";
 import { JOB_TYPES } from "@/types/project";
@@ -149,201 +150,298 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {/* Project Name */}
-        <FormField
-          control={form.control}
-          name="project_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Name *</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter project name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormSection title="Basics">
+          {/* Project Name */}
+          <FormField
+            control={form.control}
+            name="project_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Project Name *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter project name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Client */}
-        <FormField
-          control={form.control}
-          name="client_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client *</FormLabel>
-              <FormControl>
-                <ClientSelector
-                  value={field.value}
-                  onValueChange={handleClientChange}
-                  placeholder="Select a client"
-                  required={true}
-                  showLabel={false}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          {/* Client */}
+          <FormField
+            control={form.control}
+            name="client_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Client *</FormLabel>
+                <FormControl>
+                  <ClientSelector
+                    value={field.value}
+                    onValueChange={handleClientChange}
+                    placeholder="Select a client"
+                    required={true}
+                    showLabel={false}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Client Details */}
-        {selectedClient && (
-          <div className="p-3 bg-muted/50 rounded-md border text-xs space-y-1">
-            <div className="font-medium">{selectedClient.client_name}</div>
-            {selectedClient.company_name && (
-              <div className="text-muted-foreground">{selectedClient.company_name}</div>
+          {/* Client Details */}
+          {selectedClient && (
+            <div className="rounded-md border bg-muted/50 p-3 text-xs space-y-1">
+              <div className="font-medium">{selectedClient.client_name}</div>
+              {selectedClient.company_name && (
+                <div className="text-muted-foreground">{selectedClient.company_name}</div>
+              )}
+              {selectedClient.email && (
+                <div className="text-muted-foreground">{selectedClient.email}</div>
+              )}
+              {selectedClient.phone && (
+                <div className="text-muted-foreground">{selectedClient.phone}</div>
+              )}
+            </div>
+          )}
+
+          {/* Customer PO Number */}
+          <FormField
+            control={form.control}
+            name="customer_po_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Customer PO Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter PO number (optional)" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-            {selectedClient.email && (
-              <div className="text-muted-foreground">{selectedClient.email}</div>
+          />
+
+          {/* Address */}
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter project address"
+                    className="min-h-[60px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-            {selectedClient.phone && (
-              <div className="text-muted-foreground">{selectedClient.phone}</div>
-            )}
+          />
+        </FormSection>
+
+        <FormSection title="Classification" withDivider>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Project Type */}
+            <FormField
+              control={form.control}
+              name="project_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="construction_project">Construction Project</SelectItem>
+                      <SelectItem value="work_order">Work Order</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Status */}
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="estimating">Estimating</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="complete">Complete</SelectItem>
+                      <SelectItem value="on_hold">On Hold</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Job Type */}
+            <FormField
+              control={form.control}
+              name="job_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Job Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {JOB_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
-        )}
+        </FormSection>
 
-        {/* Address */}
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Enter project address" 
-                  className="min-h-[60px] resize-none"
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormSection title="Schedule" withDivider>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="start_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Start Date</FormLabel>
+                  <FormControl>
+                    <DatePickerPopover
+                      value={field.value}
+                      onSelect={field.onChange}
+                      placeholder="Pick a start date"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {/* Customer PO Number */}
-        <FormField
-          control={form.control}
-          name="customer_po_number"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Customer PO Number</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter PO number (optional)" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="end_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>End Date</FormLabel>
+                  <FormControl>
+                    <DatePickerPopover
+                      value={field.value}
+                      onSelect={field.onChange}
+                      placeholder="Pick an end date"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </FormSection>
 
-        {/* Start / End dates (optional) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormSection title="Financial" withDivider>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <FormField
+              control={form.control}
+              name="payment_terms"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Terms</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Due on receipt">Due on Receipt</SelectItem>
+                      <SelectItem value="Net 15">Net 15</SelectItem>
+                      <SelectItem value="Net 30">Net 30</SelectItem>
+                      <SelectItem value="Net 60">Net 60</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="minimum_margin_threshold"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Min Margin %</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="target_margin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Target Margin %</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Ownership" withDivider>
           <FormField
             control={form.control}
-            name="start_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <DatePickerPopover
-                    value={field.value}
-                    onSelect={field.onChange}
-                    placeholder="Pick a start date"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="end_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>End Date</FormLabel>
-                <FormControl>
-                  <DatePickerPopover
-                    value={field.value}
-                    onSelect={field.onChange}
-                    placeholder="Pick an end date"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Three column grid for selects */}
-        <div className="grid grid-cols-3 gap-3">
-          {/* Project Type */}
-          <FormField
-            control={form.control}
-            name="project_type"
+            name="owner_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type *</FormLabel>
+                <FormLabel>Project Owner (Optional)</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select owner" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="construction_project">Construction Project</SelectItem>
-                    <SelectItem value="work_order">Work Order</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Status */}
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="estimating">Estimating</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="complete">Complete</SelectItem>
-                    <SelectItem value="on_hold">On Hold</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Job Type */}
-          <FormField
-            control={form.control}
-            name="job_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Job Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select..." />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {JOB_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {internalEmployees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.payee_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -352,98 +450,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
               </FormItem>
             )}
           />
-        </div>
-
-        {/* Payment Terms and Margins */}
-        <div className="grid grid-cols-3 gap-3">
-          <FormField
-            control={form.control}
-            name="payment_terms"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Terms</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Due on receipt">Due on Receipt</SelectItem>
-                    <SelectItem value="Net 15">Net 15</SelectItem>
-                    <SelectItem value="Net 30">Net 30</SelectItem>
-                    <SelectItem value="Net 60">Net 60</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="minimum_margin_threshold"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Min Margin %</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="target_margin"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Target Margin %</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Project Owner */}
-        <FormField
-          control={form.control}
-          name="owner_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Owner (Optional)</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select owner" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {internalEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.payee_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        </FormSection>
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">

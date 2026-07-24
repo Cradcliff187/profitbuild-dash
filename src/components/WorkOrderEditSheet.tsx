@@ -27,23 +27,22 @@ export const WorkOrderEditSheet: React.FC<WorkOrderEditSheetProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[700px] flex flex-col p-0 overflow-hidden">
-        <SheetHeader className="space-y-1 px-6 pt-6 pb-4 border-b shrink-0">
+      {/* Full-width on mobile; the form supplies the scroll body + pinned footer. */}
+      <SheetContent className="w-full sm:max-w-[640px] flex flex-col gap-0 p-0 overflow-hidden">
+        <SheetHeader className="space-y-1 px-4 sm:px-6 pt-6 pb-4 border-b shrink-0 text-left">
           <SheetTitle>Edit Work Order {workOrder.project_number}</SheetTitle>
           <SheetDescription>
             Update work order details and save changes
           </SheetDescription>
         </SheetHeader>
-        
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <ProjectEditForm 
-            project={workOrder} 
-            onSave={handleSave} 
-            onCancel={handleCancel} 
-          />
-        </div>
+
+        <ProjectEditForm
+          variant="sheet"
+          project={workOrder}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
       </SheetContent>
     </Sheet>
   );
 };
-
