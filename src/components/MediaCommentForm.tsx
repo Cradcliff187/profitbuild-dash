@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,6 +7,7 @@ import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { AudioVisualizer } from '@/components/ui/audio-visualizer';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface MediaCommentFormProps {
@@ -17,6 +19,8 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const transcriptionInitiatedRef = useRef(false);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const {
     startRecording,
@@ -73,14 +77,12 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
       return;
     }
 
-    setIsSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       toast.error('You must be logged in to comment');
-      setIsSubmitting(false);
       return;
     }
+
+    setIsSubmitting(true);
 
     const { error } = await supabase
       .from('media_comments')
@@ -97,6 +99,9 @@ export function MediaCommentForm({ mediaId }: MediaCommentFormProps) {
     }
 
     toast.success('Comment added');
+    // The thread list and the gallery count badges both read this table
+    queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
+    queryClient.invalidateQueries({ queryKey: ['media-comment-counts'] });
     setCommentText('');
     resetRecording();
     resetTranscription();

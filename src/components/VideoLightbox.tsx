@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, MapPin, Clock, Download, Trash2, Edit3 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { X, ChevronLeft, ChevronRight, MapPin, Clock, Download, Trash2, Edit3, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -31,7 +32,12 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { isAdmin, isManager } = useRoles();
-  const canEditDetails = (isAdmin || isManager) && currentVideo.source !== 'note';
+  const queryClient = useQueryClient();
+  // Note-sourced videos have no project_media row: no delete, no caption
+  // edit, no comment thread (the note IS the conversation) — mirrors
+  // PhotoLightbox's guards.
+  const isNoteSourced = currentVideo.source === 'note';
+  const canEditDetails = (isAdmin || isManager) && !isNoteSourced;
 
   const currentIndex = allVideos.findIndex(v => v.id === currentVideo.id);
   const hasPrevious = currentIndex > 0;
@@ -92,7 +98,7 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
   const handleDelete = async () => {
     setIsDeleting(true);
     const { error } = await deleteProjectMedia(currentVideo.id);
-    
+
     if (error) {
       toast.error('Failed to delete video');
       setIsDeleting(false);
@@ -100,8 +106,12 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
     }
 
     toast.success('Video deleted');
+    // No realtime on media queries — the galleries and count badges only
+    // learn about the delete through this invalidation (Gotcha #27).
+    queryClient.invalidateQueries({ queryKey: ['project-media', currentVideo.project_id] });
+    queryClient.invalidateQueries({ queryKey: ['project-media-count', currentVideo.project_id] });
     setShowDeleteDialog(false);
-    
+
     // Navigate to next video or close if none
     if (hasNext) {
       handleNext();
@@ -173,15 +183,17 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Download</span>
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            className="gap-1.5"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Delete</span>
-          </Button>
+          {!isNoteSourced && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -228,15 +240,17 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">Caption</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => (canEditDetails ? setShowDetailsSheet(true) : setShowCaptionModal(true))}
-                  className="text-white hover:bg-white/10 h-7 px-2"
-                >
-                  <Edit3 className="h-3 w-3 mr-1" />
-                  {canEditDetails ? 'Edit details' : 'Edit'}
-                </Button>
+                {!isNoteSourced && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => (canEditDetails ? setShowDetailsSheet(true) : setShowCaptionModal(true))}
+                    className="text-white hover:bg-white/10 h-7 px-2"
+                  >
+                    <Edit3 className="h-3 w-3 mr-1" />
+                    {canEditDetails ? 'Edit details' : 'Edit'}
+                  </Button>
+                )}
               </div>
               <p className="text-sm text-white/80">
                 {currentVideo.caption || 'No caption'}
@@ -278,12 +292,22 @@ export function VideoLightbox({ video, allVideos, onClose, onNavigate }: VideoLi
             </div>
           </Card>
 
-          {/* Comments Section */}
-          <Card className="bg-white/5 border-white/10 text-white p-4 md:col-span-2">
-            <div className="text-sm font-medium mb-2">Comments</div>
-            <MediaCommentsList mediaId={currentVideo.id} />
-            <MediaCommentForm mediaId={currentVideo.id} />
-          </Card>
+          {/* Comments Section — hidden for note-sourced items because the
+             note itself is the conversation thread */}
+          {isNoteSourced ? (
+            <Card className="bg-white/5 border-white/10 text-white/70 p-4 md:col-span-2">
+              <span className="inline-flex items-center gap-1.5 text-xs">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Shared in a project note — edit or delete from the Notes tab.
+              </span>
+            </Card>
+          ) : (
+            <Card className="bg-white/5 border-white/10 text-white p-4 md:col-span-2">
+              <div className="text-sm font-medium mb-2">Comments</div>
+              <MediaCommentsList mediaId={currentVideo.id} />
+              <MediaCommentForm mediaId={currentVideo.id} />
+            </Card>
+          )}
         </div>
       </div>
 

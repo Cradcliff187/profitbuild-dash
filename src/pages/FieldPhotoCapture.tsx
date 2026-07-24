@@ -68,12 +68,16 @@ export default function FieldPhotoCapture() {
       }
 
       const meta = metadata.getMetadataForUpload();
-      await upload({
+      const uploaded = await upload({
         file,
         caption: captions.pendingCaption || '',
         description: '',
         ...meta,
       });
+
+      // upload() returns null on failure (it toasts the error itself). Keep
+      // the preview so the user can retry instead of losing the photo.
+      if (!uploaded) return;
 
       const wordCount = captions.pendingCaption ? captions.pendingCaption.split(/\s+/).filter(w => w.length > 0).length : 0;
       toast.success(

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { uploadProjectMedia, type UploadProjectMediaParams } from '@/utils/projectMedia';
 import type { ProjectMedia } from '@/types/project';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ export function useProjectMediaUpload(projectId: string): UseProjectMediaUploadR
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
 
   const upload = async (
     params: Omit<UploadProjectMediaParams, 'projectId'>
@@ -122,6 +124,10 @@ export function useProjectMediaUpload(projectId: string): UseProjectMediaUploadR
       }
 
       toast.success('Media uploaded successfully');
+      // No realtime on media queries — galleries and count badges only learn
+      // about the new item through this invalidation (Gotcha #27 fanout)
+      queryClient.invalidateQueries({ queryKey: ['project-media', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-media-count', projectId] });
       return result.data;
     } catch (err) {
       const error = err as Error;

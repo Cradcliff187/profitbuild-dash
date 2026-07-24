@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { format, isToday, isYesterday } from 'date-fns';
-import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Download, Trash2, Grid3x3, List, SortAsc, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X, CloudUpload, MoreVertical, Check } from 'lucide-react';
-import { useProjectMedia } from '@/hooks/useProjectMedia';
+import { MapPin, Clock, Loader2, Image as ImageIcon, Video as VideoIcon, Play, Search, Trash2, Grid3x3, List, CheckSquare, Square, FileImage, FileVideo, FileText, Clock4, X, CloudUpload } from 'lucide-react';
+import { useProjectMedia, projectMediaQueryKey } from '@/hooks/useProjectMedia';
 import { PhotoLightbox } from './PhotoLightbox';
 import { VideoLightbox } from './VideoLightbox';
 import { MediaReportBuilderModal } from './MediaReportBuilderModal';
@@ -10,21 +10,19 @@ import { MediaCommentBadge } from './MediaCommentBadge';
 import { TimelineStoryView } from './TimelineStoryView';
 import { BrandedLoader } from './ui/branded-loader';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription } from './ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 import { toast } from 'sonner';
 import { deleteProjectMedia, refreshMediaSignedUrl } from '@/utils/projectMedia';
 import { formatFileSize, formatDuration } from '@/utils/videoUtils';
 import { getPendingCount } from '@/utils/syncQueue';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useRoles } from '@/contexts/RoleContext';
 import type { ProjectMedia, MediaCategory } from '@/types/project';
 import { MEDIA_CATEGORY_LABELS } from '@/types/project';
 
@@ -55,7 +53,9 @@ export function ProjectMediaGallery({
   controlsContainerRef,
 }: ProjectMediaGalleryProps) {
   const queryClient = useQueryClient();
-  const { media: allMedia, isLoading, refetch } = useProjectMedia(projectId);
+  const { media: allMedia, isLoading } = useProjectMedia(projectId);
+  const { isAdmin, isManager } = useRoles();
+  const canBatchDelete = isAdmin || isManager;
   const [internalActiveTab, setInternalActiveTab] = useState<MediaTab>('all');
   
   // Use external tab if provided, otherwise use internal tab
@@ -74,7 +74,6 @@ export function ProjectMediaGallery({
   });
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [refreshingImages, setRefreshingImages] = useState<Set<string>>(new Set());
-  const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
 
   // Check for pending media uploads in queue
   const { data: queueCount } = useQuery({
@@ -168,6 +167,14 @@ export function ProjectMediaGallery({
     };
   }, [tabFilteredMedia]);
 
+  // Note-sourced items are excluded from selection: they have no project_media
+  // row, so batch delete errors on them and the report edge function silently
+  // drops their ids (report shows fewer items than the count promised).
+  const selectableMedia = useMemo(
+    () => filteredAndSortedMedia.filter((m) => m.source !== 'note'),
+    [filteredAndSortedMedia]
+  );
+
   // Selection handlers
   const toggleSelection = (itemId: string) => {
     setSelectedItems(prev => {
@@ -182,7 +189,7 @@ export function ProjectMediaGallery({
   };
 
   const selectAll = () => {
-    setSelectedItems(new Set(filteredAndSortedMedia.map(m => m.id)));
+    setSelectedItems(new Set(selectableMedia.map(m => m.id)));
   };
 
   const clearSelection = () => {
@@ -283,111 +290,65 @@ export function ProjectMediaGallery({
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [selectedItems, filteredAndSortedMedia]);
 
-  // Fetch comment counts for all media items in one query
-  useEffect(() => {
-    if (allMedia.length === 0) return;
+  // Comment counts for all real media items in one query. Note-sourced ids
+  // ('note:<uuid>') must be excluded — media_comments.media_id is a uuid
+  // column, and one malformed id fails the whole .in() filter, which is why
+  // comment badges used to vanish on any project with note-attached media.
+  // MediaCommentForm/List invalidate 'media-comment-counts' after mutations.
+  const commentableIds = useMemo(
+    () => allMedia.filter((m) => m.source !== 'note').map((m) => m.id),
+    [allMedia]
+  );
 
-    const fetchCommentCounts = async () => {
-      const mediaIds = allMedia.map((m) => m.id);
-
-      // Single query: get count grouped by media_id
-      // Supabase doesn't support GROUP BY directly, so we fetch all comment media_ids
-      // and count client-side. For large datasets, an RPC would be better.
+  const { data: commentCounts = new Map<string, number>() } = useQuery({
+    queryKey: ['media-comment-counts', projectId, commentableIds],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('media_comments')
         .select('media_id')
-        .in('media_id', mediaIds);
+        .in('media_id', commentableIds);
 
-      if (error) {
-        console.error('Failed to fetch comment counts:', error);
-        return;
-      }
+      if (error) throw error;
 
       const counts = new Map<string, number>();
       (data || []).forEach((row) => {
         counts.set(row.media_id, (counts.get(row.media_id) || 0) + 1);
       });
-      setCommentCounts(counts);
-    };
-
-    fetchCommentCounts();
-  }, [allMedia]);
-
-  // Single realtime subscription for all comment changes on this project's media
-  useEffect(() => {
-    if (!projectId) return;
-
-    const channel = supabase
-      .channel(`project-media-comments-${projectId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'media_comments',
-        },
-        (payload) => {
-          // When any comment changes, update the relevant count
-          const mediaId =
-            payload.new && typeof payload.new === 'object' && 'media_id' in payload.new
-              ? (payload.new as { media_id: string }).media_id
-              : payload.old && typeof payload.old === 'object' && 'media_id' in payload.old
-                ? (payload.old as { media_id: string }).media_id
-                : null;
-
-          if (!mediaId) return;
-
-          // Refetch counts for accuracy (avoids complex insert/delete tracking)
-          const mediaIds = allMedia.map((m) => m.id);
-          supabase
-            .from('media_comments')
-            .select('media_id')
-            .in('media_id', mediaIds)
-            .then(({ data }) => {
-              const counts = new Map<string, number>();
-              (data || []).forEach((row) => {
-                counts.set(row.media_id, (counts.get(row.media_id) || 0) + 1);
-              });
-              setCommentCounts(counts);
-            });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [projectId, allMedia]);
+      return counts;
+    },
+    enabled: commentableIds.length > 0,
+    staleTime: 60 * 1000,
+  });
 
   const handleBatchDelete = async () => {
     setIsDeleting(true);
     const itemIds = Array.from(selectedItems);
-    
+
     // Optimistic update - remove from UI immediately
     queryClient.setQueryData(
-      ['project-media', projectId],
+      projectMediaQueryKey(projectId),
       (oldData: ProjectMedia[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.filter(item => !itemIds.includes(item.id));
       }
     );
-    
+
     try {
       const results = await Promise.allSettled(
         itemIds.map(id => deleteProjectMedia(id))
       );
 
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const successful = results.filter(
+        r => r.status === 'fulfilled' && r.value.success
+      ).length;
+      const failed = itemIds.length - successful;
 
       if (successful > 0) {
         toast.success(`Deleted ${successful} item${successful !== 1 ? 's' : ''}`);
       }
-      
+
       if (failed > 0) {
         toast.error(`Failed to delete ${failed} item${failed !== 1 ? 's' : ''}`);
-        // Rollback - refetch if delete failed
-        refetch();
       }
 
       clearSelection();
@@ -395,49 +356,28 @@ export function ProjectMediaGallery({
     } catch (error) {
       toast.error('Failed to delete items');
       console.error('Batch delete error:', error);
-      // Rollback - refetch on error
-      refetch();
     } finally {
+      // Reconcile the optimistic update and every other reader of this table
+      queryClient.invalidateQueries({ queryKey: ['project-media', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-media-count', projectId] });
       setIsDeleting(false);
     }
-  };
-
-  const handleBatchDownload = async () => {
-    const itemIds = Array.from(selectedItems);
-    const itemsToDownload = allMedia.filter(m => itemIds.includes(m.id));
-
-    toast.info(`Downloading ${itemsToDownload.length} item${itemsToDownload.length !== 1 ? 's' : ''}...`);
-
-    for (const item of itemsToDownload) {
-      try {
-        const response = await fetch(item.file_url);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = item.caption || item.file_name;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } catch (error) {
-        console.error('Download failed for item:', item.id, error);
-      }
-    }
-
-    toast.success('Download complete');
   };
 
   const handleImageError = async (mediaId: string) => {
     // Prevent infinite retry loops
     if (failedImages.has(mediaId)) return;
-    
+
     setFailedImages(prev => new Set(prev).add(mediaId));
+
+    // Note-sourced items have no project_media row to re-sign
+    if (mediaId.startsWith('note:')) return;
+
     setRefreshingImages(prev => new Set(prev).add(mediaId));
 
     try {
       const { signedUrl, thumbnailUrl, error } = await refreshMediaSignedUrl(mediaId);
-      
+
       if (error || !signedUrl) {
         toast.error('Failed to reload image. Try refreshing the page.');
         return;
@@ -445,7 +385,7 @@ export function ProjectMediaGallery({
 
       // Update only this specific media item in the cache
       queryClient.setQueryData(
-        ['project-media', projectId],
+        projectMediaQueryKey(projectId),
         (oldData: ProjectMedia[] | undefined) => {
           if (!oldData) return oldData;
           return oldData.map(item =>
@@ -455,7 +395,7 @@ export function ProjectMediaGallery({
           );
         }
       );
-      
+
       setFailedImages(prev => {
         const newSet = new Set(prev);
         newSet.delete(mediaId);
@@ -609,24 +549,37 @@ export function ProjectMediaGallery({
                 <span className="text-sm font-medium">
                   {selectedItems.size} selected
                 </span>
-                {selectedItems.size < filteredAndSortedMedia.length && (
+                {selectedItems.size < selectableMedia.length && (
                   <>
                     <div className="h-4 w-px bg-border" />
                     <button
                       onClick={selectAll}
                       className="text-sm text-primary hover:underline"
                     >
-                      Select all {filteredAndSortedMedia.length}
+                      Select all {selectableMedia.length}
                     </button>
                   </>
                 )}
               </div>
-              <button
-                onClick={clearSelection}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Clear
-              </button>
+              <div className="flex items-center gap-2">
+                {canBatchDelete && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Delete</span>
+                  </Button>
+                )}
+                <button
+                  onClick={clearSelection}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           ) : (
             // Subtle select all hint
@@ -635,12 +588,14 @@ export function ProjectMediaGallery({
                 <span>
                   {filteredAndSortedMedia.length} {filteredAndSortedMedia.length === 1 ? 'item' : 'items'}
                 </span>
-                <button
-                  onClick={selectAll}
-                  className="text-primary hover:underline"
-                >
-                  Select all
-                </button>
+                {selectableMedia.length > 0 && (
+                  <button
+                    onClick={selectAll}
+                    className="text-primary hover:underline"
+                  >
+                    Select all
+                  </button>
+                )}
               </div>
             )
           )}
@@ -692,21 +647,26 @@ export function ProjectMediaGallery({
                           onClick={() => setSelectedMedia(item)}
                           className={`relative ${viewMode === 'grid' ? 'aspect-square' : 'aspect-video'} w-full rounded-lg overflow-hidden bg-muted hover:ring-2 hover:ring-primary transition-all group cursor-pointer`}
                         >
-                          {/* Selection Checkbox - Larger touch target on mobile */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSelection(item.id);
-                            }}
-                            className="absolute top-2 left-2 z-10 p-2 sm:p-1 rounded-md bg-background/90 backdrop-blur-sm hover:bg-background transition-colors"
-                            aria-label={selectedItems.has(item.id) ? "Deselect item" : "Select item"}
-                          >
-                            {selectedItems.has(item.id) ? (
-                              <CheckSquare className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
-                            ) : (
-                              <Square className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
-                            )}
-                          </button>
+                          {/* Selection Checkbox - Larger touch target on mobile.
+                             Not rendered for note-sourced items: they can't be
+                             batch-deleted or included in reports (no
+                             project_media row behind them). */}
+                          {item.source !== 'note' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSelection(item.id);
+                              }}
+                              className="absolute top-2 left-2 z-10 p-2 sm:p-1 rounded-md bg-background/90 backdrop-blur-sm hover:bg-background transition-colors"
+                              aria-label={selectedItems.has(item.id) ? "Deselect item" : "Select item"}
+                            >
+                              {selectedItems.has(item.id) ? (
+                                <CheckSquare className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
+                              ) : (
+                                <Square className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
+                              )}
+                            </button>
+                          )}
 
                           {/* Media Type Badge */}
                           <Badge className="absolute top-2 right-2 text-xs bg-black/70 text-white border-0">
@@ -717,15 +677,16 @@ export function ProjectMediaGallery({
                             )}
                           </Badge>
 
-                          {/* Comment Count Badge */}
-                          <MediaCommentBadge count={commentCounts.get(item.id) || 0} />
-
-                          {/* Category Badge */}
-                          {item.category && (
-                            <Badge className="absolute bottom-2 left-2 z-10 text-xs bg-primary/90 text-primary-foreground border-0">
-                              {MEDIA_CATEGORY_LABELS[item.category]}
-                            </Badge>
-                          )}
+                          {/* Category + comment badges share one positioned row
+                             so they never stack on the same coordinates */}
+                          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1">
+                            {item.category && (
+                              <Badge className="text-xs bg-primary/90 text-primary-foreground border-0">
+                                {MEDIA_CATEGORY_LABELS[item.category]}
+                              </Badge>
+                            )}
+                            <MediaCommentBadge count={commentCounts.get(item.id) || 0} />
+                          </div>
 
                           {/* Thumbnail/Image */}
                           {item.file_type === 'image' ? (
@@ -734,6 +695,7 @@ export function ProjectMediaGallery({
                                 src={item.file_url}
                                 alt={item.caption || 'Field photo'}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                                 onError={() => handleImageError(item.id)}
                               />
                               
@@ -766,10 +728,11 @@ export function ProjectMediaGallery({
                             </div>
                           ) : item.thumbnail_url ? (
                             <div className="relative w-full h-full">
-                              <img 
-                                src={item.thumbnail_url} 
-                                alt={item.caption || 'Video thumbnail'} 
+                              <img
+                                src={item.thumbnail_url}
+                                alt={item.caption || 'Video thumbnail'}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                                 onError={() => handleImageError(item.id)}
                               />
                               

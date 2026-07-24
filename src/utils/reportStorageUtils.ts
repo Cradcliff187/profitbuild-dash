@@ -25,8 +25,11 @@ export async function saveReportToProjectDocuments(
   reportTitle: string,
   mediaCount: number
 ): Promise<SaveReportResult> {
-  // 1. Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  // 1. Get current user from the local session — getUser() is a network
+  // round-trip that serializes concurrent requests behind the auth lock
+  // (Gotcha #63)
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) throw new Error('Not authenticated');
 
   // 2. Build file name and storage path
@@ -37,7 +40,7 @@ export async function saveReportToProjectDocuments(
   const storagePath = `${projectId}/reports/${timestamp}-${sanitizedTitle}.pdf`;
 
   // 3. Upload to project-documents bucket (same bucket as DocumentUpload.tsx)
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('project-documents')
     .upload(storagePath, pdfBlob, {
       contentType: 'application/pdf',

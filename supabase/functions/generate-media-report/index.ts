@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts';
 import {
   fetchBranding,
   buildBrandedReport,
@@ -27,6 +28,14 @@ interface ReportOptions {
   showTimestamps?: boolean;
   showNumbering?: boolean;
   imageSize?: 'small' | 'medium' | 'large';
+  /**
+   * 'photo-grid' (default): CompanyCam-style photo-first tiles — the image
+   * dominates, caption/time render in a slim strip only when present. Reads
+   * well even when nothing is captioned (the normal case in the field).
+   * 'detailed': side-by-side card with a full info column — better when the
+   * team writes captions/descriptions or comments matter.
+   */
+  layout?: 'photo-grid' | 'detailed';
 }
 
 type ResolvedOptions = Required<ReportOptions>;
@@ -38,11 +47,38 @@ interface ReportRequest {
   format?: string;  // Accepted but only 'story' is used
   summary?: string;
   delivery?: 'print' | 'download' | 'email';
+  /** Preferred: all recipients. One email is sent with every address on it. */
+  recipientEmails?: string[];
+  /** Legacy single-recipient field — merged into recipientEmails when present. */
   recipientEmail?: string;
   recipientName?: string;
   pdfDownloadUrl?: string;
   mediaCount?: number;
   options?: ReportOptions;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_RECIPIENTS = 20;
+
+/** Merge, trim, validate, and dedupe (case-insensitively) recipient emails. */
+function resolveRecipients(body: ReportRequest): string[] {
+  const candidates = [
+    ...(Array.isArray(body.recipientEmails) ? body.recipientEmails : []),
+    ...(body.recipientEmail ? [body.recipientEmail] : []),
+  ];
+
+  const seen = new Set<string>();
+  const recipients: string[] = [];
+  for (const raw of candidates) {
+    const email = String(raw).trim();
+    if (!EMAIL_RE.test(email)) continue;
+    const key = email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    recipients.push(email);
+    if (recipients.length >= MAX_EMAIL_RECIPIENTS) break;
+  }
+  return recipients;
 }
 
 interface MediaComment {
@@ -59,11 +95,63 @@ interface MediaComment {
 // ================================================================
 // Base64 Image Conversion (fixes blank images in PDF)
 // ================================================================
+//
+// Resource discipline: this function runs inside the edge isolate's
+// CPU/memory caps (exceeding them returns HTTP 546 WORKER_LIMIT before
+// our code can respond). Field photos average ~3MB and reach 8MB, so:
+//  - images are fetched as resized variants via Storage image
+//    transforms when available (probed once at runtime, silent fallback
+//    to originals when the feature is off),
+//  - base64 encoding uses std encodeBase64 (linear, allocation-cheap),
+//  - a hard byte budget stops embedding before the isolate dies; items
+//    past the budget keep their remote URL (the public bucket serves
+//    them with CORS, so preview and html2canvas still render them).
+
+const TRANSFORM_WIDTH = 1200;
+const TRANSFORM_QUALITY = 75;
+const MAX_SINGLE_EMBED_BYTES = 12 * 1024 * 1024;  // skip base64 for any one file larger than this
+const MAX_TOTAL_EMBED_BYTES = 48 * 1024 * 1024;   // stop embedding once total raw bytes exceed this
+
+function encodeStoragePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
+function publicMediaUrl(supabaseUrl: string, path: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/project-media/${encodeStoragePath(path)}`;
+}
+
+function transformedMediaUrl(supabaseUrl: string, path: string): string {
+  return `${supabaseUrl}/storage/v1/render/image/public/project-media/${encodeStoragePath(path)}?width=${TRANSFORM_WIDTH}&quality=${TRANSFORM_QUALITY}`;
+}
+
+/** Probe once whether Storage image transforms are enabled on this project. */
+async function probeImageTransforms(
+  supabaseUrl: string,
+  samplePath: string
+): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    // GET, not HEAD — the gateway can report misleading headers on HEAD
+    const response = await fetch(transformedMediaUrl(supabaseUrl, samplePath), {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (response.ok) {
+      await response.arrayBuffer(); // drain so the connection is reusable
+      return true;
+    }
+    await response.body?.cancel();
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 async function fetchImageAsBase64(
   url: string,
   timeoutMs = 15000
-): Promise<string | null> {
+): Promise<{ dataUrl: string; bytes: number } | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -77,13 +165,13 @@ async function fetchImageAsBase64(
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = btoa(
-      uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
-
+    if (arrayBuffer.byteLength > MAX_SINGLE_EMBED_BYTES) {
+      console.warn(`⚠️ Skipping embed, file too large (${(arrayBuffer.byteLength / 1048576).toFixed(1)}MB): ${url.slice(0, 80)}`);
+      return null;
+    }
+    const base64 = encodeBase64(new Uint8Array(arrayBuffer));
     const contentType = response.headers.get('content-type') || 'image/jpeg';
-    return `data:${contentType};base64,${base64}`;
+    return { dataUrl: `data:${contentType};base64,${base64}`, bytes: arrayBuffer.byteLength };
   } catch (error) {
     console.warn(`⚠️ Failed to convert image to base64: ${(error as Error).message}`);
     return null;
@@ -92,32 +180,70 @@ async function fetchImageAsBase64(
 
 async function convertMediaToBase64(
   mediaItems: any[],
-  delivery: string | undefined
+  delivery: string | undefined,
+  supabaseUrl: string
 ): Promise<any[]> {
   // Only convert for print/download — email uses external image refs which is fine
   if (delivery === 'email') return mediaItems;
 
-  console.log(`🖼️ Converting ${mediaItems.length} images to base64...`);
+  const images = mediaItems.filter((m) => m.file_type === 'image' && m.storage_path);
+  const embeddable = mediaItems.filter(
+    (m) =>
+      (m.file_type === 'image' && m.storage_path) ||
+      // Video thumbnails must be embedded too — a remote signed URL is the
+      // exact thing that goes blank in html2canvas-generated PDFs.
+      (m.file_type === 'video' && m.thumbnail_url)
+  );
+  if (embeddable.length === 0) return mediaItems;
 
-  const batchSize = 5;
+  const transformsAvailable = images.length > 0
+    ? await probeImageTransforms(supabaseUrl, images[0].storage_path)
+    : false;
+  console.log(`🖼️ Converting ${embeddable.length} items to base64 (transforms ${transformsAvailable ? 'ON' : 'OFF — using originals'})...`);
+
+  const batchSize = 4;
   const results = [...mediaItems];
+  let totalEmbedded = 0;
+  let converted = 0;
 
   for (let i = 0; i < results.length; i += batchSize) {
+    if (totalEmbedded > MAX_TOTAL_EMBED_BYTES) break;
+
     const batch = results.slice(i, i + batchSize);
     const base64Results = await Promise.all(
-      batch.map((media) => fetchImageAsBase64(media.file_url))
+      batch.map((media) => {
+        if (media.file_type === 'image' && media.storage_path) {
+          const fetchUrl = transformsAvailable
+            ? transformedMediaUrl(supabaseUrl, media.storage_path)
+            : media.file_url;
+          return fetchImageAsBase64(fetchUrl);
+        }
+        if (media.file_type === 'video' && media.thumbnail_url) {
+          return fetchImageAsBase64(media.thumbnail_url);
+        }
+        return Promise.resolve(null);
+      })
     );
 
-    base64Results.forEach((base64Url, idx) => {
-      if (base64Url) {
-        results[i + idx] = { ...results[i + idx], file_url: base64Url };
+    base64Results.forEach((result, idx) => {
+      if (result) {
+        const target = results[i + idx];
+        if (target.file_type === 'video') {
+          results[i + idx] = { ...target, thumbnail_url: result.dataUrl };
+        } else {
+          results[i + idx] = { ...target, file_url: result.dataUrl };
+        }
+        totalEmbedded += result.bytes;
+        converted++;
       }
       // If conversion fails, keep the signed URL as fallback
     });
   }
 
-  const converted = results.filter((m) => m.file_url?.startsWith('data:')).length;
-  console.log(`✅ Base64 conversion: ${converted}/${results.length} succeeded`);
+  if (totalEmbedded > MAX_TOTAL_EMBED_BYTES) {
+    console.warn(`⚠️ Embed budget reached (${(totalEmbedded / 1048576).toFixed(1)}MB) — remaining items keep remote URLs`);
+  }
+  console.log(`✅ Base64 conversion: ${converted}/${embeddable.length} embedded, ${(totalEmbedded / 1048576).toFixed(1)}MB`);
 
   return results;
 }
@@ -141,7 +267,7 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as ReportRequest;
     const {
       projectId, mediaIds, reportTitle, summary,
-      delivery, recipientEmail, recipientName,
+      delivery, recipientName,
       pdfDownloadUrl, mediaCount,
     } = body;
 
@@ -152,6 +278,7 @@ Deno.serve(async (req) => {
       showTimestamps: true,
       showNumbering: true,
       imageSize: 'medium',
+      layout: 'photo-grid',
       ...body.options,
     };
 
@@ -198,13 +325,43 @@ Deno.serve(async (req) => {
     }
     console.log(`✅ Batch signed URLs generated: ${signedUrlMap.size}`);
 
+    // Video thumbnails are stored as PATHS in the private
+    // project-media-thumbnails bucket (client-side capture writes
+    // 'thumbnails/{id}.jpg') — sign them so they render in the report/email.
+    const thumbPaths = mediaItems
+      .filter((m: any) => m.thumbnail_url && !String(m.thumbnail_url).startsWith('http'))
+      .map((m: any) => m.thumbnail_url as string);
+
+    const thumbUrlMap = new Map<string, string>();
+    if (thumbPaths.length > 0) {
+      const { data: thumbSigned } = await supabase.storage
+        .from('project-media-thumbnails')
+        .createSignedUrls(thumbPaths, 2592000); // 30 days — email links must outlive the session
+      (thumbSigned || []).forEach((item: any) => {
+        if (item.signedUrl && item.path) thumbUrlMap.set(item.path, item.signedUrl);
+      });
+    }
+
     const mediaWithUrls = mediaItems.map((media: any) => ({
       ...media,
+      // Original storage path, kept so the base64 converter can request
+      // resized variants and the email builder can mint stable public URLs.
+      storage_path:
+        media.file_url && !String(media.file_url).startsWith('http')
+          ? media.file_url
+          : null,
       file_url: signedUrlMap.get(media.file_url) || media.file_url,
+      // A path that failed to sign becomes null so the video placeholder
+      // renders instead of a broken <img>.
+      thumbnail_url: media.thumbnail_url
+        ? String(media.thumbnail_url).startsWith('http')
+          ? media.thumbnail_url
+          : thumbUrlMap.get(media.thumbnail_url) || null
+        : null,
     }));
 
     // ── Convert images to base64 for PDF (fixes CORS/blank images) ─
-    const mediaWithBase64 = await convertMediaToBase64(mediaWithUrls, delivery);
+    const mediaWithBase64 = await convertMediaToBase64(mediaWithUrls, delivery, supabaseUrl);
 
     // ── Fetch comments (skip query if comments hidden) ──────
     const commentsByMedia = new Map<string, MediaComment[]>();
@@ -300,14 +457,15 @@ Deno.serve(async (req) => {
 
     // ── Handle email delivery ───────────────────────────────
     if (delivery === 'email') {
-      if (!recipientEmail) {
+      const recipients = resolveRecipients(body);
+      if (recipients.length === 0) {
         return new Response(
-          JSON.stringify({ error: 'recipientEmail is required for email delivery' }),
+          JSON.stringify({ error: 'At least one valid recipient email is required for email delivery' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log(`📧 Sending report via email to ${recipientEmail}`);
+      console.log(`📧 Sending report via email to ${recipients.length} recipient(s)`);
 
       const resendApiKey = Deno.env.get('ResendAPI');
       if (!resendApiKey) {
@@ -317,8 +475,21 @@ Deno.serve(async (req) => {
       const { Resend } = await import('https://esm.sh/resend@2.0.0');
       const resend = new Resend(resendApiKey);
 
+      // Email thumbnails must outlive the 1-hour signed URLs — the bucket is
+      // public, so mint stable public URLs (images only; videos have no
+      // renderable still unless a thumbnail exists).
+      const emailMedia = mediaWithUrls.map((m: any) => ({
+        ...m,
+        email_img_url:
+          m.file_type === 'image' && m.storage_path
+            ? publicMediaUrl(supabaseUrl, m.storage_path)
+            : m.file_type === 'video' && m.thumbnail_url
+              ? m.thumbnail_url
+              : null,
+      }));
+
       const emailBodyHtml = buildEmailBody(
-        branding, project, mediaWithUrls, opts,
+        branding, project, emailMedia, opts,
         { reportTitle, recipientName, summary, pdfDownloadUrl, mediaCount }
       );
 
@@ -329,7 +500,7 @@ Deno.serve(async (req) => {
 
       const { data: emailResult, error: emailError } = await resend.emails.send({
         from: `${branding.companyName} <noreply@rcgwork.com>`,
-        to: [recipientEmail],
+        to: recipients,
         subject: `${project.project_number} - Media Report: ${project.project_name}`,
         html: emailHtml,
       });
@@ -341,22 +512,24 @@ Deno.serve(async (req) => {
 
       console.log('✅ Report email sent:', emailResult?.id);
 
-      // Log email to database
+      // Log to database — one row per recipient so history stays queryable
       try {
-        await supabase.from('email_messages').insert({
-          recipient_email: recipientEmail,
-          recipient_name: recipientName || null,
-          recipient_user_id: null,
-          email_type: 'media-report',
-          subject: `${project.project_number} - Media Report: ${project.project_name}`,
-          entity_type: 'media-report',
-          entity_id: projectId,
-          project_id: projectId,
-          sent_by: null,
-          resend_email_id: emailResult?.id || null,
-          delivery_status: emailResult?.id ? 'sent' : 'failed',
-          error_message: null,
-        });
+        await supabase.from('email_messages').insert(
+          recipients.map((email) => ({
+            recipient_email: email,
+            recipient_name: recipientName || null,
+            recipient_user_id: null,
+            email_type: 'media-report',
+            subject: `${project.project_number} - Media Report: ${project.project_name}`,
+            entity_type: 'media-report',
+            entity_id: projectId,
+            project_id: projectId,
+            sent_by: null,
+            resend_email_id: emailResult?.id || null,
+            delivery_status: emailResult?.id ? 'sent' : 'failed',
+            error_message: null,
+          }))
+        );
       } catch (logError) {
         console.error('Failed to log email to database:', logError);
       }
@@ -366,7 +539,7 @@ Deno.serve(async (req) => {
           success: true,
           delivery: 'email',
           emailId: emailResult?.id,
-          recipientEmail,
+          recipientEmails: recipients,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -444,14 +617,16 @@ function buildEmailBody(
     </table>
   `;
 
-  // Thumbnail previews (up to 3 images)
-  const previewItems = mediaItems.slice(0, 3);
+  // Thumbnail previews (up to 3 items with a stable renderable image)
+  const previewItems = mediaItems
+    .filter((m: any) => m.email_img_url)
+    .slice(0, 3);
   const thumbnailRowHtml = previewItems.length > 0 ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 24px 0;">
       <tr>
         ${previewItems.map((m: any) => `
           <td style="width: ${Math.floor(100 / previewItems.length)}%; padding: 0 4px; vertical-align: top;">
-            <img src="${m.file_url}" alt="Preview"
+            <img src="${m.email_img_url}" alt="Preview"
               width="${Math.floor(500 / previewItems.length)}"
               style="display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid ${EMAIL_COLORS.borderLight};" />
           </td>
@@ -512,6 +687,57 @@ function buildEmailBody(
 // Story Timeline Generator
 // ================================================================
 
+// Shared per-item fragments used by both layouts ------------------
+
+function renderMediaImage(media: any, globalIndex: number, opts: ResolvedOptions): string {
+  const isVideo = media.file_type === 'video';
+  // Videos without a generated thumbnail get a styled placeholder —
+  // a raw video file URL inside <img> renders as a broken image.
+  const imgSrc = isVideo ? media.thumbnail_url : media.file_url;
+
+  return `
+    ${imgSrc
+      ? `<img src="${imgSrc}"
+         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">`
+      : `<div class="video-placeholder">
+           <div class="video-placeholder-icon">&#9658;</div>
+           <div class="video-placeholder-text">Video${media.duration ? ` &middot; ${Math.round(media.duration)}s` : ''}<br>View in project portal</div>
+         </div>`}
+    ${opts.showNumbering
+      ? `<span class="media-number">#${globalIndex + 1}</span>`
+      : ''}
+    <span class="media-type-badge">${isVideo ? 'Video' : 'Photo'}</span>
+  `;
+}
+
+function renderMetaTags(media: any, opts: ResolvedOptions): string {
+  // GPS coordinates only when there's no human-readable location — matching
+  // the option's description ("display coordinates when no location name").
+  const locationTag = media.location_name
+    ? `<span class="meta-tag">${escapeHtml(media.location_name)}</span>`
+    : opts.showGps && media.latitude && media.longitude
+      ? `<span class="meta-tag">GPS: ${media.latitude.toFixed(4)}&deg;, ${media.longitude.toFixed(4)}&deg;</span>`
+      : '';
+  return locationTag ? `<div class="media-meta">${locationTag}</div>` : '';
+}
+
+function renderComments(mediaComments: MediaComment[], opts: ResolvedOptions): string {
+  if (!opts.showComments || mediaComments.length === 0) return '';
+  return `
+    <div class="media-comments">
+      ${mediaComments.map((comment: any) => `
+        <div class="comment-item">
+          <div class="comment-avatar">${escapeHtml((comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase())}</div>
+          <div>
+            <span class="comment-author">${escapeHtml(comment.profiles?.full_name || 'User')}</span> —
+            ${escapeHtml(comment.comment_text)}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function generateStoryTimeline(
   branding: BrandingConfig,
   mediaItems: any[],
@@ -534,6 +760,74 @@ function generateStoryTimeline(
     photosByDate.get(dateKey)!.push(media);
   });
 
+  const isGrid = opts.layout === 'photo-grid';
+
+  // Photo-first tile: the image carries the page; text renders in a slim
+  // strip only when it exists. No "No caption" placeholders anywhere — an
+  // uncaptioned photo is the normal case, not an omission to call out.
+  const renderTile = (media: any) => {
+    const mediaComments = comments.get(media.id) || [];
+    const timestamp = new Date(media.taken_at || media.created_at);
+    const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
+    const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const stripParts: string[] = [];
+    if (opts.showTimestamps) stripParts.push(`<span class="tile-time">${timeStr}</span>`);
+    if (media.caption) stripParts.push(`<span class="tile-caption">${escapeHtml(media.caption)}</span>`);
+
+    const metaHtml = renderMetaTags(media, opts);
+    const commentsHtml = renderComments(mediaComments, opts);
+    const hasStrip = stripParts.length > 0 || metaHtml || commentsHtml;
+
+    return `
+      <div class="media-tile">
+        <div class="tile-image">
+          ${renderMediaImage(media, globalIndex, opts)}
+        </div>
+        ${hasStrip ? `
+          <div class="tile-strip">
+            ${stripParts.length > 0 ? `<div class="tile-strip-row">${stripParts.join('')}</div>` : ''}
+            ${metaHtml}
+            ${commentsHtml}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  };
+
+  // Detailed card: side-by-side image + info column (the pre-Jul-2026 look,
+  // minus the "No caption" filler) — best when captions/descriptions exist.
+  const renderCard = (media: any) => {
+    const mediaComments = comments.get(media.id) || [];
+    const timestamp = new Date(media.taken_at || media.created_at);
+    const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
+
+    return `
+      <div class="media-card">
+        <div class="media-image">
+          ${renderMediaImage(media, globalIndex, opts)}
+        </div>
+        <div class="media-info">
+          ${opts.showTimestamps ? `
+            <div class="media-time">
+              ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          ` : ''}
+          ${media.caption
+            ? `<div class="media-caption">${escapeHtml(media.caption)}</div>`
+            : ''
+          }
+          ${media.description
+            ? `<div class="media-description">${escapeHtml(media.description)}</div>`
+            : ''
+          }
+          ${renderMetaTags(media, opts)}
+          ${renderComments(mediaComments, opts)}
+        </div>
+      </div>
+    `;
+  };
+
   return `
     <div class="timeline-section">
       ${Array.from(photosByDate.entries())
@@ -544,63 +838,9 @@ function generateStoryTimeline(
               <div class="date-line"></div>
               <div class="date-count">${photos.length} item${photos.length !== 1 ? 's' : ''}</div>
             </div>
-            ${photos.map((media: any) => {
-              const mediaComments = comments.get(media.id) || [];
-              const timestamp = new Date(media.taken_at || media.created_at);
-              const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
-              const isVideo = media.file_type === 'video';
-
-              return `
-                <div class="media-card">
-                  <div class="media-image">
-                    <img src="${isVideo && media.thumbnail_url ? media.thumbnail_url : media.file_url}"
-                         alt="${escapeHtml(media.caption || (isVideo ? 'Video' : 'Photo'))}">
-                    ${opts.showNumbering
-                      ? `<span class="media-number">#${globalIndex + 1}</span>`
-                      : ''}
-                    <span class="media-type-badge">${isVideo ? 'Video' : 'Photo'}</span>
-                  </div>
-                  <div class="media-info">
-                    ${opts.showTimestamps ? `
-                      <div class="media-time">
-                        ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    ` : ''}
-                    ${media.caption
-                      ? `<div class="media-caption">${escapeHtml(media.caption)}</div>`
-                      : '<div class="media-caption empty">No caption</div>'
-                    }
-                    ${media.description
-                      ? `<div class="media-description">${escapeHtml(media.description)}</div>`
-                      : ''
-                    }
-                    <div class="media-meta">
-                      ${media.location_name
-                        ? `<span class="meta-tag">${escapeHtml(media.location_name)}</span>`
-                        : ''
-                      }
-                      ${opts.showGps && media.latitude && media.longitude
-                        ? `<span class="meta-tag">GPS: ${media.latitude.toFixed(4)}&deg;, ${media.longitude.toFixed(4)}&deg;</span>`
-                        : ''
-                      }
-                    </div>
-                    ${opts.showComments && mediaComments.length > 0 ? `
-                      <div class="media-comments">
-                        ${mediaComments.map((comment: any) => `
-                          <div class="comment-item">
-                            <div class="comment-avatar">${(comment.profiles?.full_name || 'U').substring(0, 2).toUpperCase()}</div>
-                            <div>
-                              <span class="comment-author">${escapeHtml(comment.profiles?.full_name || 'User')}</span> —
-                              ${escapeHtml(comment.comment_text)}
-                            </div>
-                          </div>
-                        `).join('')}
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
+            ${isGrid
+              ? `<div class="media-grid">${photos.map(renderTile).join('')}</div>`
+              : photos.map(renderCard).join('')}
           </div>
         `).join('')}
     </div>
@@ -612,7 +852,7 @@ function generateStoryTimeline(
 // ================================================================
 
 function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): string {
-  // Map imageSize option to media card image column width
+  // Map imageSize option to media card image column width (detailed layout)
   const imgColMap = {
     small: '200px',
     medium: '260px',
@@ -620,15 +860,23 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
   };
   const imgColWidth = imgColMap[opts.imageSize];
 
+  // In the photo-grid layout, imageSize drives density instead:
+  // small = 3-across, medium = 2-across, large = one full-width photo per row
+  const gridColsMap = { small: 3, medium: 2, large: 1 };
+  const gridCols = gridColsMap[opts.imageSize];
+
   return `
     /* ── Timeline Section ────────────────────── */
     .timeline-section {
       padding: 36px 56px 56px;
     }
 
+    /* No page-break-inside:avoid here — a date group can hold dozens of
+       photos and MUST be allowed to span pages (forcing it whole created
+       giant gaps / overflow in generated PDFs). Individual cards/tiles
+       carry their own avoid rules instead. */
     .date-group {
       margin-bottom: 48px;
-      page-break-inside: avoid;
     }
 
     .date-group:last-child { margin-bottom: 0; }
@@ -663,7 +911,79 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       white-space: nowrap;
     }
 
-    /* ── Media Card ──────────────────────────── */
+    /* ── Photo Grid (photo-first layout) ─────── */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(${gridCols}, 1fr);
+      gap: 16px;
+    }
+
+    .media-tile {
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* padding-bottom keeps the 4:3 box — html2canvas 1.4.1 (the PDF
+       renderer) does not implement CSS aspect-ratio, which collapses the
+       image boxes in generated PDFs */
+    .tile-image {
+      position: relative;
+      padding-bottom: 75%;
+      overflow: hidden;
+      background: #F8F6F3;
+    }
+
+    .tile-image img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .tile-image .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .tile-strip {
+      padding: 10px 14px 12px;
+    }
+
+    .tile-strip-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .tile-time {
+      font-size: 11px;
+      font-weight: 600;
+      color: ${branding.primaryColor};
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tile-caption {
+      font-size: ${gridCols === 3 ? '11px' : '13px'};
+      font-weight: 500;
+      color: ${branding.secondaryColor};
+      line-height: 1.45;
+      min-width: 0;
+    }
+
+    .tile-strip .media-meta { margin-top: 6px; }
+    .tile-strip .media-comments { margin-top: 10px; padding-top: 10px; }
+
+    /* ── Media Card (detailed layout) ────────── */
     .media-card {
       display: grid;
       grid-template-columns: ${imgColWidth} 1fr;
@@ -679,15 +999,54 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
 
     .media-image {
       position: relative;
-      aspect-ratio: 4/3;
+      padding-bottom: 75%;
       overflow: hidden;
       background: #F8F6F3;
     }
 
     .media-image img {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .media-image .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .video-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: ${branding.secondaryColor};
+    }
+
+    .video-placeholder-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      padding-left: 4px;
+    }
+
+    .video-placeholder-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.65);
+      text-align: center;
+      line-height: 1.5;
     }
 
     .media-number {
@@ -738,12 +1097,6 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       color: ${branding.secondaryColor};
       line-height: 1.5;
       margin-bottom: 12px;
-    }
-
-    .media-caption.empty {
-      color: #94A3B8;
-      font-style: italic;
-      font-weight: 400;
     }
 
     .media-description {
@@ -807,7 +1160,7 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       color: ${branding.secondaryColor};
     }
 
-    /* ── Print Styles ────────────────────────── */
+    /* ── Print Styles ────────────────── */
     @media print {
       body {
         background: white !important;
@@ -822,8 +1175,12 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
         print-color-adjust: exact !important;
       }
 
-      .date-group { page-break-inside: avoid; }
+      /* Cards/tiles stay whole across pages; date groups may split (a
+         30-photo day MUST be allowed to span pages or the browser pushes
+         the whole group to a fresh page, leaving huge gaps). */
       .media-card { page-break-inside: avoid; break-inside: avoid; }
+      .media-tile { page-break-inside: avoid; break-inside: avoid; }
+      .date-header { page-break-after: avoid; }
       .report-footer { page-break-inside: avoid; }
     }
 

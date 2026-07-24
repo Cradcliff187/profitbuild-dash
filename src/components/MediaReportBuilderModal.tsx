@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
-import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft, RefreshCw } from 'lucide-react';
+import { FileText, Download, Image as ImageIcon, Video as VideoIcon, AlertTriangle, Mic, MessageSquare, Pencil, Trash2, Mail, Printer, Settings2, Eye, ArrowLeft } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -32,6 +33,31 @@ interface MediaReportBuilderModalProps {
 
 type ModalStep = 'configure' | 'preview';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Parse a comma/semicolon-separated recipient string into valid and invalid
+ * email lists (deduped case-insensitively, original casing preserved).
+ */
+function parseRecipientEmails(input: string): { valid: string[]; invalid: string[] } {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+
+  input
+    .split(/[,;\n]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((part) => {
+      const key = part.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      (EMAIL_RE.test(part) ? valid : invalid).push(part);
+    });
+
+  return { valid, invalid };
+}
+
 export function MediaReportBuilderModal({
   open,
   onOpenChange,
@@ -44,6 +70,10 @@ export function MediaReportBuilderModal({
 }: MediaReportBuilderModalProps) {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  // Unzoomed report height, captured at preview render — generatePdfBlob's
+  // canvas-cap math needs the natural size, not the mobile fit-to-width one
+  const naturalHeightRef = useRef<number | null>(null);
+  const queryClient = useQueryClient();
 
   // Modal step
   const [step, setStep] = useState<ModalStep>('configure');
@@ -52,7 +82,6 @@ export function MediaReportBuilderModal({
   // Config state
   const [reportTitle, setReportTitle] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const [reportSummary, setReportSummary] = useState('');
   const [showVoiceSummaryModal, setShowVoiceSummaryModal] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -65,6 +94,10 @@ export function MediaReportBuilderModal({
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [showNumbering, setShowNumbering] = useState(true);
   const [imageSize, setImageSize] = useState<'small' | 'medium' | 'large'>('medium');
+  // Photo Grid is the default: photo-first tiles that read well without
+  // captions/comments (the normal case in the field). Detailed keeps the
+  // side-by-side info-column cards for caption-heavy projects.
+  const [layout, setLayout] = useState<'photo-grid' | 'detailed'>('photo-grid');
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
 
   // Delivery state (used from preview step)
@@ -92,6 +125,7 @@ export function MediaReportBuilderModal({
       setPreviewHtml(null);
       setIsDelivering(false);
       setSavedReport(null);
+      naturalHeightRef.current = null;
     }
   }, [open, projectNumber, projectName]);
 
@@ -103,22 +137,52 @@ export function MediaReportBuilderModal({
   const photoCount = selectedMedia.filter(m => m.file_type === 'image').length;
   const videoCount = selectedMedia.filter(m => m.file_type === 'video').length;
 
+  // Comma/semicolon-separated recipients, parsed live for validation + gating
+  const recipients = useMemo(() => parseRecipientEmails(recipientEmail), [recipientEmail]);
+
   const reportOptions = {
     showComments,
     showGps,
     showTimestamps,
     showNumbering,
     imageSize,
+    layout,
   };
 
   // ── Shared helpers ──────────────────────────────────────
 
   const generatePdfBlob = async (htmlString: string): Promise<Blob> => {
+    // html2pdf renders the ENTIRE report into ONE canvas at `scale`, then
+    // slices it into pages. Browsers cap canvases hard — Chrome/Firefox at
+    // ~32,767px per dimension, Safari at ~16.7M px² total AREA — and a
+    // too-big canvas fails SILENTLY: blank or truncated PDFs with no error.
+    // At scale 2 Safari breaks past roughly five pages, which is why PDF
+    // generation felt like a coin flip. Scale down as the report grows so
+    // the canvas always fits; the preview iframe gives us the real height.
+    const CONTENT_WIDTH = 850;               // report render width incl. margin
+    const MAX_DIMENSION = 30000;             // under the 32,767px hard cap
+    const MAX_AREA = 16_000_000;             // under Safari's ~16.7M px² cap
+    // Prefer the natural height captured before the mobile fit-to-width zoom;
+    // a zoomed body's scrollHeight would understate the real render size.
+    const measuredHeight =
+      naturalHeightRef.current ??
+      iframeRef.current?.contentDocument?.body?.scrollHeight ??
+      null;
+
+    let scale = 2;
+    if (measuredHeight && measuredHeight > 0) {
+      const height = measuredHeight * 1.15; // safety margin for width differences
+      const maxByDimension = MAX_DIMENSION / height;
+      const maxByArea = Math.sqrt(MAX_AREA / (CONTENT_WIDTH * height));
+      scale = Math.max(0.75, Math.min(2, maxByDimension, maxByArea));
+      scale = Math.floor(scale * 100) / 100;
+    }
+
     const pdfOptions = {
       margin: [10, 10, 10, 10] as [number, number, number, number],
       image: { type: 'jpeg' as const, quality: 0.95 },
       html2canvas: {
-        scale: 2,
+        scale,
         useCORS: true,
         logging: false,
         letterRendering: true,
@@ -130,10 +194,12 @@ export function MediaReportBuilderModal({
         compress: true,
       },
       pagebreak: {
-        mode: ['avoid-all', 'css', 'legacy'],
+        // 'avoid-all' is deliberately NOT used — it tries to keep every
+        // element unbroken and produces huge gaps on photo-heavy reports.
+        mode: ['css', 'legacy'],
         before: '.page-break',
         after: '.page-break-after',
-        avoid: ['img', '.no-break'],
+        avoid: ['.media-card', '.media-tile', '.no-break'],
       },
     };
 
@@ -222,6 +288,13 @@ export function MediaReportBuilderModal({
       documentId: result.documentId,
     };
     setSavedReport(cached);
+
+    // The save inserted a project_documents row — every surface reading that
+    // table needs to hear about it (Gotcha #27 fanout)
+    queryClient.invalidateQueries({ queryKey: ['project-documents', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-docs-count', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['project-documents-timeline', projectId] });
+
     return cached;
   };
 
@@ -229,7 +302,6 @@ export function MediaReportBuilderModal({
 
   const handleGeneratePreview = async () => {
     setIsGenerating(true);
-    setGenerationProgress(0);
 
     try {
       const mediaIds = selectedMedia.map(m => m.id);
@@ -252,22 +324,34 @@ export function MediaReportBuilderModal({
         options: reportOptions,
       };
 
-      setGenerationProgress(selectedMedia.length * 0.3);
-
       const { data, error } = await supabase.functions.invoke(
         'generate-media-report',
         { body: requestBody }
       );
 
       if (error) {
-        throw new Error(error.message || 'Failed to generate report');
+        // FunctionsHttpError's message is a generic "non-2xx status code" —
+        // surface the real failure from the response when we can. 546 is the
+        // platform's WORKER_LIMIT status (report too large for the function).
+        let message = error.message || 'Failed to generate report';
+        const context = (error as { context?: Response }).context;
+        if (context?.status === 546) {
+          message = 'Report too large to generate — try selecting fewer items.';
+        } else if (context && typeof context.json === 'function') {
+          try {
+            const body = await context.json();
+            if (body?.error) message = body.error;
+          } catch {
+            // response body wasn't JSON — keep the generic message
+          }
+        }
+        throw new Error(message);
       }
 
       if (!data || typeof data !== 'string') {
         throw new Error('Invalid HTML response from server');
       }
 
-      setGenerationProgress(selectedMedia.length);
       setPreviewHtml(data);
       setStep('preview');
 
@@ -279,7 +363,6 @@ export function MediaReportBuilderModal({
       });
     } finally {
       setIsGenerating(false);
-      setGenerationProgress(0);
     }
   };
 
@@ -325,8 +408,14 @@ export function MediaReportBuilderModal({
 
   const handleEmail = async () => {
     if (!previewHtml) return;
-    if (!recipientEmail) {
-      toast.error('Please enter a recipient email address');
+    if (recipients.valid.length === 0) {
+      toast.error('Please enter at least one recipient email address');
+      return;
+    }
+    if (recipients.invalid.length > 0) {
+      toast.error('Some email addresses look invalid', {
+        description: recipients.invalid.join(', '),
+      });
       return;
     }
 
@@ -347,7 +436,8 @@ export function MediaReportBuilderModal({
           format: 'story',
           summary: reportSummary.trim() || undefined,
           delivery: 'email',
-          recipientEmail,
+          recipientEmails: recipients.valid,
+          recipientEmail: recipients.valid[0], // back-compat with older fn versions
           recipientName,
           pdfDownloadUrl: signedUrl,
           mediaCount: selectedMedia.length,
@@ -358,7 +448,10 @@ export function MediaReportBuilderModal({
       if (emailError) throw new Error(`Failed to send email: ${emailError.message}`);
 
       toast.success('Report emailed!', {
-        description: `Sent to ${recipientEmail}`
+        description:
+          recipients.valid.length === 1
+            ? `Sent to ${recipients.valid[0]}`
+            : `Sent to ${recipients.valid.length} recipients`,
       });
 
       onComplete();
@@ -373,14 +466,33 @@ export function MediaReportBuilderModal({
 
   // Write HTML into preview iframe when it mounts or html changes
   const writePreviewToIframe = useCallback(() => {
-    if (iframeRef.current && previewHtml) {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(previewHtml);
-        doc.close();
+    const iframe = iframeRef.current;
+    if (!iframe || !previewHtml) return;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(previewHtml);
+    doc.close();
+
+    // The report is a fixed-width print document (~800px). On phones, scale
+    // it to fit the iframe instead of forcing sideways panning. Natural
+    // height is captured FIRST — generatePdfBlob's canvas-cap math needs the
+    // unzoomed size. (Item heights use fixed aspect-ratio boxes, so layout
+    // is stable before images finish loading.)
+    requestAnimationFrame(() => {
+      const body = doc.body;
+      if (!body) return;
+      naturalHeightRef.current = body.scrollHeight || null;
+
+      const contentWidth = 816; // .report-container 800px + body padding
+      const frameWidth = iframe.clientWidth;
+      if (frameWidth && frameWidth < contentWidth) {
+        (body.style as CSSStyleDeclaration & { zoom?: string }).zoom = String(
+          Math.round((frameWidth / contentWidth) * 1000) / 1000
+        );
       }
-    }
+    });
   }, [previewHtml]);
 
   useEffect(() => {
@@ -450,12 +562,13 @@ export function MediaReportBuilderModal({
             {recipientEmail === '' && (
               <div className={cn("flex gap-2 items-end", isMobile ? "flex-col" : "")}>
                 <div className="flex-1">
-                  <Label className={cn(isMobile ? "text-[10px]" : "text-xs")}>Recipient Email (for email delivery)</Label>
+                  <Label className={cn(isMobile ? "text-[10px]" : "text-xs")}>Recipient Email(s) — commas for multiple</Label>
                   <Input
-                    type="email"
+                    type="text"
+                    inputMode="email"
                     value={recipientEmail}
                     onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="client@example.com"
+                    placeholder="client@example.com, pm@example.com"
                     className={cn("mt-1", isMobile ? "h-8 text-xs" : "h-9")}
                     disabled={isDelivering}
                   />
@@ -495,11 +608,15 @@ export function MediaReportBuilderModal({
               </Button>
               <Button
                 onClick={handleEmail}
-                disabled={isDelivering || !recipientEmail}
+                disabled={isDelivering || recipients.valid.length === 0}
                 size={isMobile ? "sm" : "default"}
               >
                 <Mail className={cn(isMobile ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
-                {isDelivering ? 'Sending...' : 'Email Report'}
+                {isDelivering
+                  ? 'Sending...'
+                  : recipients.valid.length > 1
+                    ? `Email Report (${recipients.valid.length})`
+                    : 'Email Report'}
               </Button>
             </DialogFooter>
           </>
@@ -599,6 +716,39 @@ export function MediaReportBuilderModal({
                     disabled={isGenerating}
                     className={cn(isMobile ? "h-8 text-sm" : "h-9")}
                   />
+                </div>
+
+                {/* Report Style — kept visible (not in the collapsed options)
+                   because it's the biggest visual decision in the report */}
+                <div className={cn(isMobile ? "space-y-1" : "space-y-1.5")}>
+                  <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Report Style</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={layout === 'photo-grid' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setLayout('photo-grid')}
+                      className="flex-1"
+                      disabled={isGenerating}
+                    >
+                      Photo Grid
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={layout === 'detailed' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setLayout('detailed')}
+                      className="flex-1"
+                      disabled={isGenerating}
+                    >
+                      Detailed Cards
+                    </Button>
+                  </div>
+                  <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                    {layout === 'photo-grid'
+                      ? 'Photo-first pages — captions and comments appear under a photo only when they exist.'
+                      : 'Side-by-side cards with a full info column — best when photos have captions or comments.'}
+                  </p>
                 </div>
 
                 {/* Report Summary Section - Collapsible */}
@@ -731,6 +881,11 @@ export function MediaReportBuilderModal({
                             </Button>
                           ))}
                         </div>
+                        <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                          {layout === 'photo-grid'
+                            ? 'Photos per row: Small = 3 across, Medium = 2 across, Large = full width.'
+                            : 'Photo column width on each card.'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -739,15 +894,21 @@ export function MediaReportBuilderModal({
                 {/* Email fields (pre-fill so they're ready at preview step) */}
                 <div className={cn("space-y-2")}>
                   <div>
-                    <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Recipient Email</Label>
+                    <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Recipient Email(s)</Label>
                     <Input
-                      type="email"
+                      type="text"
+                      inputMode="email"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
-                      placeholder="client@example.com (optional — needed for email delivery)"
+                      placeholder="client@example.com, pm@example.com"
                       className={cn("mt-1", isMobile ? "h-8 text-xs" : "h-9")}
                       disabled={isGenerating}
                     />
+                    <p className={cn("text-muted-foreground mt-1", isMobile ? "text-[10px]" : "text-xs")}>
+                      Optional — needed for email delivery. Separate multiple addresses with commas.
+                      {recipients.valid.length > 1 && ` ${recipients.valid.length} recipients.`}
+                      {recipients.invalid.length > 0 && ` Invalid: ${recipients.invalid.join(', ')}`}
+                    </p>
                   </div>
                   <div>
                     <Label className={cn(isMobile ? "text-xs" : "text-sm")}>Recipient Name</Label>
@@ -788,19 +949,12 @@ export function MediaReportBuilderModal({
                 </div>
               </div>
 
-              {/* Generation Progress */}
+              {/* Generation status — honest indeterminate state, no fake % */}
               {isGenerating && (
-                <div className={cn("border rounded-lg", isMobile ? "p-2" : "p-3")}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>
-                      Generating Preview...
-                    </span>
-                    <span className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
-                      {Math.round((generationProgress / selectedMedia.length) * 100)}%
-                    </span>
-                  </div>
-                  <p className={cn("text-muted-foreground mt-2", isMobile ? "text-[10px]" : "text-xs")}>
-                    Processing media items... Please keep this window open.
+                <div className={cn("border rounded-lg flex items-center gap-2", isMobile ? "p-2" : "p-3")}>
+                  <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+                  <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                    Building your report ({selectedMedia.length} items)... Please keep this window open.
                   </p>
                 </div>
               )}
@@ -823,7 +977,7 @@ export function MediaReportBuilderModal({
                 {isGenerating ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                    Generating... {Math.round((generationProgress / selectedMedia.length) * 100)}%
+                    Generating...
                   </>
                 ) : (
                   <>
