@@ -9,22 +9,18 @@ import { LunchSection } from './fields/LunchSection';
 import { HoursDisplay } from './fields/HoursDisplay';
 import { NotesField } from './fields/NotesField';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AlertTriangle, Lock } from 'lucide-react';
+import type { TimeEntryFormInitialValues } from './hooks/useTimeEntryForm';
 
 export interface ManualTimeEntryFormProps {
   mode: 'create' | 'edit';
-  initialValues?: {
-    workerId: string;
-    projectId: string;
-    projectNumber?: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    hours: number;
-    lunchTaken: boolean;
-    lunchDurationMinutes: number;
-    receiptUrl?: string;
-    notes?: string;
-  };
+  /**
+   * Partial by design: edit mode passes the whole entry, while create mode
+   * seeds only what the caller knows (e.g. just `date`, when the worker picked
+   * a day off the week strip). Every field falls back to a sane default in
+   * `useTimeEntryForm`.
+   */
+  initialValues?: Partial<TimeEntryFormInitialValues> & { receiptUrl?: string };
   disabled?: boolean;
   canEdit?: boolean;
   showReceipt?: boolean;
@@ -38,12 +34,65 @@ export interface ManualTimeEntryFormProps {
   restrictToCurrentUser?: boolean;
 }
 
+/**
+ * Explains a read-only form instead of just grey fields.
+ *
+ * Only rendered when the caller says the entry can't be edited (`canEdit`
+ * false) — the caller owns that rule (owner + approved, or locked; admins and
+ * managers pass `canEdit` true on approved entries). RLS enforces the same
+ * thing server-side via "Employees can edit their own time entries", so this
+ * is the UI agreeing with the database, not a second opinion.
+ */
+function LockedNotice({
+  approvalStatus,
+  isLocked,
+}: {
+  approvalStatus?: 'pending' | 'approved' | 'rejected' | null;
+  isLocked?: boolean;
+}) {
+  const headline = isLocked
+    ? 'Locked for payroll'
+    : approvalStatus === 'approved'
+      ? 'Approved'
+      : 'Read-only';
+
+  return (
+    <div className="flex gap-3 rounded-lg border border-border bg-muted/40 p-3">
+      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 text-sm">
+        <p className="font-medium">{headline} — this entry can't be changed</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Ask the office if something needs to be corrected.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** The office's reason, shown on a rejected entry so it can be fixed and resaved. */
+function RejectedNotice({ reason }: { reason: string }) {
+  return (
+    <div className="flex gap-3 rounded-lg border border-warning bg-warning/10 p-3">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+      <div className="min-w-0 text-sm">
+        <p className="font-medium text-warning">Rejected</p>
+        <p className="mt-0.5 text-xs text-muted-foreground break-words">
+          {reason}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function ManualTimeEntryForm({
   mode,
   initialValues,
   disabled = false,
   canEdit = true,
   showRates = false,
+  approvalStatus = null,
+  isLocked = false,
+  rejectionReason,
   restrictToCurrentUser = false,
   onFormDataReady,
 }: ManualTimeEntryFormProps) {
@@ -53,20 +102,7 @@ export function ManualTimeEntryForm({
   >(initialValues?.projectNumber ?? null);
 
   const form = useTimeEntryForm({
-    initialValues: initialValues
-      ? {
-          workerId: initialValues.workerId,
-          projectId: initialValues.projectId,
-          projectNumber: initialValues.projectNumber,
-          date: initialValues.date,
-          startTime: initialValues.startTime,
-          endTime: initialValues.endTime,
-          hours: initialValues.hours,
-          lunchTaken: initialValues.lunchTaken,
-          lunchDurationMinutes: initialValues.lunchDurationMinutes,
-          notes: initialValues.notes,
-        }
-      : undefined,
+    initialValues,
     selectedProjectNumber: selectedProjectNumber ?? undefined,
   });
 
@@ -90,6 +126,12 @@ export function ManualTimeEntryForm({
 
   return (
     <div className="space-y-4">
+      {!canEdit && (
+        <LockedNotice approvalStatus={approvalStatus} isLocked={isLocked} />
+      )}
+      {approvalStatus === 'rejected' && rejectionReason && (
+        <RejectedNotice reason={rejectionReason} />
+      )}
       <WorkerPicker
         value={form.workerId || null}
         onChange={form.setWorkerId}
