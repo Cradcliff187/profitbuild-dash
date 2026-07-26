@@ -55,12 +55,29 @@ function getJsDoc(node: Node) {
   return text.length > 0 ? text : undefined;
 }
 
+/**
+ * ts-morph prints a resolved cross-file type as `import("<absolute path>").Foo`,
+ * which bakes the generating machine's filesystem into the committed doc — the
+ * output churned wholesale depending on who ran it (560 entries carried
+ * `C:/Dev/profitbuild-dash/...`, so regenerating anywhere else rewrote the file
+ * for no informational gain).
+ *
+ * Dropping the import qualifier leaves the member name, which is what a reader
+ * wants: `JSX.Element`, not `import("C:/Dev/.../jsx-runtime").JSX.Element`.
+ * Verified against the existing output: every occurrence is member-qualified,
+ * so nothing is left dangling.
+ */
+function sanitizeTypeText<T extends string | undefined>(text: T): T {
+  if (text === undefined) return text;
+  return text.replace(/import\((?:"[^"]*"|'[^']*')\)\./g, "") as T;
+}
+
 function formatType(node: Node) {
   try {
-    return node.getType().getText(node);
+    return sanitizeTypeText(node.getType().getText(node));
   } catch {
     const typeNode = (node as { getTypeNode?: () => Node | undefined }).getTypeNode?.();
-    return typeNode ? typeNode.getText() : undefined;
+    return sanitizeTypeText(typeNode ? typeNode.getText() : undefined);
   }
 }
 
@@ -72,16 +89,18 @@ function formatFunctionSignature(
     .getTypeParameters()
     .map((param) => param.getText())
     .join(", ");
-  const params = fn
-    .getParameters()
-    .map((param) => param.getText())
-    .join(", ");
+  const params = sanitizeTypeText(
+    fn
+      .getParameters()
+      .map((param) => param.getText())
+      .join(", ")
+  );
   const returnType = (() => {
     try {
-      return fn.getReturnType().getText();
+      return sanitizeTypeText(fn.getReturnType().getText());
     } catch {
       const typeNode = fn.getReturnTypeNode();
-      return typeNode ? typeNode.getText() : undefined;
+      return sanitizeTypeText(typeNode ? typeNode.getText() : undefined);
     }
   })();
   const typeParamPart = typeParams ? `<${typeParams}>` : "";
@@ -342,7 +361,7 @@ async function generate() {
     for (const alias of sourceFile.getTypeAliases()) {
       if (!alias.isExported()) continue;
       const name = alias.getName();
-      const type = alias.getTypeNode()?.getText();
+      const type = sanitizeTypeText(alias.getTypeNode()?.getText());
       const description = getJsDoc(alias);
       ensureEntry(entryMap, {
         name,
