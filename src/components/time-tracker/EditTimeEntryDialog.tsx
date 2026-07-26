@@ -274,6 +274,12 @@ export const EditTimeEntryDialog = ({
         disabled={loading}
         canEdit={canEdit}
         canDelete={canDelete}
+        approvalStatus={
+          (entry?.approval_status as 'pending' | 'approved' | 'rejected') ??
+          null
+        }
+        isLocked={entry?.is_locked ?? false}
+        rejectionReason={entry?.rejection_reason}
         showReceipt={true}
         showRates={false}
         restrictToCurrentUser={false}

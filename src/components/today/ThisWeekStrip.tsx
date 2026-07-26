@@ -4,9 +4,15 @@
  * - Paid Hours logged Mon..Sun (Gotcha #17: `expenses.hours` = Paid Hours —
  *   never "total"/"worked" hours), own rows only (`user_id = auth user`,
  *   `is_time_entry = true` — Gotcha #68: is_time_entry, not category).
- * - 7 day-dots Mon..Sun: filled = ≥1 own time entry that day; amber = no
- *   entry but ≥1 own assignment that day (via `crew_day_assignments_field_view`,
- *   Rule 34); grey otherwise. Today gets a subtle ring.
+ * - 7 day-dots Mon..Sun, states defined once in `field-time/weekDayState.ts`
+ *   and shared with the Time tab's `WeeklySummary`: filled = time logged;
+ *   amber outline = a FINISHED day with nothing logged (weekday, or any day
+ *   with an assignment via `crew_day_assignments_field_view`, Rule 34); muted
+ *   otherwise. Today is never amber — it's still in progress. Today gets a
+ *   subtle ring.
+ * - Each dot is a ≥44px tap target that opens that day on the Time tab
+ *   (`/time-tracker?date=…`). Today surfaces the gap; Time owns the fix, so
+ *   the approval/lock rules live in exactly one place. Nothing is edited here.
  * - Receipts pending: own receipts with approval_status NULL or 'pending'.
  * - Unread: `useUnreadMentions` (realtime already disabled in that hook).
  *   Interpretation note: there is no per-note read tracking in the schema —
@@ -31,6 +37,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnreadMentions } from "@/hooks/useUnreadMentions";
 import { formatDateForDB, parseDateOnly } from "@/utils/dateUtils";
 import {
+  getWeekDayState,
+  WEEK_DAY_DOT_CLASS,
+  WEEK_DAY_STATE_LABEL,
+} from "@/components/field-time/weekDayState";
+import {
   TODAY_RECEIPTS_PENDING_KEY,
   TODAY_WEEK_ASSIGNMENTS_KEY,
   TODAY_WEEK_TIME_KEY,
@@ -46,6 +57,14 @@ const DAY_NAMES = [
   "Saturday",
   "Sunday",
 ] as const;
+
+/** Month/day for the spoken label, e.g. "Jul 21". */
+function shortDate(iso: string): string {
+  return parseDateOnly(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
 
 /** Mon..Sun of the week containing `todayISO`, as YYYY-MM-DD strings. */
 function getWeekDays(todayISO: string): string[] {
@@ -165,35 +184,36 @@ export function ThisWeekStrip({ userId, todayISO }: ThisWeekStripProps) {
             </div>
           </div>
 
-          {/* Day dots Mon..Sun */}
+          {/* Day dots Mon..Sun. Today SIGNALS the gap; the Time tab fixes it —
+              tapping a day opens it there rather than editing in place, so the
+              approval/lock rules live in exactly one surface. */}
           <div
-            className="flex justify-between gap-1 mb-3 md:mb-0 md:flex-1 md:max-w-xs lg:max-w-none lg:mb-3"
-            role="img"
-            aria-label="Days with time logged this week"
+            className="flex items-stretch justify-between gap-1 mb-3 md:mb-0 md:flex-1 md:max-w-xs lg:max-w-none lg:mb-3"
+            role="group"
+            aria-label="Days this week"
           >
             {weekDays.map((iso, i) => {
-              const logged = daysWithEntries.has(iso);
-              const assigned = daysWithAssignments.has(iso);
+              const state = getWeekDayState({
+                day: iso,
+                todayISO,
+                hasEntry: daysWithEntries.has(iso),
+                hasAssignment: daysWithAssignments.has(iso),
+              });
               const isToday = iso === todayISO;
-              const status = logged
-                ? "time logged"
-                : assigned
-                  ? "assigned, no time logged"
-                  : "no activity";
               return (
-                <div
+                <button
                   key={iso}
-                  className="flex flex-col items-center gap-1 flex-1"
-                  aria-label={`${DAY_NAMES[i]}: ${status}`}
+                  type="button"
+                  onClick={() => navigate(`/time-tracker?date=${iso}`)}
+                  aria-label={`${DAY_NAMES[i]}, ${shortDate(iso)} — ${
+                    WEEK_DAY_STATE_LABEL[state]
+                  }`}
+                  className="flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-accent/50 active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span
                     className={cn(
                       "h-3.5 w-3.5 rounded-full",
-                      logged
-                        ? "bg-primary"
-                        : assigned
-                          ? "bg-amber-500"
-                          : "bg-muted-foreground/20",
+                      WEEK_DAY_DOT_CLASS[state],
                       isToday &&
                         "ring-2 ring-primary/40 ring-offset-1 ring-offset-card"
                     )}
@@ -208,7 +228,7 @@ export function ThisWeekStrip({ userId, todayISO }: ThisWeekStripProps) {
                   >
                     {DAY_LETTERS[i]}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>

@@ -10,7 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ManualTimeEntryForm } from './ManualTimeEntryForm';
-import type { TimeEntryFormData } from './hooks/useTimeEntryForm';
+import type {
+  TimeEntryFormData,
+  TimeEntryFormInitialValues,
+} from './hooks/useTimeEntryForm';
 import { cn } from '@/lib/utils';
 
 export interface ManualTimeEntrySheetProps {
@@ -19,19 +22,11 @@ export interface ManualTimeEntrySheetProps {
   mode: 'create' | 'edit';
   title: string;
   description?: string;
-  initialValues?: {
-    workerId: string;
-    projectId: string;
-    projectNumber?: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    hours: number;
-    lunchTaken: boolean;
-    lunchDurationMinutes: number;
-    receiptUrl?: string;
-    notes?: string;
-  };
+  /**
+   * Partial by design — see `ManualTimeEntryFormProps.initialValues`. Create
+   * mode may seed just a date; edit mode passes the whole entry.
+   */
+  initialValues?: Partial<TimeEntryFormInitialValues> & { receiptUrl?: string };
   /** Return true when the save persisted (sheet closes) or false to keep the sheet open. */
   onSave: (data: TimeEntryFormData) => Promise<boolean>;
   onCancel: () => void;
@@ -42,6 +37,10 @@ export interface ManualTimeEntrySheetProps {
   canDelete?: boolean;
   showReceipt?: boolean;
   showRates?: boolean;
+  /** Drives the read-only explanation in the form. Pass these whenever `canEdit` can be false. */
+  approvalStatus?: 'pending' | 'approved' | 'rejected' | null;
+  isLocked?: boolean;
+  rejectionReason?: string;
   /** When true, worker picker auto-selects current user and is read-only (field worker create). */
   restrictToCurrentUser?: boolean;
 }
@@ -60,6 +59,9 @@ export function ManualTimeEntrySheet({
   canEdit = true,
   canDelete = true,
   showRates = false,
+  approvalStatus = null,
+  isLocked = false,
+  rejectionReason,
   restrictToCurrentUser = false,
 }: ManualTimeEntrySheetProps) {
   const isMobile = useIsMobile();
@@ -129,21 +131,28 @@ export function ManualTimeEntrySheet({
             disabled={disabled}
             canEdit={canEdit}
             showRates={showRates}
+            approvalStatus={approvalStatus}
+            isLocked={isLocked}
+            rejectionReason={rejectionReason}
             restrictToCurrentUser={restrictToCurrentUser}
             onFormDataReady={(getData) => {
               getFormDataRef.current = getData;
             }}
           />
         </div>
+        {/* Read-only entries get a single Close. Save is REMOVED, not disabled:
+            it used to render enabled on approved/locked entries and silently
+            do nothing when tapped (the caller's `canEdit` guard returns false
+            without a toast). A control that can't work shouldn't be there. */}
         <footer className="flex gap-3 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t bg-background shrink-0">
           <Button
             type="button"
-            variant="ghost"
+            variant={canEdit ? 'ghost' : 'outline'}
             className="flex-1 min-h-[48px]"
             onClick={handleCancel}
             disabled={busy !== null || disabled}
           >
-            Cancel
+            {canEdit ? 'Cancel' : 'Close'}
           </Button>
           {mode === 'edit' && onDelete && canDelete && (
             <Button
@@ -163,21 +172,23 @@ export function ManualTimeEntrySheet({
               )}
             </Button>
           )}
-          <Button
-            type="button"
-            className="flex-1 min-h-[48px]"
-            onClick={handleSave}
-            disabled={busy !== null || disabled}
-          >
-            {busy === 'save' ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              'Save'
-            )}
-          </Button>
+          {canEdit && (
+            <Button
+              type="button"
+              className="flex-1 min-h-[48px]"
+              onClick={handleSave}
+              disabled={busy !== null || disabled}
+            >
+              {busy === 'save' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                'Save'
+              )}
+            </Button>
+          )}
         </footer>
       </SheetContent>
     </Sheet>

@@ -23,6 +23,7 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { TODAY_WEEK_TIME_KEY } from "@/components/today/todayData";
 
 const STALE_TIME = 60 * 1000;
 
@@ -215,14 +216,22 @@ export function useMyWeekAssignmentDates(
 /**
  * Invalidate every query this page owns. Called after any write (create /
  * edit / delete / copy-batch) so the summary dots, per-project subtotals,
- * recent list, and copy-source lists all refresh without F5 (Gotcha #27 —
- * cache fanout must cover every key reading the underlying table).
+ * recent list, selected day, and copy-source lists all refresh without F5
+ * (Gotcha #27 — cache fanout must cover every key reading the table).
+ *
+ * Today's week strip reads the SAME time entries under its own key, and both
+ * strips now render the same dot states — so a save here has to move the dot
+ * there too, or Today lies until its 60s staleTime expires.
  */
 export function invalidateFieldTimeQueries(queryClient: QueryClient) {
   return queryClient.invalidateQueries({
-    predicate: (query) =>
-      typeof query.queryKey[0] === "string" &&
-      (query.queryKey[0] as string).startsWith("field-time-"),
+    predicate: (query) => {
+      const root = query.queryKey[0];
+      return (
+        typeof root === "string" &&
+        (root.startsWith("field-time-") || root === TODAY_WEEK_TIME_KEY)
+      );
+    },
   });
 }
 
