@@ -24,12 +24,17 @@ interface RecentEntriesListProps {
   entries: FieldTimeEntry[];
   loading: boolean;
   onSelect: (entry: FieldTimeEntry) => void;
+  /** Empty-state copy — overridden when the list is scoped to one day. */
+  emptyTitle?: string;
+  emptyHint?: string;
 }
 
 export function RecentEntriesList({
   entries,
   loading,
   onSelect,
+  emptyTitle = "No time entries yet",
+  emptyHint = "Add your first entry with the button above.",
 }: RecentEntriesListProps) {
   if (loading) {
     return (
@@ -45,10 +50,8 @@ export function RecentEntriesList({
     return (
       <Card className="p-6 text-center border-dashed">
         <Clock className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
-        <p className="text-sm font-medium">No time entries yet</p>
-        <p className="text-xs text-muted-foreground">
-          Add your first entry with the button above.
-        </p>
+        <p className="text-sm font-medium">{emptyTitle}</p>
+        <p className="text-xs text-muted-foreground">{emptyHint}</p>
       </Card>
     );
   }

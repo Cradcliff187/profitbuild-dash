@@ -14,12 +14,19 @@ interface CreateTimeEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  /**
+   * Seeds the date field (YYYY-MM-DD). Set when the worker opened this from a
+   * specific day on the week strip; omit to default to today. Everything else
+   * about the form is unchanged — the date is still editable.
+   */
+  defaultDate?: string;
 }
 
 export const CreateTimeEntryDialog = ({
   open,
   onOpenChange,
   onSaved,
+  defaultDate,
 }: CreateTimeEntryDialogProps) => {
   const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
@@ -133,6 +140,7 @@ export const CreateTimeEntryDialog = ({
         mode="create"
         title="Add Time Entry"
         description="Create a new time entry for internal labor"
+        initialValues={defaultDate ? { date: defaultDate } : undefined}
         onSave={handleSave}
         onCancel={() => onOpenChange(false)}
         disabled={loading}
