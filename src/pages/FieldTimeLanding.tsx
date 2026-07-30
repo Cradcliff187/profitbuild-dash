@@ -7,6 +7,24 @@
  * the `field_worker_v2` flag ON. If mounting rules change, gate at the
  * router — not here.
  *
+ * DAY SELECTION (`?date=YYYY-MM-DD`): the week strip's dots are tap targets.
+ * Selecting a day swaps "Recent entries" for that day's entries and retargets
+ * the primary button to "Add entry for Tue, Jul 21" (pre-filling the date).
+ * The strip stays put, so day → add → next day never needs a back gesture —
+ * which is the point: 46% of time entries are filed after the work date and
+ * 22% are 2+ days late, so catching up on several days is the common motion,
+ * not the edge case. Today's `ThisWeekStrip` deep-links into this same state.
+ *
+ * It's a state of THIS page rather than a sub-page or a sheet: a second
+ * navigation layer would hide the strip that makes the next gap visible.
+ *
+ * WEEK BROWSING (Jul 2026): chevrons on the summary card step `weeksBack`
+ * through payroll history — the weekly total, dots, and hours-per-project all
+ * follow the browsed week, and tapping a past week's day opens it below like
+ * any other day. Add/Copy actions stay pinned to REAL today regardless of the
+ * browsed week; `?date=` selection is week-independent (a selected day simply
+ * isn't highlighted while a week that doesn't contain it is shown).
+ *
  * TIMER: this page intentionally has NO visible timer affordance (removed
  * Jul 15 2026 per Chris, backed by usage data: 355/356 time entries in the
  * prior 90 days were quarter-hour manual-form values; live clock-in was used
@@ -31,6 +49,7 @@
  */
 
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   addDays,
@@ -40,7 +59,7 @@ import {
   subDays,
   subWeeks,
 } from "date-fns";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -50,16 +69,16 @@ import {
 } from "@/components/ui/tooltip";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatDateForDB } from "@/utils/dateUtils";
+import { formatDateForDB, parseDateOnly } from "@/utils/dateUtils";
 import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
 import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
 import { WeeklySummary } from "@/components/field-time/WeeklySummary";
 import { RecentEntriesList } from "@/components/field-time/RecentEntriesList";
 import { CopyDayEntriesSheet } from "@/components/field-time/CopyDayEntriesSheet";
-import { DayEntriesSheet } from "@/components/field-time/DayEntriesSheet";
 import {
   FieldTimeEntry,
   invalidateFieldTimeQueries,
+  sumPaidHours,
   useMyDayTimeEntries,
   useMyRecentTimeEntries,
   useMyWeekAssignmentDates,
@@ -67,6 +86,9 @@ import {
 } from "@/components/field-time/fieldTimeData";
 
 type CopySource = "yesterday" | "friday";
+
+/** `?date=` is only honored as a plain YYYY-MM-DD date-only string. */
+const DATE_PARAM_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Copy-source button with a tooltip explaining WHY it's disabled when the
  *  source day has no entries. Tooltip needs the span wrapper because disabled
@@ -114,13 +136,34 @@ function CopySourceButton({
 export default function FieldTimeLanding() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Historical browsing: 0 = current week, 1 = last week, etc. The summary
-  // card's chevrons drive this; Add/Copy actions stay pinned to REAL today
-  // regardless of the browsed week.
+  // Which day is open, from the URL — so it survives F5, works as a
+  // deep-link target from Today's week strip, and back does the right thing.
+  // A date outside this week is still honored (the strip just shows nothing
+  // selected); an unparseable one is ignored rather than crashing the page.
+  const dateParam = searchParams.get("date");
+  const selectedDate =
+    dateParam && DATE_PARAM_PATTERN.test(dateParam) ? dateParam : null;
+
+  /** Tapping the open day again closes it. Replace, not push — catching up on
+   *  three days shouldn't take three back taps to leave. */
+  const handleSelectDate = (day: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (day === selectedDate) next.delete("date");
+    else next.set("date", day);
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearSelectedDate = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("date");
+    setSearchParams(next, { replace: true });
+  };
+
+  // Historical browsing: 0 = current week, 1 = last week, etc. Driven by the
+  // summary card's chevrons; Add/Copy actions stay pinned to REAL today.
   const [weeksBack, setWeeksBack] = useState(0);
-  // Day drill-in sheet (tap a day dot on the summary card).
-  const [selectedDayISO, setSelectedDayISO] = useState<string | null>(null);
 
   // Date-only strings from local time via the house helper (never
   // `new Date('YYYY-MM-DD')`). Recomputed each render, so a focus refetch
@@ -156,13 +199,11 @@ export default function FieldTimeLanding() {
   // On Saturdays yesterday IS last Friday — the shared query key means only
   // one fetch fires for both buttons.
   const fridayQuery = useMyDayTimeEntries(user?.id, lastFridayISO);
-  // Day drill-in — enabled only while the sheet is open; the todayISO
-  // placeholder keeps the hook's key stable when nothing is selected.
-  const selectedDayQuery = useMyDayTimeEntries(
-    user?.id,
-    selectedDayISO ?? todayISO,
-    { enabled: !!selectedDayISO }
-  );
+  // The open day. Shares the day-entries key, so selecting yesterday reuses
+  // the fetch the Copy button already made.
+  const selectedDayQuery = useMyDayTimeEntries(user?.id, selectedDate ?? "", {
+    enabled: !!selectedDate,
+  });
 
   // --- Dialog state. The shared dialogs are mounted lazily (first use) —
   // originally because their internal `supabase.auth.getUser()` calls had to
@@ -223,6 +264,10 @@ export default function FieldTimeLanding() {
     weeksBack === 0
       ? "This week"
       : `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d")}`;
+  const selectedLabel = selectedDate
+    ? format(parseDateOnly(selectedDate), "EEE, MMM d")
+    : null;
+  const selectedDayPaidHours = sumPaidHours(selectedDayQuery.data ?? []);
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -240,19 +285,20 @@ export default function FieldTimeLanding() {
           </header>
 
           {/* Weekly summary — internally responsive (halves side-by-side at
-              md+). Doubles as the history browser: chevrons step weeks back,
-              tapping a day dot opens that day's entries. */}
+              md+). Doubles as the week browser: chevrons step back through
+              payroll history. */}
           <WeeklySummary
             weekDays={weekDays}
             todayISO={todayISO}
             entries={weekEntriesQuery.data ?? []}
             assignmentDates={weekAssignmentsQuery.data ?? []}
             loading={weekEntriesQuery.isPending || weekAssignmentsQuery.isPending}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
             weekLabel={weekLabel}
             onPrevWeek={() => setWeeksBack((w) => w + 1)}
             onNextWeek={() => setWeeksBack((w) => Math.max(0, w - 1))}
             nextWeekDisabled={weeksBack === 0}
-            onSelectDay={(dayISO) => setSelectedDayISO(dayISO)}
           />
 
           {/* Actions — 390px: Add full-width with copy buttons paired below;
@@ -264,7 +310,7 @@ export default function FieldTimeLanding() {
               onClick={openCreate}
             >
               <Plus className="mr-2 h-5 w-5" />
-              Add time entry
+              {selectedDate ? `Add entry for ${selectedLabel}` : "Add time entry"}
             </Button>
             <CopySourceButton
               label="Copy yesterday"
@@ -282,17 +328,48 @@ export default function FieldTimeLanding() {
             />
           </div>
 
-          {/* Recent entries */}
-          <section aria-label="Recent time entries" className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              Recent entries
-            </h2>
-            <RecentEntriesList
-              entries={recentQuery.data ?? []}
-              loading={recentQuery.isPending}
-              onSelect={openEdit}
-            />
-          </section>
+          {/* One day, or the recent list — never both. The week strip stays
+              put above either way, so day → add → next day is one motion. */}
+          {selectedDate ? (
+            <section aria-label={`Time entries for ${selectedLabel}`} className="space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-sm font-semibold">
+                  {selectedLabel}
+                  {selectedDayPaidHours > 0 && (
+                    <span className="ml-2 font-normal text-muted-foreground tabular-nums">
+                      {selectedDayPaidHours.toFixed(1)} paid hrs
+                    </span>
+                  )}
+                </h2>
+                <button
+                  type="button"
+                  onClick={clearSelectedDate}
+                  className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Show recent
+                </button>
+              </div>
+              <RecentEntriesList
+                entries={selectedDayQuery.data ?? []}
+                loading={selectedDayQuery.isPending}
+                onSelect={openEdit}
+                emptyTitle="No time logged"
+                emptyHint={`Use the button above to add an entry for ${selectedLabel}.`}
+              />
+            </section>
+          ) : (
+            <section aria-label="Recent time entries" className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">
+                Recent entries
+              </h2>
+              <RecentEntriesList
+                entries={recentQuery.data ?? []}
+                loading={recentQuery.isPending}
+                onSelect={openEdit}
+              />
+            </section>
+          )}
 
         </div>
 
@@ -302,6 +379,7 @@ export default function FieldTimeLanding() {
             open={createOpen}
             onOpenChange={setCreateOpen}
             onSaved={handleSaved}
+            defaultDate={selectedDate ?? undefined}
           />
         )}
         {editEverOpened && (
@@ -328,23 +406,6 @@ export default function FieldTimeLanding() {
             entries={copyEntries}
             currentUserId={user.id}
             todayISO={todayISO}
-          />
-        )}
-        {selectedDayISO && (
-          <DayEntriesSheet
-            open
-            onOpenChange={(open) => {
-              if (!open) setSelectedDayISO(null);
-            }}
-            dateISO={selectedDayISO}
-            entries={selectedDayQuery.data ?? []}
-            loading={selectedDayQuery.isPending}
-            onSelect={(entry) => {
-              // Close the day sheet BEFORE opening the editor — two stacked
-              // bottom sheets fight over focus and body scroll-lock.
-              setSelectedDayISO(null);
-              openEdit(entry);
-            }}
           />
         )}
       </MobilePageWrapper>

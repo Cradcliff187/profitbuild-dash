@@ -151,6 +151,18 @@ per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding 
   yesterday/last Friday, weekly summary — **no timer affordance**; see note below), **Receipts**,
   **Projects**, **Notes** — plus a persistent "Next stop" chip and in-app notifications when
   dispatch changes (bell + Notifications page; SMS for same-day changes planned).
+- **Catching up on missed days** — 46% of time entries are filed after the work date (22% two or
+  more days late), so the week strip's day dots are tap targets, not decoration. A dot is filled
+  when time is logged, amber when a **finished** day has nothing on it, and muted otherwise (today
+  is never amber — it's still in progress). Tapping a day on **Time** opens that day's entries and
+  retargets the button to "Add entry for Tue, Jul 21" with the date filled in; the strip stays on
+  screen, so working back through several missed days never needs a back tap. Tapping a day on
+  **Today** jumps to that same day on Time — Today shows the gap, Time is where it gets fixed.
+- **A worker can edit their own time until the office approves it.** After that the entry opens
+  read-only and says so ("Approved — this entry can't be changed. Ask the office if something needs
+  to be corrected."), with no Save button to press. A **rejected** entry shows the office's reason
+  and stays editable, so it can be corrected and resubmitted. The database enforces the same rule,
+  so this is never just a UI courtesy.
 - **Assignment detail** — tapping an assignment anywhere (a dispatch notification, or the Today
   Next Stop / Tomorrow card) opens one consistent screen showing the job: date, start time,
   project, the **full dispatcher note** (gate codes and all — never truncated), address with

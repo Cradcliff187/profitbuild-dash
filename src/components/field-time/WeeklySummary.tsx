@@ -1,22 +1,25 @@
 /**
  * Weekly summary card for the field-worker time landing.
  *
+ * The day dots are a DAY SELECTOR, not decoration — tapping one opens that
+ * day below (the page drives it through `?date=`). That's the backfill path:
+ * 46% of time entries are filed after the work date, so "which days do I still
+ * owe" is the question this card answers, and the answer has to be one tap
+ * from being fixed.
+ *
+ * The card is also the WEEK BROWSER (Jul 2026): `onPrevWeek` / `onNextWeek`
+ * render chevrons beside the label so workers can step back through payroll
+ * history. The header row stays mounted through loading so rapid week-stepping
+ * is never blocked by an in-flight query. All browsing props are optional —
+ * omitting them renders the current-week-only card.
+ *
+ * Dot states live in `weekDayState.ts` — shared with Today's `ThisWeekStrip`
+ * so the two can't drift.
+ *
  * Layout is responsive-Tailwind only (no `useIsMobile()` — iPads land on the
  * desktop side of that hook's 768px break and must NOT get a stretched-phone
  * layout): at 390px the total/dots stack above the per-project list; at
  * md (768) and up the two halves sit side-by-side.
- *
- * Dot semantics per day (Mon–Sun):
- * - filled (primary)  — ≥1 own time entry on that day
- * - amber             — 0 entries BUT ≥1 own crew assignment that day
- * - grey (muted)      — neither
- *
- * History (Jul 2026): the card is also the week browser. `onPrevWeek` /
- * `onNextWeek` render chevrons beside the label (kept OUTSIDE the loading
- * branch so rapid week-stepping isn't blocked by in-flight queries), and
- * `onSelectDay` turns each day dot into a ≥44px tap target that opens the
- * day drill-in sheet. All optional — omitting them renders the original
- * static card.
  */
 
 import { format } from "date-fns";
@@ -31,6 +34,11 @@ import {
   paidHoursByProject,
   sumPaidHours,
 } from "./fieldTimeData";
+import {
+  getWeekDayState,
+  WEEK_DAY_DOT_CLASS,
+  WEEK_DAY_STATE_LABEL,
+} from "./weekDayState";
 
 interface WeeklySummaryProps {
   /** 7 YYYY-MM-DD strings, Monday first. */
@@ -40,35 +48,19 @@ interface WeeklySummaryProps {
   /** Dates (YYYY-MM-DD) with ≥1 own assignment this week. */
   assignmentDates: string[];
   loading: boolean;
+  /** Currently open day (YYYY-MM-DD), or null when showing recent entries. */
+  selectedDate: string | null;
+  /** Tapping the open day again passes it back — the page clears it. */
+  onSelectDate: (day: string) => void;
   /** Label for the browsed week — defaults to "This week". */
   weekLabel?: string;
   /** Step one week back. Rendering the chevrons requires BOTH handlers. */
   onPrevWeek?: () => void;
   /** Step one week forward (toward the current week). */
   onNextWeek?: () => void;
-  /** Disable the forward chevron (browsing the current week already). */
+  /** Disable the forward chevron (already on the current week). */
   nextWeekDisabled?: boolean;
-  /** When provided, day dots become tap targets that open the day's entries. */
-  onSelectDay?: (dayISO: string) => void;
 }
-
-type DayState = "logged" | "assigned" | "none";
-
-function dayState(
-  day: string,
-  entryDates: Set<string>,
-  assignedDates: Set<string>
-): DayState {
-  if (entryDates.has(day)) return "logged";
-  if (assignedDates.has(day)) return "assigned";
-  return "none";
-}
-
-const DAY_STATE_LABEL: Record<DayState, string> = {
-  logged: "time logged",
-  assigned: "assigned, no time logged",
-  none: "no activity",
-};
 
 export function WeeklySummary({
   weekDays,
@@ -76,11 +68,12 @@ export function WeeklySummary({
   entries,
   assignmentDates,
   loading,
+  selectedDate,
+  onSelectDate,
   weekLabel,
   onPrevWeek,
   onNextWeek,
   nextWeekDisabled,
-  onSelectDay,
 }: WeeklySummaryProps) {
   const entryDates = new Set(entries.map((e) => e.expense_date));
   const assignedDates = new Set(assignmentDates);
@@ -144,66 +137,55 @@ export function WeeklySummary({
               </span>
             </p>
 
+            {/* Each day is a ≥44px tap target — the dot is the mark, the button
+                is the column around it. */}
             <div
-              className="mt-3 flex items-start justify-between gap-0.5 max-w-[320px]"
-              role="list"
+              className="mt-3 flex items-stretch justify-between gap-1 max-w-[320px]"
+              role="group"
               aria-label="Days this week"
             >
               {weekDays.map((day) => {
-                const state = dayState(day, entryDates, assignedDates);
-                const label = `${format(parseDateOnly(day), "EEE MMM d")} — ${
-                  DAY_STATE_LABEL[state]
-                }`;
-                const dot = (
-                  <>
+                const state = getWeekDayState({
+                  day,
+                  todayISO,
+                  hasEntry: entryDates.has(day),
+                  hasAssignment: assignedDates.has(day),
+                });
+                const dayLabel = format(parseDateOnly(day), "EEEE, MMM d");
+                const label = `${dayLabel} — ${WEEK_DAY_STATE_LABEL[state]}`;
+                const isSelected = day === selectedDate;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => onSelectDate(day)}
+                    aria-label={label}
+                    aria-pressed={isSelected}
+                    title={label}
+                    className={cn(
+                      "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1.5 rounded-lg transition-colors",
+                      "hover:bg-muted/60 active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isSelected && "bg-muted ring-1 ring-primary/40"
+                    )}
+                  >
                     <span
                       className={cn(
                         "h-3.5 w-3.5 rounded-full",
-                        state === "logged" && "bg-primary",
-                        state === "assigned" && "bg-amber-500",
-                        state === "none" && "bg-muted",
+                        WEEK_DAY_DOT_CLASS[state],
                         day === todayISO && "ring-2 ring-primary/30 ring-offset-1"
                       )}
                     />
                     <span
                       className={cn(
                         "text-[10px] font-medium leading-none",
-                        day === todayISO
+                        day === todayISO || isSelected
                           ? "text-foreground"
                           : "text-muted-foreground"
                       )}
                     >
                       {format(parseDateOnly(day), "EEEEE")}
                     </span>
-                  </>
-                );
-
-                if (onSelectDay) {
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      role="listitem"
-                      onClick={() => onSelectDay(day)}
-                      aria-label={`${label} — view entries`}
-                      title={label}
-                      className="flex min-h-[44px] min-w-[36px] flex-col items-center justify-center gap-1.5 rounded-md transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {dot}
-                    </button>
-                  );
-                }
-
-                return (
-                  <div
-                    key={day}
-                    role="listitem"
-                    aria-label={label}
-                    title={label}
-                    className="flex flex-col items-center gap-1.5"
-                  >
-                    {dot}
-                  </div>
+                  </button>
                 );
               })}
             </div>

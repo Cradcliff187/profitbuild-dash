@@ -223,6 +223,7 @@ export const AdminEditTimeEntrySheet = ({
         disabled={loading}
         canEdit={canEdit}
         canDelete={canDelete}
+        isLocked={entry?.is_locked ?? false}
         showReceipt={false}
         showRates={false}
         restrictToCurrentUser={false}
