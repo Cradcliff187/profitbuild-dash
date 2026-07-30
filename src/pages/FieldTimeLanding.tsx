@@ -18,6 +18,13 @@
  * It's a state of THIS page rather than a sub-page or a sheet: a second
  * navigation layer would hide the strip that makes the next gap visible.
  *
+ * WEEK BROWSING (Jul 2026): chevrons on the summary card step `weeksBack`
+ * through payroll history — the weekly total, dots, and hours-per-project all
+ * follow the browsed week, and tapping a past week's day opens it below like
+ * any other day. Add/Copy actions stay pinned to REAL today regardless of the
+ * browsed week; `?date=` selection is week-independent (a selected day simply
+ * isn't highlighted while a week that doesn't contain it is shown).
+ *
  * TIMER: this page intentionally has NO visible timer affordance (removed
  * Jul 15 2026 per Chris, backed by usage data: 355/356 time entries in the
  * prior 90 days were quarter-hour manual-form values; live clock-in was used
@@ -50,6 +57,7 @@ import {
   previousFriday,
   startOfWeek,
   subDays,
+  subWeeks,
 } from "date-fns";
 import { Copy, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -153,12 +161,16 @@ export default function FieldTimeLanding() {
     setSearchParams(next, { replace: true });
   };
 
+  // Historical browsing: 0 = current week, 1 = last week, etc. Driven by the
+  // summary card's chevrons; Add/Copy actions stay pinned to REAL today.
+  const [weeksBack, setWeeksBack] = useState(0);
+
   // Date-only strings from local time via the house helper (never
   // `new Date('YYYY-MM-DD')`). Recomputed each render, so a focus refetch
   // after midnight rolls the query keys forward.
   const now = new Date();
   const todayISO = formatDateForDB(now);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Mon–Sun
+  const weekStart = startOfWeek(subWeeks(now, weeksBack), { weekStartsOn: 1 }); // Mon–Sun
   // Cheap to rebuild per render; the query keys derive from the stable
   // weekStartISO STRING, so array identity doesn't matter.
   const weekDays = Array.from({ length: 7 }, (_, i) =>
@@ -248,6 +260,10 @@ export default function FieldTimeLanding() {
       : fridayQuery.data ?? [];
 
   const friendlyDate = format(now, "EEEE, MMM d");
+  const weekLabel =
+    weeksBack === 0
+      ? "This week"
+      : `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d")}`;
   const selectedLabel = selectedDate
     ? format(parseDateOnly(selectedDate), "EEE, MMM d")
     : null;
@@ -268,7 +284,9 @@ export default function FieldTimeLanding() {
             <p className="text-sm text-muted-foreground">{friendlyDate}</p>
           </header>
 
-          {/* Weekly summary — internally responsive (halves side-by-side at md+) */}
+          {/* Weekly summary — internally responsive (halves side-by-side at
+              md+). Doubles as the week browser: chevrons step back through
+              payroll history. */}
           <WeeklySummary
             weekDays={weekDays}
             todayISO={todayISO}
@@ -277,6 +295,10 @@ export default function FieldTimeLanding() {
             loading={weekEntriesQuery.isPending || weekAssignmentsQuery.isPending}
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
+            weekLabel={weekLabel}
+            onPrevWeek={() => setWeeksBack((w) => w + 1)}
+            onNextWeek={() => setWeeksBack((w) => Math.max(0, w - 1))}
+            nextWeekDisabled={weeksBack === 0}
           />
 
           {/* Actions — 390px: Add full-width with copy buttons paired below;
