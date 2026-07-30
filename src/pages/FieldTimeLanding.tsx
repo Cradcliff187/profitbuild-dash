@@ -38,6 +38,7 @@ import {
   previousFriday,
   startOfWeek,
   subDays,
+  subWeeks,
 } from "date-fns";
 import { Copy, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDial
 import { WeeklySummary } from "@/components/field-time/WeeklySummary";
 import { RecentEntriesList } from "@/components/field-time/RecentEntriesList";
 import { CopyDayEntriesSheet } from "@/components/field-time/CopyDayEntriesSheet";
+import { DayEntriesSheet } from "@/components/field-time/DayEntriesSheet";
 import {
   FieldTimeEntry,
   invalidateFieldTimeQueries,
@@ -113,12 +115,19 @@ export default function FieldTimeLanding() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  // Historical browsing: 0 = current week, 1 = last week, etc. The summary
+  // card's chevrons drive this; Add/Copy actions stay pinned to REAL today
+  // regardless of the browsed week.
+  const [weeksBack, setWeeksBack] = useState(0);
+  // Day drill-in sheet (tap a day dot on the summary card).
+  const [selectedDayISO, setSelectedDayISO] = useState<string | null>(null);
+
   // Date-only strings from local time via the house helper (never
   // `new Date('YYYY-MM-DD')`). Recomputed each render, so a focus refetch
   // after midnight rolls the query keys forward.
   const now = new Date();
   const todayISO = formatDateForDB(now);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Mon–Sun
+  const weekStart = startOfWeek(subWeeks(now, weeksBack), { weekStartsOn: 1 }); // Mon–Sun
   // Cheap to rebuild per render; the query keys derive from the stable
   // weekStartISO STRING, so array identity doesn't matter.
   const weekDays = Array.from({ length: 7 }, (_, i) =>
@@ -147,6 +156,13 @@ export default function FieldTimeLanding() {
   // On Saturdays yesterday IS last Friday — the shared query key means only
   // one fetch fires for both buttons.
   const fridayQuery = useMyDayTimeEntries(user?.id, lastFridayISO);
+  // Day drill-in — enabled only while the sheet is open; the todayISO
+  // placeholder keeps the hook's key stable when nothing is selected.
+  const selectedDayQuery = useMyDayTimeEntries(
+    user?.id,
+    selectedDayISO ?? todayISO,
+    { enabled: !!selectedDayISO }
+  );
 
   // --- Dialog state. The shared dialogs are mounted lazily (first use) —
   // originally because their internal `supabase.auth.getUser()` calls had to
@@ -203,6 +219,10 @@ export default function FieldTimeLanding() {
       : fridayQuery.data ?? [];
 
   const friendlyDate = format(now, "EEEE, MMM d");
+  const weekLabel =
+    weeksBack === 0
+      ? "This week"
+      : `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d")}`;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -219,13 +239,20 @@ export default function FieldTimeLanding() {
             <p className="text-sm text-muted-foreground">{friendlyDate}</p>
           </header>
 
-          {/* Weekly summary — internally responsive (halves side-by-side at md+) */}
+          {/* Weekly summary — internally responsive (halves side-by-side at
+              md+). Doubles as the history browser: chevrons step weeks back,
+              tapping a day dot opens that day's entries. */}
           <WeeklySummary
             weekDays={weekDays}
             todayISO={todayISO}
             entries={weekEntriesQuery.data ?? []}
             assignmentDates={weekAssignmentsQuery.data ?? []}
             loading={weekEntriesQuery.isPending || weekAssignmentsQuery.isPending}
+            weekLabel={weekLabel}
+            onPrevWeek={() => setWeeksBack((w) => w + 1)}
+            onNextWeek={() => setWeeksBack((w) => Math.max(0, w - 1))}
+            nextWeekDisabled={weeksBack === 0}
+            onSelectDay={(dayISO) => setSelectedDayISO(dayISO)}
           />
 
           {/* Actions — 390px: Add full-width with copy buttons paired below;
@@ -301,6 +328,23 @@ export default function FieldTimeLanding() {
             entries={copyEntries}
             currentUserId={user.id}
             todayISO={todayISO}
+          />
+        )}
+        {selectedDayISO && (
+          <DayEntriesSheet
+            open
+            onOpenChange={(open) => {
+              if (!open) setSelectedDayISO(null);
+            }}
+            dateISO={selectedDayISO}
+            entries={selectedDayQuery.data ?? []}
+            loading={selectedDayQuery.isPending}
+            onSelect={(entry) => {
+              // Close the day sheet BEFORE opening the editor — two stacked
+              // bottom sheets fight over focus and body scroll-lock.
+              setSelectedDayISO(null);
+              openEdit(entry);
+            }}
           />
         )}
       </MobilePageWrapper>
