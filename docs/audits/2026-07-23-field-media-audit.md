@@ -129,6 +129,25 @@ combination). Items P3/P4/C1/C2 from the review were judged working-as-designed 
 alone. Caveat stated honestly: no live authenticated click-through was possible from this
 environment — Chris's on-device smoke test after Lovable Publish is the final gate.
 
+## 2d. Round 4 (Jul 31) — field-reported timestamp + photo-appearance bugs
+
+Chris's on-device testing surfaced two real bugs. Deployed as `generate-media-report`
+**v128** (byte-verified). Full trace by two parallel investigation agents; live DB checks
+confirmed the mechanisms.
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Photo times +4h ("might be UTC") | The edge isolate runs UTC; all six `toLocale*` sites had no `timeZone` option. Stored instants were CORRECT — pure display leak. Also mis-grouped: photos after 8pm EDT filed under the next day's header. | `ReportOptions.timeZone` (IANA, validated, default America/New_York), sent by the modal from the browser, threaded to all six sites. |
+| 2 | Photos "look manipulated" | Report tiles are 4:3 boxes with `object-fit: cover` — portrait phone photos lost ~44% of the frame to center-crop (heads/floors gone). Same bug Rule 21 fixed in TimelineStoryView, never applied to the report. | `cover` → `contain` in both layouts; the existing box background letterboxes. Full frame always visible. |
+| 3 | (Found during #1) `taken_at` = upload time, not capture time | No EXIF parsing existed anywhere — gallery uploads of older photos stamped the upload moment, so report day-grouping lied. | `uploadProjectMedia` parses EXIF `DateTimeOriginal` via `exifr` (sanity window 2000..now+1d), falls back to upload time. Camera captures unchanged (times coincide). |
+
+Not fixed (deliberate): `_shared/brandedTemplate.ts` footer date still UTC (needs the
+4-function coordinated redeploy; only visible within ~4h of midnight); EXIF *orientation*
+baking at upload (transforms are ON so embedded report images auto-rotate — the raw-original
+fallback path can still rotate PDFs; queued as the durable follow-up); no `taken_at`
+backfill for historical gallery uploads (storage originals retain EXIF, so a one-shot
+backfill job is possible if ever needed).
+
 ## 3. Open findings — needs a decision or a follow-up session
 
 ### P2 — Report modal & pipeline polish

@@ -1,7 +1,40 @@
 import { supabase } from "@/integrations/supabase/client";
+import exifr from "exifr";
 import type { ProjectMedia, MediaCategory } from "@/types/project";
 import { generateStoragePath, validateMediaFile } from "./mediaMetadata";
 import { captureVideoThumbnail } from "./videoUtils";
+
+/**
+ * Read the photo's REAL capture time from EXIF (DateTimeOriginal).
+ *
+ * Callers pass `takenAt: new Date().toISOString()` — the UPLOAD moment. For
+ * camera captures those coincide, but for gallery uploads the photo may have
+ * been taken hours or days earlier, and stamping upload time makes report
+ * date-grouping lie. exifr interprets the EXIF wall-clock in the device's
+ * current zone (correct for the overwhelming same-zone case) and honors
+ * OffsetTimeOriginal when present (iOS ≥13 writes it). Best-effort: any
+ * failure returns null and the caller keeps its upload-time value.
+ */
+async function exifCaptureTime(file: File): Promise<string | null> {
+  if (!file.type.startsWith("image/")) return null;
+  try {
+    const parsed = await exifr.parse(file, {
+      pick: ["DateTimeOriginal", "OffsetTimeOriginal", "CreateDate"],
+    });
+    const captured: unknown = parsed?.DateTimeOriginal ?? parsed?.CreateDate;
+    if (captured instanceof Date && !Number.isNaN(captured.getTime())) {
+      // Sanity: reject obviously bogus EXIF clocks (before 2000 or in the
+      // future by more than a day) rather than corrupting taken_at.
+      const t = captured.getTime();
+      if (t > Date.UTC(2000, 0, 1) && t < Date.now() + 86_400_000) {
+        return captured.toISOString();
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export interface UploadProjectMediaParams {
   projectId: string;
@@ -51,6 +84,14 @@ export async function uploadProjectMedia(
         data: null,
         error: new Error('User not authenticated'),
       };
+    }
+
+    // Prefer the photo's EXIF capture time over the caller's upload-time
+    // stamp (they only coincide for fresh camera captures — gallery uploads
+    // can be days old). Falls back to the caller's value on any miss.
+    const capturedAt = await exifCaptureTime(file);
+    if (capturedAt) {
+      metadata.takenAt = capturedAt;
     }
 
     // Generate storage path
