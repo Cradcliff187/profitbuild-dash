@@ -148,6 +148,26 @@ fallback path can still rotate PDFs; queued as the durable follow-up); no `taken
 backfill for historical gallery uploads (storage originals retain EXIF, so a one-shot
 backfill job is possible if ever needed).
 
+## 2e. Session artifacts & final state (Jul 31 close-out)
+
+- **Edge function**: `generate-media-report` **v128** ACTIVE, byte-verified against `main`.
+  (v127 was Lovable's automatic redeploy of identical v126 content after the #184 merge.)
+- **Live E2E proof**: a real report email was generated server-side and delivered to
+  chris@radcliffcg.com (Resend id `8a47b96d…`, one `email_messages` row, 642ms execution) using
+  two of Chris's device photos seeded into the **SYS-TEST sandbox**. Those two `project_media`
+  rows + storage objects are KEPT deliberately — the delivered email references their public
+  URLs. Visible only with Settings → Developer → sandbox toggle.
+- **`tmp-storage-put`**: the temporary uploader used for that seeding is now a 410 stub;
+  delete via CLI when auth is available (see CLAUDE.md edge-functions section).
+- **Shipped across the session**: PR #184 (546 fix + photo-first redesign + PDF reliability +
+  video thumbnails + multi-recipient email), PR #188 (Time-tab week browsing; day drill-in
+  superseded in-flight by #185's inline day view), PR #190 (viewer-timezone report times,
+  uncropped letterboxed photos, EXIF capture time on upload).
+- **Still open for a future session** (§3 below plus): EXIF orientation baking at upload
+  (rotation-proof PDFs on the raw-original fallback path), `_shared/brandedTemplate.ts` footer
+  date UTC (needs the 4-function coordinated redeploy), optional `taken_at` backfill for
+  historical gallery uploads (storage originals retain EXIF).
+
 ## 3. Open findings — needs a decision or a follow-up session
 
 ### P2 — Report modal & pipeline polish

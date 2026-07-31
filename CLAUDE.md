@@ -113,6 +113,8 @@ src/
 
 **Removed (Apr 19, 2026):** `generate-subcontractor-contract` (orphan — deployed direct-to-Supabase in Nov 2025, entrypoint `/source/index.ts` with no repo structure, zero UI callers, superseded by the repo-managed `generate-contract` function built Dec 2025). Deleted via CLI.
 
+**Stubbed, pending deletion (Jul 31, 2026):** `tmp-storage-put` — temporary secret-gated helper from the field-media E2E test (seeded 2 test photos into `project-media` for the SYS-TEST sandbox report-email test). Now a bare 410 stub with no Supabase client. MCP has no delete tool, so remove via `npx supabase functions delete tmp-storage-put --project-ref clsjdxwbsjbhjibvlqbz` (or the dashboard) whenever CLI auth is available. Also still deployed and dead: `generate-video-thumbnail` (Gotcha #75e) — delete both in one CLI session.
+
 ### Critical: Functions That Use `_shared/brandedTemplate.ts`
 
 These four functions MUST be deployed together with the shared file via Supabase MCP:
@@ -1615,6 +1617,19 @@ same dot states off the same entries, so a save on Time must move the dot on Tod
 **Common pitfalls**: don't re-add a per-surface dot map; don't make Today edit in place; don't add a
 count badge or notification off `needs-time` (an unlogged day off reads amber until the PTO entry is
 filed — correct as a quiet nudge, wrong as a nag).
+
+**Week browsing (Jul 30 2026, PR [#188](https://github.com/Cradcliff187/profitbuild-dash/pull/188))**:
+`WeeklySummary` is also the WEEK BROWSER — optional `weekLabel` / `onPrevWeek` / `onNextWeek` /
+`nextWeekDisabled` props render ‹ › chevrons beside the label ("This week" → "Jul 21 – 27");
+`FieldTimeLanding` drives them with `weeksBack` state, and the weekly total, dots, and
+hours-per-project all follow the browsed week (the data hooks were already keyed on week-date
+strings, so browsing is pure parameterization — no new queries). The header row (label + chevrons)
+stays mounted THROUGH loading so rapid week-stepping is never blocked. Interplay rules: `?date=`
+day selection is week-independent (tapping a past week's day opens it in the same inline day view;
+a selected day simply isn't highlighted while a week not containing it is shown), and Add/Copy
+actions stay pinned to REAL today regardless of the browsed week. #188 originally shipped a
+`DayEntriesSheet` drill-in; it was deleted in-flight when #185's inline day view landed first —
+the sheet pattern lost on merit (a second nav layer hides the strip), don't resurrect it.
 
 ---
 
