@@ -147,6 +147,10 @@ export function MediaReportBuilderModal({
     showNumbering,
     imageSize,
     layout,
+    // The edge function's isolate runs in UTC — without the viewer's IANA
+    // zone every photo time and date-group header renders as UTC wall-clock
+    // (+4h in EDT). Sourced from the browser so it's right for any user.
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
 
   // ── Shared helpers ──────────────────────────────────────

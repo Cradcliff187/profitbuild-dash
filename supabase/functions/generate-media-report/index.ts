@@ -36,9 +36,31 @@ interface ReportOptions {
    * team writes captions/descriptions or comments matter.
    */
   layout?: 'photo-grid' | 'detailed';
+  /**
+   * IANA timezone for ALL displayed dates/times (photo times, date-group
+   * headers, day counts, "Report Generated"). The isolate runs in UTC, so
+   * omitting timeZone on toLocale* renders UTC wall-clock — the +4h bug.
+   * The client sends the browser's zone; invalid/absent values fall back to
+   * the company's home zone.
+   */
+  timeZone?: string;
 }
 
 type ResolvedOptions = Required<ReportOptions>;
+
+const DEFAULT_TIME_ZONE = 'America/New_York';
+
+/** Validate an IANA zone name — an invalid one makes toLocale* THROW, which
+ *  would 500 the whole report. */
+function resolveTimeZone(tz: unknown): string {
+  if (typeof tz !== 'string' || !tz) return DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return tz;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
 
 interface ReportRequest {
   projectId: string;
@@ -271,7 +293,9 @@ Deno.serve(async (req) => {
       pdfDownloadUrl, mediaCount,
     } = body;
 
-    // Resolve options with defaults
+    // Resolve options with defaults. timeZone is re-resolved through the
+    // validator regardless of what the client sent (an invalid IANA name
+    // would make every toLocale* call throw).
     const opts: ResolvedOptions = {
       showComments: true,
       showGps: true,
@@ -280,6 +304,7 @@ Deno.serve(async (req) => {
       imageSize: 'medium',
       layout: 'photo-grid',
       ...body.options,
+      timeZone: resolveTimeZone(body.options?.timeZone),
     };
 
     console.log(
@@ -402,7 +427,8 @@ Deno.serve(async (req) => {
         <div class="detail-label">Report Generated</div>
         <div class="detail-value">${new Date().toLocaleDateString('en-US', {
           year: 'numeric', month: 'long', day: 'numeric',
-          hour: '2-digit', minute: '2-digit'
+          hour: '2-digit', minute: '2-digit',
+          timeZone: opts.timeZone,
         })}</div>
       </div>
     `;
@@ -411,7 +437,9 @@ Deno.serve(async (req) => {
     const photoCount = mediaWithBase64.filter((m: any) => m.file_type === 'image').length;
     const videoCount = mediaWithBase64.filter((m: any) => m.file_type === 'video').length;
     const uniqueDates = new Set(mediaWithBase64.map((m: any) =>
-      new Date(m.taken_at || m.created_at).toLocaleDateString()
+      new Date(m.taken_at || m.created_at).toLocaleDateString('en-US', {
+        timeZone: opts.timeZone,
+      })
     )).size;
 
     const statsBarHtml = `
@@ -582,7 +610,11 @@ function buildEmailBody(
   const { reportTitle, recipientName, summary, pdfDownloadUrl, mediaCount } = extra;
   const itemCount = mediaCount || mediaItems.length;
   const dayCount = new Set(
-    mediaItems.map((m: any) => new Date(m.taken_at || m.created_at).toLocaleDateString())
+    mediaItems.map((m: any) =>
+      new Date(m.taken_at || m.created_at).toLocaleDateString('en-US', {
+        timeZone: opts.timeZone,
+      })
+    )
   ).size;
 
   // Table-based detail rows for email compatibility
@@ -744,7 +776,9 @@ function generateStoryTimeline(
   comments: Map<string, MediaComment[]>,
   opts: ResolvedOptions
 ): string {
-  // Group photos by date
+  // Group photos by date — in the VIEWER's timezone, not the isolate's UTC.
+  // Without timeZone here an evening photo (after 8pm EDT) files under the
+  // next day's header.
   const photosByDate = new Map<string, any[]>();
   mediaItems.forEach((media: any) => {
     const dateKey = new Date(
@@ -753,6 +787,7 @@ function generateStoryTimeline(
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: opts.timeZone,
     });
     if (!photosByDate.has(dateKey)) {
       photosByDate.set(dateKey, []);
@@ -769,7 +804,11 @@ function generateStoryTimeline(
     const mediaComments = comments.get(media.id) || [];
     const timestamp = new Date(media.taken_at || media.created_at);
     const globalIndex = mediaItems.findIndex((m: any) => m.id === media.id);
-    const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const timeStr = timestamp.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: opts.timeZone,
+    });
 
     const stripParts: string[] = [];
     if (opts.showTimestamps) stripParts.push(`<span class="tile-time">${timeStr}</span>`);
@@ -810,7 +849,7 @@ function generateStoryTimeline(
         <div class="media-info">
           ${opts.showTimestamps ? `
             <div class="media-time">
-              ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              ${timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: opts.timeZone })}
             </div>
           ` : ''}
           ${media.caption
@@ -937,13 +976,17 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       background: #F8F6F3;
     }
 
+    /* contain, never cover — a portrait phone photo center-cropped into a
+       4:3 landscape box loses ~44% of the frame, which the field reads as
+       "someone edited my photo" (Rule 21 precedent: TimelineStoryView made
+       this same cover→contain fix). The box background letterboxes. */
     .tile-image img {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       display: block;
     }
 
@@ -1004,13 +1047,14 @@ function getStoryTimelineCss(branding: BrandingConfig, opts: ResolvedOptions): s
       background: #F8F6F3;
     }
 
+    /* contain, never cover — same reasoning as .tile-image img above. */
     .media-image img {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .media-image .video-placeholder {
