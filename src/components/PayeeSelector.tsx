@@ -114,7 +114,7 @@ export function PayeeSelector({
   });
 
   // Server-side usage ranking (replaces the old pattern of pulling every receipts row to the client).
-  const { data: usageStats } = useQuery({
+  const { data: usageStats, isLoading: usageLoading } = useQuery({
     queryKey: ['payee-usage-counts', usageSource],
     enabled: sortByUsage,
     staleTime: 1000 * 60 * 10,
@@ -130,6 +130,13 @@ export function PayeeSelector({
   });
 
   const selectedPayee = payees.find((p) => p.id === value);
+
+  // When usage ranking is requested, hold the list in its loading state until
+  // the ranking resolves. Painting alphabetically and re-sorting a beat later
+  // shuffled rows under the user's finger on cold opens (and left cmdk's
+  // highlight parked on whatever row happened to render first). On RPC error
+  // isLoading goes false and the list falls back to alphabetical order.
+  const rankingPending = sortByUsage && usageLoading;
 
   const orderedPayees = useMemo(() => {
     if (!sortByUsage || !usageStats) return payees;
@@ -220,7 +227,7 @@ export function PayeeSelector({
             <Command shouldFilter={false}>
               <CommandInput placeholder="Search payees..." value={search} onValueChange={setSearch} />
               <CommandList>
-                {isLoading ? (
+                {isLoading || rankingPending ? (
                   <div className="py-6 text-center text-sm text-muted-foreground">Loading payees…</div>
                 ) : visiblePayees.length === 0 ? (
                   <div className="py-6 text-center text-sm text-muted-foreground">No payees found.</div>

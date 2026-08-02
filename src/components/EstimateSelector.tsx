@@ -133,7 +133,10 @@ export const EstimateSelector = ({
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
-          <CommandList className="max-h-[500px]">
+          {/* Taller 500px ceiling than the CommandList default, but still
+              clamped to the popover's measured available height so the panel
+              never extends past the visible viewport on small screens. */}
+          <CommandList className="max-h-[min(500px,calc(var(--radix-popover-content-available-height,556px)_-_3.5rem))]">
             <CommandEmpty>
               {estimates.length === 0 
                 ? "No estimates available. Create an estimate first."
