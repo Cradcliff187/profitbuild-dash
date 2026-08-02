@@ -331,7 +331,7 @@ export default function BranchBidDetail() {
           <CardDescription>Basic details and project links</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Lead Name *</Label>
               <Input
