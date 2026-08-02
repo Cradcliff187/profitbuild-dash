@@ -52,7 +52,7 @@ export default function MyProjects() {
         </header>
 
         {projectsQuery.isPending ? (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-lg" />
             ))}
@@ -85,7 +85,7 @@ export default function MyProjects() {
             </p>
           </Card>
         ) : (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {projects.map((project) => (
               <button
                 key={project.id}
