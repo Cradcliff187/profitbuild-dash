@@ -62,10 +62,16 @@ const CommandList = React.forwardRef<
   // (react-remove-scroll, registered on document) doesn't preventDefault()
   // and kill native scrolling inside cmdk popovers nested in dialogs.
   // onWheel covers desktop mouse-wheel; onTouchStart/onTouchMove cover iOS.
+  // Height: capped at 300px, but never taller than the space Radix measured
+  // for the surrounding popover (minus ~3.5rem for the CommandInput header).
+  // Without this, a keyboard-shrunken mobile viewport left the popover taller
+  // than the room above its trigger and the top rows rendered offscreen.
+  // The 356px var fallback resolves to the original 300px cap when the list
+  // is not inside a Popover (e.g. CommandDialog).
   <CommandPrimitive.List
     ref={ref}
     className={cn(
-      "max-h-[300px] overflow-y-auto overflow-x-hidden overscroll-contain pt-2 pr-2",
+      "max-h-[min(300px,calc(var(--radix-popover-content-available-height,356px)_-_3.5rem))] overflow-y-auto overflow-x-hidden overscroll-contain pt-2 pr-2",
       className,
     )}
     style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
