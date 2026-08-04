@@ -1,11 +1,12 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { StickyNote, Camera, Paperclip } from 'lucide-react';
+import { StickyNote, Camera, Paperclip, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NoteComposer } from '@/components/notes/NoteComposer';
 import { uploadProjectMedia } from '@/utils/projectMedia';
 import { uploadProjectDocument } from '@/utils/projectDocumentUpload';
 import { validateMediaFile } from '@/utils/mediaMetadata';
+import { createUploadProgressToast } from '@/utils/uploadProgressToast';
 import { toast } from 'sonner';
 
 interface FieldQuickActionBarProps {
@@ -99,13 +100,19 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
     if (!file) return;
 
     setIsUploading(true);
-    toast.info('Uploading photo...');
+    // Persistent loading toast (spinner) instead of an auto-dismissing info
+    // toast — a big photo on slow LTE outlives the 4s default and left no
+    // visible "still uploading" signal.
+    const progress = createUploadProgressToast(1, 'photo');
     const ok = await uploadMediaFile(file, 'camera');
     setIsUploading(false);
     if (ok) {
-      toast.success('Photo added to Media');
+      progress.success('Photo added to Media');
       invalidateMediaAndDocs();
       onNoteCreated?.();
+    } else {
+      // uploadMediaFile already fired the specific error toast.
+      progress.dismiss();
     }
   };
 
@@ -123,13 +130,16 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
     let docCount = 0;
     let failCount = 0;
 
+    // One persistent loading toast for the whole batch, updated per file
+    // ("Uploading 3 of 12…") and resolved in place — large batches used to go
+    // silent between the start toast and the summary.
+    const progress = createUploadProgressToast(files.length);
+
     try {
-      if (files.length > 1) {
-        toast.info(`Uploading ${files.length} files...`);
-      }
       // Sequential routing — each file goes to Media (image/video) or
       // Documents (PDF/doc/etc) based on MIME. Mixed batches land in both.
-      for (const file of files) {
+      for (const [index, file] of files.entries()) {
+        progress.progress(index + 1);
         const isMedia = file.type.startsWith('image/') || file.type.startsWith('video/');
         if (isMedia) {
           const ok = await uploadMediaFile(file, 'gallery');
@@ -146,22 +156,26 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
         }
       }
 
-      // Aggregate result toast — single file keeps pre-existing per-file
-      // success toast via uploadMediaFile / inline doc success below.
+      // Resolve the progress toast in place with the aggregate result.
       if (files.length > 1) {
         const parts: string[] = [];
         if (mediaCount) parts.push(`${mediaCount} to Media`);
         if (docCount) parts.push(`${docCount} to Documents`);
         if (parts.length) {
-          toast.success(`Uploaded ${parts.join(' · ')}`);
+          progress.success(`Uploaded ${parts.join(' · ')}`);
+          if (failCount) {
+            toast.warning(`${failCount} file${failCount > 1 ? 's' : ''} failed`);
+          }
+        } else {
+          progress.error(`${failCount} file${failCount > 1 ? 's' : ''} failed`);
         }
-        if (failCount) {
-          toast.warning(`${failCount} file${failCount > 1 ? 's' : ''} failed`);
-        }
-      } else if (files.length === 1 && docCount) {
-        toast.success('Added to Documents');
-      } else if (files.length === 1 && mediaCount) {
-        toast.success('Added to Media');
+      } else if (docCount) {
+        progress.success('Added to Documents');
+      } else if (mediaCount) {
+        progress.success('Added to Media');
+      } else {
+        // Single file failed — the per-file error toast already told the story.
+        progress.dismiss();
       }
 
       invalidateMediaAndDocs();
@@ -190,7 +204,11 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
             disabled={isUploading}
             className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
           >
-            <Camera className="h-5 w-5 text-primary" />
+            {isUploading ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : (
+              <Camera className="h-5 w-5 text-primary" />
+            )}
             <span className="text-sm font-medium">Camera</span>
           </Button>
 
@@ -200,7 +218,11 @@ export function FieldQuickActionBar({ projectId, onNoteCreated }: FieldQuickActi
             disabled={isUploading}
             className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
           >
-            <Paperclip className="h-5 w-5 text-primary" />
+            {isUploading ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : (
+              <Paperclip className="h-5 w-5 text-primary" />
+            )}
             <span className="text-sm font-medium">Attach</span>
           </Button>
 

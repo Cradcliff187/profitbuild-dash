@@ -184,13 +184,14 @@ export function AppSidebar() {
         { title: "Crew Dispatch", url: "/dispatch", icon: CalendarRange, show: (isAdmin || isManager) && crewDispatchEnabled },
         { title: "Work Orders", url: "/work-orders", icon: Wrench, show: hasFinancialAccess },
         { title: "Time Approvals", url: "/time-entries", icon: ClipboardCheck, show: isAdmin || isManager, badgeCount: pendingCount },
-        // Receipts deep-links into Time Tracker's existing Receipts tab.
-        // Top-level sidebar entry for pure field workers so their personal
-        // receipts list isn't buried two taps deep inside the Time Tracker
-        // tab strip. Admins/managers reach receipts via the Time Tracker tab
-        // strip directly — they don't need a sidebar shortcut.
-        // v2 field users get Receipts as a bottom tab (/receipts) instead.
-        { title: "Receipts", url: "/time-tracker?tab=receipts", icon: Receipt, show: isFieldWorkerOnly && !fieldHomeEnabled },
+        // Receipts — one-tap entry for everyone the bottom tab shell doesn't
+        // cover. Flag ON: the standalone /receipts page for every non-field-only
+        // role (admins who snap their own receipts asked for this — no detour
+        // through the Time Tracker page); v2 field-only users get it as a
+        // bottom tab instead. Flag OFF: byte-identical to pre-v2 — pure field
+        // workers deep-link into Time Tracker's Receipts tab, admins/managers
+        // reach receipts via the Time Tracker tab strip (Rule 35 discipline).
+        { title: "Receipts", url: fieldHomeEnabled ? "/receipts" : "/time-tracker?tab=receipts", icon: Receipt, show: fieldHomeEnabled ? !isFieldWorkerOnly : isFieldWorkerOnly },
         { title: "Field Media", url: "/field-media", icon: Camera, show: true },
       ],
     },
