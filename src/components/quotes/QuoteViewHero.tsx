@@ -96,7 +96,7 @@ export function QuoteViewHero({
     <>
       <Card className="mb-4 overflow-hidden">
         <CardContent className="p-0">
-          <div className="grid gap-0 xl:grid-cols-[minmax(260px,1fr)_auto_auto]">
+          <div className="grid grid-cols-1 gap-0 xl:grid-cols-[minmax(260px,1fr)_auto_auto]">
             {/* Identity */}
             <div className="p-5 md:p-6 border-b xl:border-b-0 xl:border-r border-border/60 min-w-0">
               <p className="text-[11px] uppercase tracking-[0.14em] font-medium text-muted-foreground mb-1.5">
