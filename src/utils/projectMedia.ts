@@ -331,22 +331,24 @@ export async function getProjectMediaList(
     // Batch generate signed URLs for all media (7 days expiry)
     const mediaPaths = (data || []).map((media) => media.file_url);
 
-    const { data: signedUrls, error: signedUrlError } = await supabase.storage
-      .from('project-media')
-      .createSignedUrls(mediaPaths, 604800);
-
-    if (signedUrlError) {
-      console.error('Failed to batch generate signed URLs:', signedUrlError);
-    }
-
     // Build a map from path → signedUrl for O(1) lookup
     const signedUrlMap = new Map<string, string>();
-    if (signedUrls) {
-      signedUrls.forEach((item) => {
-        if (item.signedUrl && item.path) {
-          signedUrlMap.set(item.path, item.signedUrl);
-        }
-      });
+    if (mediaPaths.length > 0) {
+      const { data: signedUrls, error: signedUrlError } = await supabase.storage
+        .from('project-media')
+        .createSignedUrls(mediaPaths, 604800);
+
+      if (signedUrlError) {
+        console.error('Failed to batch generate signed URLs:', signedUrlError);
+      }
+
+      if (signedUrls) {
+        signedUrls.forEach((item) => {
+          if (item.signedUrl && item.path) {
+            signedUrlMap.set(item.path, item.signedUrl);
+          }
+        });
+      }
     }
 
     // Batch generate thumbnail signed URLs for videos
