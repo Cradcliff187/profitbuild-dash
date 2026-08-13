@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import {
   Sheet,
   SheetContent,
@@ -252,7 +253,7 @@ export const ReceiptLinkModal: React.FC<ReceiptLinkModalProps> = ({
             <span className="font-semibold text-foreground">
               {formatCurrency(expense.amount)}
             </span>
-            <span>{format(new Date(expense.expense_date), 'MMM d, yyyy')}</span>
+            <span>{format(parseDateOnly(expense.expense_date), 'MMM d, yyyy')}</span>
             {expense.payee_name && <span>{expense.payee_name}</span>}
             {expense.project_number && <span>{expense.project_number}</span>}
           </div>

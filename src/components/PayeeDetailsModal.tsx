@@ -6,6 +6,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Payee } from '@/types/payee';
 import { ContactsCard } from '@/components/contacts/ContactsCard';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 interface PayeeDetailsModalProps {
   payee: Payee | null;
@@ -58,7 +59,7 @@ export const PayeeDetailsModal: React.FC<PayeeDetailsModalProps> = ({
 
   const isInsuranceExpiringSoon = (expirationDate: string | null) => {
     if (!expirationDate) return false;
-    const expiry = new Date(expirationDate);
+    const expiry = parseDateOnly(expirationDate);
     const today = new Date();
     const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
     return expiry <= thirtyDaysFromNow;

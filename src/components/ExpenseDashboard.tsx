@@ -8,6 +8,7 @@ import { TimePeriodFilter } from '@/components/ui/time-period-filter';
 import { ALL_TIME_PERIOD, TimePeriodValue } from '@/utils/timePeriodPresets';
 import { formatCurrency, getExpensePayeeLabel } from '@/lib/utils';
 import { useExpenseDashboardData, type RecentExpenseRow } from '@/hooks/useExpenseDashboardData';
+import { parseDateOnly } from '@/utils/dateUtils';
 import { isOperationalProject, isOverheadProject, ProjectCategory } from '@/types/project';
 import { EXPENSE_CATEGORY_DISPLAY, type ExpenseCategory } from '@/types/expense';
 
@@ -236,7 +237,7 @@ function RecentExpenseRow({ expense }: { expense: RecentExpenseRow }) {
           {expense.is_split && <Badge variant="secondary" className="text-xs">Split</Badge>}
         </div>
         <p className="text-xs text-muted-foreground">
-          {expense.project_name || 'Unknown Project'} • {new Date(expense.expense_date).toLocaleDateString()}
+          {expense.project_name || 'Unknown Project'} • {parseDateOnly(expense.expense_date).toLocaleDateString()}
         </p>
       </div>
       <div className="text-right">

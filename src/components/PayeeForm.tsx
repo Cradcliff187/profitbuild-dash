@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,7 +90,7 @@ export const PayeeForm = ({ payee, onSuccess, onCancel, defaultPayeeType, defaul
       requires_1099: payee?.requires_1099 || false,
       is_internal: payee?.is_internal || defaultIsInternal || false,
       is_active: payee?.is_active ?? true,
-      insurance_expires: payee?.insurance_expires ? new Date(payee.insurance_expires) : undefined,
+      insurance_expires: payee?.insurance_expires ? parseDateOnly(payee.insurance_expires) : undefined,
       license_number: payee?.license_number || "",
       permit_issuer: payee?.permit_issuer || false,
       hourly_rate: payee?.hourly_rate || (defaultPayeeType === PayeeType.INTERNAL_LABOR ? 75 : ""),
