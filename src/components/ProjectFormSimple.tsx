@@ -1,41 +1,14 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { DatePickerPopover } from "@/components/ui/date-picker-popover";
-import { ClientSelector } from "@/components/ClientSelector";
-import { FormSection } from "@/components/forms/FormSection";
+import { Form } from "@/components/ui/form";
 import { generateProjectNumber } from "@/types/project";
 import { toast } from "sonner";
-import { JOB_TYPES } from "@/types/project";
-
-const formSchema = z.object({
-  project_name: z.string().min(1, "Project name is required").max(200),
-  client_id: z.string().uuid("Please select a client"),
-  address: z.string().optional(),
-  customer_po_number: z.string().optional(),
-  project_type: z.enum(["construction_project", "work_order"]),
-  status: z.enum(["estimating", "approved", "in_progress", "complete", "on_hold", "cancelled"]),
-  job_type: z.string().optional(),
-  payment_terms: z.string(),
-  minimum_margin_threshold: z.number().min(0).max(100),
-  target_margin: z.number().min(0).max(100),
-  owner_id: z.string().optional(),
-  start_date: z.date().optional(),
-  end_date: z.date().optional(),
-}).refine(
-  (data) => !data.start_date || !data.end_date || data.end_date >= data.start_date,
-  { message: "End date must be on or after the start date", path: ["end_date"] }
-);
-
-type FormData = z.infer<typeof formSchema>;
+import { ProjectFormFields, SelectedClientSummary } from "@/components/forms/ProjectFormFields";
+import { projectFormSchema, ProjectFormValues } from "@/components/forms/projectFormSchema";
 
 interface ProjectFormSimpleProps {
   onSave: (project: any) => void;
@@ -46,25 +19,10 @@ interface ProjectFormSimpleProps {
 
 export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, defaultProjectType = 'construction_project' }: ProjectFormSimpleProps) {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [internalEmployees, setInternalEmployees] = useState<Array<{ id: string; payee_name: string }>>([]);
+  const [selectedClient, setSelectedClient] = useState<SelectedClientSummary | null>(null);
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      const { data, error } = await supabase
-        .from('payees')
-        .select('id, payee_name')
-        .eq('is_internal', true)
-        .order('payee_name');
-      if (error) { console.error('Failed to load employees:', error); return; }
-      if (data) setInternalEmployees(data);
-    };
-    fetchEmployees();
-  }, []);
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
     defaultValues: {
       project_name: "",
       client_id: "",
@@ -73,38 +31,42 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
       project_type: defaultProjectType,
       status: defaultProjectType === 'work_order' ? "in_progress" : "estimating",
       job_type: "",
+      notes: "",
       payment_terms: "Net 30",
       minimum_margin_threshold: 10,
       target_margin: 20,
+      do_not_exceed: "",
       owner_id: "",
       start_date: undefined,
       end_date: undefined,
     },
   });
 
+  const isLoading = form.formState.isSubmitting;
+
   const handleClientChange = async (clientId: string) => {
-    form.setValue("client_id", clientId);
-    
-    // Fetch client details
+    form.setValue("client_id", clientId, { shouldValidate: true });
+    if (!clientId) {
+      setSelectedClient(null);
+      return;
+    }
     const { data: client } = await supabase
       .from("clients")
       .select("*")
       .eq("id", clientId)
       .single();
-    
     if (client) {
-      setSelectedClient(client);
+      setSelectedClient(client as SelectedClientSummary);
       if (client.payment_terms) {
         form.setValue("payment_terms", client.payment_terms);
       }
     }
   };
 
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
+  const onSubmit = async (data: ProjectFormValues) => {
     try {
       const projectNumber = await generateProjectNumber();
-      
+
       const { data: project, error } = await supabase
         .from("projects")
         .insert({
@@ -117,9 +79,11 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
           project_type: data.project_type,
           status: data.status,
           job_type: data.job_type,
+          notes: data.notes?.trim() || null,
           payment_terms: data.payment_terms,
           minimum_margin_threshold: data.minimum_margin_threshold,
           target_margin: data.target_margin,
+          do_not_exceed: data.do_not_exceed ? parseFloat(data.do_not_exceed) : null,
           owner_id: data.owner_id || null,
           start_date: data.start_date ? data.start_date.toISOString().split('T')[0] : null,
           end_date: data.end_date ? data.end_date.toISOString().split('T')[0] : null,
@@ -143,314 +107,17 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error("Failed to create project");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormSection title="Basics">
-          {/* Project Name */}
-          <FormField
-            control={form.control}
-            name="project_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Project Name *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter project name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Client */}
-          <FormField
-            control={form.control}
-            name="client_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Client *</FormLabel>
-                <FormControl>
-                  <ClientSelector
-                    value={field.value}
-                    onValueChange={handleClientChange}
-                    placeholder="Select a client"
-                    required={true}
-                    showLabel={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Client Details */}
-          {selectedClient && (
-            <div className="rounded-md border bg-muted/50 p-3 text-xs space-y-1">
-              <div className="font-medium">{selectedClient.client_name}</div>
-              {selectedClient.company_name && (
-                <div className="text-muted-foreground">{selectedClient.company_name}</div>
-              )}
-              {selectedClient.email && (
-                <div className="text-muted-foreground">{selectedClient.email}</div>
-              )}
-              {selectedClient.phone && (
-                <div className="text-muted-foreground">{selectedClient.phone}</div>
-              )}
-            </div>
-          )}
-
-          {/* Customer PO Number */}
-          <FormField
-            control={form.control}
-            name="customer_po_number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Customer PO Number</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter PO number (optional)" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Address */}
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Address</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter project address"
-                    className="min-h-[60px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </FormSection>
-
-        <FormSection title="Classification" withDivider>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Project Type */}
-            <FormField
-              control={form.control}
-              name="project_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="construction_project">Construction Project</SelectItem>
-                      <SelectItem value="work_order">Work Order</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Status */}
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="estimating">Estimating</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="complete">Complete</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Job Type */}
-            <FormField
-              control={form.control}
-              name="job_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Job Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {JOB_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </FormSection>
-
-        <FormSection title="Schedule" withDivider>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Start Date</FormLabel>
-                  <FormControl>
-                    <DatePickerPopover
-                      value={field.value}
-                      onSelect={field.onChange}
-                      placeholder="Pick a start date"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="end_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>End Date</FormLabel>
-                  <FormControl>
-                    <DatePickerPopover
-                      value={field.value}
-                      onSelect={field.onChange}
-                      placeholder="Pick an end date"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </FormSection>
-
-        <FormSection title="Financial" withDivider>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <FormField
-              control={form.control}
-              name="payment_terms"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Terms</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Due on receipt">Due on Receipt</SelectItem>
-                      <SelectItem value="Net 15">Net 15</SelectItem>
-                      <SelectItem value="Net 30">Net 30</SelectItem>
-                      <SelectItem value="Net 60">Net 60</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="minimum_margin_threshold"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Min Margin %</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="target_margin"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Margin %</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </FormSection>
-
-        <FormSection title="Ownership" withDivider>
-          <FormField
-            control={form.control}
-            name="owner_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Project Owner (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select owner" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {internalEmployees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.payee_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </FormSection>
+        <ProjectFormFields
+          form={form}
+          onClientChange={handleClientChange}
+          selectedClient={selectedClient}
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
