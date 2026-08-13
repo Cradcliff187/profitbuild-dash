@@ -224,8 +224,10 @@ const syncBidMediaUpload = async (operation: QueuedOperation) => {
       payload.fileType
     );
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    // Get current user — Gotcha #63: getSession() reads local storage (no
+    // network round-trip / auth-lock hold); non-React module, no useAuth().
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     // Compress images

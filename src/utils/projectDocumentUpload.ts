@@ -27,10 +27,14 @@ export async function uploadProjectDocument({
   documentType = "other",
 }: UploadProjectDocumentParams): Promise<UploadProjectDocumentResult> {
   try {
+    // Gotcha #63: getSession() reads the locally stored session (no network
+    // round-trip, no held auth lock) — getUser() would serialize the upload
+    // behind a server call. Non-React module, so useAuth() isn't available.
     const {
-      data: { user },
+      data: { session },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
+    const user = session?.user;
     if (authError || !user) {
       return { data: null, error: new Error("Not authenticated") };
     }
