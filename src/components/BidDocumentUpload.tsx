@@ -8,6 +8,7 @@ import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { createUploadProgressToast } from '@/utils/uploadProgressToast';
 import { formatFileSize } from '@/utils/videoUtils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import type { BidMedia } from '@/types/bid';
@@ -107,12 +108,14 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
     }
     if (!valid.length) return;
 
-    if (valid.length > 1) {
-      toast.info(`Uploading ${valid.length} documents...`);
-    }
+    // Multi-file batches get a persistent "N of M" loading toast resolved in
+    // place; single files keep the existing inline per-file % on the button.
+    const progress =
+      valid.length > 1 ? createUploadProgressToast(valid.length, 'document') : null;
 
     let ok = 0;
-    for (const file of valid) {
+    for (const [index, file] of valid.entries()) {
+      progress?.progress(index + 1);
       const result = await upload({
         bid_id: bidId,
         file,
@@ -124,8 +127,14 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
     if (ok) {
       queryClient.invalidateQueries({ queryKey: ['bid-media', bidId] });
     }
-    if (valid.length > 1) {
-      toast.success(`Uploaded ${ok} of ${valid.length} documents`);
+    if (progress) {
+      if (ok === valid.length) {
+        progress.success(`Uploaded ${ok} of ${valid.length} documents`);
+      } else if (ok > 0) {
+        progress.warning(`Uploaded ${ok} of ${valid.length} documents`);
+      } else {
+        progress.error('Upload failed');
+      }
     }
   };
 

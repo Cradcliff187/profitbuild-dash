@@ -1,10 +1,11 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { StickyNote, Camera, Paperclip } from 'lucide-react';
+import { StickyNote, Camera, Paperclip, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
+import { createUploadProgressToast } from '@/utils/uploadProgressToast';
 import { BidNoteComposer } from './BidNoteComposer';
 
 interface BidQuickActionBarProps {
@@ -35,12 +36,13 @@ export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQui
     // single-slot progress/state. The hook used to fire its own per-file
     // toast; that produced one toast per file plus one aggregate toast here,
     // so the hook is now silent and we own the user-facing notifications.
-    if (files.length > 1) {
-      toast.info(`Uploading ${files.length} files...`);
-    }
+    // One persistent loading toast for the whole batch, updated per file and
+    // resolved in place — big batches used to go silent mid-upload.
+    const progress = createUploadProgressToast(files.length);
     const results = [];
     let failures = 0;
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
+      progress.progress(index + 1);
       const result = await upload({
         bid_id: bidId,
         file,
@@ -55,17 +57,19 @@ export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQui
       onUploaded?.();
       const allDocs = results.every((r) => r.file_type === 'document');
       const target = allDocs ? 'Documents' : 'Media';
-      toast.success(
+      progress.success(
         files.length > 1
           ? `Uploaded ${results.length} to ${target}`
           : `Added to ${target}`
       );
+      if (failures) {
+        toast.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
+      }
       // Land on the tab that matches the upload batch. Mixed batches prefer
       // Media (images/video outnumber docs in most mobile-capture sessions).
       onNavigateToTab?.(allDocs ? 'documents' : 'media');
-    }
-    if (failures) {
-      toast.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
+    } else {
+      progress.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
     }
   };
 
@@ -98,7 +102,11 @@ export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQui
           disabled={isUploading}
           className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
         >
-          <Paperclip className="h-5 w-5 text-primary" />
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+          ) : (
+            <Paperclip className="h-5 w-5 text-primary" />
+          )}
           <span className="text-sm font-medium">Attach</span>
         </Button>
 
