@@ -173,12 +173,20 @@ export function MediaReportBuilderModal({
       iframeRef.current?.contentDocument?.body?.scrollHeight ??
       null;
 
-    let scale = 2;
+    // Sharper photos come from a higher render scale (more pixels baked in per
+    // image → crisper when the recipient zooms the PDF). SHARP_SCALE is the
+    // preferred ceiling; the canvas-cap clamp below still pulls it down for
+    // taller reports so they never hit the silent blank-PDF failure. When we
+    // can't measure the height to clamp against, fall back to SAFE_SCALE (the
+    // previous behavior) so an unmeasured large report can't blow the canvas.
+    const SHARP_SCALE = 3;
+    const SAFE_SCALE = 2;
+    let scale = SAFE_SCALE;
     if (measuredHeight && measuredHeight > 0) {
       const height = measuredHeight * 1.15; // safety margin for width differences
       const maxByDimension = MAX_DIMENSION / height;
       const maxByArea = Math.sqrt(MAX_AREA / (CONTENT_WIDTH * height));
-      scale = Math.max(0.75, Math.min(2, maxByDimension, maxByArea));
+      scale = Math.max(0.75, Math.min(SHARP_SCALE, maxByDimension, maxByArea));
       scale = Math.floor(scale * 100) / 100;
     }
 
