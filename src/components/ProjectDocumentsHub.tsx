@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Image, Receipt, FileSignature, FileBox, Clipboard, ScrollText } from "lucide-react";
+import { GoogleDriveImportButton } from "./documents/GoogleDriveImportButton";
+import { uploadProjectDocument } from "@/utils/projectDocumentUpload";
 import { ProjectMediaGallery } from "./ProjectMediaGallery";
 import { ProjectReceiptsView } from "./ProjectReceiptsView";
 import { ProjectQuotePDFsList } from "./ProjectQuotePDFsList";
@@ -24,6 +28,7 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   const [activeTab, setActiveTab] = useState("all");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadDocumentType, setUploadDocumentType] = useState<DocumentType>("other");
+  const queryClient = useQueryClient();
 
   const tabOptions = [
     { value: "all", label: "All", icon: FileText },
@@ -48,18 +53,63 @@ export function ProjectDocumentsHub({ projectId, projectName, projectNumber, cli
   };
 
   const showUploadButton = ["drawings", "permits", "licenses"].includes(activeTab);
+  // Drive import lands docs in project_documents, so only the tabs that read
+  // that table get the button (media/receipts/quotes/contracts have their own
+  // pipelines). The "all" tab imports as 'other'; type tabs import typed.
+  const showDriveImport = ["all", "drawings", "permits", "licenses"].includes(activeTab);
+  const driveImportType: DocumentType =
+    ({ drawings: "drawing", permits: "permit", licenses: "license" } as Record<string, DocumentType>)[activeTab] || "other";
+
+  const handleDriveFiles = async (files: File[]) => {
+    let imported = 0;
+    const failed: string[] = [];
+    // Sequential per the house multi-file pattern (Rule 22).
+    for (const file of files) {
+      const { error } = await uploadProjectDocument({
+        projectId,
+        file,
+        documentType: driveImportType,
+      });
+      if (error) failed.push(file.name);
+      else imported++;
+    }
+    // Gotcha #27 fanout — every query key that reads project_documents.
+    queryClient.invalidateQueries({ queryKey: ["project-documents", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["project-documents-timeline", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["field-documents", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["project-docs-count", projectId] });
+    if (imported > 0) {
+      toast.success(
+        imported === 1
+          ? "1 document imported from Google Drive"
+          : `${imported} documents imported from Google Drive`
+      );
+    }
+    for (const name of failed) {
+      toast.error(`Failed to import ${name}`);
+    }
+  };
 
   return (
     <div className="space-y-4 p-3 sm:p-4 w-full max-w-full overflow-x-hidden min-w-0">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-base font-semibold text-foreground sm:text-sm">Documents</h1>
-        {showUploadButton && (
-          <Button size="sm" onClick={handleUploadClick} className="hidden h-8 gap-1 px-3 sm:flex">
-            <Upload className="w-4 h-4" />
-            Upload
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {showDriveImport && (
+            <GoogleDriveImportButton
+              multiple
+              onFiles={handleDriveFiles}
+              className="hidden h-8 px-3 sm:flex"
+            />
+          )}
+          {showUploadButton && (
+            <Button size="sm" onClick={handleUploadClick} className="hidden h-8 gap-1 px-3 sm:flex">
+              <Upload className="w-4 h-4" />
+              Upload
+            </Button>
+          )}
+        </div>
       </div>
 
       {showUploadButton && (

@@ -262,6 +262,7 @@ Compare to: `ls supabase/migrations/*.sql | wc -l`
 | `quickbooks_auto_sync` | ❌ **DISABLED** | QB Settings card, "Sync from QB" button, Sync History, Backfill modal |
 | `crew_dispatch_board` | ❌ **OFF globally** (per-user overrides ON: both Chris accounts + Tom Finn) | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (field-worker redesign PR 2) |
 | `field_worker_v2` | ❌ **OFF globally** (per-user overrides ON: both Chris accounts + Tom Finn) | Field-worker experience v2 (Rule 35): five-tab IA, Today project-first hero (Next Stop → "Your last site" fallback), NextStopChip, FieldTimeLanding, no visible timer. Validated end-to-end 2026-07-15 (docs/testing/FIELD_WORKER_V2_VALIDATION_RUNS.md) |
+| `google_drive_import` | ❌ **OFF globally** | "Import from Google Drive" buttons on the project Documents hub + quote attachment card (Rule 40). ALSO requires committed Google Cloud credentials in `src/lib/googleDriveConfig.ts` — until those land, the buttons render nothing regardless of flag state. Setup: [docs/GOOGLE_DRIVE_IMPORT_SETUP.md](docs/GOOGLE_DRIVE_IMPORT_SETUP.md) |
 
 *(A fourth DB row, `quickbooks_integration`, exists but has zero code consumers — dormant.)*
 
@@ -1630,6 +1631,41 @@ a selected day simply isn't highlighted while a week not containing it is shown)
 actions stay pinned to REAL today regardless of the browsed week. #188 originally shipped a
 `DayEntriesSheet` drill-in; it was deleted in-flight when #185's inline day view landed first —
 the sheet pattern lost on merit (a second nav layer hides the strip), don't resurrect it.
+
+### 40. Google Drive document import — Picker + `drive.file`, copies not links (Aug 15 2026)
+
+"Import from Google Drive" is a Picker-based flow gated by the DB flag `google_drive_import`
+(OFF; toggle at `/settings/feature-flags`) AND committed credentials in
+[src/lib/googleDriveConfig.ts](src/lib/googleDriveConfig.ts). **Credentials are COMMITTED
+constants, not env vars** — Lovable strips `VITE_*` (Gotcha #18); they're public browser
+identifiers (client ID / API key / project number) whose security is the origin+referrer
+restrictions in the Google console, not secrecy. Env override exists for local dev only.
+One-time console setup: [docs/GOOGLE_DRIVE_IMPORT_SETUP.md](docs/GOOGLE_DRIVE_IMPORT_SETUP.md).
+
+**Anatomy**: [GoogleDriveImportButton](src/components/documents/GoogleDriveImportButton.tsx)
+(renders null unless flag + credentials + desktop — safe to mount anywhere) →
+[useGoogleDrivePicker](src/hooks/useGoogleDrivePicker.ts) (dynamic script injection — NEVER
+add Google tags to `index.html`, Gotcha #31; GIS token client; Picker) →
+[googleDriveImport.ts](src/utils/googleDriveImport.ts) pure helpers (Docs/Slides/Drawings
+export→PDF, Sheets→XLSX, folders/Forms skipped; 20MB cap) → browser `File` objects fed to the
+**EXISTING** pipelines. Two surfaces: `ProjectDocumentsHub` header (multi-select; type follows
+the active tab, All → `other`; Gotcha #27 fanout to all four project-documents query keys) and
+`QuoteAttachmentUpload` (single file through its own `uploadFile` — covers QuoteForm AND
+QuoteDocumentsCard; same PDF/image validation).
+
+**Non-negotiables**:
+- **Imports are COPIES into Supabase Storage, never links to Drive.** A `project_documents`
+  row pointing at a Drive URL breaks preview/field lists and dies on Drive permission changes.
+- **Scope stays `drive.file`** (per-picked-file grant, non-sensitive). Widening to
+  `drive.readonly` puts the app into Google's restricted-scope verification + security
+  assessment — a product decision, not a code tweak.
+- **Desktop-only is deliberate** (`!useIsMobile() && !isIOSPWA()`): phones already reach Drive
+  via the native file sheet on existing Upload/Attach buttons, and the GIS popup is unreliable
+  in the standalone iOS PWA. Don't "enable it on mobile" as a quick win.
+- **The OAuth token lives in module memory only** — persisting it to localStorage is a Gotcha
+  #67-class cross-user leak on shared devices.
+- Toast ownership split (Gotcha #42): the button owns pick/auth/skip feedback; each surface
+  owns upload success/error + invalidation.
 
 ---
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isIOSPWA } from '@/utils/platform';
+import { GoogleDriveImportButton } from '@/components/documents/GoogleDriveImportButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,6 +157,20 @@ export function QuoteAttachmentUpload({
       setTimeout(() => uploadFile(file), 100);
     }
   }, [handleFile, uploadFile]);
+
+  // Drive import feeds the exact same pipeline as a local file pick: validate,
+  // then uploadFile(file) handles storage + project_documents + the quote link.
+  const handleDriveFiles = useCallback(async (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+    const error = validateFile(file);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    setSelectedFile(file);
+    await uploadFile(file);
+  }, [uploadFile]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -333,6 +348,17 @@ export function QuoteAttachmentUpload({
             <X className="w-4 h-4" />
           </Button>
         </div>
+      )}
+
+      {/* Renders nothing unless the google_drive_import flag + credentials +
+          desktop gates all pass (see GoogleDriveImportButton) */}
+      {!selectedFile && (
+        <GoogleDriveImportButton
+          className="w-full"
+          disabled={disabled || isUploading}
+          onFiles={handleDriveFiles}
+          label="Import quote from Google Drive"
+        />
       )}
 
       {/* Show uploading state for all devices */}
