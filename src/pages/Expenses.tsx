@@ -556,7 +556,11 @@ const Expenses = () => {
                 <MobileTabSelector
                   value={viewMode}
                   onValueChange={handleTabChange}
-                  options={tabOptions}
+                  options={tabOptions.map((tab) =>
+                    // Same unapproved-count signal the desktop TabsList badge
+                    // carries below — the mobile strip used to omit it.
+                    tab.value === "list" ? { ...tab, count: unapprovedCount } : tab
+                  )}
                 />
               </div>
 

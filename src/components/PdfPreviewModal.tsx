@@ -197,7 +197,7 @@ export function PdfPreviewModal({
           )} 
         </div>
 
-        <DialogFooter className={cn("border-t", isMobile ? "px-3 py-3 pb-safe" : "px-4 py-3")}>
+        <DialogFooter className={cn("border-t", isMobile ? "px-3 py-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]" : "px-4 py-3")}>
           <Button 
             variant="outline" 
             size={isMobile ? "default" : "sm"}

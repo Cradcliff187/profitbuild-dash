@@ -580,7 +580,7 @@ export default function RoleManagement() {
         title="Role Management"
         description="Manage user roles and permissions"
         actions={
-          <Button 
+          <Button
             onClick={() => setCreateUserOpen(true)}
             size="sm"
             className="h-8"
@@ -589,6 +589,13 @@ export default function RoleManagement() {
             Create User
           </Button>
         }
+        mobileActions={[
+          {
+            label: "Create User",
+            icon: UserPlus,
+            onClick: () => setCreateUserOpen(true),
+          },
+        ]}
       />
 
       {/* Search and Bulk Actions Bar */}

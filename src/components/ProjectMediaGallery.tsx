@@ -469,19 +469,23 @@ export function ProjectMediaGallery({
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MediaTab)}>
         {!hideInternalTabs && (
-          <TabsList className="grid w-full grid-cols-4 h-8">
-            <TabsTrigger value="all" className="text-xs h-6">
+          // 44px touch targets on touch-PRIMARY devices via pointer:coarse —
+          // not a viewport breakpoint, which would hand iPads (≥640px,
+          // touch-first, Rule 35) the compact 24px triggers back (Gotcha #74).
+          // Mouse/trackpad devices keep the compact strip.
+          <TabsList className="grid w-full grid-cols-4 h-8 [@media(pointer:coarse)]:h-auto">
+            <TabsTrigger value="all" className="text-xs h-6 [@media(pointer:coarse)]:h-auto [@media(pointer:coarse)]:min-h-[44px]">
               All ({stats.photoCount + stats.videoCount})
             </TabsTrigger>
-            <TabsTrigger value="photos" className="text-xs h-6">
+            <TabsTrigger value="photos" className="text-xs h-6 [@media(pointer:coarse)]:h-auto [@media(pointer:coarse)]:min-h-[44px]">
               <FileImage className="h-3 w-3 mr-1" />
               Photos ({stats.photoCount})
             </TabsTrigger>
-            <TabsTrigger value="videos" className="text-xs h-6">
+            <TabsTrigger value="videos" className="text-xs h-6 [@media(pointer:coarse)]:h-auto [@media(pointer:coarse)]:min-h-[44px]">
               <FileVideo className="h-3 w-3 mr-1" />
               Videos ({stats.videoCount})
             </TabsTrigger>
-            <TabsTrigger value="timeline" className="text-xs h-6">
+            <TabsTrigger value="timeline" className="text-xs h-6 [@media(pointer:coarse)]:h-auto [@media(pointer:coarse)]:min-h-[44px]">
               <Clock4 className="h-3 w-3 mr-1" />
               Timeline
             </TabsTrigger>

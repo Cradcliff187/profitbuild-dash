@@ -265,6 +265,17 @@ textarea:focus-visible {
     @apply w-full max-w-full overflow-x-hidden;
   }
 
+  /* iOS home-indicator clearance for fixed bottom bars. Before Aug 2026 this
+     class was used in several places but defined nowhere — a silent no-op
+     (see the note in FieldTabBar.tsx). Standalone use only: it sets
+     padding-bottom to the inset alone (0 on non-iOS), so do NOT pair it with
+     a py- or p- utility expecting them to compose — for "base padding plus
+     inset" use an arbitrary value like
+     pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   /* Force Radix UI Collapsible components to respect width */
   [data-radix-collapsible-root],
   [data-radix-collapsible-trigger],
