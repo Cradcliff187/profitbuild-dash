@@ -284,7 +284,7 @@ export const OfficeDocumentPreviewModal: React.FC<OfficeDocumentPreviewModalProp
         </div>
 
         {/* Footer with action buttons */}
-        <div className={cn("border-t flex items-center justify-end gap-2", isMobile ? "px-3 py-3 pb-safe" : "px-4 py-3")}>
+        <div className={cn("border-t flex items-center justify-end gap-2", isMobile ? "px-3 py-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]" : "px-4 py-3")}>
           {!isMobile && (
             <>
               <Button 

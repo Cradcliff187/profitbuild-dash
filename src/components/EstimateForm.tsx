@@ -1088,6 +1088,11 @@ useEffect(() => {
               </Button>
             ) : undefined
           }
+          mobileActions={
+            !hideNavigationButtons && (initialEstimate || (preselectedProjectId && availableEstimates && availableEstimates.length > 0))
+              ? [{ label: "Back", icon: ArrowLeft, onClick: () => onCancel?.() }]
+              : []
+          }
         />
 
         <div className="space-y-3">

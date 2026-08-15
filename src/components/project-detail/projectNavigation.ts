@@ -79,13 +79,27 @@ export const getNavigationGroups = (options: NavigationOptions = {}): NavGroup[]
     groups[1].items.push({ title: "Billing (AIA)", url: "billing", icon: Receipt });
   }
 
+  // Mobile: the Job hub IS the project home — /projects/:id redirects to it
+  // (ProjectOverviewRoute), so an "Overview" entry here would just navigate
+  // into a redirect. Drop it; the hub's money pulse + Manage rows carry what
+  // the mobile Overview used to show. Desktop keeps Overview unchanged.
+  // Gated on the SAME flag as the redirect: with scheduleView off there is no
+  // hub, Overview renders normally, and dropping it here would leave mobile
+  // users with no nav path back to the project home.
+  if (options.isMobile && isFeatureEnabled("scheduleView")) {
+    groups[0] = {
+      ...groups[0],
+      items: groups[0].items.filter((item) => item.url !== ""),
+    };
+  }
+
   if (options.isFieldWorker) {
     return groups
       .map((group) => ({ ...group, items: group.items.filter((item) => item.fieldWorkerSafe) }))
       .filter((group) => group.items.length > 0);
   }
 
-  return groups;
+  return groups.filter((group) => group.items.length > 0);
 };
 
 // Helper: Get section display label from URL segment. Pass `isMobile` so the

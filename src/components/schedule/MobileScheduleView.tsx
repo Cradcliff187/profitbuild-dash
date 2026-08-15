@@ -1,17 +1,28 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
+  AlertCircle,
   ArrowLeft,
+  Calculator,
   Camera,
   ChevronRight,
   ClipboardCheck,
   Clock,
+  DollarSign,
+  FileEdit,
   FileText,
+  FolderOpen,
   Package,
+  Receipt,
   StickyNote,
+  Target,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { useProjectContext } from "@/components/ProjectDetailView";
+import { useRoles } from "@/contexts/RoleContext";
+import { isFeatureEnabled } from "@/lib/featureFlags";
+import { getExpiringQuotes } from "@/utils/projectDashboard";
 import { useScheduleTasks } from "@/components/schedule/hooks/useScheduleTasks";
 import { FieldScheduleTable } from "@/components/schedule/FieldScheduleTable";
 import { FieldMediaGallery } from "@/components/schedule/FieldMediaGallery";
@@ -69,6 +80,15 @@ import { toast } from "sonner";
  * House rules shared with Today (Gotchas #53/#54/#55/#56/#63): no realtime,
  * user from `useAuth()` context — never `supabase.auth.getUser()` — plain
  * `useQuery`, errors thrown.
+ *
+ * ONE PROJECT HOME (Aug 2026): this hub is now the mobile project home for
+ * EVERY role — `/projects/:id` redirects here (ProjectOverviewRoute), which
+ * retired the separate mobile Overview dashboard. Admin/manager users get a
+ * money-pulse hero + "Manage" section rows composed ON TOP of the field hub
+ * (Rule 24 additive-combo behavior: an admin who's also dispatched sees the
+ * dispatch hero AND the money pulse). All admin data rides the outlet
+ * context ProjectDetailView already loads — zero queries were added, and
+ * field-only crews see no cost data anywhere on this surface.
  */
 
 type SubPage = "schedule" | "notes" | "media" | "docs" | "materials";
@@ -114,6 +134,53 @@ const SUB_PAGES: {
 /** `?tab=tasks` was the pre-hub default. Tasks now live on the schedule sub-page. */
 const LEGACY_TAB_ALIASES: Record<string, SubPage> = { tasks: "schedule" };
 
+/**
+ * One drill-down row — the hub's single row shape, shared by the field
+ * ("On this job") and admin ("Manage") sections so the two lists can never
+ * drift visually. Count is context on the row, not a nav badge; hidden at 0.
+ */
+function HubRow({
+  icon: Icon,
+  label,
+  blurb,
+  count,
+  withDivider,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  blurb: string;
+  count?: number;
+  withDivider: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left",
+        "hover:bg-accent/50 active:bg-accent transition-colors",
+        withDivider && "border-t border-border",
+      )}
+    >
+      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-base font-medium truncate">{label}</div>
+        <div className="text-xs text-muted-foreground truncate">{blurb}</div>
+      </div>
+      {count !== undefined && count > 0 && (
+        <span className="text-sm font-semibold text-muted-foreground tabular-nums shrink-0">
+          {count}
+        </span>
+      )}
+      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+    </button>
+  );
+}
+
 interface MobileScheduleViewProps {
   projectId: string;
   projectStartDate: Date | null | undefined;
@@ -128,6 +195,26 @@ export function MobileScheduleView({
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin, isManager } = useRoles();
+
+  // One project home (Aug 2026): /projects/:id on mobile redirects here, so
+  // this hub carries the admin/manager view too — a money-pulse hero + Manage
+  // rows composed ON TOP of the field hub, never replacing it (Rule 24:
+  // combo users are additive — an admin who's also dispatched sees the
+  // dispatch hero AND the money pulse). Data comes from the outlet context
+  // that ProjectDetailView already loads — zero new queries, keeping the
+  // field-path house rules (no realtime, no auth calls) intact.
+  const {
+    project,
+    estimates,
+    quotes,
+    expenses,
+    changeOrders,
+    pendingTimeEntries,
+    pendingReceipts,
+    documentCount,
+  } = useProjectContext();
+  const showManage = isAdmin || isManager;
 
   const urlTab = searchParams.get("tab");
   const resolvedTab = urlTab ? (LEGACY_TAB_ALIASES[urlTab] ?? urlTab) : null;
@@ -264,6 +351,156 @@ export function MobileScheduleView({
     }
   };
 
+  // --- Admin money pulse + Manage rows (hub only, admin/manager only) ---
+  // Mirrors what the retired mobile Overview showed (Contract/Estimate,
+  // PO #, contingency, final margin when closed) — same fields, same
+  // formatting rules, folded into the hub's visual grammar. Financial math
+  // stays in the DB per Rule 1; these are display-only reads.
+  const money0 = (v?: number | string | null) =>
+    "$" + Math.round(Number(v) || 0).toLocaleString("en-US");
+  const currentEstimate = estimates?.find((e) => e.is_current_version);
+  const isClosed =
+    project?.status === "complete" || project?.status === "cancelled";
+  const moneyLabel = project?.status === "estimating" ? "Estimate" : "Contract";
+  const moneyValue =
+    project?.status === "estimating"
+      ? Number(currentEstimate?.total_amount)
+        ? money0(currentEstimate!.total_amount)
+        : "—"
+      : Number(project?.contracted_amount)
+        ? money0(project!.contracted_amount)
+        : "—";
+  const contingencyTotal = Number(project?.contingency_amount) || 0;
+  const contingencyRemaining = Number(project?.contingency_remaining) || 0;
+  const contingencyUsed = Math.max(contingencyTotal - contingencyRemaining, 0);
+  const contingencyUsedPct =
+    contingencyTotal > 0 ? (contingencyUsed / contingencyTotal) * 100 : 0;
+  const hasContingency = contingencyTotal > 0;
+  // total_invoiced rides the projects row but isn't on the Project TS type
+  // (same gap ProjectOperationalDashboard works around).
+  const totalInvoiced =
+    Number((project as { total_invoiced?: number | null })?.total_invoiced) ||
+    0;
+  const actualMargin = Number(project?.actual_margin) || 0;
+
+  // Tappable needs-attention chips — context-derived only (the retired mobile
+  // Overview rendered these as one dead joined string; here each chip
+  // navigates). Deliberately omits the stale-data checks that needed extra
+  // queries — this surface stays zero-fetch.
+  const attention: { key: string; label: string; onClick: () => void }[] = [];
+  if (showManage && project) {
+    if (pendingTimeEntries > 0) {
+      attention.push({
+        key: "time",
+        label: `${pendingTimeEntries} pending time ${pendingTimeEntries === 1 ? "entry" : "entries"}`,
+        onClick: () => navigate("/time-entries?status=pending"),
+      });
+    }
+    if (pendingReceipts > 0) {
+      attention.push({
+        key: "receipts",
+        label: `${pendingReceipts} pending ${pendingReceipts === 1 ? "receipt" : "receipts"}`,
+        onClick: () =>
+          navigate(`/time-entries?tab=receipts&project=${projectId}`),
+      });
+    }
+    const pendingCOs = changeOrders.filter(
+      (co) => co.status === "pending",
+    ).length;
+    if (pendingCOs > 0) {
+      attention.push({
+        key: "cos",
+        label: `${pendingCOs} pending CO${pendingCOs === 1 ? "" : "s"}`,
+        onClick: () => navigate(`/projects/${projectId}/changes`),
+      });
+    }
+    const expiringQuotes = getExpiringQuotes(quotes, 7).length;
+    if (expiringQuotes > 0) {
+      attention.push({
+        key: "quotes",
+        label: `${expiringQuotes} expiring quote${expiringQuotes === 1 ? "" : "s"}`,
+        onClick: () => navigate(`/projects/${projectId}/estimates`),
+      });
+    }
+    if (hasContingency) {
+      const remainingPct = (contingencyRemaining / contingencyTotal) * 100;
+      if (remainingPct <= 25) {
+        attention.push({
+          key: "contingency",
+          label: `Contingency ${remainingPct.toFixed(0)}% left`,
+          onClick: () => navigate(`/projects/${projectId}/changes`),
+        });
+      }
+    }
+  }
+
+  // Admin sections as peer drill-down rows. Same role filter philosophy as
+  // getNavigationGroups; counts come free from the outlet context. "All
+  // documents" is the full Documents hub (contracts, invoices, reports) —
+  // distinct from the field "Drawings & docs" sub-page, which stays limited
+  // to field-relevant types (Rule 29/37).
+  const manageRows: {
+    key: string;
+    icon: React.ElementType;
+    label: string;
+    blurb: string;
+    to: string;
+    count?: number;
+  }[] = showManage
+    ? [
+        {
+          key: "control",
+          icon: Target,
+          label: "Cost analysis",
+          blurb: "Budget vs actual, by line",
+          to: "control",
+        },
+        {
+          key: "estimates",
+          icon: Calculator,
+          label: "Estimates & quotes",
+          blurb: "Versions and vendor quotes",
+          to: "estimates",
+          count: estimates?.length || undefined,
+        },
+        {
+          key: "changes",
+          icon: FileEdit,
+          label: "Change orders",
+          blurb: "Scope and contract changes",
+          to: "changes",
+          count: changeOrders?.length || undefined,
+        },
+        {
+          key: "expenses",
+          icon: DollarSign,
+          label: "Expenses",
+          blurb: "Costs booked to this job",
+          to: "expenses",
+          count: expenses?.length || undefined,
+        },
+        ...(isFeatureEnabled("aiaBilling")
+          ? [
+              {
+                key: "billing",
+                icon: Receipt,
+                label: "Billing (AIA)",
+                blurb: "Pay applications",
+                to: "billing",
+              },
+            ]
+          : []),
+        {
+          key: "documents",
+          icon: FolderOpen,
+          label: "All documents",
+          blurb: "Contracts, invoices, reports",
+          to: "documents",
+          count: documentCount || undefined,
+        },
+      ]
+    : [];
+
   // --- Sub-page: one section, full viewport ---
   if (subPage) {
     const meta = SUB_PAGES.find((p) => p.id === subPage)!;
@@ -339,7 +576,7 @@ export function MobileScheduleView({
   // Tailwind breakpoints only — never useIsMobile() (it breaks at 768 and
   // buckets iPads as desktop).
   return (
-    <div className="mx-auto max-w-2xl md:max-w-3xl space-y-4">
+    <div className="mx-auto max-w-2xl md:max-w-3xl lg:max-w-5xl space-y-4">
       {/* Hero — the dispatcher's instruction, carried from Today to the site.
           Rendered only when this worker is actually dispatched here today; an
           admin browsing a project never has an assignment, so an empty state
@@ -393,6 +630,98 @@ export function MobileScheduleView({
         </div>
       )}
 
+      {/* Money pulse — admin/manager only, field-only crews never see cost
+          (same discipline as the Materials cost gate, Rule 32; the UI gate is
+          UX, RLS stays the security boundary). Folds in what the retired
+          mobile Overview showed, with the needs-attention items as tappable
+          chips instead of a dead joined string. */}
+      {showManage && project && (
+        <section aria-label="Job financials">
+          <div className="rounded-xl border bg-card shadow-sm p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {moneyLabel}
+                </div>
+                <div className="text-2xl font-bold tabular-nums leading-tight">
+                  {moneyValue}
+                </div>
+              </div>
+              {project.customer_po_number && (
+                <div className="text-right shrink-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    PO #
+                  </div>
+                  <div className="text-sm font-medium">
+                    {project.customer_po_number}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {(hasContingency || isClosed) && (
+              <div className="mt-3 space-y-1.5">
+                {hasContingency && (
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">
+                      Contingency used
+                    </span>
+                    <span
+                      className={cn(
+                        "font-medium tabular-nums",
+                        contingencyUsedPct >= 75 && "text-destructive",
+                      )}
+                    >
+                      {money0(contingencyUsed)} ({contingencyUsedPct.toFixed(0)}
+                      %)
+                    </span>
+                  </div>
+                )}
+                {isClosed && (
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">Final margin</span>
+                    <span
+                      className={cn(
+                        "font-medium tabular-nums",
+                        actualMargin >= 0 ? "text-success" : "text-destructive",
+                      )}
+                    >
+                      {(actualMargin >= 0 ? "+" : "-") +
+                        "$" +
+                        Math.abs(Math.round(actualMargin)).toLocaleString(
+                          "en-US",
+                        )}
+                      {totalInvoiced > 0 &&
+                        ` (${((actualMargin / totalInvoiced) * 100).toFixed(1)}%)`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {attention.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {attention.map((a) => (
+                  <button
+                    key={a.key}
+                    type="button"
+                    onClick={a.onClick}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full",
+                      "bg-destructive/10 text-destructive px-3 py-2 min-h-[44px]",
+                      "text-xs font-semibold hover:bg-destructive/15 active:bg-destructive/20 transition-colors",
+                    )}
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Everything on the job, as peers. Counts are context on the row,
               not a nav badge — and each section gets the full viewport rather
               than being nested inside this scroll container (Gotcha #40's
@@ -402,42 +731,43 @@ export function MobileScheduleView({
           On this job
         </h2>
         <div className="rounded-xl border bg-card overflow-hidden">
-          {SUB_PAGES.map((p, i) => {
-            const Icon = p.icon;
-            const count = counts[p.id];
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => openSubPage(p.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left",
-                  "hover:bg-accent/50 active:bg-accent transition-colors",
-                  i > 0 && "border-t border-border",
-                )}
-              >
-                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                  <Icon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-base font-medium truncate">
-                    {p.label}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {p.blurb}
-                  </div>
-                </div>
-                {count !== undefined && count > 0 && (
-                  <span className="text-sm font-semibold text-muted-foreground tabular-nums shrink-0">
-                    {count}
-                  </span>
-                )}
-                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-              </button>
-            );
-          })}
+          {SUB_PAGES.map((p, i) => (
+            <HubRow
+              key={p.id}
+              icon={p.icon}
+              label={p.label}
+              blurb={p.blurb}
+              count={counts[p.id]}
+              withDivider={i > 0}
+              onClick={() => openSubPage(p.id)}
+            />
+          ))}
         </div>
       </section>
+
+      {/* Admin sections as peer rows — replaces the mobile Overview + the
+          bottom-sheet section selector as the primary way into Cost analysis,
+          Estimates, COs, Expenses, Billing, and the full Documents hub. */}
+      {manageRows.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            Manage
+          </h2>
+          <div className="rounded-xl border bg-card overflow-hidden">
+            {manageRows.map((r, i) => (
+              <HubRow
+                key={r.key}
+                icon={r.icon}
+                label={r.label}
+                blurb={r.blurb}
+                count={r.count}
+                withDivider={i > 0}
+                onClick={() => navigate(`/projects/${projectId}/${r.to}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

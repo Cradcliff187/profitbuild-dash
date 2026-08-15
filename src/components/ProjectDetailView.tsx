@@ -590,15 +590,18 @@ export const ProjectDetailView = () => {
           </div>
         )}
 
-        {/* Content — bottom padding matches FieldQuickActionBar height (h-14 +
-           py-2.5 + border + safe-area ≈ 80px) so scrollable content never
-           ends up hidden behind the global action bar. */}
+        {/* Content — bottom padding covers the FieldQuickActionBar (h-14 +
+           py-2.5 + border ≈ 77px) PLUS the iOS home-indicator inset, which
+           the bar now really carries since `.pb-safe` became a live utility
+           (Aug 2026, index.css). Plain pb-20 left content hidden behind the
+           bar on notched iPhones. */}
         <div
           className={cn(
-            "flex-1 overflow-auto w-full max-w-full box-border min-w-0 pb-20",
+            "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
+            "pb-[calc(5rem_+_env(safe-area-inset-bottom))]",
             // Extra clearance when BOTH bottom bars are present (v2 shell):
-            // FieldTabBar (~64px) + lifted FieldQuickActionBar above it.
-            fieldShellActive && "pb-40"
+            // FieldTabBar (~64px + inset) + lifted FieldQuickActionBar above.
+            fieldShellActive && "pb-[calc(10rem_+_env(safe-area-inset-bottom))]"
           )}
           data-project-detail-content
           style={{ maxWidth: '100%', width: '100%' }}
@@ -634,11 +637,15 @@ export const ProjectDetailView = () => {
            per-card inline inputs. Not rendered on /field-schedule/:id because
            that route lives outside ProjectDetailView and has its own bar. */}
         {/* Under the v2 shell the AppLayout FieldTabBar owns bottom-0; lift the
-            capture bar to sit directly above it (Rule 14 override pattern). */}
+            capture bar to sit directly above it (Rule 14 override pattern).
+            The lift's bottom offset already includes the safe-area inset, so
+            also zero out the bar's own `.pb-safe` padding — since that class
+            became a live utility (Aug 2026) it would otherwise count the
+            inset twice and fatten the lifted bar by ~34px on notched phones. */}
         <div
           className={
             fieldShellActive
-              ? "[&>div:first-child]:!bottom-[calc(64px+env(safe-area-inset-bottom))]"
+              ? "[&>div:first-child]:!bottom-[calc(64px+env(safe-area-inset-bottom))] [&>div:first-child]:!pb-0"
               : undefined
           }
         >

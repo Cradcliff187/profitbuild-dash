@@ -525,7 +525,7 @@ export function MediaReportBuilderModal({
         className={cn(
           "flex flex-col overflow-hidden",
           isMobile
-            ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl pb-safe max-w-full w-full p-3 max-h-[90vh]"
+            ? "fixed bottom-0 left-0 right-0 top-auto translate-x-0 translate-y-0 rounded-t-2xl max-w-full w-full p-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] max-h-[90vh]"
             : step === 'preview'
               ? "max-w-4xl max-h-[92vh] p-6"
               : "max-w-2xl max-h-[85vh] p-6"

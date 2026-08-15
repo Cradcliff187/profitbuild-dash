@@ -515,7 +515,8 @@ const Settings = () => {
                   "text-xs font-medium whitespace-nowrap",
                   "border border-border bg-card text-muted-foreground",
                   "hover:border-primary hover:text-foreground hover:bg-primary/5",
-                  "active:bg-primary/10 transition-colors min-h-[36px]"
+                  // 44px minimum touch target (Gotcha #74 family) — was 36px.
+                  "active:bg-primary/10 transition-colors min-h-[44px]"
                 )}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" />

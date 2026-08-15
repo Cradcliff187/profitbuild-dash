@@ -299,7 +299,9 @@ export default function BranchBidDetail() {
 
   return (
     <>
-      <MobilePageWrapper className={isMobile ? 'pb-20' : undefined}>
+      {/* pb covers BidQuickActionBar height + the iOS home-indicator inset the
+          bar's `.pb-safe` really carries now (live utility since Aug 2026). */}
+      <MobilePageWrapper className={isMobile ? 'pb-[calc(5rem_+_env(safe-area-inset-bottom))]' : undefined}>
       {/* Breadcrumb */}
       <AppBreadcrumbs
         items={[

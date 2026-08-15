@@ -9,9 +9,9 @@
  * never as a child, or iOS Safari anchors it to the wrapper instead of the
  * viewport. Content behind it needs bottom padding (pb-20/pb-24) on the page.
  *
- * Note: `pb-safe` used elsewhere in the codebase is not actually defined by
- * any Tailwind plugin here — the arbitrary value below is the one that emits
- * real CSS for the iOS home-indicator inset.
+ * Note: `pb-safe` is now a real utility (defined in index.css, Aug 2026) that
+ * emits the same env(safe-area-inset-bottom) as the arbitrary value below —
+ * both are equivalent for standalone use on a fixed bottom bar.
  */
 
 import { useLocation, useNavigate } from "react-router-dom";
