@@ -1410,6 +1410,25 @@ twice, 500px apart, in two visual languages. At 390px that strip also scrolled h
 **Materials off the right edge with no affordance**: a shipped feature undiscoverable on the device it
 was built for. Don't reintroduce a tab strip here; one navigation layer per screen.
 
+**One project home for every role (Aug 2026, PR [#201](https://github.com/Cradcliff187/profitbuild-dash/pull/201) + pill-removal follow-up):**
+on mobile, `/projects/:id` now REDIRECTS here (`ProjectOverviewRoute`, gated in lockstep with the
+`scheduleView` flag — flag-off keeps the mobile Overview and its nav entry, avoiding a redirect loop),
+retiring the separate mobile Overview dashboard. Admin/manager users get a **money-pulse hero**
+(Contract/Estimate, PO #, contingency used, final margin when closed, tappable needs-attention chips)
+plus a **"Manage" row section** (Cost analysis · Estimates & quotes · Change orders · Expenses ·
+Billing (AIA) · All documents) composed from the `useProjectContext()` outlet data — **zero new
+queries**, preserving the field-path house rules (no realtime, no auth calls). Combo users
+(admin + field_worker) see the dispatch hero AND the money pulse stacked (Rule 24 additive); pure
+field workers see no cost data on this surface (UX gate — RLS remains the security boundary). The
+mobile section sheet drops its Overview entry (`projectNavigation.ts`, same flag gate), and the
+section-selector pill is **hidden on the Job section itself** — the hub rows cover every sheet
+destination, so the pill there was duplicate chrome. The pill REMAINS on drilled-in sections
+(Expenses, Estimates, …) as the one-tap lateral move between sections. Desktop Overview and Gantt
+are unchanged; the `?tab=` contract is unchanged. Both row lists render through the shared `HubRow`
+so field and admin rows can't drift. Pinned by `projectNavigation.test.ts`. **Deferred**: the
+money-pulse/needs-attention derivations deliberately mirror `ProjectOperationalDashboard` inline —
+extracting shared helpers into `projectDashboard.ts` is queued with the design-kit convergence pass.
+
 **The `?tab=` URL contract is UNCHANGED** — `?tab=schedule|notes|media|docs|materials` still selects
 the section, so assignment/mention notification deep-links and the legacy `/field-schedule/:id`
 redirect (Rule 18) land exactly where they always did. The param now picks a **sub-page** (full
