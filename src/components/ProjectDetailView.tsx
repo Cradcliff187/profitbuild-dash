@@ -387,6 +387,13 @@ export const ProjectDetailView = () => {
     // "Overview" label in getSectionLabel.
     const segmentsForSection = location.pathname.split('/').filter(Boolean);
     const currentSection = segmentsForSection[2] || '';
+    // The Job hub (schedule section) owns its own navigation — its "On this
+    // job" + "Manage" rows cover every destination the section sheet offers
+    // (Aug 2026, one-project-home model), so rendering the selector pill
+    // there duplicates the nav and costs ~52px of chrome. It stays on
+    // drilled-in sections (Expenses, Estimates, …) where it's the only
+    // one-tap lateral move between sections.
+    const onJobSection = currentSection === 'schedule';
 
     return (
       <div className="flex flex-col h-full bg-background">
@@ -492,8 +499,9 @@ export const ProjectDetailView = () => {
               field workers (R3): the only fieldWorkerSafe item is Schedule, so
               the dropdown would show a single entry — empty UI. Admins-who-
               also-clock-time keep the section selector and can navigate the
-              full project. */}
-          {!isFieldWorkerOnly && (
+              full project. Also hidden on the Job section — see onJobSection
+              above (the hub rows are the nav there). */}
+          {!isFieldWorkerOnly && !onJobSection && (
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <button
