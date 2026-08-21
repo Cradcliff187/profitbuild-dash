@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePickerPopover } from "@/components/ui/date-picker-popover";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { cn, formatCurrency } from "@/lib/utils";
 import { EditableField, CalculatedField, ReadOnlyField } from "@/components/ui/field-types";
 import { Estimate, LineItem, LineItemCategory, CATEGORY_DISPLAY_MAP, EstimateStatus } from "@/types/estimate";
@@ -746,11 +747,11 @@ useEffect(() => {
 
           const updatedEstimate: Estimate = {
             ...initialEstimate,
-            date_created: new Date(estimateData.date_created),
+            date_created: parseDateOnly(estimateData.date_created),
             total_amount: estimateData.total_amount,
             status: targetStatus,
             notes: estimateData.notes,
-            valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+            valid_until: estimateData.valid_until ? parseDateOnly(estimateData.valid_until) : undefined,
             contingency_percent: estimateData.contingency_percent,
             contingency_used: estimateData.contingency_used,
             updated_at: new Date(estimateData.updated_at),
@@ -861,11 +862,11 @@ useEffect(() => {
             id: newVersionId,
             project_id: projectId,
             estimate_number: estimateData.estimate_number,
-            date_created: new Date(estimateData.date_created),
+            date_created: parseDateOnly(estimateData.date_created),
             total_amount: estimateData.total_amount,
             status: targetStatus,
             notes: estimateData.notes,
-            valid_until: estimateData.valid_until ? new Date(estimateData.valid_until) : undefined,
+            valid_until: estimateData.valid_until ? parseDateOnly(estimateData.valid_until) : undefined,
             revision_number: estimateData.revision_number,
             lineItems: validLineItems,
             created_at: new Date(estimateData.created_at),
@@ -983,11 +984,11 @@ useEffect(() => {
             estimate_number: createdEstimate.estimate_number,
             defaultMarkupPercent: 25,
             targetMarginPercent: 20,
-            date_created: new Date(createdEstimate.date_created),
+            date_created: parseDateOnly(createdEstimate.date_created),
             total_amount: createdEstimate.total_amount,
             status: createdEstimate.status,
             notes: createdEstimate.notes,
-            valid_until: createdEstimate.valid_until ? new Date(createdEstimate.valid_until) : undefined,
+            valid_until: createdEstimate.valid_until ? parseDateOnly(createdEstimate.valid_until) : undefined,
             revision_number: createdEstimate.revision_number,
             contingency_percent: createdEstimate.contingency_percent,
             contingency_amount: createdEstimate.contingency_amount,

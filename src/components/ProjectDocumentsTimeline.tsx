@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import { useEffect, useState } from 'react';
 import { FileText, Image, Video, Receipt, FileCheck, Loader2, Filter, MoreHorizontal, Printer, Download, Pencil, Trash2, FilePlus2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

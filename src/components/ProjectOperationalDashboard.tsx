@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import {
   AlertCircle,
   Clock,
@@ -112,10 +113,10 @@ export function ProjectOperationalDashboard({
       const now = new Date();
       setDataFreshness({
         lastExpenseDays: lastExpense?.expense_date
-          ? Math.floor((now.getTime() - new Date(lastExpense.expense_date).getTime()) / 86400000)
+          ? Math.floor((now.getTime() - parseDateOnly(lastExpense.expense_date).getTime()) / 86400000)
           : null,
         lastTimeDays: lastTime?.expense_date
-          ? Math.floor((now.getTime() - new Date(lastTime.expense_date).getTime()) / 86400000)
+          ? Math.floor((now.getTime() - parseDateOnly(lastTime.expense_date).getTime()) / 86400000)
           : null,
       });
     }
