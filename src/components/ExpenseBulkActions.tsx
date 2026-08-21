@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Users, X, Building2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ExpenseCategory, TransactionType, EXPENSE_CATEGORY_DISPLAY, TRANSACTION_TYPE_DISPLAY } from "@/types/expense";
@@ -22,6 +23,9 @@ export const ExpenseBulkActions = ({
   onSelectionChange, 
   onComplete 
 }: ExpenseBulkActionsProps) => {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // bulk-action path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
@@ -158,8 +162,7 @@ export const ExpenseBulkActions = ({
       if (action === 'submit') {
         updateData = { approval_status: 'pending' };
       } else if (action === 'approve') {
-        const { data: { user } } = await supabase.auth.getUser();
-        updateData = { 
+        updateData = {
           approval_status: 'approved',
           approved_by: user?.id,
           approved_at: new Date().toISOString()

@@ -10,6 +10,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFoo
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
@@ -131,6 +132,9 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const isMobile = useIsMobile();
+    // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+    // approve path (network round-trip + auth-lock serialization).
+    const { user } = useAuth();
     const [pageSize, setPageSize] = useState(initialPageSize);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterCategories, setFilterCategories] = useState<string[]>([]);
@@ -562,9 +566,6 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
         if (action === "submit") {
           updateData = { approval_status: "pending" };
         } else if (action === "approve") {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
           updateData = {
             approval_status: "approved",
             approved_by: user?.id,

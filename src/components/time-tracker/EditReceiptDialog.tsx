@@ -11,6 +11,7 @@ import { TimeEntryDialog } from './TimeEntryDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { cn } from '@/lib/utils';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
@@ -53,6 +54,10 @@ interface EditReceiptDialogProps {
 
 export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: EditReceiptDialogProps) => {
   const isMobile = useIsMobile();
+  // Gotcha #63: read the user from context, never supabase.auth.getUser(),
+  // on mount/save paths — getUser() is a network round-trip that holds the
+  // supabase-js auth lock and serializes every query queued behind it.
+  const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [amount, setAmount] = useState('0.00');
@@ -63,24 +68,15 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
   const [capturedPhoto, setCapturedPhoto] = useState('');
   const [photoChanged, setPhotoChanged] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
-  
+
   // Data state
   const [projects, setProjects] = useState<Project[]>([]);
   const [payees, setPayees] = useState<Payee[]>([]);
   const [systemProjectId, setSystemProjectId] = useState('');
 
-  const isOwner = receipt?.user_id === currentUserId;
+  const isOwner = receipt?.user_id === user?.id;
   const canEdit = receipt?.approval_status !== 'approved' && (isOwner || isAdmin || isManager);
   const canDelete = receipt?.approval_status !== 'approved' && (isOwner || isAdmin || isManager);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id);
-    };
-    loadUser();
-  }, []);
 
   useEffect(() => {
     if (open) {
@@ -259,7 +255,6 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
       let finalImageUrl = receipt.image_url;
 
       if (photoChanged && capturedPhoto) {
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
         const blob = await fetch(capturedPhoto).then(r => r.blob());
