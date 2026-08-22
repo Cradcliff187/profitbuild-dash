@@ -2,8 +2,9 @@
  * Compact "This week" summary card on the Today home page.
  *
  * - Paid Hours logged Mon..Sun (Gotcha #17: `expenses.hours` = Paid Hours —
- *   never "total"/"worked" hours), own rows only (`user_id = auth user`,
- *   `is_time_entry = true` — Gotcha #68: is_time_entry, not category).
+ *   never "total"/"worked" hours), own rows only — resolved by linked payee
+ *   OR user_id via `ownTimeEntriesOrFilter` (ownership is the payee, not the
+ *   entering account; `is_time_entry = true` — Gotcha #68, not category).
  * - 7 day-dots Mon..Sun, states defined once in `field-time/weekDayState.ts`
  *   and shared with the Time tab's `WeeklySummary`: filled = time logged;
  *   amber outline = a FINISHED day with nothing logged (weekday, or any day
@@ -36,6 +37,10 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnreadMentions } from "@/hooks/useUnreadMentions";
 import { formatDateForDB, parseDateOnly } from "@/utils/dateUtils";
+import {
+  fetchMyPayeeIds,
+  ownTimeEntriesOrFilter,
+} from "@/utils/ownTimeEntries";
 import {
   getWeekDayState,
   WEEK_DAY_DOT_CLASS,
@@ -98,10 +103,13 @@ export function ThisWeekStrip({ userId, todayISO }: ThisWeekStripProps) {
     staleTime: 60 * 1000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
+      // Own = user_id OR linked payee (admin-entered / second-account rows
+      // carry the payee but a different user_id) — see ownTimeEntries.ts.
+      const payeeIds = await fetchMyPayeeIds(userId);
       const { data, error } = await supabase
         .from("expenses")
         .select("expense_date, hours")
-        .eq("user_id", userId)
+        .or(ownTimeEntriesOrFilter(userId, payeeIds))
         .eq("is_time_entry", true)
         .gte("expense_date", mondayISO)
         .lte("expense_date", sundayISO);
