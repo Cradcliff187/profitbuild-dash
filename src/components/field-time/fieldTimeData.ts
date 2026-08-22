@@ -15,6 +15,9 @@
  * - A time entry is `is_time_entry = true` (generated column:
  *   `category = 'labor_internal' OR start_time IS NOT NULL`) — never
  *   `category = 'labor_internal'` alone (Gotcha #68).
+ * - "Own" time entries resolve by linked payee OR user_id via
+ *   `ownTimeEntriesOrFilter` (ownership is the payee — Rule 11; admin-entered
+ *   rows and second-account rows carry the payee but a different user_id).
  * - Errors are destructured and thrown (Gotcha #16).
  * - Row volume: one worker × ≤1 week (or LIMIT 10) — nowhere near the
  *   1,000-row PostgREST cap (Gotcha #23).
@@ -24,6 +27,10 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { TODAY_WEEK_TIME_KEY } from "@/components/today/todayData";
+import {
+  fetchMyPayeeIds,
+  ownTimeEntriesOrFilter,
+} from "@/utils/ownTimeEntries";
 
 const STALE_TIME = 60 * 1000;
 
@@ -97,7 +104,7 @@ interface HookOptions {
 
 /**
  * Own time entries for a Mon–Sun week window (inclusive date strings).
- * Mirrors MobileTimeTracker's `loadTodayEntries` scoping: own `user_id` only.
+ * Own = linked payee OR user_id (`ownTimeEntriesOrFilter`).
  */
 export function useMyWeekTimeEntries(
   userId: string | undefined,
@@ -111,10 +118,11 @@ export function useMyWeekTimeEntries(
     staleTime: STALE_TIME,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<FieldTimeEntry[]> => {
+      const payeeIds = await fetchMyPayeeIds(userId);
       const { data, error } = await supabase
         .from("expenses")
         .select(ENTRY_SELECT)
-        .eq("user_id", userId)
+        .or(ownTimeEntriesOrFilter(userId, payeeIds))
         .eq("is_time_entry", true)
         .gte("expense_date", weekStartISO)
         .lte("expense_date", weekEndISO)
@@ -142,10 +150,11 @@ export function useMyDayTimeEntries(
     staleTime: STALE_TIME,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<FieldTimeEntry[]> => {
+      const payeeIds = await fetchMyPayeeIds(userId);
       const { data, error } = await supabase
         .from("expenses")
         .select(ENTRY_SELECT)
-        .eq("user_id", userId)
+        .or(ownTimeEntriesOrFilter(userId, payeeIds))
         .eq("is_time_entry", true)
         .eq("expense_date", dateISO)
         .order("start_time", { ascending: true, nullsFirst: false });
@@ -166,10 +175,11 @@ export function useMyRecentTimeEntries(
     staleTime: STALE_TIME,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<FieldTimeEntry[]> => {
+      const payeeIds = await fetchMyPayeeIds(userId);
       const { data, error } = await supabase
         .from("expenses")
         .select(ENTRY_SELECT)
-        .eq("user_id", userId)
+        .or(ownTimeEntriesOrFilter(userId, payeeIds))
         .eq("is_time_entry", true)
         .order("expense_date", { ascending: false })
         .order("created_at", { ascending: false })

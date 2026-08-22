@@ -17,6 +17,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  fetchMyPayeeIds,
+  ownTimeEntriesOrFilter,
+} from "@/utils/ownTimeEntries";
+import {
   getShowSandboxProject,
   isProjectVisibleByCategory,
 } from "@/utils/sandboxPreferences";
@@ -267,7 +271,8 @@ export interface LastWorkedProject {
  * Resolves "where did I last work?" from the worker's own time entries
  * (`expenses.is_time_entry` — the ground truth of where they clocked hours;
  * RLS already scopes field workers to their own rows, and the explicit
- * `eq('user_id')` scopes admins dogfooding `/today`).
+ * own-rows filter (`ownTimeEntriesOrFilter` — linked payee OR user_id)
+ * scopes admins dogfooding `/today`).
  *
  * Walks the newest ~15 entries and returns the first project that is still
  * active (approved / in_progress) AND visible by category (construction, or
@@ -290,32 +295,17 @@ export function useLastWorkedProject(
     staleTime: 60 * 1000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<LastWorkedProject | null> => {
-      // Admin-entered time carries the WORKER's payee but not necessarily
-      // their user_id (Gotcha #68 resolution order: payees.user_id first,
-      // expenses.user_id fallback) — so match on either. A user can have
-      // multiple linked payees (internal W-2 shadow AND labor-providing
-      // subcontractor record), hence the list.
-      const { data: myPayees, error: payeesError } = await supabase
-        .from("payees")
-        .select("id")
-        .eq("user_id", userId);
-      if (payeesError) throw payeesError;
-      const payeeIds = (myPayees ?? []).map((p) => p.id);
-
-      let entriesQuery = supabase
+      // Own = linked payee OR user_id (`ownTimeEntriesOrFilter` — the shared
+      // resolution all four own-time readers use, so they can't drift).
+      const payeeIds = await fetchMyPayeeIds(userId);
+      const { data: entries, error } = await supabase
         .from("expenses")
         .select("project_id, expense_date")
+        .or(ownTimeEntriesOrFilter(userId, payeeIds))
         .eq("is_time_entry", true)
         .order("expense_date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(15);
-      entriesQuery =
-        payeeIds.length > 0
-          ? entriesQuery.or(
-              `user_id.eq.${userId},payee_id.in.(${payeeIds.join(",")})`
-            )
-          : entriesQuery.eq("user_id", userId);
-      const { data: entries, error } = await entriesQuery;
       if (error) throw error;
 
       // Newest-first distinct projects + the newest date seen for each.
