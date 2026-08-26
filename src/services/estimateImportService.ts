@@ -129,6 +129,20 @@ export interface ImportOptions {
   laborActualRate?: number;
 }
 
+/**
+ * Dollars → hours at the billing rate, rounded to the 5 decimals the DB stores
+ * (estimate_line_items.quantity / labor_hours are numeric(15,5)).
+ *
+ * Rounding here — not letting Postgres coerce — keeps preview math identical to
+ * persisted math. quantity used to be numeric(10,2), which silently rounded
+ * 26.6667 hr to 26.67 and drifted every dollar-derived labor line by ~$0.25
+ * (estimate 225-136 totaled $32,501.24 instead of $32,500.00).
+ */
+export function deriveLaborHours(cost: number, billingRatePerHour: number): number {
+  if (billingRatePerHour <= 0) return 0;
+  return Math.round((cost / billingRatePerHour) * 100000) / 100000;
+}
+
 export async function importBudgetSheet(
   file: File,
   options: ImportOptions = {}
@@ -172,7 +186,7 @@ export async function importBudgetSheet(
   // Step 4: Apply labor rates for labor_internal items
   enrichedItems = enrichedItems.map(item => {
     if (item.category === 'labor_internal' && item.component === 'labor') {
-      const laborHours = item.cost / laborBillingRate;
+      const laborHours = deriveLaborHours(item.cost, laborBillingRate);
       return {
         ...item,
         laborHours,

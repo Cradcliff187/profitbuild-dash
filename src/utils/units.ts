@@ -81,16 +81,19 @@ export const CATEGORY_UNIT_RECOMMENDATIONS: Record<string, string[]> = {
   'other': ['EA', 'SF', 'LF', 'HR', 'CY']
 };
 
-// Utility function to format quantity with unit
+// Utility function to format quantity with unit.
+// Up to 5 fraction digits: quantity is numeric(15,5) in the DB, and dollar-derived labor
+// hours (e.g. 26.66667 HR) must display at full precision so qty × rate matches the total.
 export function formatQuantityWithUnit(quantity: number, unit: string | null): string {
+  const formatted = quantity.toLocaleString(undefined, { maximumFractionDigits: 5 });
   if (!unit) {
-    return quantity.toLocaleString();
+    return formatted;
   }
 
   const unitDef = CONSTRUCTION_UNITS.find(u => u.code === unit);
   const symbol = unitDef ? unitDef.symbol : unit.toLowerCase();
-  
-  return `${quantity.toLocaleString()} ${symbol}`;
+
+  return `${formatted} ${symbol}`;
 }
 
 // Helper function to get unit definition by code

@@ -1650,6 +1650,30 @@ actions stay pinned to REAL today regardless of the browsed week. #188 originall
 `DayEntriesSheet` drill-in; it was deleted in-flight when #185's inline day view landed first —
 the sheet pattern lost on merit (a second nav layer hides the strip), don't resurrect it.
 
+### 40. Line-item `quantity` is numeric(15,5) — dollar-derived hours must round-trip (Aug 26 2026, PR [#204](https://github.com/Cradcliff187/profitbuild-dash/pull/204))
+
+Dollar-sourced labor imports derive hours by division ([`deriveLaborHours`](src/services/estimateImportService.ts):
+$2,000 / $75 = 26.6667 hr). `quantity` used to be `numeric(10,2)`, so Postgres silently rounded
+26.6667 → 26.67 and every dollar-derived labor line drifted **+$0.25 cost / +$0.31 price** when the
+generated columns recomputed from the rounded value — estimate 225-136 showed **$32,501.24** instead
+of the intended **$32,500.00** (caught by Chris eyeballing the totals row; re-baselined to $32,500.00
+after the fix). `estimate_line_items.quantity` and `quote_line_items.quantity` are now
+**`numeric(15,5)`**, mirroring the 5-dp `cost_per_unit`/`price_per_unit` that solved this same class
+of bug for rates (`change_order_line_items.quantity` was already unconstrained numeric).
+
+- `deriveLaborHours` rounds to 5dp **client-side** so preview math === persisted math; pinned by
+  [`estimateImportService.test.ts`](src/services/__tests__/estimateImportService.test.ts).
+- [`formatQuantityWithUnit`](src/utils/units.ts) shows up to 5 fraction digits so qty × rate
+  visibly multiplies out to the line total.
+- **Migration note**: the six generated total columns (`total`/`total_cost`/`total_markup` × 2
+  tables) reference `quantity`, and four views reference those columns
+  (`estimate_financial_summary`, `reporting.estimate_line_items_quote_status` + its
+  `estimate_quote_status_summary` rollup, `reporting.internal_labor_hours_by_project`). ALTERing
+  `quantity`'s type again means drop views → drop generated columns → alter → re-add verbatim →
+  recreate views → re-grant (see `20260826150000_widen_line_item_quantity_precision.sql`).
+- **Pitfall**: never round `quantity` to 2dp client-side before save, and never "clean up" a
+  many-decimal quantity on an imported labor line — those digits are what make the dollars exact.
+
 ---
 
 ## TypeScript Configuration
