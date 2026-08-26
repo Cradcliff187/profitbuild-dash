@@ -1650,7 +1650,7 @@ actions stay pinned to REAL today regardless of the browsed week. #188 originall
 `DayEntriesSheet` drill-in; it was deleted in-flight when #185's inline day view landed first —
 the sheet pattern lost on merit (a second nav layer hides the strip), don't resurrect it.
 
-### 40. Line-item `quantity` is numeric(15,5) — dollar-derived hours must round-trip (Aug 26 2026)
+### 40. Line-item `quantity` is numeric(15,5) — dollar-derived hours must round-trip (Aug 26 2026, PR [#204](https://github.com/Cradcliff187/profitbuild-dash/pull/204))
 
 Dollar-sourced labor imports derive hours by division ([`deriveLaborHours`](src/services/estimateImportService.ts):
 $2,000 / $75 = 26.6667 hr). `quantity` used to be `numeric(10,2)`, so Postgres silently rounded
