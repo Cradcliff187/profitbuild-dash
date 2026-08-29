@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Camera } from 'lucide-react';
@@ -44,7 +45,11 @@ interface EditReceiptModalProps {
 
 export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) => {
   const isMobile = useIsMobile();
-  
+  // Gotcha #63: read the user from context, never supabase.auth.getUser(),
+  // on save paths — getUser() is a network round-trip that holds the
+  // supabase-js auth lock and serializes every query queued behind it.
+  const { user } = useAuth();
+
   // Form state
   const [amount, setAmount] = useState('0.00');
   const [payeeId, setPayeeId] = useState('');
@@ -243,7 +248,6 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
 
       // Upload new photo if changed
       if (photoChanged && capturedPhoto) {
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
         const blob = await fetch(capturedPhoto).then(r => r.blob());

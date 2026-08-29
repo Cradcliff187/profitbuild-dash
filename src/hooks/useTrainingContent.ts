@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   TrainingContent, 
   CreateTrainingContentData, 
@@ -14,6 +15,9 @@ import {
 import { toast } from 'sonner';
 
 export function useTrainingContent() {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // create path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [content, setContent] = useState<TrainingContent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -49,8 +53,6 @@ export function useTrainingContent() {
   // Create content
   const createContent = async (data: CreateTrainingContentData): Promise<TrainingContent | null> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { data: newContent, error } = await supabase
         .from('training_content')
         .insert({

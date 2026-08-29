@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProjectNote } from '@/types/projectNote';
 
@@ -13,6 +14,9 @@ interface AddNoteParams {
 
 export function useProjectNotes(projectId: string) {
   const queryClient = useQueryClient();
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // add-note path (network round-trip + supabase-js auth-lock serialization).
+  const { user } = useAuth();
   const queryKey = ['project-notes', projectId];
   // The Notes tab badge in MobileScheduleView uses a separate query key
   // (`project-notes-count`) — invalidate both whenever the underlying notes
@@ -44,7 +48,6 @@ export function useProjectNotes(projectId: string) {
 
   const addNoteMutation = useMutation({
     mutationFn: async (params: AddNoteParams) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Insert note and get back the ID

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { downloadReceiptsAsZip } from '@/utils/receiptDownloadUtils';
 import { UnifiedReceipt } from './useReceiptsData';
@@ -52,20 +53,19 @@ export const useReceiptBulkActions = ({
   setBulkRejectDialogOpen,
   setDeleteDialogOpen,
 }: UseReceiptBulkActionsProps) => {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // bulk-approve path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
+
   const handleBulkApprove = useCallback(async () => {
     if (selectedIds.length === 0) return;
-    
+
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('Failed to get user for bulk receipt approval:', {
-          selectedIds,
-          error: authError.message
-        });
+      if (!user) {
+        console.error('No authenticated user for bulk receipt approval:', { selectedIds });
         throw new Error('Authentication failed');
       }
-      
+
       const { error } = await supabase
         .from('receipts')
         .update({
@@ -99,7 +99,7 @@ export const useReceiptBulkActions = ({
       });
       toast.error(`Failed to approve ${selectedIds.length} ${selectedIds.length === 1 ? 'receipt' : 'receipts'}: ${errorMessage}`);
     }
-  }, [selectedIds, loadReceipts, setSelectedIds]);
+  }, [selectedIds, loadReceipts, setSelectedIds, user]);
 
   const handleBulkReject = useCallback(async (reason: string) => {
     if (selectedIds.length === 0) return;

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/sheet';
 import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface BidNoteComposerProps {
@@ -37,10 +38,12 @@ export function BidNoteComposer({
 }: BidNoteComposerProps) {
   const [text, setText] = useState('');
   const queryClient = useQueryClient();
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // submit path (network round-trip + supabase-js auth-lock serialization).
+  const { user } = useAuth();
 
   const mutation = useMutation({
     mutationFn: async (noteText: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase.from('bid_notes').insert({
