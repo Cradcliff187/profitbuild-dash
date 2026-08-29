@@ -489,7 +489,7 @@ export const ExpenseAllocationSheet: React.FC<ExpenseAllocationSheetProps> = ({
                         <Building className="h-3 w-3" />
                         {expense.project_number} • {expense.project_name}
                       </div>
-                      <div>{EXPENSE_CATEGORY_DISPLAY[expense.category]} • {format(new Date(expense.expense_date), 'MMM d, yyyy')}</div>
+                      <div>{EXPENSE_CATEGORY_DISPLAY[expense.category]} • {format(parseDateOnly(expense.expense_date), 'MMM d, yyyy')}</div>
                       {expense.description && <div className="italic">{expense.description}</div>}
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Eye, FileText, Trash2, ArrowUpDown, Edit, ChevronDown, Plus, Files, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileListCard } from "@/components/ui/mobile-list-card";
@@ -72,7 +73,7 @@ export const QuotesList = ({ quotes, estimates, onEdit, onView, onDelete, onComp
     const expiredQuotes = quotesToCheck.filter(quote => 
       quote.status === QuoteStatus.PENDING &&
       quote.valid_until &&
-      new Date(quote.valid_until) < today
+      parseDateOnly(quote.valid_until) < today
     );
     
     if (expiredQuotes.length > 0) {

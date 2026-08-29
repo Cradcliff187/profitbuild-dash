@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Calendar, TrendingUp, AlertCircle, Building } from 'lucide-react';
 import { fuzzyMatchPayee, type PartialPayee } from '@/utils/fuzzyPayeeMatcher';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 import { EXPENSE_CATEGORY_DISPLAY } from '@/types/expense';
 
@@ -134,7 +135,7 @@ export const FuzzyMatchDetailsPanel: React.FC<FuzzyMatchDetailsPanelProps> = ({
                 </span>
                 <span className="text-muted-foreground flex items-center gap-0.5">
                   <Calendar className="h-2.5 w-2.5" />
-                  {format(new Date(result.expense!.expense_date), 'MMM dd')}
+                  {format(parseDateOnly(result.expense!.expense_date), 'MMM dd')}
                 </span>
               </div>
               

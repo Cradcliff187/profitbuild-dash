@@ -733,7 +733,7 @@ export const BulkExpenseAllocationSheet: React.FC<BulkExpenseAllocationSheetProp
                       <TableCell className="align-top">
                         <div className="space-y-0.5">
                           <div className="text-xs text-muted-foreground">
-                            {format(new Date(suggestion.expense.expense_date), 'MMM d, yyyy')}
+                            {format(parseDateOnly(suggestion.expense.expense_date), 'MMM d, yyyy')}
                           </div>
                           <div className="font-medium text-sm">
                             {suggestion.expense.payee_name || 'No Payee'}

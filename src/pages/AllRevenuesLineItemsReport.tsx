@@ -7,6 +7,7 @@ import { BrandedLoader } from "@/components/ui/branded-loader";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { toast } from "sonner";
 import { ExportControls } from "@/components/reports/ExportControls";
 import { ReportField } from "@/utils/reportExporter";
@@ -240,7 +241,7 @@ const AllRevenuesLineItemsReport = () => {
                             <span className="font-mono text-sm font-semibold truncate">{revenue.invoice_number}</span>
                           )}
                           <Badge variant="outline" className="text-xs flex-shrink-0">
-                            {format(new Date(revenue.invoice_date), 'MMM dd, yyyy')}
+                            {format(parseDateOnly(revenue.invoice_date), 'MMM dd, yyyy')}
                           </Badge>
                         </div>
                       </div>
@@ -348,7 +349,7 @@ const AllRevenuesLineItemsReport = () => {
                 ) : (
                   revenues.map((revenue) => (
                     <TableRow key={revenue.id}>
-                      <TableCell>{format(new Date(revenue.invoice_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{format(parseDateOnly(revenue.invoice_date), 'MMM dd, yyyy')}</TableCell>
                       <TableCell className="font-mono text-sm">
                         {revenue.invoice_number || '-'}
                       </TableCell>

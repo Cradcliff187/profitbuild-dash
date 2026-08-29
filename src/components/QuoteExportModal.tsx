@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, FileText, Table, Calendar } from "lucide-react";
 import type { QuoteSearchFilters } from "./QuoteFilters";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 interface QuoteExportModalProps {
   isOpen: boolean;
@@ -174,9 +175,9 @@ export const QuoteExportModal: React.FC<QuoteExportModalProps> = ({
         quote.projects?.client_name || '',
         quote.payees?.payee_name || '',
         quote.status,
-        quote.date_received ? new Date(quote.date_received).toLocaleDateString() : '',
+        quote.date_received ? parseDateOnly(quote.date_received).toLocaleDateString() : '',
         vendorCost.toString(),
-        quote.valid_until ? new Date(quote.valid_until).toLocaleDateString() : ''
+        quote.valid_until ? parseDateOnly(quote.valid_until).toLocaleDateString() : ''
       ];
 
       if (exportOptions.includeEstimateComparison) {

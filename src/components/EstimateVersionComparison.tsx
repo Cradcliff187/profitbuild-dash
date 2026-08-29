@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Estimate } from "@/types/estimate";
@@ -41,11 +42,11 @@ export const EstimateVersionComparison = ({ projectId, onClose }: EstimateVersio
         id: est.id,
         project_id: est.project_id,
         estimate_number: est.estimate_number,
-        date_created: new Date(est.date_created),
+        date_created: parseDateOnly(est.date_created),
         total_amount: est.total_amount,
         status: est.status,
         notes: est.notes,
-        valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
+        valid_until: est.valid_until ? parseDateOnly(est.valid_until) : undefined,
         revision_number: est.revision_number,
         contingency_percent: est.contingency_percent ?? 10,
         contingency_amount: est.contingency_amount,
