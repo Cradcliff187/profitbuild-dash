@@ -961,6 +961,40 @@ expense's own correlations, unioned). Still TODO from the review: idempotent bat
 (`onConflict`) so one 23505 doesn't abort the batch; dedup the category map; and the bigger
 **estimate-versioning expense-correlation orphan** data fix (see below).
 
+**Status vocabulary — ONE AXIS PER SIGNAL (Sep 8 2026).** Current files: [useProjectEFC.ts](src/hooks/useProjectEFC.ts)
+(`deriveLineStatus`, `isOver`), [lineDisplay.ts](src/components/cost-tracking/efc/lineDisplay.ts) (pill + subtitle),
+`CostLineTable` / `CostLineDetail` / `CostKpiStrip` / `CostOverview` (the component names earlier in this rule are
+the PR #99 generation and are gone). The status pill answers exactly one question — **how far along is this
+line** — `Plan → Committed → In progress → Billed → Final`. `billed` = non-labor spend reached
+`max(committed, plan)`; **labor never reads Billed** (reaching budgeted hours is not completion — it stays
+In progress until marked Final); **Final wins over every other state** (a descoped line reads Final, not Plan).
+The **budget verdict is a separate signal**: `line.isOver = efc − plan > 0.005`, rendered as the red Δ, the red
+row border, the "Over budget" badge on the detail page, and the **Issues** KPI count — one definition, four
+surfaces. Before this, the pill mixed both axes AND graded against a different baseline than Δ: 225-136's
+Flooring sub (quote $5,948 on a $5,500 plan, billed in full) read **"On plan" in green beside a red +$448**,
+Issues said **0 · on track**, and the two descoped labor lines (final $0) read **"Plan"** like a line that
+hadn't started. Pinned by [lineDisplay.test.ts](src/components/cost-tracking/efc/__tests__/lineDisplay.test.ts)
+on those exact rows. Don't put a budget word back in the pill, and don't let any surface define "over" as
+anything but `isOver`.
+
+**Labor subtitles never invent hours.** `lineSubtitle` used to back-derive hours from allocated dollars when
+no time was logged (`actual / costRate`) — 225-136's Cleaning line showed **"17.3 of 26.7 hrs"** with ZERO time
+entries (its $1,300.67 was a sub bill + Home Depot receipts allocated to a labor line). Hours now come only from
+correlated time entries; dollars with no hours read `0 of 26.7 hrs logged · $1,300.67 allocated`. Same class
+as Rule 37's "fabricated information" rule.
+
+**Descoped labor (final $0) leaves the cushion model** (`fetchLaborCushionRaw`): its hours/cushion/actual-cost
+are subtracted from the estimate-summary totals (and final-$0 CO labor rows are filtered). Without this, "N hrs
+left" counted hours that will never be worked AND the line's cushion was credited into Margin + Labor Opp on top
+of the $0 EFC that already returns the whole plan to margin — a double count. Final-at-a-cost lines stay in
+(their hours are real; only the dollars are pinned).
+
+**Known gap, not fixed here**: the cushion's `actualHours` reads `expenses.category = 'labor_internal'` only,
+so time logged by a labor-providing subcontractor (Gotcha #68 — 225-136 has 30.75 hrs of it, filed under
+`subcontractors` at $0) is invisible to "N of M hrs", and the dispatch auto-correlation trigger (Rule 34)
+never links those entries to a labor line because the category doesn't match. Needs a product decision on
+whether an owner/sub's $0 time entries consume the internal-labor budget.
+
 **Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
 `CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
 

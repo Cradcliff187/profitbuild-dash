@@ -30,7 +30,21 @@ import {
  *   spend on top of the plan.
  */
 
-export type EFCLineStatus = 'plan' | 'committed' | 'in_progress' | 'overrun';
+/**
+ * Lifecycle stage of a cost line — ONE axis, "how far along is this?":
+ *   plan        nothing has happened
+ *   committed   an accepted quote, no spend yet
+ *   in_progress spend has started (labor stays here until marked final — hours
+ *               can keep coming, so there is no "done" signal from spend alone)
+ *   billed      non-labor spend has reached the commitment (or plan, with no quote)
+ *   final       PM marked the line final; EFC is pinned (wins over every other state)
+ *
+ * The budget verdict is deliberately NOT a stage. `isOver` (efc > plan) carries it,
+ * and is the single definition shared by the Δ column, the red row border, and
+ * the Issues KPI. Mixing the two axes in one pill is what produced "On plan" beside
+ * a red +$448 (a fully-billed quote that was accepted over plan).
+ */
+export type EFCLineStatus = 'plan' | 'committed' | 'in_progress' | 'billed' | 'final';
 
 export interface EFCLine {
   id: string;
@@ -42,6 +56,8 @@ export interface EFCLine {
   actual: number;
   efc: number;
   variance: number; // efc - plan (positive = over the original estimate)
+  /** Budget verdict: EFC exceeds plan. Same definition as the Δ column and the Issues count. */
+  isOver: boolean;
   status: EFCLineStatus;
   /** When the line is marked final, its EFC is pinned to this amount (else null). */
   finalCostAmount: number | null;
@@ -112,10 +128,21 @@ export interface ProjectEFCResult {
   refetch: () => void;
 }
 
-function deriveStatus(plan: number, committed: number, actual: number): EFCLineStatus {
-  const baseline = Math.max(committed, plan);
-  if (actual > 0 && actual > baseline) return 'overrun';
-  if (actual > 0) return 'in_progress';
+export function deriveLineStatus(args: {
+  plan: number;
+  committed: number;
+  actual: number;
+  isFinal: boolean;
+  isLabor: boolean;
+}): EFCLineStatus {
+  const { plan, committed, actual, isFinal, isLabor } = args;
+  if (isFinal) return 'final';
+  if (actual > 0) {
+    const baseline = Math.max(committed, plan);
+    // Labor never reads "billed": reaching the budgeted hours is not completion.
+    if (!isLabor && baseline > 0 && actual >= baseline - 0.005) return 'billed';
+    return 'in_progress';
+  }
   if (committed > 0) return 'committed';
   return 'plan';
 }
@@ -149,9 +176,10 @@ export function useProjectEFC(projectId: string, project: Project): ProjectEFCRe
           actual,
           efc,
           variance: efc - plan,
+          isOver: efc - plan > 0.005,
           finalCostAmount: isFinal ? Number(li.finalCostAmount) : null,
           isFinal,
-          status: deriveStatus(plan, committed, actual),
+          status: deriveLineStatus({ plan, committed, actual, isFinal, isLabor: isLaborCat }),
           isLabor: isLaborCat,
           acceptedQuote: li.acceptedQuote,
           acceptedQuoteCount: li.acceptedQuoteCount,

@@ -201,7 +201,7 @@ async function fetchLaborCushionRaw(projectId: string): Promise<LaborCushionRaw 
     estimateId = approvedEstimate?.id ?? null;
   }
 
-  const [summaryRes, coLaborRes, laborViewRes] = await Promise.all([
+  const [summaryRes, coLaborRes, laborViewRes, descopedRes] = await Promise.all([
     estimateId
       ? supabase
           .from('estimate_financial_summary')
@@ -216,7 +216,7 @@ async function fetchLaborCushionRaw(projectId: string): Promise<LaborCushionRaw 
     // CO work). Draft/pending/rejected COs are not yet real scope, so approved-only.
     supabase
       .from('change_order_line_items')
-      .select('labor_hours, labor_cushion_amount, actual_cost_rate_per_hour, change_orders!inner(project_id, status)')
+      .select('labor_hours, labor_cushion_amount, actual_cost_rate_per_hour, final_cost_amount, change_orders!inner(project_id, status)')
       .eq('category', 'labor_internal')
       .eq('change_orders.project_id', projectId)
       .eq('change_orders.status', 'approved'),
@@ -230,6 +230,20 @@ async function fetchLaborCushionRaw(projectId: string): Promise<LaborCushionRaw 
       .eq('project_id', projectId)
       .eq('category', 'labor_internal')
       .eq('is_split', false),
+    // Descoped labor: lines marked final at $0 (e.g. the work went to a sub). Their
+    // hours will never be worked, so they leave the cushion model entirely —
+    // otherwise "N hrs left" counts phantom hours AND their cushion is credited
+    // into Margin + Labor Opp on top of the $0 EFC that already credits the whole
+    // plan back to margin (a double count). Final-at-a-cost lines stay in: their
+    // hours were/are real, only the dollars are pinned.
+    estimateId
+      ? supabase
+          .from('estimate_line_items')
+          .select('labor_hours, labor_cushion_amount, actual_cost_rate_per_hour')
+          .eq('estimate_id', estimateId)
+          .eq('category', 'labor_internal')
+          .eq('final_cost_amount', 0)
+      : Promise.resolve({ data: [], error: null } as const),
   ]);
 
   if (summaryRes.error || laborViewRes.error) return null;
@@ -246,17 +260,30 @@ async function fetchLaborCushionRaw(projectId: string): Promise<LaborCushionRaw 
     0
   );
 
-  // Estimate-side labor totals (zeros when the project has no estimate yet).
-  const estHours = Number(summaryRes.data?.total_labor_hours ?? 0);
-  const estCushion = Number(summaryRes.data?.total_labor_cushion ?? 0);
-  const estActualCost = Number(summaryRes.data?.total_labor_actual_cost ?? 0);
-
-  // Approved-CO labor contributions.
-  const coRows = (coLaborRes.data ?? []) as Array<{
+  // Estimate-side labor totals (zeros when the project has no estimate yet),
+  // net of descoped (final $0) lines — see the query comment above.
+  const descopedRows = (descopedRes.data ?? []) as Array<{
     labor_hours: number | null;
     labor_cushion_amount: number | null;
     actual_cost_rate_per_hour: number | null;
   }>;
+  const descopedHours = descopedRows.reduce((s, r) => s + Number(r.labor_hours ?? 0), 0);
+  const descopedCushion = descopedRows.reduce((s, r) => s + Number(r.labor_cushion_amount ?? 0), 0);
+  const descopedActualCost = descopedRows.reduce(
+    (s, r) => s + Number(r.labor_hours ?? 0) * Number(r.actual_cost_rate_per_hour ?? 0),
+    0
+  );
+  const estHours = Math.max(0, Number(summaryRes.data?.total_labor_hours ?? 0) - descopedHours);
+  const estCushion = Math.max(0, Number(summaryRes.data?.total_labor_cushion ?? 0) - descopedCushion);
+  const estActualCost = Math.max(0, Number(summaryRes.data?.total_labor_actual_cost ?? 0) - descopedActualCost);
+
+  // Approved-CO labor contributions (descoped CO lines excluded for the same reason).
+  const coRows = ((coLaborRes.data ?? []) as Array<{
+    labor_hours: number | null;
+    labor_cushion_amount: number | null;
+    actual_cost_rate_per_hour: number | null;
+    final_cost_amount: number | null;
+  }>).filter((r) => !(r.final_cost_amount != null && Number(r.final_cost_amount) === 0));
   const coHours = coRows.reduce((s, r) => s + Number(r.labor_hours ?? 0), 0);
   const coCushion = coRows.reduce((s, r) => s + Number(r.labor_cushion_amount ?? 0), 0);
   const coActualCost = coRows.reduce(

@@ -1,12 +1,12 @@
 import { cn, formatCurrency } from '@/lib/utils';
-import { ChevronRight, Lock } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { EFCCategory, EFCLine } from '@/hooks/useProjectEFC';
 import { lineDisplayStatus, lineSubtitle } from './lineDisplay';
 
 function LineRow({ line, onClick }: { line: EFCLine; onClick: () => void }) {
   const meta = lineDisplayStatus(line);
   const subtitle = lineSubtitle(line);
-  const showDelta = line.variance > 0.005;
+  const showDelta = line.isOver;
 
   return (
     <button
@@ -16,14 +16,7 @@ function LineRow({ line, onClick }: { line: EFCLine; onClick: () => void }) {
       <span className={cn('w-1 shrink-0 rounded-r', meta.border)} aria-hidden />
       <span className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5">
         <span className="flex-1 min-w-0">
-          <span className="flex items-center gap-1.5 min-w-0">
-            <span className="text-sm font-medium truncate">{line.description}</span>
-            {line.isFinal && (
-              <span title="Final cost locked" className="shrink-0 inline-flex items-center">
-                <Lock className="h-3 w-3 text-violet-500" />
-              </span>
-            )}
-          </span>
+          <span className="block text-sm font-medium truncate">{line.description}</span>
           {subtitle && <span className="block text-xs text-muted-foreground truncate">{subtitle}</span>}
         </span>
         <span className="hidden sm:block w-24 text-right text-sm tabular-nums text-muted-foreground shrink-0">
