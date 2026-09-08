@@ -989,11 +989,15 @@ left" counted hours that will never be worked AND the line's cushion was credite
 of the $0 EFC that already returns the whole plan to margin — a double count. Final-at-a-cost lines stay in
 (their hours are real; only the dollars are pinned).
 
-**Known gap, not fixed here**: the cushion's `actualHours` reads `expenses.category = 'labor_internal'` only,
-so time logged by a labor-providing subcontractor (Gotcha #68 — 225-136 has 30.75 hrs of it, filed under
-`subcontractors` at $0) is invisible to "N of M hrs", and the dispatch auto-correlation trigger (Rule 34)
-never links those entries to a labor line because the category doesn't match. Needs a product decision on
-whether an owner/sub's $0 time entries consume the internal-labor budget.
+**A labor-providing subcontractor's $0 time entries do NOT consume the internal-labor budget — decided by
+Chris, Sep 8 2026.** The cushion's `actualHours` reads `expenses.category = 'labor_internal'` only, so time
+logged by a labor-providing sub (Gotcha #68 — 225-136 has 30.75 hrs by Christopher L Radcliff, filed under
+`subcontractors` at $0) is invisible to "N of M hrs", and the Rule 34 auto-correlation trigger never links
+those entries to a labor line (category mismatch). **This is correct**: he is paid as a subcontractor and his
+cost is captured by his sub bill (the $862.50 on that job), not by an hourly internal rate — counting the
+hours would double-count against a budget that his bill already hits under `subcontractors`. Don't widen the
+cushion to `is_time_entry = true`, and don't add a labor-providing-sub exception to the trigger's category
+guard.
 
 **Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
 `CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
