@@ -29,8 +29,10 @@ export function CostOverview({ projectId, project }: { projectId: string; projec
 
   const canAllocate = isProjectVisibleByCategory(project);
 
+  // Issues = lines whose EFC exceeds plan — the same `isOver` the Δ column and
+  // row border use, so the KPI can never say "0 · on track" beside a red +Δ.
   const issuesCount = useMemo(
-    () => efc.categories.reduce((n, c) => n + c.lines.filter((l) => l.status === 'overrun').length, 0),
+    () => efc.categories.reduce((n, c) => n + c.lines.filter((l) => l.isOver).length, 0),
     [efc.categories],
   );
 

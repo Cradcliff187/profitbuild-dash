@@ -1,24 +1,49 @@
 import { formatCurrency } from '@/lib/utils';
-import { EFCLine } from '@/hooks/useProjectEFC';
+import { EFCLine, EFCLineStatus } from '@/hooks/useProjectEFC';
 
 /**
- * Presentational status for a cost line. Refines the 4-state EFCLineStatus into
- * the 5 the Cost Tracking surfaces show: a fully-billed, on-or-under-budget line
- * reads as "On plan" (green) rather than the generic amber "In prog".
+ * Presentational metadata for a cost line's status pill.
+ *
+ * ONE AXIS PER SIGNAL. The pill answers "how far along is this line?" and nothing
+ * else — Plan → Committed → In progress → Billed → Final. The budget verdict
+ * ("is it over?") lives in the Δ column and the row's left border, keyed off
+ * `line.isOver` (efc > plan), the same definition the Issues KPI uses.
+ *
+ * Before Sep 2026 the pill mixed both axes (Plan/Committed/In prog were stages;
+ * On plan/Over were verdicts) and graded against a different baseline than the
+ * Δ column — a fully-billed quote that came in over plan read "On plan" (green)
+ * beside a red +$448. See CLAUDE.md Rule 28.
  */
-export type LineDisplayStatus = 'over' | 'on_plan' | 'in_progress' | 'committed' | 'plan';
-
 export interface LineDisplayMeta {
-  status: LineDisplayStatus;
+  status: EFCLineStatus;
   label: string;
   /** Tailwind classes for the status pill. */
   pill: string;
-  /** Tailwind class for the row's colored left border. */
+  /** Tailwind class for the row's colored left border — red when over budget. */
   border: string;
+}
+
+const STAGE: Record<EFCLineStatus, { label: string; pill: string; border: string }> = {
+  plan:        { label: 'Plan',        pill: 'bg-slate-100 text-slate-700',   border: 'bg-slate-300' },
+  committed:   { label: 'Committed',   pill: 'bg-blue-100 text-blue-800',     border: 'bg-blue-400' },
+  in_progress: { label: 'In progress', pill: 'bg-amber-100 text-amber-800',   border: 'bg-amber-500' },
+  billed:      { label: 'Billed',      pill: 'bg-green-100 text-green-800',   border: 'bg-green-500' },
+  final:       { label: 'Final',       pill: 'bg-violet-100 text-violet-800', border: 'bg-violet-500' },
+};
+
+export function lineDisplayStatus(line: EFCLine): LineDisplayMeta {
+  const stage = STAGE[line.status] ?? STAGE.plan;
+  return {
+    status: line.status,
+    label: stage.label,
+    pill: stage.pill,
+    border: line.isOver ? 'bg-red-500' : stage.border,
+  };
 }
 
 export const fmtHours = (h: number) => h.toLocaleString(undefined, { maximumFractionDigits: 1 });
 
+/** Paid hours actually logged against the line (time entries only). */
 function loggedHours(line: EFCLine): number {
   return line.correlatedExpenses.reduce((s, e) => s + (e.hours ?? 0), 0);
 }
@@ -60,49 +85,36 @@ export function lineVendor(line: EFCLine): string | null {
   return best;
 }
 
-export function lineDisplayStatus(line: EFCLine): LineDisplayMeta {
-  if (line.status === 'overrun') {
-    return { status: 'over', label: 'Over', pill: 'bg-red-100 text-red-800', border: 'bg-red-500' };
-  }
-  if (line.status === 'in_progress') {
-    const baseline = Math.max(line.committed, line.plan);
-    // Fully billed at or under budget → "On plan" (green); otherwise still working.
-    if (baseline > 0 && line.actual >= baseline - 0.005) {
-      return { status: 'on_plan', label: 'On plan', pill: 'bg-green-100 text-green-800', border: 'bg-green-500' };
-    }
-    return { status: 'in_progress', label: 'In prog', pill: 'bg-amber-100 text-amber-800', border: 'bg-amber-500' };
-  }
-  if (line.status === 'committed') {
-    return { status: 'committed', label: 'Committed', pill: 'bg-blue-100 text-blue-800', border: 'bg-blue-400' };
-  }
-  return { status: 'plan', label: 'Plan', pill: 'bg-slate-100 text-slate-700', border: 'bg-slate-300' };
-}
-
 /**
- * One-line subtitle under a line's name in the Overview table — the same
- * information the old per-line caption carried, tuned for a scannable row.
+ * One-line subtitle under a line's name in the Overview table.
+ *
+ * Labor hours come ONLY from logged time entries. This used to back-derive
+ * hours from allocated dollars when nothing was logged (`actual / costRate`),
+ * which presented a sub bill + materials receipts allocated to a labor line as
+ * "17.3 of 26.7 hrs" worked. Dollars with no hours are now stated as exactly that.
  */
 export function lineSubtitle(line: EFCLine): string | null {
-  // Labor: actual paid hours logged vs estimated hours.
+  if (line.isFinal) {
+    return (line.finalCostAmount ?? 0) <= 0.005 ? 'Closed out · no cost' : 'Final cost locked';
+  }
+
   if (line.isLabor && line.hours != null && line.hours > 0) {
     const logged = loggedHours(line);
-    const costRate = line.plan / line.hours;
-    const used = logged > 0 ? logged : costRate > 0 ? line.actual / costRate : 0;
-    if (line.actual <= 0 && used <= 0) return `${fmtHours(line.hours)} hrs budgeted`;
-    const over = used - line.hours;
-    if (over > 0.05) return `${fmtHours(used)} of ${fmtHours(line.hours)} hrs · ${fmtHours(over)} over`;
-    return `${fmtHours(used)} of ${fmtHours(line.hours)} hrs · ${fmtHours(Math.max(0, -over))} to go`;
+    if (logged <= 0) {
+      return line.actual > 0.005
+        ? `0 of ${fmtHours(line.hours)} hrs logged · ${formatCurrency(line.actual)} allocated`
+        : `${fmtHours(line.hours)} hrs budgeted`;
+    }
+    const over = logged - line.hours;
+    if (over > 0.05) return `${fmtHours(logged)} of ${fmtHours(line.hours)} hrs · ${fmtHours(over)} over`;
+    return `${fmtHours(logged)} of ${fmtHours(line.hours)} hrs · ${fmtHours(Math.max(0, -over))} to go`;
   }
 
   switch (line.status) {
-    case 'overrun': {
-      const pct = line.plan > 0 ? Math.round((line.actual / line.plan) * 100) : null;
-      const noQuote = line.committed === 0 ? 'No quote · ' : '';
-      return pct != null ? `${noQuote}${pct}% of plan` : noQuote || null;
-    }
+    case 'billed':
+      return 'Billed in full';
     case 'in_progress': {
       const baseline = Math.max(line.committed, line.plan);
-      if (baseline > 0 && line.actual >= baseline - 0.005) return 'Billed in full';
       const pct = baseline > 0 ? Math.round((line.actual / baseline) * 100) : 0;
       const toGo = Math.max(0, baseline - line.actual);
       return `${pct}% billed · ${formatCurrency(toGo)} to go`;

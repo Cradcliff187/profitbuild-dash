@@ -57,7 +57,7 @@ export function CostLineDetail({
 
   const meta = lineDisplayStatus(line);
   const vendor = lineVendor(line);
-  const isOver = line.variance > 0.005;
+  const isOver = line.isOver;
   const remaining = Math.max(0, Math.max(line.committed, line.plan) - line.actual);
   const pctOfPlan = line.plan > 0 ? Math.round((line.actual / line.plan) * 100) : null;
   const invoices = useMemo(
@@ -147,17 +147,12 @@ export function CostLineDetail({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold truncate">{line.description}</h1>
-              {line.isFinal && (
-                <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-700 gap-1">
-                  <Lock className="h-3 w-3" /> Final
-                </Badge>
-              )}
-              {isOver ? (
+              {/* Stage pill always; the budget verdict is a separate badge (one axis each). */}
+              <span className={cn('rounded-full text-[11px] px-2 py-0.5 font-medium', meta.pill)}>{meta.label}</span>
+              {isOver && (
                 <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 gap-1">
                   <AlertTriangle className="h-3 w-3" /> Over budget
                 </Badge>
-              ) : (
-                <span className={cn('rounded-full text-[11px] px-2 py-0.5 font-medium', meta.pill)}>{meta.label}</span>
               )}
             </div>
             <div className="mt-0.5 text-sm text-muted-foreground">
