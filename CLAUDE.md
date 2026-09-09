@@ -999,6 +999,27 @@ hours would double-count against a budget that his bill already hits under `subc
 cushion to `is_time_entry = true`, and don't add a labor-providing-sub exception to the trigger's category
 guard.
 
+**A labor line's spend is split by HOW it got here — time entries vs. bills & receipts (Sep 9 2026).**
+The cost-line detail page (`CostLineDetail`, same component on phone and desktop) used to group EVERY
+correlated expense by payee under "Labor by employee": 225-136's Cleaning line listed **Amazon.com, Home
+Depot, Harbor Freight and Menards as employees at 0 hrs** beside Chris's $862.50 sub bill. Those rows are
+real and correctly allocated (the PM put a sub's bill + supplies on the internal-labor line because that is
+how the work actually got done — the same shape exists on 225-013/014/031/048/049), but they are not
+anyone's labor. `CostBucketCorrelatedExpense` now carries `isTimeEntry` (`expenses.is_time_entry`, the
+Gotcha #68 definition) and `category`, threaded from `useLineItemControl`'s two correlation selects.
+[`splitLaborSpend`](src/components/cost-tracking/efc/lineDisplay.ts) partitions a labor line into
+**`employees`** (time entries rolled up per person: hours + cost) and **`bills`** (everything else), and
+the detail page renders them as two sections — "Time logged" and "Bills & receipts on this line · $X" —
+with the Spent tile reading `N hrs logged · M bills`. The header cards on a labor line are **Crew / Hours**
+(no "Vendor", and no red "Quote status: None on file" — internal labor never has a quote). `lineVendor`
+on a labor line is the crew with logged time, never the payee on a bill. A labor-providing sub who logs
+time (hours at $0) renders in Time logged with a **Sub** badge and a note that their cost arrives on
+their bill — the trigger keeps such entries off labor lines today, but a manual allocation must read as
+hours-with-no-cost, not free labor. `lineSubtitle` names both when they diverge (`10 of 26.7 hrs · 16.7
+to go · $300.00 in bills`). Pinned by `lineDisplay.test.ts` on the exact 225-136 rows. **Don't** merge the
+two sections back into one payee rollup, and don't infer "labor" from the LINE's category — only
+`is_time_entry` says an expense is someone's time.
+
 **Retired in PR #99** (deleted): `LineItemControlDashboard` (1635 lines), `CostBucketSummaryStrip`,
 `CostBucketView`, `BucketHeaderRow`, `BucketEmptyState`. Net −2,095 lines.
 
