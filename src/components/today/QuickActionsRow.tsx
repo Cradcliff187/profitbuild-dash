@@ -12,8 +12,8 @@
  *   originally "Time clock" (→ /time-tracker) — removed Jul 2026 per Chris:
  *   it duplicated the Time tab directly below it. The timer has since lost
  *   its visible affordances entirely under v2 (usage data: 355/356 entries
- *   were manual — see Rule 35); /time-tracker/timer remains an unlisted
- *   escape hatch. The project view is the critical destination on mobile.
+ *   were manual — see Rule 35) and was retired app-wide Sep 9 2026 (Gotcha
+ *   #79). The project view is the critical destination on mobile.
  *
  * Gotcha #27: the in-place dialogs WRITE (expenses / receipts), so their
  * success callbacks invalidate the ThisWeekStrip query keys.

@@ -22,7 +22,7 @@ interface Recipient {
 
 const LINK_TYPES = [
   { value: 'none', label: 'No Link' },
-  { value: 'clock_in', label: 'Clock In Page', preview: '/time-tracker' },
+  { value: 'clock_in', label: 'Time Tracker', preview: '/time-tracker' },
   { value: 'timesheet', label: 'Timesheet History', preview: '/time-tracker?view=history' },
   { value: 'receipt', label: 'Capture Receipt', preview: '/receipts/capture' },
   { value: 'dashboard', label: 'Dashboard', preview: '/' },

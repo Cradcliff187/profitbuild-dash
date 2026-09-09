@@ -53,7 +53,7 @@ interface Recipient {
 
 const LINK_TYPES = [
   { value: 'none', label: 'No Link' },
-  { value: 'clock_in', label: 'Clock In Page' },
+  { value: 'clock_in', label: 'Time Tracker' },
   { value: 'timesheet', label: 'Timesheet History' },
   { value: 'receipt', label: 'Capture Receipt' },
   { value: 'dashboard', label: 'Dashboard' },

@@ -191,30 +191,18 @@ per-user overrides via `/settings/feature-flags`; OFF globally until dogfooding 
 
 The field worker experience is optimized for mobile devices (PWA with Capacitor):
 
-> **Timer status under `field_worker_v2` (Jul 15, 2026):** usage analysis showed 355 of 356 time
-> entries in the prior 90 days were manual-form entries (live clock-in used once), so the v2
-> experience is **entry-first** and exposes no clock-in/out affordance. The flow below remains
-> the live behavior for flag-off users, and `/time-tracker/timer` survives as an unlisted
-> escape hatch during rollout.
-
-#### Clock In/Out Flow
-1. **Select Worker**: Choose from internal labor team members
-2. **Select Project**: Mobile-optimized project picker (construction only)
-3. **Clock In**: Start timer with automatic time capture
-4. **Clock Out**: Stop timer with lunch prompt option
-
-#### Lunch Period Tracking
-- **Lunch Prompt**: On clock-out, asks if lunch was taken
-- **Duration Options**: 15, 30, 45, 60, 90, 120 minutes
-- **Net Hours Calculation**: Automatically calculates worked hours minus lunch
-- **Display**: Shows 🍴 indicator on entries with lunch taken
+> **The live timer is retired (Sep 9, 2026).** Usage analysis (Jul 2026) showed 355 of 356
+> time entries in the prior 90 days were manual-form entries; live clock-in was used once. The
+> v2 field experience shipped entry-first with no clock-in/out affordance, and on Sep 9 the
+> legacy Timer tab and the `/time-tracker/timer` escape hatch were removed for every role. Time
+> is entered through the manual form (project, start/end time, lunch). Timer rows left open
+> before the retirement are closed by an admin from Role Management → Active Timers.
 
 #### Time Entry Features
-- **Manual Entry**: Create time entries without clocking in
+- **Manual Entry**: Project, start/end time, lunch taken + duration; paid hours computed from the shift minus lunch
 - **Edit Capability**: Modify existing entries (with overlap detection)
 - **Weekly View**: Grid-style timesheet overview
-- **Offline Support**: Clock in/out works offline, syncs when connected
-- **Receipt Prompt**: After clock-out, option to add a receipt
+- **Offline Support**: Edits queue offline and sync when connected
 
 ### Receipt Capture
 

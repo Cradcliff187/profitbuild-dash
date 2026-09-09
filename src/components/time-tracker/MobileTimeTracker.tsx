@@ -1,19 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee, CheckSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, Edit2, Calendar, AlertTriangle, Camera, BarChart3, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { getCompanyBranding } from '@/utils/companyBranding';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { checkTimeOverlap, validateTimeEntryHours, checkStaleTimer } from '@/utils/timeEntryValidation';
-import { calculateTimeEntryHours, calculateTimeEntryAmount, DEFAULT_LUNCH_DURATION } from '@/utils/timeEntryCalculations';
-import { LunchToggle } from './LunchToggle';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BrandedLoader } from '@/components/ui/branded-loader';
-import { AddReceiptModal } from './AddReceiptModal';
 import { WeekView } from './WeekView';
 import { EditTimeEntryDialog } from './EditTimeEntryDialog';
 import { CreateTimeEntryDialog } from './CreateTimeEntryDialog';
@@ -21,24 +15,10 @@ import { BulkActionsBar } from './BulkActionsBar';
 import { SyncStatusBanner } from './SyncStatusBanner';
 import { ReceiptsList } from './ReceiptsList';
 import { ProjectScheduleSelector } from './ProjectScheduleSelector';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/AuthContext';
-import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { overlapConfirmOptions } from '@/components/time-entry-form/overlapConfirm';
 import { getProjectCategoryOrFilter, isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { useRoles } from '@/contexts/RoleContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { addToQueue } from '@/utils/syncQueue';
-import { ProjectCategory } from '@/types/project';
 import { isPTOProject } from '@/utils/timeEntries';
 
 interface Project {
@@ -77,68 +57,40 @@ interface TimeEntry {
   gross_hours?: number;
 }
 
-interface ActiveTimer {
-  teamMember: TeamMember;
-  project: Project;
-  startTime: Date;
-  location?: { lat: number; lng: number; address: string };
-}
-
-interface MobileTimeTrackerProps {
-  /**
-   * PR 3 (field_worker_v2): the demoted /time-tracker/timer surface is
-   * single-purpose — Entries live on FieldTimeLanding and Receipts on
-   * /receipts, so the tab strip would duplicate both one level deep.
-   * Default false: admins and flag-off users keep the tabbed experience
-   * unchanged (additive prop per the audit's shared-contract rule R3).
-   */
-  timerOnly?: boolean;
-}
-
-export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly = false }) => {
+/**
+ * /time-tracker for admins, managers, and flag-off field workers: Entries +
+ * Receipts. (Field-only users with field_worker_v2 ON get FieldTimeLanding.)
+ *
+ * The LIVE TIMER (clock in / clock out) was retired Sep 9 2026. It was used
+ * once in the 90 days before the v2 rollout (355/356 entries were manual
+ * quarter-hour values), it could not close its own >24h timers, and it left
+ * a 145-hour open row that Role Management could not see (Gotcha #79). Time
+ * is entered through the manual form. Rows that were already open when the
+ * timer was retired are closed by an admin from Role Management → Active
+ * Timers. Don't bring the timer back without new usage evidence (Rule 35).
+ *
+ * Auth-loop discipline (Gotchas #53-56/#63): no realtime, no auth.getUser()
+ * on this path; today's entries reload on mount and on explicit actions.
+ */
+export const MobileTimeTracker: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { isAdmin, isManager } = useRoles();
   const { isOnline } = useOnlineStatus();
-  const { confirm, dialog: confirmDialog } = useConfirmDialog();
-  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
-  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todayEntries, setTodayEntries] = useState<TimeEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [showProjectSelect, setShowProjectSelect] = useState(false);
-  const [showWorkerSelect, setShowWorkerSelect] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [view, setView] = useState<'timer' | 'entries' | 'receipts'>('timer');
+  const [view, setView] = useState<'entries' | 'receipts'>('entries');
   const [entriesDateRange, setEntriesDateRange] = useState<'today' | 'week'>('today');
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [showReceiptPrompt, setShowReceiptPrompt] = useState(false);
-  const [pendingReceiptExpenseId, setPendingReceiptExpenseId] = useState<string | null>(null);
-  const [pendingReceiptProjectId, setPendingReceiptProjectId] = useState<string | null>(null);
-  const [showDuplicateTimerAlert, setShowDuplicateTimerAlert] = useState(false);
-  const [existingTimerInfo, setExistingTimerInfo] = useState<any>(null);
-  const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
-  const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
-  const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
-  // Timer ids we've already warned about this session. loadActiveTimers runs on
-  // mount AND every return-to-foreground; without this every wake re-toasted.
-  const staleToastShownRef = useRef<Set<string>>(new Set());
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
-  const [showLunchPrompt, setShowLunchPrompt] = useState(false);
-  const [lunchTaken, setLunchTaken] = useState(false);
-  const [lunchDuration, setLunchDuration] = useState(DEFAULT_LUNCH_DURATION);
 
   // Apply URL parameters to set initial view
   useEffect(() => {
-    if (timerOnly) return; // single-purpose timer surface ignores ?tab=
     const tabParam = searchParams.get('tab');
 
     if (tabParam === 'receipts') {
@@ -160,192 +112,21 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       });
     }
     // Note: status filtering for receipts is handled by ReceiptsList component
-  }, [searchParams, timerOnly]);
+  }, [searchParams]);
 
-  // Prevent body scroll when custom dropdowns are open
-  useEffect(() => {
-    if (showWorkerSelect || showProjectSelect) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [showWorkerSelect, showProjectSelect]);
-
-  // Load active timers to show who's currently clocked in
-  const loadActiveTimers = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('payee_id, id, start_time, project_id, payees(id, payee_name, hourly_rate, email, is_internal, provides_labor, user_id), projects(id, project_name, project_number, client_name, address)')
-        .not('start_time', 'is', null)
-        .is('end_time', null);
-
-      if (error) throw error;
-
-      const activePayeeIds = new Set(data?.map(e => e.payee_id) || []);
-      setActiveTimerPayeeIds(activePayeeIds);
-
-      // Find the current user's active timer
-      const myTimer = data?.find(timer => 
-        timer.payees?.user_id === user?.id
-      );
-
-      if (myTimer && myTimer.start_time) {
-        const staleCheck = checkStaleTimer(new Date(myTimer.start_time));
-
-        // Restore the timer to the UI regardless of age. There is deliberately
-        // NO client-side auto-close here any more: the old branch called
-        // completeClockOut() against a not-yet-updated `activeTimer` closure
-        // (a no-op), then toasted "Timer Auto-Closed" unconditionally — so a
-        // 145-hour timer stayed open in the DB while the user was told it was
-        // closed, on every mount and every return-to-foreground. Even with
-        // fresh state, completeClockOut refuses anything over 24h (the hard
-        // cap in validateTimeEntryHours). A >24h timer is closed by an admin
-        // from Role Management → Active Timers with a corrected end time.
-        const teamMember = {
-          id: myTimer.payee_id,
-          payee_name: myTimer.payees?.payee_name || 'Unknown',
-          hourly_rate: myTimer.payees?.hourly_rate || 75,
-          email: myTimer.payees?.email,
-          is_internal: myTimer.payees?.is_internal || false,
-          provides_labor: myTimer.payees?.provides_labor || false,
-          user_id: myTimer.payees?.user_id
-        };
-        const project = {
-          id: myTimer.project_id,
-          project_name: myTimer.projects?.project_name || 'Unknown',
-          project_number: myTimer.projects?.project_number || 'UNKNOWN',
-          client_name: myTimer.projects?.client_name || '',
-          address: myTimer.projects?.address
-        };
-
-        setActiveTimer({ teamMember, project, startTime: new Date(myTimer.start_time), location: undefined });
-        setSelectedTeamMember(teamMember);
-        setSelectedProject(project);
-
-        if (staleCheck.isStale) {
-          setShowStaleTimerWarning(true);
-          if (!staleToastShownRef.current.has(myTimer.id)) {
-            staleToastShownRef.current.add(myTimer.id);
-            if (staleCheck.shouldAutoClose) {
-              toast.error('Timer over 24 hours', {
-                description: `This timer has run ${staleCheck.hoursElapsed.toFixed(1)} hours and can't be clocked out from here. An admin can close it with the correct end time from Role Management → Active Timers.`,
-                duration: 15000,
-              });
-            } else {
-              toast.error('Long Running Timer', { description: staleCheck.message, duration: 10000 });
-            }
-          }
-        } else {
-          setShowStaleTimerWarning(false);
-        }
-      }
-
-      // Alert admins/managers about other users' stale timers
-      if ((isAdmin || isManager) && data && data.length > 0) {
-        for (const timer of data) {
-          if (timer.payees?.user_id !== user?.id && timer.start_time) {
-            const staleCheck = checkStaleTimer(new Date(timer.start_time));
-            if (staleCheck.shouldAutoClose && !staleToastShownRef.current.has(timer.id)) {
-              staleToastShownRef.current.add(timer.id);
-              toast.error('Stale Timer Alert', { description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Close it from Role Management → Active Timers.`, duration: 15000 });
-            }
-          }
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error loading active timers:', error);
-    }
-  }, [user, isAdmin, isManager]);
-
-
-  // Refresh timer when app returns to foreground (iOS background handling)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // App just came back to foreground
-        setCurrentTime(new Date());
-        
-        // If there's an active timer, reload from database to ensure accuracy
-        if (activeTimer) {
-          loadActiveTimers();
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [activeTimer, loadActiveTimers]);
-
-
-  // Load projects and workers on mount
+  // Load projects (for the Job FAB) and today's entries on mount
   useEffect(() => {
     if (user) {
       loadInitialData();
       loadTodayEntries();
-      loadActiveTimers();
     }
   }, [user]);
 
-  // Update current time every second
+  // Update current time every second (status row clock)
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
-
-  // Restore active timer from localStorage on mount — but ONLY when the
-  // cached timer belongs to the current user. Without this ownership check,
-  // a shared device that previously had User A signed in (with a running
-  // timer) carries A's cached timer into User B's session on the next
-  // sign-in. B's Time Tracker would then restore A's timer and lock the
-  // Team Member field to A's name, greyed out (Gotcha #67 — Danny seeing
-  // Chris on a shared tablet). AuthContext also clears the key on
-  // SIGNED_OUT now, but this guard is defense-in-depth that also covers any
-  // pre-existing stale cache from before that cleanup shipped.
-  useEffect(() => {
-    if (!user) return;
-    const savedTimer = localStorage.getItem('activeTimer');
-    if (!savedTimer) return;
-    try {
-      const parsed = JSON.parse(savedTimer);
-
-      // Ownership check — drop the cached timer if it belongs to a
-      // different user.
-      if (parsed.teamMember?.user_id !== user.id) {
-        localStorage.removeItem('activeTimer');
-        return;
-      }
-
-      // Sanitize: clear projects that no longer pass the visibility predicate
-      // (e.g. category changed to system, or sandbox toggle was flipped off
-      // while a SYS-TEST timer was cached).
-      if (parsed.project && !isProjectVisibleByCategory(parsed.project)) {
-        parsed.project = null;
-      }
-
-      setActiveTimer({
-        ...parsed,
-        startTime: new Date(parsed.startTime)
-      });
-      setSelectedTeamMember(parsed.teamMember);
-      setSelectedProject(parsed.project);
-      setLocation(parsed.location);
-    } catch (error) {
-      console.error('Failed to restore timer:', error);
-      localStorage.removeItem('activeTimer');
-    }
-  }, [user]);
-
-  // Save timer state to localStorage whenever it changes
-  useEffect(() => {
-    if (activeTimer) {
-      localStorage.setItem('activeTimer', JSON.stringify(activeTimer));
-    } else {
-      localStorage.removeItem('activeTimer');
-    }
-  }, [activeTimer]);
 
   const loadInitialData = async () => {
     setDataLoading(true);
@@ -374,39 +155,9 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       );
       setProjects(cleanedProjects);
 
-      // Load labor-providing team members linked to a user.
-      // Includes both internal employees (is_internal=true) and linked
-      // subcontractor labor providers (is_internal=false, payee_type='subcontractor',
-      // provides_labor=true). The .not('user_id','is',null) filter excludes
-      // orphan/unlinked payees that no real user owns.
-      const { data: teamMembersData, error: teamMembersError } = await supabase
-        .from('payees')
-        .select('id, payee_name, hourly_rate, email, is_internal, payee_type, user_id')
-        .eq('provides_labor', true)
-        .eq('is_active', true)
-        .not('user_id', 'is', null)
-        .order('payee_name');
-
-      if (teamMembersError) throw teamMembersError;
-      setTeamMembers(teamMembersData || []);
-
-      // Auto-select current user if they're a team member
-      if (user?.email && teamMembersData && teamMembersData.length > 0) {
-        const currentUserPayee = teamMembersData.find(
-          member => member.email?.toLowerCase() === user.email?.toLowerCase()
-        );
-        
-        if (currentUserPayee && !activeTimer) {
-          setSelectedTeamMember({
-            id: currentUserPayee.id,
-            payee_name: currentUserPayee.payee_name,
-            hourly_rate: currentUserPayee.hourly_rate
-          });
-        }
-      }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Error Loading Data', { description: 'Failed to load projects and team members' });
+      toast.error('Error Loading Data', { description: 'Failed to load projects' });
     } finally {
       setDataLoading(false);
     }
@@ -425,11 +176,9 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
   // _getAccessToken → __loadSession can still refresh in the expiry-margin
   // window. See Gotcha #53.
   //
-  // Today's entries + active timers now refresh on:
-  //   - mount (via the useEffect above)
-  //   - visibility change (existing handleVisibilityChange listener)
-  //   - explicit user actions (clock in/out, edit, delete reload locally)
-  // Same trade-off PR #67 made for Dashboard pending approvals.
+  // Today's entries refresh on mount and on explicit user actions (create,
+  // edit, delete reload locally). Same trade-off PR #67 made for Dashboard
+  // pending approvals.
 
   const loadTodayEntries = async () => {
     try {
@@ -564,436 +313,9 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       }) || [];
 
       setTodayEntries(entries);
-      await loadActiveTimers();
     } catch (error) {
       console.error('Error loading today entries:', error);
     }
-  };
-
-  const captureLocation = async () => {
-    try {
-      if (!navigator.geolocation) {
-        toast.error('Location not available', { description: 'GPS is not supported on this device' });
-        return null;
-      }
-      
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          (error) => {
-            // Handle specific error codes with user-friendly messages
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                toast.error('Location Permission Denied', { description: 'Enable location services in your device settings to track work sites' });
-                break;
-              case error.POSITION_UNAVAILABLE:
-                toast.warning('Location Unavailable', { description: 'Unable to determine your position. GPS may be unavailable.' });
-                break;
-              case error.TIMEOUT:
-                toast.warning('Location Timeout', { description: 'Location request took too long. Please try again.' });
-                break;
-              default:
-                toast.error('Failed to get location', { description: 'An unknown error occurred while accessing GPS' });
-            }
-            reject(error);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          }
-        );
-      });
-      
-      const loc = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        address: 'Location captured'
-      };
-      
-      setLocation(loc);
-      return loc;
-    } catch (error) {
-      console.error('Error getting location:', error);
-      return null;
-    }
-  };
-
-  const getElapsedTime = () => {
-    if (!activeTimer) return '00:00:00';
-    const diff = Math.floor((currentTime.getTime() - activeTimer.startTime.getTime()) / 1000);
-    const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
-    const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-    const seconds = (diff % 60).toString().padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-  };
-
-  const checkForDuplicateTimer = async (): Promise<boolean> => {
-    if (!selectedTeamMember || !isOnline) return false;
-
-    try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*, projects(project_name, project_number)')
-        .eq('payee_id', selectedTeamMember.id)
-        .not('start_time', 'is', null)
-        .is('end_time', null)
-        .order('start_time', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setExistingTimerInfo(data);
-        setShowDuplicateTimerAlert(true);
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error checking for duplicate timer:', error);
-      return false;
-    }
-  };
-
-  const handleClockIn = async () => {
-    if (!selectedTeamMember || !selectedProject) {
-      toast.error('Missing Information', { description: 'Please select team member and project first' });
-      return;
-    }
-
-    // Check for duplicate active timer
-    const hasDuplicate = await checkForDuplicateTimer();
-    if (hasDuplicate) {
-      return; // Alert dialog will handle next steps
-    }
-
-    await proceedWithClockIn();
-  };
-
-  const proceedWithClockIn = async () => {
-    if (!selectedTeamMember || !selectedProject) return;
-
-    setLoading(true);
-    try {
-      // Capture location only if online
-      const loc = isOnline ? await captureLocation() : { lat: 0, lng: 0, address: 'Offline - no location' };
-      
-      const startTime = new Date();
-      const timerData = {
-        teamMember: selectedTeamMember,
-        project: selectedProject,
-        startTime: startTime,
-        location: loc || undefined
-      };
-
-      if (isOnline) {
-        // Create database entry immediately when clocking in
-        const { error } = await supabase
-          .from('expenses')
-          .insert({
-            project_id: selectedProject.id,
-            payee_id: selectedTeamMember.id,
-            category: 'labor_internal' as const,
-            transaction_type: 'expense' as const,
-            amount: 0, // Will be calculated on clock-out
-            expense_date: format(startTime, 'yyyy-MM-dd'),
-            description: 'Active timer',
-            is_planned: false,
-            approval_status: 'pending',
-            user_id: user?.id,
-            start_time: startTime.toISOString(),
-            end_time: null // NULL indicates active timer
-          });
-        
-        if (error) {
-          console.error('Error creating timer in database:', error);
-          throw error;
-        }
-      } else {
-        // Queue for sync if offline
-        await addToQueue({
-          type: 'clock_in',
-          payload: timerData,
-          timestamp: Date.now()
-        });
-      }
-
-      // Only reflect a running timer once the entry persisted (online) or was
-      // durably queued (offline). Setting it before the insert left a phantom
-      // timer card — and a phantom localStorage['activeTimer'] via the
-      // persistence effect — whenever the insert failed.
-      setActiveTimer(timerData);
-
-      toast.success(`Timer started for ${selectedTeamMember.payee_name}${!isOnline ? ' (offline)' : ''}`);
-
-      // Refresh active timers list
-      await loadActiveTimers();
-    } catch (error) {
-      console.error('Error clocking in:', error);
-      toast.error('Clock In Failed', { description: 'Failed to start timer' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReceiptFromClockOut = async (receiptId: string) => {
-    setShowReceiptModal(false);
-    
-    // Link the receipt to the expense
-    if (pendingReceiptExpenseId) {
-      try {
-        const { error } = await supabase
-          .from('expenses')
-          .update({ receipt_id: receiptId })
-          .eq('id', pendingReceiptExpenseId);
-
-        if (error) throw error;
-
-        toast.success('Receipt attached to time entry');
-
-        await loadTodayEntries();
-      } catch (error) {
-        console.error('Error linking receipt:', error);
-        toast.error('Receipt Link Failed', { description: 'Receipt saved but failed to link to time entry' });
-      }
-    }
-    
-    setPendingReceiptExpenseId(null);
-  };
-
-  const completeClockOut = async (
-    lunchTaken: boolean = false,
-    lunchDurationMinutes: number = DEFAULT_LUNCH_DURATION
-  ): Promise<string | null> => {
-    if (!activeTimer) return null;
-
-    setLoading(true);
-    try {
-      const endTime = new Date();
-      
-      // Calculate hours with lunch adjustment
-      const { grossHours, netHours } = calculateTimeEntryHours(
-        activeTimer.startTime,
-        endTime,
-        lunchTaken,
-        lunchDurationMinutes
-      );
-
-      // Validate paid hours are reasonable
-      if (netHours <= 0) {
-        toast.error('Lunch duration cannot exceed shift duration');
-        setLoading(false);
-        return null;
-      }
-
-      // Validate hours are reasonable
-      const hoursValidation = validateTimeEntryHours(activeTimer.startTime, endTime);
-      if (!hoursValidation.valid) {
-        toast.error(hoursValidation.message);
-        setLoading(false);
-        return null;
-      }
-
-      // Check for overlaps when online
-      if (isOnline) {
-        const overlapCheck = await checkTimeOverlap(
-          activeTimer.teamMember.id,
-          format(activeTimer.startTime, 'yyyy-MM-dd'),
-          activeTimer.startTime,
-          endTime,
-          undefined
-        );
-
-        if (overlapCheck.hasOverlap) {
-          // completeClockOut returns expenseId | null, NOT the wrappers'
-          // Promise<boolean> contract (Gotcha #71) — cancel stays return null.
-          const proceed = await confirm(
-            overlapConfirmOptions(
-              overlapCheck,
-              'This entry overlaps with existing time entries. Continue anyway?'
-            )
-          );
-          if (!proceed) {
-            setLoading(false);
-            return null;
-          }
-        }
-      }
-
-      const amount = calculateTimeEntryAmount(netHours, activeTimer.teamMember.hourly_rate);
-
-      // SAFETY CHECK: Verify this is the user's own timer
-      if (activeTimer.teamMember.user_id && activeTimer.teamMember.user_id !== user?.id) {
-        console.error('Timer ownership mismatch:', {
-          timer_owner: activeTimer.teamMember.user_id,
-          current_user: user?.id,
-          payee_name: activeTimer.teamMember.payee_name
-        });
-        
-        toast.error('Cannot Close Timer', { description: 'This timer belongs to another user. Only the timer owner can clock out.' });
-        
-        setLoading(false);
-        return null;
-      }
-      
-      const expenseData = {
-        project_id: activeTimer.project.id,
-        payee_id: activeTimer.teamMember.id,
-        category: 'labor_internal' as const,
-        transaction_type: 'expense' as const,
-        amount: amount,
-        expense_date: format(activeTimer.startTime, 'yyyy-MM-dd'),
-        description: '',
-        is_planned: false,
-        created_offline: !isOnline,
-        approval_status: 'pending',
-        user_id: user?.id,
-        updated_by: user?.id,
-        start_time: activeTimer.startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        lunch_taken: lunchTaken,
-        lunch_duration_minutes: lunchTaken ? lunchDurationMinutes : null,
-      };
-
-      if (isOnline) {
-        // Find the existing timer entry in the database
-        const { data: existingTimer, error: findError } = await supabase
-          .from('expenses')
-          .select('id')
-          .eq('payee_id', activeTimer.teamMember.id)
-          .not('start_time', 'is', null)
-          .is('end_time', null)
-          .eq('start_time', activeTimer.startTime.toISOString())
-          .maybeSingle();
-
-        if (findError) throw findError;
-
-        let expenseId: string;
-
-        if (existingTimer) {
-          // Update the existing timer entry
-          const { data, error } = await supabase
-            .from('expenses')
-            .update({
-              end_time: endTime.toISOString(),
-              amount: amount,
-              updated_by: user?.id,
-              updated_at: new Date().toISOString(),
-              lunch_taken: lunchTaken,
-              lunch_duration_minutes: lunchTaken ? lunchDurationMinutes : null,
-            })
-            .eq('id', existingTimer.id)
-            .select()
-            .single();
-
-          if (error) throw error;
-          expenseId = data.id;
-        } else {
-          // Fallback: Create new entry if timer wasn't found (shouldn't happen with new code)
-          const { data, error } = await supabase
-            .from('expenses')
-            .insert(expenseData)
-            .select()
-            .single();
-
-          if (error) throw error;
-          expenseId = data.id;
-        }
-
-        toast.success(lunchTaken
-            ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch)`
-            : `Saved ${netHours.toFixed(2)} hours`);
-
-        await loadTodayEntries();
-        await loadActiveTimers();
-        setActiveTimer(null);
-        setLocation(null);
-
-        return expenseId;
-      } else {
-        // Queue for later sync
-        const localId = crypto.randomUUID();
-        await addToQueue({
-          type: 'clock_out',
-          payload: { ...expenseData, local_id: localId },
-          timestamp: Date.now()
-        });
-
-        // Add to local today entries immediately (optimistic UI)
-        const localEntry = {
-          id: localId,
-          teamMember: activeTimer.teamMember,
-          project: activeTimer.project,
-          hours: netHours,
-          startTime: activeTimer.startTime,
-          endTime: endTime
-        };
-        setTodayEntries(prev => [localEntry, ...prev]);
-
-        toast.success(lunchTaken
-            ? `Saved ${netHours.toFixed(2)} hours (${lunchDurationMinutes}min lunch) - will sync when online`
-            : `Saved ${netHours.toFixed(2)} hours - will sync when online`);
-
-        setActiveTimer(null);
-        setLocation(null);
-
-        return localId;
-      }
-    } catch (error: any) {
-      console.error('Error clocking out:', error);
-      const errorMessage = error?.message || '';
-      const isRlsError = errorMessage.toLowerCase().includes('row-level security') || 
-                         errorMessage.toLowerCase().includes('policy');
-      
-      toast.error('Clock Out Failed', { description: isRlsError
-          ? 'Your account is missing permission to save time entries. Please contact an administrator.'
-          : 'Failed to save time entry. Please try again.' });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClockOut = async () => {
-    // Step 1: Show lunch prompt instead of immediately clocking out
-    // DO NOT call completeClockOut here - that happens in confirmClockOut
-    setShowLunchPrompt(true);
-  };
-
-  const confirmClockOut = async () => {
-    setShowLunchPrompt(false);
-    
-    // Capture project before completing clock out (same as original)
-    const projectId = activeTimer?.project.id;
-    
-    // Pass lunch info to completeClockOut
-    const expenseId = await completeClockOut(lunchTaken, lunchDuration);
-    
-    // Reset lunch state for next entry
-    setLunchTaken(false);
-    setLunchDuration(DEFAULT_LUNCH_DURATION);
-    
-    // PRESERVE EXISTING RECEIPT FLOW - This code is unchanged from original
-    // The receipt prompt shows AFTER clock-out completes and lunch dialog closes
-    if (expenseId && isOnline && projectId) {
-      setPendingReceiptExpenseId(expenseId);
-      setPendingReceiptProjectId(projectId);
-      setShowReceiptPrompt(true);
-    }
-  };
-
-  const calculateNetHours = (): number => {
-    if (!activeTimer) return 0;
-    const endTime = new Date();
-    const { netHours } = calculateTimeEntryHours(
-      activeTimer.startTime,
-      endTime,
-      lunchTaken,
-      lunchDuration
-    );
-    return netHours;
   };
 
   const formatTime = (date: Date) => {
@@ -1006,20 +328,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
         <BrandedLoader message="Loading time tracker..." />
-      </div>
-    );
-  }
-
-  if (teamMembers.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4">
-        <Alert variant="destructive" className="mt-8">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Team Members Available</AlertTitle>
-          <AlertDescription>
-            No internal labor team members found. Please add team members in the Payees section with "Internal" and "Provides Labor" enabled.
-          </AlertDescription>
-        </Alert>
       </div>
     );
   }
@@ -1054,29 +362,9 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       </div>
 
       {/* Tab Navigation — canonical pill strip pattern (matches R2 unification
-          across the app). All tabs visible inline, active tab gets the
-          background+shadow treatment, badge counts can be added later. ~44px
-          tall vs the previous ~80px stacked-icon style.
-          Hidden under timerOnly (PR 3): the demoted timer surface is
-          single-purpose; Entries/Receipts live on their own v2 tabs. */}
-      {!timerOnly && (
+          across the app). Entries + Receipts; the Timer tab was retired Sep 2026. */}
       <div className="px-3 py-2 bg-card border-b border-border sticky top-0 z-10">
         <div role="tablist" className="flex items-center gap-1 bg-muted/40 rounded-xl p-1">
-          <button
-            role="tab"
-            aria-selected={view === 'timer'}
-            type="button"
-            onClick={() => setView('timer')}
-            className={cn(
-              "flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg transition-all min-h-[44px] whitespace-nowrap",
-              view === 'timer'
-                ? "bg-background shadow-sm text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Clock className="h-4 w-4 shrink-0" />
-            <span className="text-sm">Timer</span>
-          </button>
           <button
             role="tab"
             aria-selected={view === 'entries'}
@@ -1109,335 +397,7 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
           </button>
         </div>
       </div>
-      )}
 
-      {/* Stale Timer Warning Banner */}
-      {showStaleTimerWarning && activeTimer && (() => {
-        // Past the 24h hard cap, Clock Out cannot succeed (validateTimeEntryHours
-        // rejects it) — don't render a button that only errors (Gotcha #76).
-        // The admin path is the one that works: Role Management → Active Timers.
-        const overCap = checkStaleTimer(activeTimer.startTime).shouldAutoClose;
-        return (
-          <Alert variant="destructive" className="m-4 mb-0">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>{overCap ? 'Timer over 24 hours' : 'Long Running Timer'}</AlertTitle>
-            <AlertDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <span>
-                {overCap
-                  ? `Timer has been running for ${getElapsedTime()} — too long to clock out from here. An admin can close it with the correct end time from Role Management → Active Timers.`
-                  : `Timer has been running for ${getElapsedTime()}. Please clock out.`}
-              </span>
-              {overCap ? (
-                (isAdmin || isManager) && (
-                  <Button size="sm" variant="outline" onClick={() => navigate('/role-management')} className="w-full sm:w-auto">
-                    Open Active Timers
-                  </Button>
-                )
-              ) : (
-                <Button size="sm" variant="outline" onClick={() => handleClockOut()} className="w-full sm:w-auto">
-                  Clock Out Now
-                </Button>
-              )}
-            </AlertDescription>
-          </Alert>
-        );
-      })()}
-
-      {/* Timer View */}
-      {view === 'timer' && (
-        <div className="p-4 space-y-4">
-          {/* Active Timer — focal element when clocked in. Strong green
-              gradient (kept raw greens for high-saturation status presence;
-              the --success token is darker forest green which doesn't read
-              as "live timer"). Project info layout harmonized with the
-              picker tiles + slim list cards (mono project_number first,
-              then project_name, then client, then address). */}
-          {activeTimer && (
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-2xl p-5 shadow-xl">
-              {/* Status row — live pulse + CLOCKED IN pill, GPS chip on the
-                  right when location was captured */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inset-0 rounded-full bg-white opacity-75 animate-ping" />
-                    <span className="relative h-2 w-2 rounded-full bg-white" />
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-wider">Clocked in</span>
-                </div>
-                {activeTimer.location && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-medium uppercase tracking-wide">
-                    <MapPin className="w-3 h-3" />
-                    GPS
-                  </span>
-                )}
-              </div>
-
-              {/* Elapsed time — focal numeric. Tabular-nums prevents the
-                  digits from jittering as the timer ticks. */}
-              <div className="text-center py-5">
-                <div className="text-5xl font-mono font-bold tabular-nums tracking-tight mb-1">
-                  {getElapsedTime()}
-                </div>
-                <p className="text-xs text-white/80 uppercase tracking-wide">
-                  Started {formatTime(activeTimer.startTime)}
-                </p>
-              </div>
-
-              {/* Worker + project tile — same vertical layout as the picker
-                  tiles below so the data stays consistent across modes. */}
-              <div className="space-y-2.5 bg-white/10 rounded-xl p-3.5 backdrop-blur-sm border border-white/10">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <User className="w-4 h-4 shrink-0 opacity-80" />
-                  <span className="truncate">{activeTimer.teamMember.payee_name}</span>
-                </div>
-                <div className="border-t border-white/15 pt-2.5 space-y-0.5">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[11px] font-mono text-white/70 shrink-0">
-                      {activeTimer.project.project_number}
-                    </span>
-                    <span className="text-sm font-semibold truncate">
-                      {activeTimer.project.project_name}
-                    </span>
-                  </div>
-                  <div className="text-xs text-white/80 truncate">
-                    {activeTimer.project.client_name}
-                  </div>
-                  {activeTimer.project.address && (
-                    <div className="text-xs text-white/70 truncate">
-                      {activeTimer.project.address}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Team Member Selection — picker tile (TT-B). Removed the outer
-              card wrapper that nested the trigger inside another card; the
-              trigger button itself is now the elevated white surface. Label
-              is small uppercase muted, sits above the tile (industry-standard
-              field-label pattern). Active-indicator pill uses --success token
-              instead of raw green-500/green-600. */}
-          <div className="space-y-1.5 relative">
-            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-              <User className="w-3.5 h-3.5" />
-              Team Member
-            </label>
-            <button
-              onClick={() => {
-                setShowProjectSelect(false);
-                setShowWorkerSelect(!showWorkerSelect);
-              }}
-              disabled={activeTimer !== null}
-              className="w-full p-4 text-left bg-card rounded-xl border-2 border-border hover:border-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px]"
-            >
-              {selectedTeamMember ? (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold text-foreground truncate">{selectedTeamMember.payee_name}</div>
-                  {activeTimerPayeeIds.has(selectedTeamMember.id) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-success/10 text-success rounded-full shrink-0">
-                      <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
-                      Active
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="text-muted-foreground">Select team member...</div>
-              )}
-            </button>
-
-            {showWorkerSelect && !activeTimer && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowWorkerSelect(false)}
-                />
-                <div className="absolute left-0 right-0 top-full mt-2 border rounded-xl bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
-                  {teamMembers.map(member => (
-                    <button
-                      key={member.id}
-                      onClick={() => {
-                        setSelectedTeamMember(member);
-                        setShowWorkerSelect(false);
-                      }}
-                      className={cn(
-                        "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                        selectedTeamMember?.id === member.id
-                          ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-semibold truncate">{member.payee_name}</div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {activeTimerPayeeIds.has(member.id) && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-success/10 text-success rounded-full">
-                              <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
-                              Active
-                            </span>
-                          )}
-                          {selectedTeamMember?.id === member.id && (
-                            <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Project Selection — same picker tile pattern as Team Member.
-              Single elevated trigger button (no nested card). When a project
-              is selected, project# stays mono+muted (matches the slim list
-              card pattern from R3) while project_name is the focal element. */}
-          <div className="space-y-1.5 relative">
-            <label className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-              <MapPin className="w-3.5 h-3.5" />
-              Project
-            </label>
-            <button
-              onClick={() => {
-                setShowWorkerSelect(false);
-                setShowProjectSelect(!showProjectSelect);
-              }}
-              disabled={activeTimer !== null}
-              className="w-full p-4 text-left bg-card rounded-xl border-2 border-border hover:border-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px]"
-            >
-              {selectedProject ? (
-                <div className="space-y-0.5">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-mono text-muted-foreground shrink-0">
-                      {selectedProject.project_number}
-                    </span>
-                    <span className="text-sm font-semibold text-foreground truncate">
-                      {selectedProject.project_name}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">{selectedProject.client_name}</div>
-                  {selectedProject.address && (
-                    <div className="text-xs text-muted-foreground/70 truncate">{selectedProject.address}</div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-muted-foreground">Select project...</div>
-              )}
-            </button>
-
-            {showProjectSelect && !activeTimer && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowProjectSelect(false)}
-                />
-                <div className="absolute left-0 right-0 top-full mt-2 border rounded-xl bg-card shadow-lg z-50 max-h-64 overflow-y-auto">
-                  {projects.map(project => (
-                    <button
-                      key={project.id}
-                      onClick={() => {
-                        setSelectedProject(project);
-                        setShowProjectSelect(false);
-                      }}
-                      className={cn(
-                        "w-full p-4 text-left border-b last:border-b-0 transition-all min-h-[44px]",
-                        selectedProject?.id === project.id
-                          ? "bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-xs font-mono text-muted-foreground shrink-0">
-                              {project.project_number}
-                            </span>
-                            <span className="text-sm font-semibold truncate">
-                              {project.project_name}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">{project.client_name}</div>
-                          {project.address && (
-                            <div className="text-xs text-muted-foreground/70 truncate">{project.address}</div>
-                          )}
-                        </div>
-                        {selectedProject?.id === project.id && (
-                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Clock In/Out + Manual Entry — primary CTA gets a tighter gradient
-              with the design-system green. Manual entry secondary action
-              swapped from a dashed border (read as placeholder UI) to a solid
-              outline so it looks intentional rather than provisional. */}
-          <div className="pt-4 space-y-3">
-            {!activeTimer ? (
-              <button
-                onClick={handleClockIn}
-                disabled={!selectedTeamMember || !selectedProject || loading}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-5 rounded-2xl font-bold text-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide"
-              >
-                {loading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <Play className="w-6 h-6 fill-current" />
-                    CLOCK IN
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={handleClockOut}
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-5 rounded-2xl font-bold text-lg shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide"
-              >
-                {loading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <Square className="w-6 h-6 fill-current" />
-                    CLOCK OUT
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Manual Entry Button — secondary action. Solid outline (not
-                dashed) so it reads as intentional rather than placeholder UI.
-                Lower visual weight than the primary CTA above. */}
-            <button
-              onClick={() => setShowManualEntry(true)}
-              className="w-full bg-card border border-border hover:border-primary hover:bg-primary/5 text-foreground py-3.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
-            >
-              <Edit2 className="w-4 h-4 text-primary" />
-              Add Time Entry
-            </button>
-          </div>
-
-          {/* Today Summary Card */}
-          {todayEntries.length > 0 && (
-            <div className="bg-card rounded-xl shadow-sm p-4 border-l-4 border-primary">
-              <h3 className="font-semibold text-foreground mb-2">Today's Summary</h3>
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-2xl font-bold text-primary">{todayTotal.toFixed(1)} hrs</div>
-                  <div className="text-sm text-muted-foreground">{todayEntries.length} entries</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* Entries View - Combined Today/Week */}
       {view === 'entries' && (
         <div className="space-y-3">
           {/* Date Range Toggle */}
@@ -1494,13 +454,13 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
               {todayEntries.length === 0 ? (
                 <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl shadow-sm p-8 text-center border-2 border-dashed border-primary/20">
                   <Clock className="w-20 h-20 mx-auto text-primary mb-4" />
-                  <p className="text-foreground font-bold text-lg mb-2">Ready to Clock In?</p>
+                  <p className="text-foreground font-bold text-lg mb-2">No time logged today</p>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Select your name and project to start tracking time
+                    Add your hours for the day — project, start and end time, lunch.
                   </p>
-                  <Button onClick={() => setView('timer')} className="mt-2">
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Timer
+                  <Button onClick={() => setShowManualEntry(true)} className="mt-2">
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Add entry
                   </Button>
                 </div>
               ) : (
@@ -1620,112 +580,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         </div>
       )}
 
-      {/* Lunch Prompt Dialog */}
-      <AlertDialog open={showLunchPrompt} onOpenChange={setShowLunchPrompt}>
-        <AlertDialogContent className="max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Coffee className="w-5 h-5" />
-              Clock Out
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4">
-                <div className="text-sm text-foreground">
-                  {activeTimer && (
-                    <div className="bg-muted rounded-lg p-3 mb-4">
-                      <div className="text-lg font-bold text-primary">
-                        {getElapsedTime()} on site
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {activeTimer.project.project_number} - {activeTimer.project.client_name}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <LunchToggle
-                  lunchTaken={lunchTaken}
-                  onLunchTakenChange={setLunchTaken}
-                  lunchDuration={lunchDuration}
-                  onLunchDurationChange={setLunchDuration}
-                  compact={true}
-                />
-                
-                {lunchTaken && activeTimer && (
-                  <div className="bg-primary/10 rounded-lg p-3 text-sm">
-                    <div className="flex justify-between">
-                      <span>Shift duration:</span>
-                      <span>{getElapsedTime()}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Lunch:</span>
-                      <span>-{lunchDuration} min</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-primary border-t mt-2 pt-2">
-                      <span>Paid hours:</span>
-                      <span>{calculateNetHours().toFixed(2)} hrs</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmClockOut}
-              className="w-full sm:w-auto bg-red-500 hover:bg-red-600"
-            >
-              <Square className="w-4 h-4 mr-2" />
-              Clock Out
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Receipt Prompt Confirmation */}
-      <AlertDialog open={showReceiptPrompt} onOpenChange={setShowReceiptPrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Add Receipt?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Would you like to add a receipt for this time entry?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowReceiptPrompt(false);
-              setPendingReceiptExpenseId(null);
-              setPendingReceiptProjectId(null);
-            }}>
-              Skip
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              setShowReceiptPrompt(false);
-              setShowReceiptModal(true);
-            }}>
-              Add Receipt
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Receipt Capture Modal */}
-      <AddReceiptModal
-        open={showReceiptModal}
-        initialProjectId={pendingReceiptProjectId || undefined}
-        onClose={() => {
-          setShowReceiptModal(false);
-          setPendingReceiptExpenseId(null);
-          setPendingReceiptProjectId(null);
-        }}
-        onSuccess={(receipt) => {
-          handleReceiptFromClockOut(receipt.id);
-        }}
-      />
-
       {/* Edit Time Entry Dialog */}
       <EditTimeEntryDialog
         entry={editingEntry}
@@ -1753,51 +607,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         onClearSelection={() => setSelectedEntries([])}
         onRefresh={loadTodayEntries}
       />
-
-      {/* Duplicate Timer Alert */}
-      <AlertDialog open={showDuplicateTimerAlert} onOpenChange={setShowDuplicateTimerAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-              Active Timer Detected
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                <span className="font-medium text-foreground">{selectedTeamMember?.payee_name}</span> already has an active timer running
-                {existingTimerInfo?.projects && (
-                  <> on project <span className="font-medium text-foreground">{existingTimerInfo.projects.project_name}</span></>
-                )}.
-              </p>
-              {existingTimerInfo?.start_time && (
-                <p className="text-xs text-muted-foreground">
-                  Started: {format(new Date(existingTimerInfo.start_time), 'h:mm a')}
-                </p>
-              )}
-              <p className="text-sm">
-                Starting a new timer will leave the existing timer running. You should clock out of the existing timer first.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <AlertDialogCancel onClick={() => {
-              setShowDuplicateTimerAlert(false);
-              setExistingTimerInfo(null);
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowDuplicateTimerAlert(false);
-                setView('entries');
-                setExistingTimerInfo(null);
-              }}
-            >
-              View Active Timer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* FAB Buttons - Root level for proper z-index stacking */}
       {/* Job FAB - Always visible, bottom-left. Picks a project, then lands on
@@ -1839,8 +648,6 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
         onClose={() => setShowScheduleSelector(false)}
       />
 
-      {/* Clock-out overlap / shared confirm dialog */}
-      {confirmDialog}
     </div>
   );
 };
