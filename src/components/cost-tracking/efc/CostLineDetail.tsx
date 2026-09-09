@@ -14,7 +14,7 @@ import { EFCLine, EFCCategory, ProjectEFCResult } from '@/hooks/useProjectEFC';
 import { parseDateOnly } from '@/utils/dateUtils';
 import { isProjectVisibleByCategory } from '@/utils/sandboxPreferences';
 import { invalidateExpenseCaches } from '@/utils/expenseCaches';
-import { lineDisplayStatus, lineVendor, rollupByEmployee, fmtHours } from './lineDisplay';
+import { lineDisplayStatus, lineVendor, splitLaborSpend, fmtHours, LaborSpendBreakdown } from './lineDisplay';
 import { ProjectLineAllocationSheet } from './ProjectLineAllocationSheet';
 
 function KpiTile({ label, value, valueClass, sub, subClass }: {
@@ -64,7 +64,8 @@ export function CostLineDetail({
     () => [...line.correlatedExpenses].sort((a, b) => (b.expense_date ?? '').localeCompare(a.expense_date ?? '')),
     [line.correlatedExpenses],
   );
-  const employees = useMemo(() => (line.isLabor ? rollupByEmployee(line) : []), [line]);
+  // Labor lines: time entries (people, hours) vs. bills & receipts allocated here.
+  const labor = useMemo(() => (line.isLabor ? splitLaborSpend(line) : null), [line]);
 
   // Flags derived across the whole project (no extra query).
   const { isLargestOverrun, pctOfOverage, totalOverage } = useMemo(() => {
@@ -133,7 +134,14 @@ export function CostLineDetail({
   };
 
   const detailCount = invoices.length;
-  const detailTabLabel = line.isLabor ? `By employee (${employees.length})` : `Invoices & bills (${detailCount})`;
+  const detailTabLabel = labor
+    ? labor.bills.length > 0
+      ? `Time & bills (${labor.employees.length + labor.bills.length})`
+      : `Time logged (${labor.employees.length})`
+    : `Invoices & bills (${detailCount})`;
+  const spentSub = labor
+    ? `${fmtHours(labor.loggedHours)} hrs logged${labor.bills.length > 0 ? ` · ${labor.bills.length} ${labor.bills.length === 1 ? 'bill' : 'bills'}` : ''}`
+    : `${detailCount} ${detailCount === 1 ? 'invoice' : 'invoices'}`;
 
   return (
     <div className="space-y-4">
@@ -173,7 +181,7 @@ export function CostLineDetail({
         <KpiTile
           label="Spent"
           value={line.actual > 0 ? formatCurrency(line.actual) : '—'}
-          sub={`${detailCount} ${detailCount === 1 ? (line.isLabor ? 'entry' : 'invoice') : (line.isLabor ? 'entries' : 'invoices')}`}
+          sub={spentSub}
         />
         <KpiTile
           label="EFC"
@@ -310,24 +318,50 @@ export function CostLineDetail({
             </div>
           )}
 
-          {/* Contract & vendor */}
+          {/* Contract & vendor — a labor line has a crew and an hours budget, not a vendor and a quote */}
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Contract &amp; vendor</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+              {labor ? 'Crew & hours' : 'Contract & vendor'}
+            </div>
             <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
-              <InfoCard label="Vendor">
-                {vendor ? <span className="font-medium">{vendor}</span> : <span className="text-muted-foreground">—</span>}
-              </InfoCard>
-              <InfoCard label="Quote status">
-                {line.acceptedQuotes.length > 0 ? (
-                  <span>
-                    <span className="font-medium">{line.acceptedQuotes[0].payeeName}</span>
-                    {line.acceptedQuotes[0].quoteNumber ? <span className="text-muted-foreground"> · #{line.acceptedQuotes[0].quoteNumber}</span> : null}
-                    <span className="block text-xs text-muted-foreground">{formatCurrency(line.committed)} committed</span>
-                  </span>
-                ) : (
-                  <span className="text-red-600 font-medium">None on file</span>
-                )}
-              </InfoCard>
+              {labor ? (
+                <>
+                  <InfoCard label="Crew">
+                    {vendor ? <span className="font-medium">{vendor}</span> : <span className="text-muted-foreground">No time logged</span>}
+                  </InfoCard>
+                  <InfoCard label="Hours">
+                    {line.hours != null && line.hours > 0 ? (
+                      <span>
+                        <span className="font-medium">{fmtHours(labor.loggedHours)} of {fmtHours(line.hours)} hrs</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {labor.loggedHours > line.hours + 0.05
+                            ? `${fmtHours(labor.loggedHours - line.hours)} over budget`
+                            : `${fmtHours(Math.max(0, line.hours - labor.loggedHours))} to go`}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="font-medium">{fmtHours(labor.loggedHours)} hrs logged</span>
+                    )}
+                  </InfoCard>
+                </>
+              ) : (
+                <>
+                  <InfoCard label="Vendor">
+                    {vendor ? <span className="font-medium">{vendor}</span> : <span className="text-muted-foreground">—</span>}
+                  </InfoCard>
+                  <InfoCard label="Quote status">
+                    {line.acceptedQuotes.length > 0 ? (
+                      <span>
+                        <span className="font-medium">{line.acceptedQuotes[0].payeeName}</span>
+                        {line.acceptedQuotes[0].quoteNumber ? <span className="text-muted-foreground"> · #{line.acceptedQuotes[0].quoteNumber}</span> : null}
+                        <span className="block text-xs text-muted-foreground">{formatCurrency(line.committed)} committed</span>
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-medium">None on file</span>
+                    )}
+                  </InfoCard>
+                </>
+              )}
               <InfoCard label="Estimate line">
                 <span className="font-medium">{line.source === 'change_order' ? 'From change order' : 'Linked to estimate'}</span>
               </InfoCard>
@@ -338,17 +372,19 @@ export function CostLineDetail({
           </div>
 
           {/* Recent */}
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-              {line.isLabor ? 'Labor by employee' : 'Recent invoices'}
+          {labor ? (
+            <LaborDetail labor={labor} limit={5} />
+          ) : (
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Recent invoices</div>
+              <InvoiceList invoices={invoices.slice(0, 5)} />
             </div>
-            <DetailList line={line} invoices={invoices.slice(0, 5)} employees={employees} />
-          </div>
+          )}
         </TabsContent>
 
         {/* DETAIL (full list) */}
         <TabsContent value="detail" className="mt-3">
-          <DetailList line={line} invoices={invoices} employees={employees} />
+          {labor ? <LaborDetail labor={labor} /> : <InvoiceList invoices={invoices} />}
         </TabsContent>
       </Tabs>
 
@@ -365,32 +401,68 @@ export function CostLineDetail({
   );
 }
 
-function DetailList({
-  line,
-  invoices,
-  employees,
-}: {
-  line: EFCLine;
-  invoices: EFCLine['correlatedExpenses'];
-  employees: ReturnType<typeof rollupByEmployee>;
-}) {
-  if (line.isLabor) {
-    if (employees.length === 0) return <Empty>No labor logged yet</Empty>;
-    return (
-      <div className="rounded-lg border bg-card divide-y">
-        {employees.map((r) => (
-          <div key={r.payeeName} className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
-            <span className="truncate">
-              <span className="font-medium">{r.payeeName}</span>
-              <span className="text-muted-foreground"> · {fmtHours(r.hours)} hrs</span>
-            </span>
-            <span className="font-medium tabular-nums shrink-0">{formatCurrency(r.amount)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">{children}</div>;
+}
 
+/**
+ * A labor line's spend, split by how it got here (Rule 28):
+ *   Time logged      — time entries by person. Hours + the cost of those hours.
+ *   Bills & receipts — a sub's bill, supplies, a rental, allocated to this line
+ *                      through the normal expense process. Counted in Spent/EFC,
+ *                      never presented as someone's hours.
+ */
+function LaborDetail({ labor, limit }: { labor: LaborSpendBreakdown; limit?: number }) {
+  const employees = limit ? labor.employees.slice(0, limit) : labor.employees;
+  const bills = limit ? labor.bills.slice(0, limit) : labor.bills;
+  const billsTotal = labor.bills.reduce((s, e) => s + (e.amount ?? 0), 0);
+  const hasSubTime = labor.employees.some((r) => r.viaSubcontractor);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <SectionLabel>Time logged</SectionLabel>
+        {employees.length === 0 ? (
+          <Empty>No time logged yet</Empty>
+        ) : (
+          <div className="rounded-lg border bg-card divide-y">
+            {employees.map((r) => (
+              <div key={r.payeeName} className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                <span className="truncate">
+                  <span className="font-medium">{r.payeeName}</span>
+                  <span className="text-muted-foreground"> · {fmtHours(r.hours)} hrs</span>
+                  {r.viaSubcontractor && (
+                    <Badge variant="outline" className="ml-2 align-middle text-[10px] px-1.5 py-0 border-amber-300 bg-amber-50 text-amber-800">
+                      Sub
+                    </Badge>
+                  )}
+                </span>
+                <span className="font-medium tabular-nums shrink-0">{formatCurrency(r.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {hasSubTime && (
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Sub = a subcontractor who logs time. Their hours are informational; their cost comes in on their bill and is allocated like any other expense.
+          </p>
+        )}
+      </div>
+
+      {labor.bills.length > 0 && (
+        <div>
+          <SectionLabel>Bills &amp; receipts on this line · {formatCurrency(billsTotal)}</SectionLabel>
+          <InvoiceList invoices={bills} />
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Allocated to this labor line through expense allocation — a sub doing the work, supplies, a rental. Counts toward Spent and EFC; contributes no hours.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InvoiceList({ invoices }: { invoices: EFCLine['correlatedExpenses'] }) {
   if (invoices.length === 0) return <Empty>No invoices or bills yet</Empty>;
   return (
     <div className="rounded-lg border bg-card divide-y">

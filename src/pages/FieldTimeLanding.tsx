@@ -28,9 +28,9 @@
  * TIMER: this page intentionally has NO visible timer affordance (removed
  * Jul 15 2026 per Chris, backed by usage data: 355/356 time entries in the
  * prior 90 days were quarter-hour manual-form values; live clock-in was used
- * once). `/time-tracker/timer` still exists as an unlisted escape hatch
- * during rollout — delete the route too once v2 has been stable in the
- * field. The flag-off legacy timer is untouched.
+ * once). The live timer was retired app-wide Sep 9 2026 — the
+ * `/time-tracker/timer` escape hatch and the Timer tab on the legacy
+ * MobileTimeTracker are gone (Gotcha #79). Time is entered, never clocked.
  *
  * House rules — this is the field-worker post-login critical path, i.e. the
  * auth-loop danger zone (Gotchas #53/#54/#55/#56/#63):

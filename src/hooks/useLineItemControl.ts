@@ -328,6 +328,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                     description,
                     expense_date,
                     category,
+                    is_time_entry,
                     is_split,
                     payees (payee_name)
                   ),
@@ -371,6 +372,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
                       description,
                       expense_date,
                       category,
+                      is_time_entry,
                       is_split,
                       payees (payee_name)
                     )
@@ -547,6 +549,7 @@ export function useLineItemControl(projectId: string, project: Project): UseLine
               description: `${parentExpense?.description || 'Split'} (${corr.expense_splits.projects?.project_name || 'Unknown'})`,
               expense_date: parentExpense?.expense_date,
               category: parentExpense?.category,
+              is_time_entry: parentExpense?.is_time_entry ?? false,
               payees: parentExpense?.payees,
               is_split: true,
               split_id: corr.expense_split_id,

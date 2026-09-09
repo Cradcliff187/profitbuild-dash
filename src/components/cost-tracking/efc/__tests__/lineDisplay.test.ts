@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { deriveLineStatus, EFCLine } from '@/hooks/useProjectEFC';
-import { lineDisplayStatus, lineSubtitle } from '../lineDisplay';
+import { lineDisplayStatus, lineSubtitle, splitLaborSpend, lineVendor } from '../lineDisplay';
+import { CostBucketCorrelatedExpense } from '@/hooks/useProjectCostBuckets';
+
+/** A logged time entry (internal employee unless a category is given). */
+function time(payee: string, hours: number, amount: number, category = 'labor_internal'): CostBucketCorrelatedExpense {
+  return { id: `t-${payee}-${hours}`, expense_date: null, payee_name: payee, amount, hours, category, isTimeEntry: true };
+}
+/** A bill or receipt allocated to the line — never carries hours. */
+function bill(payee: string, amount: number, category = 'materials', date: string | null = null): CostBucketCorrelatedExpense {
+  return { id: `b-${payee}-${amount}`, expense_date: date, payee_name: payee, amount, hours: null, category, isTimeEntry: false };
+}
 
 /** Build an EFCLine the way useProjectEFC does, from the raw inputs. */
 function mk(over: Partial<EFCLine> & { plan: number; committed?: number; actual?: number }): EFCLine {
@@ -98,7 +108,7 @@ describe('lineSubtitle — never invents hours', () => {
   it('labor with real logged hours reports them', () => {
     const line = mk({
       plan: 2000, actual: 750, isLabor: true, hours: HRS,
-      correlatedExpenses: [{ id: 'a', expense_date: null, payee_name: 'Danny', amount: 750, hours: 10 }],
+      correlatedExpenses: [time('Danny', 10, 750)],
     });
     expect(lineSubtitle(line)).toBe('10 of 26.7 hrs · 16.7 to go');
   });
@@ -108,16 +118,23 @@ describe('lineSubtitle — never invents hours', () => {
     const line = mk({
       plan: 2000, actual: 1300.67, isLabor: true, hours: HRS,
       correlatedExpenses: [
-        { id: 'a', expense_date: null, payee_name: 'Chris Radcliff', amount: 862.5, hours: null },
-        { id: 'b', expense_date: null, payee_name: 'Home Depot', amount: 438.17, hours: null },
+        bill('Chris Radcliff', 862.5, 'subcontractors'),
+        bill('Home Depot', 438.17),
       ],
     });
-    expect(lineSubtitle(line)).toBe('0 of 26.7 hrs logged · $1,300.67 allocated');
+    expect(lineSubtitle(line)).toBe('0 of 26.7 hrs logged · $1,300.67 in bills & receipts');
+  });
+  it('labor with hours AND bills names both so the dollars are not read as the cost of the hours', () => {
+    const line = mk({
+      plan: 2000, actual: 1050, isLabor: true, hours: HRS,
+      correlatedExpenses: [time('Danny', 10, 750), bill('Chris Radcliff', 300, 'subcontractors')],
+    });
+    expect(lineSubtitle(line)).toBe('10 of 26.7 hrs · 16.7 to go · $300.00 in bills');
   });
   it('labor over its hours says over', () => {
     const line = mk({
       plan: 2000, actual: 2250, isLabor: true, hours: HRS,
-      correlatedExpenses: [{ id: 'a', expense_date: null, payee_name: 'Danny', amount: 2250, hours: 30 }],
+      correlatedExpenses: [time('Danny', 30, 2250)],
     });
     expect(lineSubtitle(line)).toBe('30 of 26.7 hrs · 3.3 over');
   });
@@ -126,5 +143,80 @@ describe('lineSubtitle — never invents hours', () => {
   });
   it('non-labor partially billed', () => {
     expect(lineSubtitle(mk({ plan: 12500, committed: 9234, actual: 4617 }))).toBe('37% billed · $7,883.00 to go');
+  });
+});
+
+describe('splitLaborSpend — a receipt is never an employee', () => {
+  // 225-136 LABOR › Cleaning, exactly as allocated in production (Sep 2026):
+  // seven materials receipts + one bill from Chris (a labor-providing sub),
+  // zero time entries. The detail page listed Amazon.com, Home Depot, Harbor
+  // Freight and Menards under "Labor by employee · 0 hrs".
+  const cleaning = mk({
+    plan: 2000, actual: 1300.67, isLabor: true, hours: 26.66667,
+    correlatedExpenses: [
+      bill('Amazon.com', 63.22, 'materials', '2026-08-17'),
+      bill('Home Depot', 175.12, 'materials', '2026-08-17'),
+      bill('Menards', 31.33, 'materials', '2026-08-18'),
+      bill('Home Depot', 38.74, 'materials', '2026-08-19'),
+      bill('Harbor Freight', 31.77, 'materials', '2026-08-23'),
+      bill('Home Depot', 54.98, 'materials', '2026-08-23'),
+      bill('Chris Radcliff', 862.5, 'subcontractors', '2026-08-24'),
+      bill('Home Depot', 43.01, 'materials', '2026-08-25'),
+    ],
+  });
+
+  it('bills and receipts allocated to a labor line are bills, not people', () => {
+    const split = splitLaborSpend(cleaning);
+    expect(split.employees).toEqual([]);
+    expect(split.loggedHours).toBe(0);
+    expect(split.timeEntryCount).toBe(0);
+    expect(split.bills).toHaveLength(8);
+    expect(split.bills.reduce((s, b) => s + b.amount, 0)).toBeCloseTo(1300.67, 2);
+    // newest first
+    expect(split.bills[0].payee_name).toBe('Home Depot');
+    expect(split.bills[0].expense_date).toBe('2026-08-25');
+  });
+
+  it('a labor line with no time has no crew — the sub on the bill is not the vendor', () => {
+    expect(lineVendor(cleaning)).toBeNull();
+  });
+
+  it('time entries roll up per person with hours and cost; bills stay separate', () => {
+    const line = mk({
+      plan: 3000, actual: 2000, isLabor: true, hours: 40,
+      correlatedExpenses: [
+        time('Danny', 8, 280),
+        time('Danny', 8, 280),
+        time('Tom Finn', 4, 140),
+        bill('Chris Radcliff', 1300, 'subcontractors'),
+      ],
+    });
+    const split = splitLaborSpend(line);
+    expect(split.employees).toEqual([
+      { payeeName: 'Danny', hours: 16, amount: 560, viaSubcontractor: false },
+      { payeeName: 'Tom Finn', hours: 4, amount: 140, viaSubcontractor: false },
+    ]);
+    expect(split.loggedHours).toBe(20);
+    expect(split.timeEntryCount).toBe(3);
+    expect(split.bills.map((b) => b.payee_name)).toEqual(['Chris Radcliff']);
+    expect(lineVendor(line)).toBe('Danny, Tom Finn');
+  });
+
+  it('a labor-providing sub who logs time shows hours at $0, flagged — cost is on their bill (Rule 28)', () => {
+    // Not linked by the trigger today (category guard); a manual allocation must
+    // still read as hours-with-no-cost rather than as free internal labor.
+    const line = mk({
+      plan: 2000, actual: 862.5, isLabor: true, hours: 26.66667,
+      correlatedExpenses: [
+        time('Christopher L Radcliff', 8, 0, 'subcontractors'),
+        bill('Chris Radcliff', 862.5, 'subcontractors'),
+      ],
+    });
+    const split = splitLaborSpend(line);
+    expect(split.employees).toEqual([
+      { payeeName: 'Christopher L Radcliff', hours: 8, amount: 0, viaSubcontractor: true },
+    ]);
+    expect(split.bills).toHaveLength(1);
+    expect(lineSubtitle(line)).toBe('8 of 26.7 hrs · 18.7 to go · $862.50 in bills');
   });
 });

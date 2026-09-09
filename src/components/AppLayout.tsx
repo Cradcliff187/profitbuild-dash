@@ -217,7 +217,6 @@ export default function AppLayout() {
     }
     if (path === '/today') return true;
     if (path === '/time-tracker') return true;
-    if (path.startsWith('/time-tracker/')) return true;
     if (path === '/mentions') return true;
     if (path === '/training') return true;
     if (path.startsWith('/training/')) return true;

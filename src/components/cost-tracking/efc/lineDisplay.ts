@@ -45,32 +45,91 @@ export const fmtHours = (h: number) => h.toLocaleString(undefined, { maximumFrac
 
 /** Paid hours actually logged against the line (time entries only). */
 function loggedHours(line: EFCLine): number {
-  return line.correlatedExpenses.reduce((s, e) => s + (e.hours ?? 0), 0);
+  return line.correlatedExpenses.reduce((s, e) => s + (e.isTimeEntry ? (e.hours ?? 0) : 0), 0);
 }
 
 export interface EmployeeRollup {
   payeeName: string;
   hours: number;
   amount: number;
+  /**
+   * Time logged by a labor-providing SUBCONTRACTOR (Gotcha #68): the entry
+   * carries hours but $0, because their cost arrives on their bill and is
+   * allocated through the normal expense process — never through time tracking.
+   * The trigger's category guard keeps these off labor lines today; this flag
+   * exists so a manual allocation still renders honestly instead of as free labor.
+   */
+  viaSubcontractor: boolean;
+}
+
+/**
+ * Everything allocated to a labor line, split by HOW the cost got here.
+ *
+ *   employees  — time entries (`is_time_entry`), rolled up per person: hours + cost.
+ *   bills      — everything else: a sub's bill, a materials receipt, a tool rental.
+ *                They count toward the line's spend (EFC is right) but contribute
+ *                no hours, and they are NOT labor by anyone — a receipt from Home
+ *                Depot must never render as an "employee · 0 hrs".
+ *
+ * This is the display-side half of Rule 28's decision: a labor-providing sub's
+ * cost is captured by their bill via expense allocation, not by an hourly rate.
+ * Before Sep 2026 the detail page grouped ALL correlated expenses by payee under
+ * "Labor by employee" — 225-136's Cleaning line listed Amazon.com, Home Depot,
+ * Harbor Freight and Menards as employees with 0 hrs each.
+ */
+export interface LaborSpendBreakdown {
+  employees: EmployeeRollup[];
+  bills: EFCLine['correlatedExpenses'];
+  loggedHours: number;
+  timeEntryCount: number;
+}
+
+export function splitLaborSpend(line: EFCLine): LaborSpendBreakdown {
+  const byPayee = new Map<string, EmployeeRollup>();
+  const bills: EFCLine['correlatedExpenses'] = [];
+  let timeEntryCount = 0;
+  for (const e of line.correlatedExpenses) {
+    if (!e.isTimeEntry) {
+      bills.push(e);
+      continue;
+    }
+    timeEntryCount += 1;
+    const payeeName = e.payee_name || 'Unknown';
+    const row = byPayee.get(payeeName) ?? { payeeName, hours: 0, amount: 0, viaSubcontractor: false };
+    row.hours += e.hours ?? 0;
+    row.amount += e.amount ?? 0;
+    if (e.category != null && e.category !== 'labor_internal') row.viaSubcontractor = true;
+    byPayee.set(payeeName, row);
+  }
+  const employees = Array.from(byPayee.values()).sort((a, b) => b.hours - a.hours);
+  bills.sort((a, b) => (b.expense_date ?? '').localeCompare(a.expense_date ?? ''));
+  return {
+    employees,
+    bills,
+    loggedHours: employees.reduce((s, r) => s + r.hours, 0),
+    timeEntryCount,
+  };
 }
 
 /** Collapse labor time entries into one row per employee, most hours first. */
 export function rollupByEmployee(line: EFCLine): EmployeeRollup[] {
-  const byPayee = new Map<string, EmployeeRollup>();
-  for (const e of line.correlatedExpenses) {
-    const payeeName = e.payee_name || 'Unknown';
-    const row = byPayee.get(payeeName) ?? { payeeName, hours: 0, amount: 0 };
-    row.hours += e.hours ?? 0;
-    row.amount += e.amount ?? 0;
-    byPayee.set(payeeName, row);
-  }
-  return Array.from(byPayee.values()).sort((a, b) => b.hours - a.hours);
+  return splitLaborSpend(line).employees;
 }
 
-/** The dominant vendor for a line: the accepted-quote payee, else the payee on the most spend. */
+/**
+ * The dominant vendor for a line: the accepted-quote payee, else the payee on the most spend.
+ * On a LABOR line the "vendor" is the crew — the people with logged time. A sub
+ * bill or a receipt allocated to a labor line is listed under bills, not here.
+ */
 export function lineVendor(line: EFCLine): string | null {
   if (line.acceptedQuotes.length > 0 && line.acceptedQuotes[0].payeeName) {
     return line.acceptedQuotes[0].payeeName;
+  }
+  if (line.isLabor) {
+    const crew = splitLaborSpend(line).employees;
+    if (crew.length === 0) return null;
+    const names = crew.slice(0, 2).map((r) => r.payeeName);
+    return crew.length > 2 ? `${names.join(', ')} +${crew.length - 2}` : names.join(', ');
   }
   const byPayee = new Map<string, number>();
   for (const e of line.correlatedExpenses) {
@@ -102,12 +161,17 @@ export function lineSubtitle(line: EFCLine): string | null {
     const logged = loggedHours(line);
     if (logged <= 0) {
       return line.actual > 0.005
-        ? `0 of ${fmtHours(line.hours)} hrs logged · ${formatCurrency(line.actual)} allocated`
+        ? `0 of ${fmtHours(line.hours)} hrs logged · ${formatCurrency(line.actual)} in bills & receipts`
         : `${fmtHours(line.hours)} hrs budgeted`;
     }
+    // Hours are worked by people; dollars can also arrive as bills (a sub doing
+    // the work, supplies). Say so when the two diverge, so "$X" is never read as
+    // the cost of the hours shown.
+    const billed = line.correlatedExpenses.reduce((s, e) => s + (e.isTimeEntry ? 0 : (e.amount ?? 0)), 0);
+    const billsNote = billed > 0.005 ? ` · ${formatCurrency(billed)} in bills` : '';
     const over = logged - line.hours;
-    if (over > 0.05) return `${fmtHours(logged)} of ${fmtHours(line.hours)} hrs · ${fmtHours(over)} over`;
-    return `${fmtHours(logged)} of ${fmtHours(line.hours)} hrs · ${fmtHours(Math.max(0, -over))} to go`;
+    if (over > 0.05) return `${fmtHours(logged)} of ${fmtHours(line.hours)} hrs · ${fmtHours(over)} over${billsNote}`;
+    return `${fmtHours(logged)} of ${fmtHours(line.hours)} hrs · ${fmtHours(Math.max(0, -over))} to go${billsNote}`;
   }
 
   switch (line.status) {

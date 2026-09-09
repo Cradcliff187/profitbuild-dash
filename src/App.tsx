@@ -32,7 +32,6 @@ const FeatureFlagsSettings = lazy(() => import("./pages/FeatureFlagsSettings"));
 const DispatchBoard = lazy(() => import("./pages/DispatchBoard"));
 const TodayHome = lazy(() => import("./pages/TodayHome"));
 const AssignmentDetail = lazy(() => import("./pages/AssignmentDetail"));
-const TimerPage = lazy(() => import("./pages/TimerPage"));
 const FieldReceipts = lazy(() => import("./pages/FieldReceipts"));
 const MyProjects = lazy(() => import("./pages/MyProjects"));
 const FieldNotes = lazy(() => import("./pages/FieldNotes"));
@@ -123,7 +122,6 @@ const App = () => (
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   <Route path="work-orders" element={<LazyRoute component={WorkOrders} />} />
                   <Route path="time-tracker" element={<LazyRoute component={TimeTracker} />} />
-                  <Route path="time-tracker/timer" element={<LazyRoute component={TimerPage} />} />
                   <Route path="receipts" element={<LazyRoute component={FieldReceipts} />} />
                   <Route path="my-projects" element={<LazyRoute component={MyProjects} />} />
                   <Route path="my-day/:assignmentId" element={<LazyRoute component={AssignmentDetail} />} />

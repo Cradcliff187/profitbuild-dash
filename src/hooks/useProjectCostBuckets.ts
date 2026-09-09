@@ -20,6 +20,12 @@ export interface CostBucketCorrelatedExpense {
   payee_name: string | null;
   amount: number;
   hours: number | null;
+  /** The expense's own category (may differ from the line's — a sub bill or a
+   *  materials receipt can be allocated to an internal-labor line). */
+  category: string | null;
+  /** `expenses.is_time_entry` — the canonical "this is logged time" flag
+   *  (Gotcha #68). Only these rows carry hours; bills and receipts never do. */
+  isTimeEntry: boolean;
 }
 
 export interface CostBucketAcceptedQuote {
@@ -462,6 +468,8 @@ function buildBuckets(
               (e.payee_name as string | undefined) ?? null,
             amount: Number((e.amount as number | undefined) ?? (e.split_amount as number | undefined) ?? 0),
             hours: e.hours == null ? null : Number(e.hours),
+            category: (e.category as string | null | undefined) ?? null,
+            isTimeEntry: e.is_time_entry === true,
           })),
           acceptedQuotes: (li.quotes ?? [])
             .filter((q) => q.status === 'accepted')

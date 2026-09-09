@@ -1357,7 +1357,7 @@ export default function RoleManagement() {
             Active Timers
           </CardTitle>
           <CardDescription>
-            Workers currently clocked in. Force clock-out if needed.
+            Timer rows still open from before the live timer was retired (Sep 2026). Close each with a corrected end time, or discard it.
           </CardDescription>
         </CardHeader>
         <CardContent>

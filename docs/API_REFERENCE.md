@@ -1,6 +1,6 @@
 # API Reference
 
-> Generated on 2026-07-26T17:21:15.123Z by `scripts/generate-api-docs.ts`.
+> Generated on 2026-09-09T18:56:51.335Z by `scripts/generate-api-docs.ts`.
 
 This reference enumerates all exported components, hooks, functions, classes, types, enums, and values exposed under `src/`. Each entry includes import examples and usage guidance.
 
@@ -5399,8 +5399,12 @@ import { LineItemTable } from '@/components/LineItemTable';
 function lineSubtitle(line: EFCLine): string
 ```
 
-One-line subtitle under a line's name in the Overview table — the same
-information the old per-line caption carried, tuned for a scannable row.
+One-line subtitle under a line's name in the Overview table.
+
+Labor hours come ONLY from logged time entries. This used to back-derive
+hours from allocated dollars when nothing was logged (`actual / costRate`),
+which presented a sub bill + materials receipts allocated to a labor line as
+"17.3 of 26.7 hrs" worked. Dollars with no hours are now stated as exactly that.
 
 **Example**
 
@@ -5422,6 +5426,8 @@ function lineVendor(line: EFCLine): string
 ```
 
 The dominant vendor for a line: the accepted-quote payee, else the payee on the most spend.
+On a LABOR line the "vendor" is the crew — the people with logged time. A sub
+bill or a receipt allocated to a labor line is listed under bills, not here.
 
 **Example**
 
@@ -6058,7 +6064,7 @@ import { MobileTabSelector } from '@/components/ui/mobile-tab-selector';
 - Export type: named
 
 ```ts
-function MobileTimeTracker({ timerOnly = false }): JSX.Element
+function MobileTimeTracker(): JSX.Element
 ```
 
 _No inline documentation provided._
@@ -9823,6 +9829,27 @@ import { SOVTable } from '@/components/payment-applications/SOVTable';
 <SOVTable {...props} />
 ```
 
+### splitLaborSpend
+
+**Import:** `@/components/cost-tracking/efc/lineDisplay`
+
+- Defined in: `components/cost-tracking/efc/lineDisplay.ts`
+- Export type: named
+
+```ts
+function splitLaborSpend(line: EFCLine): LaborSpendBreakdown
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```tsx
+import { splitLaborSpend } from '@/components/cost-tracking/efc/lineDisplay';
+
+<splitLaborSpend {...props} />
+```
+
 ### StatusBadge
 
 **Import:** `@/components/ui/status-badge`
@@ -10455,23 +10482,6 @@ import { TimeRangeField } from '@/components/time-entry-form/fields/TimeRangeFie
 <TimeRangeField {...props} />
 ```
 
-### TimerPage
-
-**Import:** `@/pages/TimerPage`
-
-- Defined in: `pages/TimerPage.tsx`
-- Export type: default
-
-_No inline documentation provided._
-
-**Example**
-
-```tsx
-import TimerPage from '@/pages/TimerPage';
-
-<TimerPage {...props} />
-```
-
 ### TimesheetGridCell
 
 **Import:** `@/components/TimesheetGridCell`
@@ -11048,6 +11058,10 @@ function WeeklySummary({
   loading,
   selectedDate,
   onSelectDate,
+  weekLabel,
+  onPrevWeek,
+  onNextWeek,
+  nextWeekDisabled,
 }: WeeklySummaryProps): JSX.Element
 ```
 
@@ -11297,7 +11311,7 @@ import { WorkOrderStatusCard } from '@/components/dashboard/WorkOrderStatusCard'
 
 ## Hooks
 
-Total: 118
+Total: 119
 
 ### calculateSummaryTotals
 
@@ -11340,6 +11354,33 @@ Clear the geocode cache (useful for testing)
 import { clearGeocodeCache } from '@/hooks/useReverseGeocode';
 
 const result = clearGeocodeCache(/* params */);
+```
+
+### deriveLineStatus
+
+**Import:** `@/hooks/useProjectEFC`
+
+- Defined in: `hooks/useProjectEFC.ts`
+- Export type: named
+
+```ts
+function deriveLineStatus(args: {
+  plan: number;
+  committed: number;
+  actual: number;
+  isFinal: boolean;
+  isLabor: boolean;
+}): EFCLineStatus
+```
+
+_No inline documentation provided._
+
+**Example**
+
+```ts
+import { deriveLineStatus } from '@/hooks/useProjectEFC';
+
+const result = deriveLineStatus(/* params */);
 ```
 
 ### pickCurrentStop
@@ -12337,7 +12378,8 @@ function useLastWorkedProject(userId: string | undefined, options: HookOptions =
 Resolves "where did I last work?" from the worker's own time entries
 (`expenses.is_time_entry` — the ground truth of where they clocked hours;
 RLS already scopes field workers to their own rows, and the explicit
-`eq('user_id')` scopes admins dogfooding `/today`).
+own-rows filter (`ownTimeEntriesOrFilter` — linked payee OR user_id)
+scopes admins dogfooding `/today`).
 
 Walks the newest ~15 entries and returns the first project that is still
 active (approved / in_progress) AND visible by category (construction, or
@@ -12563,7 +12605,7 @@ function useMyWeekTimeEntries(userId: string | undefined, weekStartISO: string, 
 ```
 
 Own time entries for a Mon–Sun week window (inclusive date strings).
-Mirrors MobileTimeTracker's `loadTodayEntries` scoping: own `user_id` only.
+Own = linked payee OR user_id (`ownTimeEntriesOrFilter`).
 
 **Example**
 
@@ -13968,7 +14010,7 @@ const result = useWeekAssignments(/* params */);
 
 ## Functions
 
-Total: 355
+Total: 359
 
 ### addBidMediaToQueue
 
@@ -15625,6 +15667,39 @@ import { createRevenueSplits } from '@/utils/revenueSplits';
 const result = createRevenueSplits(/* args */);
 ```
 
+### createUploadProgressToast
+
+**Import:** `@/utils/uploadProgressToast`
+
+- Defined in: `utils/uploadProgressToast.ts`
+- Export type: named
+
+```ts
+function createUploadProgressToast(total: number, label = 'file'): { progress(current: number): void; success(message: string, description?: string): void; warning(message: string, description?: string): void; error(message: string, description?: string): void; dismiss(): void; }
+```
+
+Persistent progress indicator for multi-file (or slow single-file) uploads.
+
+One sonner loading toast (spinner, never auto-dismisses) is opened for the
+whole operation and updated in place per file ("Uploading 3 of 12…"), then
+resolved on the SAME toast id to success/warning/error. This replaces the
+old pattern — an auto-dismissing info toast at the start plus a summary at
+the end — which left long batches with no visible "still uploading" signal.
+
+Every path through an upload handler MUST resolve the toast (success /
+warning / error / dismiss), or the spinner is stranded on screen.
+
+Toast ownership contract (Gotcha #42): surfaces own user-facing toasts,
+upload hooks/utils stay silent. Call this from component handlers only.
+
+**Example**
+
+```ts
+import { createUploadProgressToast } from '@/utils/uploadProgressToast';
+
+const result = createUploadProgressToast(/* args */);
+```
+
 ### dedupePayeesInFile
 
 **Import:** `@/utils/payeeCsvParser`
@@ -15779,6 +15854,33 @@ Delete a training content file from storage
 import { deleteTrainingFile } from '@/utils/trainingStorage';
 
 const result = deleteTrainingFile(/* args */);
+```
+
+### deriveLaborHours
+
+**Import:** `@/services/estimateImportService`
+
+- Defined in: `services/estimateImportService.ts`
+- Export type: named
+
+```ts
+function deriveLaborHours(cost: number, billingRatePerHour: number): number
+```
+
+Dollars → hours at the billing rate, rounded to the 5 decimals the DB stores
+(estimate_line_items.quantity / labor_hours are numeric(15,5)).
+
+Rounding here — not letting Postgres coerce — keeps preview math identical to
+persisted math. quantity used to be numeric(10,2), which silently rounded
+26.6667 hr to 26.67 and drifted every dollar-derived labor line by ~$0.25
+(estimate 225-136 totaled $32,501.24 instead of $32,500.00).
+
+**Example**
+
+```ts
+import { deriveLaborHours } from '@/services/estimateImportService';
+
+const result = deriveLaborHours(/* args */);
 ```
 
 ### detectClientType
@@ -16505,6 +16607,28 @@ Fetch the linked receipt for an expense
 import { fetchLinkedReceipt } from '@/utils/receiptLinking';
 
 const result = fetchLinkedReceipt(/* args */);
+```
+
+### fetchMyPayeeIds
+
+**Import:** `@/utils/ownTimeEntries`
+
+- Defined in: `utils/ownTimeEntries.ts`
+- Export type: named
+
+```ts
+function fetchMyPayeeIds(userId: string): Promise<string[]>
+```
+
+The signed-in user's linked payee ids (`payees.user_id = userId`). RLS lets
+every user read their own linkage; the result is typically 0–2 rows.
+
+**Example**
+
+```ts
+import { fetchMyPayeeIds } from '@/utils/ownTimeEntries';
+
+const result = fetchMyPayeeIds(/* args */);
 ```
 
 ### fetchReceiptsForLinking
@@ -20045,6 +20169,32 @@ import { normalizeUnit } from '@/utils/dbMapping';
 const result = normalizeUnit(/* args */);
 ```
 
+### ownTimeEntriesOrFilter
+
+**Import:** `@/utils/ownTimeEntries`
+
+- Defined in: `utils/ownTimeEntries.ts`
+- Export type: named
+
+```ts
+function ownTimeEntriesOrFilter(userId: string, payeeIds: string[]): string
+```
+
+PostgREST `.or(...)` filter string selecting the user's own time-entry rows:
+`user_id.eq.<me>,payee_id.in.(<ids>)` — or plain `user_id.eq.<me>` when the
+user has no linked payees (an empty `in.()` is a PostgREST syntax error).
+
+Use via `.or(ownTimeEntriesOrFilter(userId, payeeIds))` — never rebuild this
+string inline, so the readers can't drift.
+
+**Example**
+
+```ts
+import { ownTimeEntriesOrFilter } from '@/utils/ownTimeEntries';
+
+const result = ownTimeEntriesOrFilter(/* args */);
+```
+
 ### parseAddressOneLine
 
 **Import:** `@/utils/invoiceFormatters`
@@ -21725,7 +21875,7 @@ const instance = new ScheduleErrorBoundary(/* args */);
 
 ## Interfaces
 
-Total: 334
+Total: 335
 
 ### AIKPIContext
 
@@ -24785,6 +24935,39 @@ import type { LaborRateSettings } from '@/types/companySettings';
 type Example = LaborRateSettings;
 ```
 
+### LaborSpendBreakdown
+
+**Import:** `@/components/cost-tracking/efc/lineDisplay`
+
+- Defined in: `components/cost-tracking/efc/lineDisplay.ts`
+- Export type: named
+
+```ts
+interface LaborSpendBreakdown
+```
+
+Everything allocated to a labor line, split by HOW the cost got here.
+
+  employees  — time entries (`is_time_entry`), rolled up per person: hours + cost.
+  bills      — everything else: a sub's bill, a materials receipt, a tool rental.
+               They count toward the line's spend (EFC is right) but contribute
+               no hours, and they are NOT labor by anyone — a receipt from Home
+               Depot must never render as an "employee · 0 hrs".
+
+This is the display-side half of Rule 28's decision: a labor-providing sub's
+cost is captured by their bill via expense allocation, not by an hourly rate.
+Before Sep 2026 the detail page grouped ALL correlated expenses by payee under
+"Labor by employee" — 225-136's Cleaning line listed Amazon.com, Home Depot,
+Harbor Freight and Menards as employees with 0 hrs each.
+
+**Example**
+
+```ts
+import type { LaborSpendBreakdown } from '@/components/cost-tracking/efc/lineDisplay';
+
+type Example = LaborSpendBreakdown;
+```
+
 ### LastWorkedProject
 
 **Import:** `@/components/today/todayData`
@@ -24860,7 +25043,17 @@ type Example = LegacyExpense;
 interface LineDisplayMeta
 ```
 
-_No inline documentation provided._
+Presentational metadata for a cost line's status pill.
+
+ONE AXIS PER SIGNAL. The pill answers "how far along is this line?" and nothing
+else — Plan → Committed → In progress → Billed → Final. The budget verdict
+("is it over?") lives in the Δ column and the row's left border, keyed off
+`line.isOver` (efc > plan), the same definition the Issues KPI uses.
+
+Before Sep 2026 the pill mixed both axes (Plan/Committed/In prog were stages;
+On plan/Over were verdicts) and graded against a different baseline than the
+Δ column — a fully-billed quote that came in over plan read "On plan" (green)
+beside a red +$448. See CLAUDE.md Rule 28.
 
 **Example**
 
@@ -28817,7 +29010,7 @@ type Example = WorkOrderSearchFilters;
 
 ## Types
 
-Total: 88
+Total: 87
 
 ### AllocationReason
 
@@ -34172,7 +34365,7 @@ type Example = DocumentType;
 - Export type: named
 
 ```ts
-type EFCLineStatus = 'plan' | 'committed' | 'in_progress' | 'overrun'
+type EFCLineStatus = 'plan' | 'committed' | 'in_progress' | 'billed' | 'final'
 ```
 
 Expected Final Cost (EFC) model for the Forecast view.
@@ -34192,6 +34385,19 @@ Per category: expectedCost = max(categorySpend, Σ lineEFC)
   projections, the actual wins (so unallocated spend is counted, not lost);
   otherwise the line projections win. This avoids double-counting unallocated
   spend on top of the plan.
+
+Lifecycle stage of a cost line — ONE axis, "how far along is this?":
+  plan        nothing has happened
+  committed   an accepted quote, no spend yet
+  in_progress spend has started (labor stays here until marked final — hours
+              can keep coming, so there is no "done" signal from spend alone)
+  billed      non-labor spend has reached the commitment (or plan, with no quote)
+  final       PM marked the line final; EFC is pinned (wins over every other state)
+
+The budget verdict is deliberately NOT a stage. `isOver` (efc > plan) carries it,
+and is the single definition shared by the Δ column, the red row border, and
+the Issues KPI. Mixing the two axes in one pill is what produced "On plan" beside
+a red +$448 (a fully-billed quote that was accepted over plan).
 
 **Example**
 
@@ -34699,29 +34905,6 @@ Legal form options for subcontractors
 import type { LegalFormType } from '@/types/contract';
 
 type Example = LegalFormType;
-```
-
-### LineDisplayStatus
-
-**Import:** `@/components/cost-tracking/efc/lineDisplay`
-
-- Defined in: `components/cost-tracking/efc/lineDisplay.ts`
-- Export type: named
-
-```ts
-type LineDisplayStatus = 'over' | 'on_plan' | 'in_progress' | 'committed' | 'plan'
-```
-
-Presentational status for a cost line. Refines the 4-state EFCLineStatus into
-the 5 the Cost Tracking surfaces show: a fully-billed, on-or-under-budget line
-reads as "On plan" (green) rather than the generic amber "In prog".
-
-**Example**
-
-```ts
-import type { LineDisplayStatus } from '@/components/cost-tracking/efc/lineDisplay';
-
-type Example = LineDisplayStatus;
 ```
 
 ### LinkageStatus

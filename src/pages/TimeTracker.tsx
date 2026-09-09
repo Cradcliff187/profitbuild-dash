@@ -10,9 +10,9 @@ const FieldTimeLanding = lazy(() => import('./FieldTimeLanding'));
  * /time-tracker (PR 3, field-worker redesign).
  *
  * Field-only users with field_worker_v2 ON get the entry-first
- * FieldTimeLanding; the timer lives on at /time-tracker/timer (TimerPage).
- * Everyone else — admins, managers, and flag-off field workers — gets the
- * unchanged timer-first MobileTimeTracker, exactly as before.
+ * FieldTimeLanding. Everyone else — admins, managers, and flag-off field
+ * workers — gets MobileTimeTracker (Entries + Receipts). The live timer and
+ * its /time-tracker/timer escape hatch were retired Sep 9 2026 (Gotcha #79).
  *
  * Auth-loop discipline (Gotchas #53-56): the flag hook is a plain TanStack
  * query; no realtime, no getUser on this path.
