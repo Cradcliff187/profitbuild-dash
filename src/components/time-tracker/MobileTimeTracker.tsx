@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, MapPin, User, Play, Square, Edit2, Calendar, Loader2, AlertCircle, Camera, Check, AlertTriangle, BarChart3, Coffee, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -128,6 +128,9 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
   const [activeTimerPayeeIds, setActiveTimerPayeeIds] = useState<Set<string>>(new Set());
   const [logoIcon] = useState<string>("https://clsjdxwbsjbhjibvlqbz.supabase.co/storage/v1/object/public/company-branding/all%20white%20logo%20only.png");
   const [showStaleTimerWarning, setShowStaleTimerWarning] = useState(false);
+  // Timer ids we've already warned about this session. loadActiveTimers runs on
+  // mount AND every return-to-foreground; without this every wake re-toasted.
+  const staleToastShownRef = useRef<Set<string>>(new Set());
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
   const [showLunchPrompt, setShowLunchPrompt] = useState(false);
   const [lunchTaken, setLunchTaken] = useState(false);
@@ -190,96 +193,63 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
 
       if (myTimer && myTimer.start_time) {
         const staleCheck = checkStaleTimer(new Date(myTimer.start_time));
-        
-        if (staleCheck.shouldAutoClose) {
-          // Auto-close at 24 hours
-          const timerState = {
-            teamMember: {
-              id: myTimer.payee_id,
-              payee_name: myTimer.payees?.payee_name || 'Unknown',
-              hourly_rate: myTimer.payees?.hourly_rate || 75,
-              email: myTimer.payees?.email,
-              is_internal: myTimer.payees?.is_internal || false,
-              provides_labor: myTimer.payees?.provides_labor || false,
-              user_id: myTimer.payees?.user_id
-            },
-            project: {
-              id: myTimer.project_id,
-              project_name: myTimer.projects?.project_name || 'Unknown',
-              project_number: myTimer.projects?.project_number || 'UNKNOWN',
-              client_name: myTimer.projects?.client_name || '',
-              address: myTimer.projects?.address
-            },
-            startTime: new Date(myTimer.start_time),
-            location: undefined
-          };
-          
-          setActiveTimer(timerState);
+
+        // Restore the timer to the UI regardless of age. There is deliberately
+        // NO client-side auto-close here any more: the old branch called
+        // completeClockOut() against a not-yet-updated `activeTimer` closure
+        // (a no-op), then toasted "Timer Auto-Closed" unconditionally — so a
+        // 145-hour timer stayed open in the DB while the user was told it was
+        // closed, on every mount and every return-to-foreground. Even with
+        // fresh state, completeClockOut refuses anything over 24h (the hard
+        // cap in validateTimeEntryHours). A >24h timer is closed by an admin
+        // from Role Management → Active Timers with a corrected end time.
+        const teamMember = {
+          id: myTimer.payee_id,
+          payee_name: myTimer.payees?.payee_name || 'Unknown',
+          hourly_rate: myTimer.payees?.hourly_rate || 75,
+          email: myTimer.payees?.email,
+          is_internal: myTimer.payees?.is_internal || false,
+          provides_labor: myTimer.payees?.provides_labor || false,
+          user_id: myTimer.payees?.user_id
+        };
+        const project = {
+          id: myTimer.project_id,
+          project_name: myTimer.projects?.project_name || 'Unknown',
+          project_number: myTimer.projects?.project_number || 'UNKNOWN',
+          client_name: myTimer.projects?.client_name || '',
+          address: myTimer.projects?.address
+        };
+
+        setActiveTimer({ teamMember, project, startTime: new Date(myTimer.start_time), location: undefined });
+        setSelectedTeamMember(teamMember);
+        setSelectedProject(project);
+
+        if (staleCheck.isStale) {
           setShowStaleTimerWarning(true);
-          
-          // Perform auto-close
-          await completeClockOut();
-          
-          toast.error('Timer Auto-Closed', { description: 'Your timer was running for over 24 hours and has been automatically closed.' });
-          
-          setShowStaleTimerWarning(false);
-          await loadTodayEntries();
-          
-        } else {
-          // Restore active timer to UI
-          setActiveTimer({
-            teamMember: {
-              id: myTimer.payee_id,
-              payee_name: myTimer.payees?.payee_name || 'Unknown',
-              hourly_rate: myTimer.payees?.hourly_rate || 75,
-              email: myTimer.payees?.email,
-              is_internal: myTimer.payees?.is_internal || false,
-              provides_labor: myTimer.payees?.provides_labor || false,
-              user_id: myTimer.payees?.user_id
-            },
-            project: {
-              id: myTimer.project_id,
-              project_name: myTimer.projects?.project_name || 'Unknown',
-              project_number: myTimer.projects?.project_number || 'UNKNOWN',
-              client_name: myTimer.projects?.client_name || '',
-              address: myTimer.projects?.address
-            },
-            startTime: new Date(myTimer.start_time),
-            location: undefined
-          });
-          
-          setSelectedTeamMember({
-            id: myTimer.payee_id,
-            payee_name: myTimer.payees?.payee_name || 'Unknown',
-            hourly_rate: myTimer.payees?.hourly_rate || 75,
-            email: myTimer.payees?.email,
-            is_internal: myTimer.payees?.is_internal || false,
-            provides_labor: myTimer.payees?.provides_labor || false,
-            user_id: myTimer.payees?.user_id
-          });
-          
-          setSelectedProject({
-            id: myTimer.project_id,
-            project_name: myTimer.projects?.project_name || 'Unknown',
-            project_number: myTimer.projects?.project_number || 'UNKNOWN',
-            client_name: myTimer.projects?.client_name || '',
-            address: myTimer.projects?.address
-          });
-          
-          if (staleCheck.isStale) {
-            setShowStaleTimerWarning(true);
-            toast.error('Long Running Timer', { description: staleCheck.message, duration: 10000 });
+          if (!staleToastShownRef.current.has(myTimer.id)) {
+            staleToastShownRef.current.add(myTimer.id);
+            if (staleCheck.shouldAutoClose) {
+              toast.error('Timer over 24 hours', {
+                description: `This timer has run ${staleCheck.hoursElapsed.toFixed(1)} hours and can't be clocked out from here. An admin can close it with the correct end time from Role Management → Active Timers.`,
+                duration: 15000,
+              });
+            } else {
+              toast.error('Long Running Timer', { description: staleCheck.message, duration: 10000 });
+            }
           }
+        } else {
+          setShowStaleTimerWarning(false);
         }
       }
-      
+
       // Alert admins/managers about other users' stale timers
       if ((isAdmin || isManager) && data && data.length > 0) {
         for (const timer of data) {
           if (timer.payees?.user_id !== user?.id && timer.start_time) {
             const staleCheck = checkStaleTimer(new Date(timer.start_time));
-            if (staleCheck.shouldAutoClose) {
-              toast.error('Stale Timer Alert', { description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Please review.`, duration: 15000 });
+            if (staleCheck.shouldAutoClose && !staleToastShownRef.current.has(timer.id)) {
+              staleToastShownRef.current.add(timer.id);
+              toast.error('Stale Timer Alert', { description: `${timer.payees?.payee_name} has a timer running for ${staleCheck.hoursElapsed.toFixed(1)} hours. Close it from Role Management → Active Timers.`, duration: 15000 });
             }
           }
         }
@@ -1142,25 +1112,36 @@ export const MobileTimeTracker: React.FC<MobileTimeTrackerProps> = ({ timerOnly 
       )}
 
       {/* Stale Timer Warning Banner */}
-      {showStaleTimerWarning && activeTimer && (
-        <Alert variant="destructive" className="m-4 mb-0">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Long Running Timer</AlertTitle>
-          <AlertDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <span>
-              Timer has been running for {getElapsedTime()}. Please clock out.
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleClockOut()}
-              className="w-full sm:w-auto"
-            >
-              Clock Out Now
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+      {showStaleTimerWarning && activeTimer && (() => {
+        // Past the 24h hard cap, Clock Out cannot succeed (validateTimeEntryHours
+        // rejects it) — don't render a button that only errors (Gotcha #76).
+        // The admin path is the one that works: Role Management → Active Timers.
+        const overCap = checkStaleTimer(activeTimer.startTime).shouldAutoClose;
+        return (
+          <Alert variant="destructive" className="m-4 mb-0">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{overCap ? 'Timer over 24 hours' : 'Long Running Timer'}</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <span>
+                {overCap
+                  ? `Timer has been running for ${getElapsedTime()} — too long to clock out from here. An admin can close it with the correct end time from Role Management → Active Timers.`
+                  : `Timer has been running for ${getElapsedTime()}. Please clock out.`}
+              </span>
+              {overCap ? (
+                (isAdmin || isManager) && (
+                  <Button size="sm" variant="outline" onClick={() => navigate('/role-management')} className="w-full sm:w-auto">
+                    Open Active Timers
+                  </Button>
+                )
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => handleClockOut()} className="w-full sm:w-auto">
+                  Clock Out Now
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        );
+      })()}
 
       {/* Timer View */}
       {view === 'timer' && (

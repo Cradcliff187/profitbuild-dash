@@ -48,7 +48,9 @@ interface ActiveTimer {
   payee_name: string;
   project_number: string;
   project_name: string;
-  hourly_rate: number;
+  hourly_rate: number | null;
+  /** Labor-providing subcontractor: their time logs at $0; cost arrives on their bill (Rule 28). */
+  is_sub: boolean;
 }
 
 interface ActiveTimersTableProps {
@@ -84,6 +86,15 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       // The right query for "active timer" is "started but not yet stopped" =
       // start_time IS NOT NULL AND end_time IS NULL. PTO entries never have a
       // start_time, so they correctly stay out of this view.
+      //
+      // NO category filter (Sep 9 2026, Gotcha #68). This used to also require
+      // `category = 'labor_internal'`, which hid every timer belonging to a
+      // labor-providing SUBCONTRACTOR — the DB trigger
+      // enforce_time_entry_category_from_payee files their time under
+      // `subcontractors` at $0. Chris's 145-hour timer on 225-080 sat open
+      // while this card said "No active timers", and the tracker can't close
+      // anything past 24h itself. A time entry is `is_time_entry`, never a
+      // category.
       const { data, error } = await supabase
         .from('expenses')
         .select(`
@@ -91,10 +102,9 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
           payee_id,
           project_id,
           start_time,
-          payees!inner(payee_name, hourly_rate),
+          payees!inner(payee_name, hourly_rate, is_internal, payee_type, provides_labor),
           projects!inner(project_number, project_name)
         `)
-        .eq('category', 'labor_internal')
         .not('start_time', 'is', null)
         .is('end_time', null)
         .order('start_time', { ascending: true });
@@ -109,7 +119,8 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
         payee_name: t.payees.payee_name,
         project_number: t.projects.project_number,
         project_name: t.projects.project_name,
-        hourly_rate: t.payees.hourly_rate
+        hourly_rate: t.payees.hourly_rate,
+        is_sub: t.payees.is_internal === false && t.payees.payee_type === 'subcontractor' && t.payees.provides_labor === true,
       }));
 
       setTimers(formatted);
@@ -197,7 +208,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
           title: 'Unusually long entry',
           description:
             `This will create a ${grossHours.toFixed(1)}-hour entry — well over a normal day — ` +
-            `totaling $${(netHours * selectedTimer.hourly_rate).toFixed(2)}. ` +
+            `totaling $${(netHours * (selectedTimer.hourly_rate || 0)).toFixed(2)}. ` +
             `Continue, or cancel and pick a more accurate end time?`,
           confirmLabel: 'Create entry',
         });
@@ -207,7 +218,10 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
         }
       }
 
-      const amount = netHours * selectedTimer.hourly_rate;
+      // A labor-providing sub's time is $0 (their cost is on their bill); the
+      // DB trigger re-zeroes amount on UPDATE OF amount anyway — mirror it here
+      // so the preview and the write agree. Their hourly_rate is null.
+      const amount = selectedTimer.is_sub ? 0 : netHours * (selectedTimer.hourly_rate || 0);
 
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -325,7 +339,7 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
     return {
       grossHours,
       netHours,
-      amount: netHours * (selectedTimer.hourly_rate || 0),
+      amount: selectedTimer.is_sub ? 0 : netHours * (selectedTimer.hourly_rate || 0),
       isLong: grossHours > LONG_SHIFT_HOURS,
       isOverHardCap: grossHours > HARD_CAP_HOURS,
     };
@@ -367,7 +381,19 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
 
             return (
               <TableRow key={timer.id}>
-                <TableCell className="font-medium">{timer.payee_name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-1.5">
+                    {timer.payee_name}
+                    {timer.is_sub && (
+                      <span
+                        className="inline-flex items-center rounded-sm bg-amber-100 px-1 py-0.5 text-[10px] font-medium text-amber-800 border border-amber-200"
+                        title="Labor-providing subcontractor — time logs at $0; their cost is on their bill"
+                      >
+                        Sub
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="text-sm">
                     <div className="flex items-center gap-1.5">
