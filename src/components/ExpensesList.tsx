@@ -473,7 +473,7 @@ export const ExpensesList = React.forwardRef<ExpensesListRef, ExpensesListProps>
 
         let matchesPeriod = true;
         if (filterPeriod.dateFrom || filterPeriod.dateTo) {
-          const expenseDateStr = format(new Date(expense.expense_date), "yyyy-MM-dd");
+          const expenseDateStr = format(parseDateOnly(expense.expense_date), "yyyy-MM-dd");
           if (filterPeriod.dateFrom && expenseDateStr < filterPeriod.dateFrom) matchesPeriod = false;
           if (filterPeriod.dateTo && expenseDateStr > filterPeriod.dateTo) matchesPeriod = false;
         }

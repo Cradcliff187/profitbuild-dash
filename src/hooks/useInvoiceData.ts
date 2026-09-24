@@ -11,6 +11,7 @@ import {
   formatProjectNameNumber,
   parseAddressOneLine,
 } from '@/utils/invoiceFormatters';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 interface UseInvoiceDataParams {
   projectId: string;
@@ -164,7 +165,7 @@ export function useInvoiceData({
 
       // ── Dates ──────────────────────────────────────────────────────────
       const invoiceDateObj = revenue.invoice_date
-        ? new Date(revenue.invoice_date)
+        ? parseDateOnly(revenue.invoice_date)
         : new Date();
       const paymentTermsForDue =
         client?.payment_terms ?? project.payment_terms ?? null;

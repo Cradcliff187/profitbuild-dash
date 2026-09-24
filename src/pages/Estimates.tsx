@@ -20,6 +20,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
+import { parseDateOnly } from "@/utils/dateUtils";
+import { endOfDay } from "date-fns";
 
 type ViewMode = "list" | "create" | "edit" | "view";
 
@@ -197,10 +199,12 @@ const EstimatesPage = () => {
     }
 
     if (searchFilters.dateRange.start) {
-      filtered = filtered.filter((estimate) => new Date(estimate.date_created) >= searchFilters.dateRange.start!);
+      filtered = filtered.filter((estimate) => parseDateOnly(estimate.date_created) >= searchFilters.dateRange.start!);
     }
     if (searchFilters.dateRange.end) {
-      filtered = filtered.filter((estimate) => new Date(estimate.date_created) <= searchFilters.dateRange.end!);
+      // Date-only values parse to noon, so the end boundary must extend to end of day
+      const endBoundary = endOfDay(searchFilters.dateRange.end);
+      filtered = filtered.filter((estimate) => parseDateOnly(estimate.date_created) <= endBoundary);
     }
 
     if (searchFilters.amountRange.min !== null) {
@@ -322,12 +326,12 @@ const EstimatesPage = () => {
           id: est.id,
           project_id: est.project_id,
           estimate_number: est.estimate_number,
-          date_created: new Date(est.date_created),
+          date_created: parseDateOnly(est.date_created),
           total_amount: est.total_amount,
           total_cost: est.total_cost || 0,
           status: est.status,
           notes: est.notes,
-          valid_until: est.valid_until ? new Date(est.valid_until) : undefined,
+          valid_until: est.valid_until ? parseDateOnly(est.valid_until) : undefined,
           revision_number: est.revision_number,
           contingency_percent: est.contingency_percent ?? 10.0,
           contingency_amount: est.contingency_amount,

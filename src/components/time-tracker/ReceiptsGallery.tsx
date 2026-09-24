@@ -4,6 +4,7 @@ import { Camera, Calendar, Clock, X, Plus } from 'lucide-react';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import { AddReceiptModal } from './AddReceiptModal';
 
 interface ReceiptEntry {
@@ -183,7 +184,7 @@ export const ReceiptsGallery: React.FC = () => {
                     {receipt.payee.payee_name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {format(new Date(receipt.expense_date), 'MMM d')}
+                    {format(parseDateOnly(receipt.expense_date), 'MMM d')}
                   </div>
                 </div>
               </div>
@@ -249,7 +250,7 @@ export const ReceiptsGallery: React.FC = () => {
           <div className="p-4 text-white space-y-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4" />
-              {format(new Date(selectedReceipt.expense_date), 'MMMM d, yyyy')}
+              {format(parseDateOnly(selectedReceipt.expense_date), 'MMMM d, yyyy')}
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Clock className="w-4 h-4" />

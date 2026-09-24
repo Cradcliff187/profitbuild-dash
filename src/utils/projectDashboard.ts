@@ -1,4 +1,5 @@
 import { differenceInDays, isAfter, isBefore, addDays } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 import type { Quote } from '@/types/quote';
 
 export interface ScheduleStatus {
@@ -146,9 +147,7 @@ export function getExpiringQuotes(quotes: Quote[], daysAhead: number = 7) {
   
   return quotes.filter(quote => {
     if (quote.status !== 'pending' || !quote.valid_until) return false;
-    const validUntil = typeof quote.valid_until === 'string' 
-      ? new Date(quote.valid_until) 
-      : quote.valid_until;
+    const validUntil = parseDateOnly(quote.valid_until);
     return isAfter(validUntil, now) && isBefore(validUntil, futureDate);
   });
 }

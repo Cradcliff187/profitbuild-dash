@@ -102,9 +102,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
     defaultValues: {
       project_id: revenue?.project_id || defaultProjectId || '',
       invoice_date: revenue?.invoice_date
-        ? revenue.invoice_date instanceof Date
-          ? revenue.invoice_date
-          : new Date(revenue.invoice_date)
+        ? parseDateOnly(revenue.invoice_date)
         : new Date(),
       invoice_number: revenue?.invoice_number || '',
       amount: revenue?.amount?.toString() || '',

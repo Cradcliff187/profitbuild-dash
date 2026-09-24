@@ -31,6 +31,7 @@ import { useEstimateQuoteStatus, EstimateLineItemQuoteStatus } from "@/hooks/use
 import { CATEGORY_DISPLAY_MAP } from "@/types/estimate";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 
@@ -311,7 +312,7 @@ export function EstimateQuoteStatusView({ estimateId }: EstimateQuoteStatusViewP
                                         </div>
                                         {quote.date_received && (
                                           <div className="text-xs text-muted-foreground">
-                                            {format(new Date(quote.date_received), 'MMM dd, yyyy')}
+                                            {format(parseDateOnly(quote.date_received), 'MMM dd, yyyy')}
                                           </div>
                                         )}
                                       </div>
