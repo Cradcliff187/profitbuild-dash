@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { BidMedia, UploadBidMediaParams } from '@/types/bid';
 import { toast } from 'sonner';
 import { compressImage } from '@/utils/imageCompression';
@@ -16,6 +17,9 @@ interface UseBidMediaUploadResult {
  * Hook for uploading bid media with progress tracking, validation, and error rollback
  */
 export function useBidMediaUpload(): UseBidMediaUploadResult {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // upload path (network round-trip + supabase-js auth-lock serialization).
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
@@ -26,8 +30,6 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
     setError(null);
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       let fileToUpload = params.file;

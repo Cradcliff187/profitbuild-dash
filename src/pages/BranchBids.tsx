@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
@@ -38,6 +39,7 @@ export default function BranchBids() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -143,7 +145,7 @@ export default function BranchBids() {
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Gotcha #63: user comes from context — no getUser() on the save path.
       if (!user) throw new Error('No user found');
 
       const { data, error } = await supabase

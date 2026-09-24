@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -58,6 +59,9 @@ interface ActiveTimersTableProps {
 }
 
 export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // clock-out/convert paths (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [timers, setTimers] = useState<ActiveTimer[]>([]);
   const [loading, setLoading] = useState(true);
   const [forceClockOutOpen, setForceClockOutOpen] = useState(false);
@@ -223,8 +227,6 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       // so the preview and the write agree. Their hourly_rate is null.
       const amount = selectedTimer.is_sub ? 0 : netHours * (selectedTimer.hourly_rate || 0);
 
-      const { data: { user } } = await supabase.auth.getUser();
-
       const { error } = await supabase
         .from('expenses')
         .update({
@@ -285,7 +287,6 @@ export function ActiveTimersTable({ onTimerClosed }: ActiveTimersTableProps) {
       // form computes hours×rate, but for fixing a mistake-clocked-in PTO
       // entry the safest move is hours=8, amount=0 — admin can edit hours/rate
       // afterward via the normal time entry edit flow if needed).
-      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('expenses')
         .update({

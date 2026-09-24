@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Upload, File, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import type { DocumentType } from '@/types/document';
@@ -34,6 +35,9 @@ export function DocumentUpload({
   onUploadSuccess,
   relatedQuoteId 
 }: DocumentUploadProps) {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // upload path (network round-trip + supabase-js auth-lock serialization).
+  const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -74,7 +78,6 @@ export function DocumentUpload({
 
     setIsUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const timestamp = Date.now();

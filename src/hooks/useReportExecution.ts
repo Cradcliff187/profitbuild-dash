@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Json } from '@/integrations/supabase/types';
 
 export interface ReportFilter {
@@ -35,6 +36,9 @@ export interface ReportResult {
 }
 
 export function useReportExecution() {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // execution-log path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,7 +100,6 @@ export function useReportExecution() {
 
   const logReportExecution = async (config: ReportConfig, result: ReportResult) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('report_execution_log').insert({
         executed_by: user?.id,
         config_used: config as unknown as Json,

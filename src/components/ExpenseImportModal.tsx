@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Json } from '@/integrations/supabase/types';
 import { 
   parseTransactionCSV, 
@@ -166,8 +167,11 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
   open, 
   onClose, 
   onSuccess, 
-  estimates 
+  estimates
 }) => {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // import path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<TransactionCSVRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -1304,12 +1308,11 @@ export const ExpenseImportModal: React.FC<ExpenseImportModalProps> = ({
       });
 
       // Create import batch record
-      const { data: userData } = await supabase.auth.getUser();
       const { data: batch, error: batchError } = await supabase
         .from('import_batches')
         .insert([{
           file_name: selectedFile?.name || 'unknown.csv',
-          imported_by: userData.user?.id,
+          imported_by: user?.id,
           total_rows: selectedData.length,
           status: 'processing'
         }])
