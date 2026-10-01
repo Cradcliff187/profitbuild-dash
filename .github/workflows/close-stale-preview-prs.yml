@@ -32,7 +32,7 @@ jobs:
             --description "Idle PR holding a billed Supabase preview branch" --force >/dev/null
           now=$(date -u +%s)
 
-          gh pr list --state open --limit 100 --json number,labels,files,commits \
+          gh pr list --state open --limit 40 --json number,labels,files,commits \
             --jq '.[] | select(any(.files[]; .path | startswith("supabase/")))
                       | {n: .number,
                          last: .commits[-1].committedDate,
