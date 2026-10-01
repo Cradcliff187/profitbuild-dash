@@ -319,6 +319,12 @@ real financial data.
 Settings → Developer "Show sandbox test project" toggle is on. Preview branches are NOT an option
 (Gotcha #21).
 
+> **Preview branches bill hourly.** Supabase's GitHub integration creates one automatically for
+> any PR that changes `supabase/` (draft PRs included) and deletes it when the PR is merged or
+> closed. Use it to test, then merge or close. Don't leave it open. To park unfinished work,
+> close the PR and open an issue that points at the git branch (see #209 for an example). The
+> `close-stale-preview-prs` workflow warns after 5 days with no commits and closes at 10.
+
 **Steps**
 1. Seed the scenario against `SYS-TEST` via `execute_sql` (estimate, quote, expense, CO — whatever
    the trigger touches).

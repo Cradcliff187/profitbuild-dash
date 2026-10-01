@@ -1,0 +1,56 @@
+# Supabase's GitHub integration opens a billed preview branch for every PR
+# that changes files under supabase/. Draft status does NOT prevent it, and
+# the branch bills hourly until the PR is merged or closed (PR #200 billed
+# for ~7 weeks while idle). This job warns, then closes, open PRs that touch
+# supabase/ and have had no new commits. Closing deletes the preview branch;
+# the git branch is kept, and reopening the PR recreates the preview branch.
+name: Close stale preview-branch PRs
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # daily, ~9 AM Eastern
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      WARN_DAYS: 5
+      CLOSE_DAYS: 10
+      LABEL: preview-branch-stale
+    steps:
+      - name: Warn and close idle PRs that own a preview branch
+        run: |
+          set -euo pipefail
+          gh label create "$LABEL" --color D93F0B \
+            --description "Idle PR holding a billed Supabase preview branch" --force >/dev/null
+          now=$(date -u +%s)
+
+          gh pr list --state open --limit 100 --json number,labels,files,commits \
+            --jq '.[] | select(any(.files[]; .path | startswith("supabase/")))
+                      | {n: .number,
+                         last: .commits[-1].committedDate,
+                         warned: any(.labels[]; .name == env.LABEL)} | @json' |
+          while read -r row; do
+            n=$(jq -r .n <<<"$row")
+            last=$(jq -r .last <<<"$row")
+            warned=$(jq -r .warned <<<"$row")
+            idle=$(( (now - $(date -u -d "$last" +%s)) / 86400 ))
+            echo "PR #$n: ${idle}d since last commit (warned=$warned)"
+
+            if [ "$idle" -ge "$CLOSE_DAYS" ]; then
+              gh pr close "$n" --comment "Closing: no commits for ${idle} days, and this PR holds a Supabase preview branch that bills hourly. The git branch is kept. Reopen the PR to recreate the preview branch and keep testing."
+            elif [ "$idle" -ge "$WARN_DAYS" ] && [ "$warned" != "true" ]; then
+              gh pr edit "$n" --add-label "$LABEL"
+              gh pr comment "$n" --body "Heads-up: this PR touches \`supabase/\`, so it has a Supabase preview branch billing hourly. No commits for ${idle} days. It will be closed automatically at ${CLOSE_DAYS} days idle. Merge it, close it, or push a commit to keep it open."
+            elif [ "$idle" -lt "$WARN_DAYS" ] && [ "$warned" = "true" ]; then
+              # New commits since the warning: reset so a later stall warns again.
+              gh pr edit "$n" --remove-label "$LABEL"
+            fi
+          done
