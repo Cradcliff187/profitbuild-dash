@@ -26,6 +26,7 @@ import { PayeeImportModal } from "@/components/PayeeImportModal";
 import type { Payee } from "@/types/payee";
 import { PayeeType } from "@/types/payee";
 import { differenceInDays } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 interface PayeesListProps {
   showForm: boolean;
@@ -137,7 +138,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
 
   const isInsuranceExpiringSoon = (expirationDate: string) => {
     if (!expirationDate) return false;
-    const daysUntilExpiration = differenceInDays(new Date(expirationDate), new Date());
+    const daysUntilExpiration = differenceInDays(parseDateOnly(expirationDate), new Date());
     return daysUntilExpiration <= 30 && daysUntilExpiration >= 0;
   };
 
@@ -408,7 +409,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
               {isInsuranceExpiringSoon(payee.insurance_expires) && (
                 <AlertTriangle className="h-3 w-3" />
               )}
-              Insurance expires: {new Date(payee.insurance_expires).toLocaleDateString()}
+              Insurance expires: {parseDateOnly(payee.insurance_expires).toLocaleDateString()}
             </div>
           )}
         </div>
@@ -636,7 +637,7 @@ export const PayeesList = forwardRef<PayeesListRef, PayeesListProps>(({ showForm
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Insurance Expires</div>
                             <div className="text-xs">
-                              {new Date(payee.insurance_expires).toLocaleDateString()}
+                              {parseDateOnly(payee.insurance_expires).toLocaleDateString()}
                               {isInsuranceExpiring && (
                                 <Badge variant="outline" className="ml-2 h-5 px-1.5 text-[10px] border-amber-500 text-amber-700">
                                   Expiring Soon

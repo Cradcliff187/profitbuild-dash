@@ -137,7 +137,7 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
 
           // Combine and sort
           const allExpenses = [...formattedDirectExpenses, ...formattedSplitExpenses].sort(
-            (a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
+            (a, b) => parseDateOnly(b.expense_date).getTime() - parseDateOnly(a.expense_date).getTime()
           );
 
           return { data: allExpenses };
@@ -190,8 +190,8 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
 
         return {
           ...estimate,
-          date_created: new Date(estimate.date_created),
-          valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
+          date_created: parseDateOnly(estimate.date_created),
+          valid_until: estimate.valid_until ? parseDateOnly(estimate.valid_until) : undefined,
           created_at: new Date(estimate.created_at),
           updated_at: new Date(estimate.updated_at),
           project_name: projectDataNested?.project_name || formattedProject.project_name,
@@ -228,11 +228,11 @@ export function useProjectData(projectId: string | undefined): UseProjectDataRet
 
         return {
           ...quote,
-          dateReceived: new Date(quote.date_received),
+          dateReceived: parseDateOnly(quote.date_received),
           createdAt: new Date(quote.created_at),
           updatedAt: new Date(quote.updated_at),
-          validUntil: quote.valid_until ? new Date(quote.valid_until) : undefined,
-          accepted_date: quote.accepted_date ? new Date(quote.accepted_date) : undefined,
+          validUntil: quote.valid_until ? parseDateOnly(quote.valid_until) : undefined,
+          accepted_date: quote.accepted_date ? parseDateOnly(quote.accepted_date) : undefined,
           status: quote.status as string,
           projectName: formattedProject.project_name,
           client: formattedProject.client_name,

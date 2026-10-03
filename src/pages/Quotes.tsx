@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { AppBreadcrumbs } from "@/components/layout/AppBreadcrumbs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BrandedLoader } from "@/components/ui/branded-loader";
+import { parseDateOnly } from "@/utils/dateUtils";
+import { endOfDay } from "date-fns";
 
 type QuoteView = 'list' | 'create' | 'edit' | 'view' | 'compare';
 
@@ -336,13 +338,15 @@ const Quotes = () => {
 
     // Date range filter
     if (searchFilters.dateRange.start) {
-      filtered = filtered.filter(quote => 
-        new Date(quote.dateReceived) >= searchFilters.dateRange.start!
+      filtered = filtered.filter(quote =>
+        parseDateOnly(quote.dateReceived) >= searchFilters.dateRange.start!
       );
     }
     if (searchFilters.dateRange.end) {
-      filtered = filtered.filter(quote => 
-        new Date(quote.dateReceived) <= searchFilters.dateRange.end!
+      // Date-only values parse to noon, so the end boundary must extend to end of day
+      const endBoundary = endOfDay(searchFilters.dateRange.end);
+      filtered = filtered.filter(quote =>
+        parseDateOnly(quote.dateReceived) <= endBoundary
       );
     }
 
@@ -407,7 +411,8 @@ const Quotes = () => {
           // Helper function to safely parse dates
           const safeDate = (dateStr: any): Date => {
             if (!dateStr) return new Date();
-            const date = new Date(dateStr);
+            // parseDateOnly prevents date-only strings from shifting a day back in local time
+            const date = parseDateOnly(dateStr);
             return isNaN(date.getTime()) ? new Date() : date;
           };
 
@@ -496,7 +501,8 @@ const Quotes = () => {
           // Helper function to safely parse dates
           const safeDate = (dateStr: any): Date => {
             if (!dateStr) return new Date();
-            const date = new Date(dateStr);
+            // parseDateOnly prevents date-only strings from shifting a day back in local time
+            const date = parseDateOnly(dateStr);
             return isNaN(date.getTime()) ? new Date() : date;
           };
 
