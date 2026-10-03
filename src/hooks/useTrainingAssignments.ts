@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   TrainingAssignment, 
   CreateAssignmentData,
@@ -20,6 +21,9 @@ import { toast } from 'sonner';
 // =============================================================================
 
 export function useTrainingAssignments(contentId?: string) {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // assignment paths (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [assignments, setAssignments] = useState<TrainingAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,8 +60,6 @@ export function useTrainingAssignments(contentId?: string) {
     options?: { due_date?: string; priority?: number; notes?: string }
   ): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
       const assignmentsToCreate = userIds.map(userId => ({
         training_content_id: trainingContentId,
         user_id: userId,
@@ -152,6 +154,9 @@ export function useTrainingAssignments(contentId?: string) {
 // =============================================================================
 
 export function useMyTraining() {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // mount fetch path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [items, setItems] = useState<MyTrainingItem[]>([]);
   const [stats, setStats] = useState<TrainingStats>({ 
     total: 0, completed: 0, pending: 0, overdue: 0, completionRate: 0 
@@ -161,7 +166,6 @@ export function useMyTraining() {
   const fetchMyTraining = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Fetch assignments with content
@@ -230,15 +234,14 @@ export function useMyTraining() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Mark as complete
   const markComplete = async (
-    contentId: string, 
+    contentId: string,
     options?: { time_spent_minutes?: number; notes?: string }
   ): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase
