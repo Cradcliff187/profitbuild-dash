@@ -145,7 +145,7 @@ export function useInvoiceData({
         address:
           settingsMap.get('company_address') ??
           '2327 Anderson Rd, Crescent Springs, KY 41017',
-        phone: settingsMap.get('company_phone') ?? '(859) 802-0746',
+        phone: settingsMap.get('company_phone') ?? '(859) 653-1695',
         email: settingsMap.get('company_email') ?? 'Finance@Radcliffcg.com',
         website: settingsMap.get('company_website') ?? 'teamradcliff.com',
       };
