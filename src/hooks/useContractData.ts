@@ -118,7 +118,7 @@ export function useContractData({
         legalName: settingsMap.get('company_legal_name') ?? 'RCG LLC, a Kentucky limited liability company',
         displayName: settingsMap.get('company_display_name') ?? 'Radcliff Construction Group, LLC',
         address: settingsMap.get('company_address') ?? '23 Erlanger Road, Erlanger, KY 41017',
-        phone: settingsMap.get('company_phone') ?? '(859) 802-0746',
+        phone: settingsMap.get('company_phone') ?? '(859) 653-1695',
         email: settingsMap.get('company_email') ?? 'matt@radcliffcg.com',
         website: settingsMap.get('company_website') ?? 'teamradcliff.com',
         signatoryName: settingsMap.get('signatory_name') ?? 'Matt Radcliff',
