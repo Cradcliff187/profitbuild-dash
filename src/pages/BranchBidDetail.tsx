@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Save, Link as LinkIcon, FileText, StickyNote, Image, Rocket, Package } from 'lucide-react';
 import { AppBreadcrumbs } from '@/components/layout/AppBreadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export default function BranchBidDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
 
@@ -155,7 +157,7 @@ export default function BranchBidDetail() {
       if (!name.trim()) throw new Error('Lead name is required');
       if (!clientId) throw new Error('Client is required to create a project');
 
-      const { data: { user } } = await supabase.auth.getUser();
+      // Gotcha #63: user comes from context — no getUser() on the save path.
       if (!user) throw new Error('No user found');
 
       // Get client info

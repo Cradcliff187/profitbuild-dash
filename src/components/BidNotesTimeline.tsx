@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { Mic, MicOff, Send, Loader2, Trash2, User } from 'lucide-react';
@@ -28,6 +29,9 @@ interface BidNotesTimelineProps {
 
 export function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimelineProps) {
   const queryClient = useQueryClient();
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // submit path (network round-trip + supabase-js auth-lock serialization).
+  const { user } = useAuth();
   const [noteText, setNoteText] = useState('');
 
   const { notes, isLoading } = useBidNotes(bidId);
@@ -86,7 +90,6 @@ export function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimeli
 
   const addNoteMutation = useMutation({
     mutationFn: async (text: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase
