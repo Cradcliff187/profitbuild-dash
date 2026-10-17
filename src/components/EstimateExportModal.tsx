@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, FileText, Table, Calendar } from "lucide-react";
 import type { SearchFilters } from "./EstimateSearchFilters";
+import { parseDateOnly } from "@/utils/dateUtils";
 
 interface EstimateExportModalProps {
   isOpen: boolean;
@@ -138,7 +139,7 @@ export const EstimateExportModal: React.FC<EstimateExportModalProps> = ({
         estimate.projects?.project_name || '',
         estimate.projects?.client_name || '',
         estimate.status,
-        new Date(estimate.date_created).toLocaleDateString(),
+        parseDateOnly(estimate.date_created).toLocaleDateString(),
         estimate.total_amount?.toString() || '0',
         estimate.version_number?.toString() || '1',
         estimate.is_current_version ? 'Yes' : 'No'
