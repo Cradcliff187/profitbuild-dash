@@ -8,6 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ProjectRevenue } from "@/types/revenue";
 import { formatCurrency, cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -321,7 +322,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
     // Date range filter
     if (filterPeriod.dateFrom || filterPeriod.dateTo) {
       filtered = filtered.filter(rev => {
-        const dateStr = format(new Date(rev.invoice_date), "yyyy-MM-dd");
+        const dateStr = format(parseDateOnly(rev.invoice_date), "yyyy-MM-dd");
         if (filterPeriod.dateFrom && dateStr < filterPeriod.dateFrom) return false;
         if (filterPeriod.dateTo && dateStr > filterPeriod.dateTo) return false;
         return true;
@@ -346,8 +347,8 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
           break;
         case 'date':
         case 'invoice_date':
-          aVal = new Date(a.invoice_date).getTime();
-          bVal = new Date(b.invoice_date).getTime();
+          aVal = parseDateOnly(a.invoice_date).getTime();
+          bVal = parseDateOnly(b.invoice_date).getTime();
           break;
         case 'invoice_number':
           aVal = a.invoice_number || '';
@@ -561,7 +562,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
         }
         return (
           <span className="font-mono text-muted-foreground text-xs">
-            {format(new Date(revenue.invoice_date), 'M/d/yy')}
+            {format(parseDateOnly(revenue.invoice_date), 'M/d/yy')}
           </span>
         );
       
@@ -877,7 +878,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                       )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-mono text-muted-foreground">
-                          {format(new Date(revenue.invoice_date), 'M/d/yy')}
+                          {format(parseDateOnly(revenue.invoice_date), 'M/d/yy')}
                         </span>
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs font-mono font-medium text-green-600">
@@ -1287,7 +1288,7 @@ export const RevenuesList: React.FC<RevenuesListProps> = ({
                     {revenueToDelete.invoice_number || 'No Invoice #'} - {formatCurrency(revenueToDelete.amount)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {revenueToDelete.project_name} • {format(new Date(revenueToDelete.invoice_date), 'MMM dd, yyyy')}
+                    {revenueToDelete.project_name} • {format(parseDateOnly(revenueToDelete.invoice_date), 'MMM dd, yyyy')}
                   </div>
                 </div>
               )}
