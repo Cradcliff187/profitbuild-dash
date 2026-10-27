@@ -102,7 +102,7 @@ src/
 | Notifications | `send-receipt-notification`, `send-training-notification` |
 | SMS | `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key` |
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
-| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import), `scan-receipt` (receipt pre-fill — Rule 41; v1, verify_jwt true, deployed via MCP Oct 27 2026) |
+| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import), `scan-receipt` (receipt pre-fill — Rule 41; v3, verify_jwt true, deployed via MCP Oct 27 2026; Claude or OpenAI) |
 | Contracts | `generate-contract` (template-driven subcontractor project agreement; .docx placeholder substitution via JSZip) |
 | Invoices | `generate-invoice` (template-driven client invoice; mirrors generate-contract pipeline), `generate-invoice-description` (OpenAI gpt-4o-mini ≤150-word work-summary from approved estimate) |
 | QuickBooks (CSV flow, live) | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
@@ -1747,8 +1747,14 @@ modal.
 
 **Pieces:**
 - [`scan-receipt`](supabase/functions/scan-receipt/index.ts) edge function (`verify_jwt` true AND resolves a real
-  user — the anon JWT alone is rejected). OpenAI vision, `OPENAI_MODEL` pinned in ONE constant (`gpt-4o`),
-  strict `json_schema` output, temperature 0. The isolate **never decodes image bytes** (Gotcha #75): the phone
+  user — the anon JWT alone is rejected). **Two vision providers behind one `Extraction` shape** (v3, Oct 27 2026):
+  Claude (`ANTHROPIC_MODEL = claude-opus-5-5`, raw `/v1/messages`, `output_config.format` json_schema, effort
+  `low`, `fallbacks: "default"`) and OpenAI (`OPENAI_MODEL = gpt-4o`, strict `json_schema`, temperature 0). Per
+  request: `SCAN_PROVIDER` env (`anthropic`|`openai`) wins, else Anthropic when `ANTHROPIC_API_KEY` is set, else
+  OpenAI. Added the day the OpenAI org ran out of credits mid-rollout (every OpenAI-backed feature went dark at
+  once); `meta.provider` on each scan says which one answered. A provider billing failure
+  (`insufficient_quota` / `credit_balance_exhausted` / "credit balance is too low") returns
+  `error_code: 'credits_exhausted'` and the chip says so plainly instead of "Couldn't read it". The isolate **never decodes image bytes** (Gotcha #75): the phone
   resizes to ≤1600px JPEG via `compressImage` and the function forwards base64 untouched (2M-char cap).
   Server-side sanity: `is_receipt=false` ⇒ nothing prefills; `subtotal+tax` within $0.02 of `total` floors
   confidence at 0.95, a mismatch caps it at 0.5 (amber "check the amount"); totals ≤0 or >$50k dropped; dates
@@ -1850,7 +1856,8 @@ VITE_FEATURE_AIA_BILLING=true
 ### Supabase Edge Function Secrets
 
 Set in Supabase Dashboard → Settings → Edge Functions → Secrets:
-- `OPENAI_API_KEY` — OpenAI API key (required for AI report assistant, caption enhancement, estimate enrichment, audio transcription)
+- `OPENAI_API_KEY` — OpenAI API key (required for AI report assistant, caption enhancement, estimate enrichment, audio transcription; receipt scan when no Anthropic key)
+- `ANTHROPIC_API_KEY` — optional. When set, `scan-receipt` uses Claude instead of OpenAI (Rule 41). `SCAN_PROVIDER=openai|anthropic` forces one.
 - `ResendAPI` — Resend email service API key (required)
 - `TEXTBELT_API_KEY` — Textbelt SMS key (required for SMS features)
 
@@ -2124,6 +2131,8 @@ Use this list when doing periodic documentation reviews:
 
 79. **"Active timer" = `start_time IS NOT NULL AND end_time IS NULL` — never a category; and the tracker has NO client-side auto-close (Sep 9 2026)** — Chris's timer on 225-080 ran to **145 hours**: Role Management → Active Timers said "No active timers" and the Time Tracker spammed "Timer Auto-Closed" on every visit while the row stayed open. Two bugs, one root each. (1) [ActiveTimersTable](src/components/role-management/ActiveTimersTable.tsx) filtered `category = 'labor_internal'`, but a labor-providing subcontractor's timer is filed under `subcontractors` at $0 by the `enforce_time_entry_category_from_payee` trigger (Gotcha #68 — 133 such timers since May 2026, all Chris). The category filter is gone; the row shows a **Sub** badge and force-clock-out writes $0 for subs (the trigger re-zeroes `amount` on `UPDATE OF amount` anyway — the UI now agrees with it). (2) [MobileTimeTracker](src/components/time-tracker/MobileTimeTracker.tsx)'s 24h "auto-close" never worked: it `setActiveTimer(...)` then `await completeClockOut()` in the same tick, so `completeClockOut` read the stale `null` closure and returned — and even with fresh state `validateTimeEntryHours` rejects >24h. The "Timer Auto-Closed" toast fired unconditionally after that no-op, on mount AND every return-to-foreground (`visibilitychange` → `loadActiveTimers`). The branch is deleted: the timer is always restored to the UI, stale/over-cap toasts fire **once per timer id per session** (`staleToastShownRef`), the banner past 24h says the truth (close it from Role Management) and hides the Clock Out button that can only error (Gotcha #76); admins get an "Open Active Timers" button instead. **Rules**: never re-add a category filter to an active-timer query; never add a client-side auto-close that fabricates an end time — over-cap timers are closed by an admin with a corrected end time (the force-clock-out dialog's 8h default exists for exactly this); and any toast inside a function that runs on `visibilitychange` must be deduped or it becomes spam. **Same day, the live timer was retired app-wide** (Rule 35): the Timer tab, clock-in/out handlers, lunch/receipt prompts, stale-timer banner, `localStorage` restore, and the `/time-tracker/timer` route are all deleted — `MobileTimeTracker` went 1,846 → ~650 lines and is Entries + Receipts. The `expenses` rows a timer wrote (`start_time` set, `end_time` null) can no longer be created by the app; the Active Timers card remains only to close the ones that already exist.
 
+
+80. **Pages scroll inside their own containers, so a route change does NOT start at the top by itself (Oct 27 2026)** — Chris reported Time Tracker / Receipts pages opening scrolled down wherever the previous page had been. `AppLayout`'s `<main>` is `overflow-auto` (the document never scrolls), and `ProjectDetailView` has its own inner scroller on top of that; React Router v6 resets neither. [`useScrollToTopOnNavigate(ref)`](src/hooks/useScrollToTopOnNavigate.ts) is mounted in both (`mainScrollRef` in AppLayout, `innerScrollRef` in PDV — the same ref serves PDV's desktop `div` and mobile `<main>`, only one mounts at a time). It fires on PUSH/REPLACE keyed on `pathname + search` (so `?tab=` sub-pages reset too) and deliberately skips POP so Back keeps the reader's place in a long list. If you add another nested scroll container that hosts routes, mount the hook there as well — AppLayout's reset can't reach a child scroller.
 
 ---
 

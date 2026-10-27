@@ -83,6 +83,17 @@ const ScanStatusChip: React.FC<ScanStatusChipProps> = ({ status, result }) => {
     );
   }
 
+  if (result?.error_code === 'credits_exhausted') {
+    return (
+      <div className={cn(base, 'bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200')} role="status">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <span className="min-w-0">
+          Scanning is paused: the AI account is out of credits. Enter the details by hand and let the office know.
+        </span>
+      </div>
+    );
+  }
+
   if (status === 'failed' || status === 'timeout' || !result || result.status === 'failed') {
     return (
       <div className={cn(base, 'bg-muted text-muted-foreground')} role="status">
