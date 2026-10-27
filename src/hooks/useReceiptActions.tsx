@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
@@ -36,6 +37,9 @@ export const useReceiptActions = ({
   setReceiptToReject,
 }: UseReceiptActionsProps) => {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // approve path (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const handleApproveReceipt = useCallback(async (receiptId: string) => {
     if (!receiptId) {
       toast.error('Invalid receipt ID');
@@ -43,16 +47,11 @@ export const useReceiptActions = ({
     }
 
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('Failed to get user for receipt approval:', {
-          receiptId,
-          error: authError.message
-        });
+      if (!user) {
+        console.error('No authenticated user for receipt approval:', { receiptId });
         throw new Error('Authentication failed');
       }
-      
+
       const { error } = await supabase
         .from('receipts')
         .update({
@@ -83,7 +82,7 @@ export const useReceiptActions = ({
       });
       toast.error(`Failed to approve receipt: ${errorMessage}`);
     }
-  }, [loadReceipts]);
+  }, [loadReceipts, user]);
 
   const handleRejectReceipt = useCallback(async (receiptId: string, reason: string) => {
     if (!receiptId) {

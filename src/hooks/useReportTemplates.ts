@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface ReportTemplate {
   id: string;
@@ -12,6 +13,9 @@ export interface ReportTemplate {
 }
 
 export function useReportTemplates() {
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // load/save paths (network round-trip + auth-lock serialization).
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [savedReports, setSavedReports] = useState<ReportTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +48,6 @@ export function useReportTemplates() {
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setSavedReports([]);
         return;
@@ -75,7 +78,6 @@ export function useReportTemplates() {
     isTemplate: boolean = false
   ): Promise<string | null> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setError('User not authenticated');
         return null;
@@ -127,10 +129,12 @@ export function useReportTemplates() {
     }
   };
 
+  // Re-run when the auth user resolves/changes so saved reports aren't stuck
+  // empty if this hook mounts before AuthContext has the user.
   useEffect(() => {
     loadTemplates();
     loadSavedReports();
-  }, []);
+  }, [user?.id]);
 
   return {
     templates,

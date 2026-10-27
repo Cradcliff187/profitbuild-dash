@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Upload, File, X, FileText, Eye, Download, Printer, MoreHorizontal, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -48,6 +49,9 @@ export function QuoteAttachmentUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  // Gotcha #63: user comes from context — no supabase.auth.getUser() on the
+  // upload path (network round-trip + supabase-js auth-lock serialization).
+  const { user } = useAuth();
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
@@ -79,11 +83,6 @@ export function QuoteAttachmentUpload({
 
     setIsUploading(true);
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-      if (authError) {
-        throw new Error('Not authenticated');
-      }
       if (!user) {
         throw new Error('Not authenticated');
       }
@@ -144,7 +143,7 @@ export function QuoteAttachmentUpload({
     } finally {
       setIsUploading(false);
     }
-  }, [selectedFile, projectId, relatedQuoteId, onUploadSuccess]);
+  }, [selectedFile, projectId, relatedQuoteId, onUploadSuccess, user]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
