@@ -21,6 +21,21 @@ Flags stay OFF globally until dogfooding (Chris + Matt on the board; Tom on the 
 
 Note: the DB-side pieces (assignment-notification trigger, dispatch auto-allocation trigger) are active regardless of the flags — they only fire on `crew_day_assignments` writes, which only flag-enabled surfaces produce.
 
+## Receipt Scan (Oct 2026)
+
+**Flag Name**: `receipt_scan`
+**Status**: ❌ OFF globally — **per-user override ON for Tom Finn** (`88e6782c-edab-458c-a80b-c18a084ca431`)
+**Last Updated**: October 27, 2026
+
+| Flag | Controls |
+|---|---|
+| `receipt_scan` | AI pre-fill of amount / vendor / date on **Add Receipt** (`AddReceiptModal`) via the `scan-receipt` edge function (v4). Pre-fill only: Save never waits on the scan, nothing auto-saves, no payee is auto-created, a typed-into field is never overwritten. Flag off = byte-identical to the pre-feature modal. |
+
+Resolution via `useDbFeatureFlag('receipt_scan')`; admin UI at `/settings/feature-flags`. Plan + closeout: [docs/RECEIPT_SCAN_PLAN.md](../docs/RECEIPT_SCAN_PLAN.md); summary in CLAUDE.md Rule 41.
+
+### Rollout plan
+Tom-only until a week of real receipts is in `receipts.ocr_data`. Run the accuracy SQL in the plan doc; flip globally only when totals ≥ 90 % and vendor ≥ 85 %. Provider: OpenAI `gpt-4o` today; add `ANTHROPIC_API_KEY` to switch to Claude.
+
 ## QuickBooks Integration
 
 **Flag Name**: `quickbooks_auto_sync`
