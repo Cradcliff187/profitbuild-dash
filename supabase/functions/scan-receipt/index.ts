@@ -89,7 +89,7 @@ Rules:
 - vendor_name is the merchant name printed at the top of the receipt. Never the street address, phone number, slogan, or cashier name.
 - brand is the chain or fuel brand ONLY when the location is a franchised or branded store whose printed name is the operator's name (e.g. printed "Timmy Tom's Shell" → brand "Shell"; printed "Billy Bob's BP" → brand "BP"). If the printed name already is the brand, or there is no visible brand, brand is null.
 - total is the final amount the customer paid: the line labelled TOTAL, AMOUNT DUE, or the card charge. Not SUBTOTAL, not CASH/TENDERED, not CHANGE.
-- date is the transaction date printed on the receipt, formatted YYYY-MM-DD. If only a partial date is visible, return null.
+- date is the transaction date printed on the receipt, formatted YYYY-MM-DD. Copy the printed year digit for digit: "10/19/2026" is 2026-10-19 and "10/19/26" is 2026-10-19. Never substitute a year from memory — the user message tells you today's date, and receipts are almost always from the last few months. If only a partial date is visible, return null.
 - If a value is not clearly visible, return null for it and a confidence of 0. Never guess.
 - is_receipt is false for anything that is not a purchase receipt or invoice (a photo of a job site, a document, a screen).
 - confidence values are 0 to 1 and reflect how clearly each field is legible.`;
@@ -99,6 +99,15 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** User turn: anchors the model to today's date so it cannot fall back on a training-era year. */
+function userText(now: Date): string {
+  return `Extract the fields from this receipt photo. Today's date is ${isoDate(now)}.`;
 }
 
 function round2(n: number): number {
@@ -142,16 +151,33 @@ function sanitize(raw: Extraction, now: Date): { extraction: Extraction; dropped
   // Date: must parse and sit inside [now - 120d, now + 1d].
   if (e.date !== null) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(e.date);
+    const inWindow = (d: Date | null) =>
+      !!d &&
+      !isNaN(d.getTime()) &&
+      d.getTime() <= now.getTime() + 86_400_000 &&
+      d.getTime() >= now.getTime() - DATE_WINDOW_DAYS * 86_400_000;
     const parsed = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
-    const ok =
-      parsed &&
-      !isNaN(parsed.getTime()) &&
-      parsed.getTime() <= now.getTime() + 86_400_000 &&
-      parsed.getTime() >= now.getTime() - DATE_WINDOW_DAYS * 86_400_000;
-    if (!ok) {
-      dropped.push(`date_out_of_window:${e.date}`);
-      e.date = null;
-      e.confidence.date = 0;
+    if (!inWindow(parsed)) {
+      // Year repair: vision models carry a training-era year prior and will read a
+      // clearly printed "10/19/2026" as 2023 (seen live, Oct 27 2026). When the printed
+      // month/day land in the window under this year or last year, keep that date at
+      // reduced confidence instead of dropping it — the worker sees the year in the
+      // prefilled Date field either way. Anything else is dropped as before.
+      const repaired = m
+        ? [now.getUTCFullYear(), now.getUTCFullYear() - 1]
+            .map((y) => new Date(Date.UTC(y, +m[2] - 1, +m[3])))
+            .find((d) => d.getUTCMonth() === +m[2] - 1 && inWindow(d))
+        : undefined;
+      if (repaired) {
+        const fixed = isoDate(repaired);
+        dropped.push(`date_year_repaired:${e.date}->${fixed}`);
+        e.date = fixed;
+        e.confidence.date = Math.min(e.confidence.date, 0.6);
+      } else {
+        dropped.push(`date_out_of_window:${e.date}`);
+        e.date = null;
+        e.confidence.date = 0;
+      }
     }
   }
 
@@ -221,7 +247,7 @@ const CLAUDE_EXTRACTION_SCHEMA = {
   },
 } as const;
 
-async function callClaude(apiKey: string, imageBase64: string, mimeType: string): Promise<Extraction> {
+async function callClaude(apiKey: string, imageBase64: string, mimeType: string, now: Date): Promise<Extraction> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
   try {
@@ -250,7 +276,7 @@ async function callClaude(apiKey: string, imageBase64: string, mimeType: string)
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
-              { type: 'text', text: 'Extract the fields from this receipt photo.' },
+              { type: 'text', text: userText(now) },
             ],
           },
         ],
@@ -276,7 +302,7 @@ async function callClaude(apiKey: string, imageBase64: string, mimeType: string)
   }
 }
 
-async function callOpenAI(apiKey: string, imageBase64: string, mimeType: string): Promise<Extraction> {
+async function callOpenAI(apiKey: string, imageBase64: string, mimeType: string, now: Date): Promise<Extraction> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
   try {
@@ -294,7 +320,7 @@ async function callOpenAI(apiKey: string, imageBase64: string, mimeType: string)
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Extract the fields from this receipt photo.' },
+              { type: 'text', text: userText(now) },
               { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail: 'high' } },
             ],
           },
@@ -323,6 +349,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const started = Date.now();
+  const now = new Date();
   try {
     // --- Auth: a real user, not just a valid anon JWT at the gateway. ---
     const authHeader = req.headers.get('Authorization');
@@ -380,8 +407,8 @@ Deno.serve(async (req: Request) => {
     try {
       raw =
         provider === 'anthropic'
-          ? await callClaude(anthropicKey!, imageBase64, mimeType)
-          : await callOpenAI(openaiKey!, imageBase64, mimeType);
+          ? await callClaude(anthropicKey!, imageBase64, mimeType, now)
+          : await callOpenAI(openaiKey!, imageBase64, mimeType, now);
     } catch (err) {
       const code: ModelErrorCode = err instanceof ModelCallError ? err.code : 'model_error';
       const message = err instanceof Error ? err.message : String(err);
@@ -402,7 +429,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { extraction, dropped } = sanitize(raw, new Date());
+    const { extraction, dropped } = sanitize(raw, now);
 
     if (!extraction.is_receipt) {
       console.log('[scan-receipt] no_receipt', { user: userData.user.id, latency_ms: Date.now() - started });
