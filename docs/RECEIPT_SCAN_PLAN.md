@@ -85,6 +85,10 @@ CREATE TABLE payee_aliases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   payee_id uuid NOT NULL REFERENCES payees(id) ON DELETE CASCADE,
   alias text NOT NULL,                      -- normalized (see normalizeVendor)
+  match_mode text NOT NULL DEFAULT 'exact' CHECK (match_mode IN ('exact','token')),
+    -- exact: the whole printed name equals the alias
+    -- token: the alias appears as a whole-word token sequence inside the printed name
+    --        (chains/brands: "TIMMY TOMS SHELL" ⊃ "SHELL")
   source text NOT NULL DEFAULT 'learned' CHECK (source IN ('seed','learned','manual')),
   hit_count int NOT NULL DEFAULT 0,
   created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -102,23 +106,34 @@ VALUES ('receipt_scan', false, 'AI pre-fill of amount/vendor/date on Add Receipt
 
 **Seed aliases** for the top vendors. Normalization: uppercase, strip punctuation, strip `#1234` store numbers and trailing digits, strip `THE`, `INC`, `LLC`, collapse spaces.
 
-| Printed on receipt (normalized) | Payee |
-|---|---|
-| `HOME DEPOT` | Home Depot |
-| `MENARDS` | Menards |
-| `QUIKTRIP`, `QT` | Quick Trip |
-| `SHERWIN WILLIAMS` | sherwin williams |
-| `ACE HARDWARE` | Ace Hardware |
-| `SHELL`, `SHELL OIL` | Shell Gas |
-| `LOWES` | Lowes |
-| `WALMART`, `WAL MART` | Walmart |
-| `BP` | BP Gas |
-| `INTERIOR SUPPLY` | Interior Supply |
-| `HARBOR FREIGHT TOOLS`, `HARBOR FREIGHT` | Harbor Freight |
-| `SPEEDWAY` | Speedway Gas |
-| `MARATHON` | Marathon Gas |
-| `FISHMAN FLOORING` | Fishman Flooring Solutions |
-| `VALVOLINE` | Valvoline |
+| Printed on receipt (normalized) | Mode | Payee |
+|---|---|---|
+| `HOME DEPOT` | token | Home Depot |
+| `MENARDS` | token | Menards |
+| `QUIKTRIP`, `QUIK TRIP`, `QT` | token | Quick Trip |
+| `SHERWIN WILLIAMS` | token | sherwin williams |
+| `ACE HARDWARE` | token | Ace Hardware |
+| `SHELL`, `SHELL OIL` | token | Shell Gas |
+| `LOWES` | token | Lowes |
+| `WALMART`, `WAL MART` | token | Walmart |
+| `BP`, `BRITISH PETROLEUM` | token | BP Gas |
+| `INTERIOR SUPPLY` | token | Interior Supply |
+| `HARBOR FREIGHT TOOLS`, `HARBOR FREIGHT` | token | Harbor Freight |
+| `SPEEDWAY` | token | Speedway Gas |
+| `MARATHON` | token | Marathon Gas |
+| `FISHMAN FLOORING` | token | Fishman Flooring Solutions |
+| `VALVOLINE` | token | Valvoline |
+
+**Franchised gas stations are the case that forced `token` mode.** The receipt header is the
+operator's name, not the chain: `TIMMY TOMS SHELL`, `BILLY BOBS BP`, `BILLY BOBS BRITISH
+PETROLEUM`. The payee on file is just Shell Gas or BP Gas. An exact-alias scheme misses every
+new station once. With token mode, `BILLY BOBS BP` contains the whole-word token `BP` and
+resolves to BP Gas on the first visit. Whole-word matching (token boundaries, not substring)
+keeps `BP` from firing inside an unrelated word. Gas is roughly 15% of receipts, so this is
+mainline, not an edge case.
+
+Learned aliases (from worker corrections) are always `exact`. Only seeds and admin-added
+entries get `token`, because a bad token alias misfires on every receipt that contains the word.
 
 That is the list that already covers 83% of receipts. Everything else is learned on first correction.
 
@@ -138,12 +153,19 @@ Side cleanup worth doing in the same pass: `Lowes ` has a trailing space and `sh
 ```
 is_receipt        boolean   false for anything that isn't a purchase receipt/invoice
 vendor_name       string|null   merchant name as printed, top of receipt, not the address
+brand             string|null   the chain or fuel brand when this is a franchised/branded
+                                location (Shell, BP, Marathon, Ace Hardware); null if the
+                                vendor_name IS the brand or there is no visible brand
 total             number|null   the final amount paid (after tax, after discounts)
 subtotal          number|null
 tax               number|null
 date              string|null   YYYY-MM-DD as printed
 confidence        { vendor_name, total, date } each 0..1
 ```
+
+`brand` exists for gas stations: branded receipts print the logo text (Shell, bp) prominently
+while the header line is the operator's name. Asking for it separately is cheaper and more
+reliable than hoping the printed name contains the chain.
 
 No line items. Not needed, and every field you ask for is a field the model can get wrong.
 
@@ -161,18 +183,31 @@ No line items. Not needed, and every field you ask for is a field the model can 
 
 | Tier | Method | Score |
 |---|---|---|
-| 1 | `payee_aliases.alias = normalize(vendor_name)` | 1.0 |
-| 2 | `normalize(payee_name) = normalize(vendor_name)` or one contains the other (min 4 chars) | 0.9 |
-| 3 | Jaro-Winkler on normalized strings against active non-internal payees, ≥ 0.85 | score |
-| 4 | no match | return raw `vendor_name` only |
+| 1 | `exact` alias = `normalize(vendor_name)` | 1.0 |
+| 1b | `exact` or `token` alias = `normalize(brand)` (when the model returned a brand) | 0.97 |
+| 2 | `token` alias appears as a whole-word token sequence inside `normalize(vendor_name)`; longest alias wins on a tie | 0.95 |
+| 3 | `normalize(payee_name) = normalize(vendor_name)` or one contains the other (min 4 chars) | 0.9 |
+| 4 | Jaro-Winkler on normalized strings against active non-internal payees, ≥ 0.85 | score |
+| 5 | no match | return raw `vendor_name` (and `brand`) only |
 
-Candidates are active, non-internal payees (the same filter `PayeeSelector` applies in the modal). Tier 3 also returns the top 3 candidates so the UI can offer them.
+Worked examples against the payees on file today:
+
+| Printed | Brand from model | Resolves via | Payee |
+|---|---|---|---|
+| `THE HOME DEPOT #3851` | Home Depot | 1 (exact `HOME DEPOT` after normalize) | Home Depot |
+| `TIMMY TOM'S SHELL` | Shell | 1b (`SHELL`) | Shell Gas |
+| `BILLY BOB'S BP` | BP | 1b (`BP`) | BP Gas |
+| `BILLY BOB'S BRITISH PETROLEUM` | BP | 1b, or 2 on `BRITISH PETROLEUM` if brand is null | BP Gas |
+| `QT 742` | QuikTrip | 1b, or 2 on `QT` | Quick Trip |
+| `JOES CORNER MART` (unbranded) | null | 5, worker picks, alias learned | — |
+
+Candidates are active, non-internal payees (the same filter `PayeeSelector` applies in the modal). Tier 4 also returns the top 3 candidates so the UI can offer them.
 
 **Response**
 ```json
 {
   "status": "success" | "partial" | "no_receipt" | "failed",
-  "extraction": { "vendor_name": "THE HOME DEPOT #3851", "total": 84.12, "subtotal": 78.62, "tax": 5.50, "date": "2026-10-24", "confidence": { "vendor_name": 0.98, "total": 0.97, "date": 0.9 } },
+  "extraction": { "vendor_name": "THE HOME DEPOT #3851", "brand": null, "total": 84.12, "subtotal": 78.62, "tax": 5.50, "date": "2026-10-24", "confidence": { "vendor_name": 0.98, "total": 0.97, "date": 0.9 } },
   "vendorMatch": { "payee_id": "…", "payee_name": "Home Depot", "tier": 1, "score": 1.0, "candidates": [] },
   "meta": { "model": "…", "latency_ms": 3100 }
 }
@@ -184,7 +219,7 @@ Candidates are active, non-internal payees (the same filter `PayeeSelector` appl
 |---|---|
 | Total exact match (±$0.01) | ≥ 90% |
 | Total wrong but confidence < 0.7 (i.e. flagged amber) | counts as pass |
-| Vendor tier 1–3 correct | ≥ 85% |
+| Vendor tier 1–4 correct | ≥ 85% |
 | Vendor wrong match (worse than no match) | ≤ 3% |
 | p90 latency | ≤ 8s |
 | `no_receipt` on real receipts | ≤ 2% |
@@ -207,7 +242,7 @@ Deploy via CLI (`npx supabase functions deploy scan-receipt --project-ref clsjdx
 - Fire `scan()` in `handleFileInputChange` right after the preview renders. Keep a `scanRequestId` ref so a retake discards an in-flight result.
 - Prefill rules:
   - **Amount**: set when `total` present and confidence ≥ 0.7. Below 0.7, still set but show amber "check this". Null → leave empty.
-  - **Vendor**: tier 1 or 2 → set `selectedPayeeId`, green check. Tier 3 → set, but chip says "Looks like {name}, tap to change". Tier 4 → leave empty, render the hint line `Receipt says: {raw}` with an **Add as new vendor** button that opens PayeeSelector's existing quick-add with the name pre-typed (type left to the worker; gas stations are `other`, not `material_supplier`).
+  - **Vendor**: tier 1 through 3 → set `selectedPayeeId`, green check. Tier 4 → set, but chip says "Looks like {name}, tap to change". Tier 5 → leave empty, render the hint line `Receipt says: {raw}` with an **Add as new vendor** button that opens PayeeSelector's existing quick-add with the name pre-typed (type left to the worker; gas stations are `other`, not `material_supplier`).
   - **Date**: set when present and passed the server sanity window.
   - Never overwrite a field the worker has already typed into (track `touched` per field).
 - `ScanStatusChip` under the photo: scanning / found summary / couldn't read / timed out. Small, one line, no modal, no toast for the normal path. The only toast is on a hard failure, and it is informational.
@@ -227,7 +262,7 @@ SELECT
   count(*) FILTER (WHERE ocr_status IN ('success','partial'))                                   AS scanned,
   count(*) FILTER (WHERE (ocr_data->'extraction'->>'total')::numeric = amount)                   AS total_right,
   count(*) FILTER (WHERE (ocr_data->'vendorMatch'->>'payee_id')::uuid = payee_id)                AS vendor_right,
-  count(*) FILTER (WHERE ocr_data->'vendorMatch'->>'tier' = '4')                                 AS vendor_unmatched,
+  count(*) FILTER (WHERE ocr_data->'vendorMatch'->>'tier' = '5')                                 AS vendor_unmatched,
   count(*) FILTER (WHERE ocr_status IN ('failed','timeout'))                                     AS failed,
   round(avg((ocr_data->'meta'->>'latency_ms')::int))                                             AS avg_ms
 FROM receipts
@@ -248,6 +283,8 @@ WHERE created_at > now() - interval '7 days' AND ocr_status IS NOT NULL;
 | Photo of something that isn't a receipt | `is_receipt=false`, nothing prefilled |
 | Long receipt, total cut off | total null, amount stays empty; chip hint "include the total in the photo" |
 | Store number variants (`HOME DEPOT #3851`) | normalization strips them before alias lookup |
+| Franchised gas station (`TIMMY TOMS SHELL`, `BILLY BOBS BP`) | model's `brand` field + whole-word token aliases resolve the chain on the first visit |
+| Token alias misfires on an odd vendor (`SHELL LUMBER`) | worker's correction is an `exact` alias and wins at tier 1 from then on |
 | New store the system has never seen | tier 4, worker picks or adds vendor, alias learned, matches next time |
 | Model picks subtotal instead of total | subtotal+tax cross-check caps confidence → amber "check amount" |
 | Worker edits a scanned value | touched-field tracking; scan never overwrites it |
