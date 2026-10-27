@@ -1734,7 +1734,7 @@ of bug for rates (`change_order_line_items.quantity` was already unconstrained n
   (`estimate_financial_summary`, `reporting.estimate_line_items_quote_status` + its
   `estimate_quote_status_summary` rollup, `reporting.internal_labor_hours_by_project`). ALTERing
   `quantity`'s type again means drop views → drop generated columns → alter → re-add verbatim →
-  recreate views → re-grant (see `20260826150000_widen_line_item_quantity_precision.sql`).
+  recreate views → re-grant (the full DDL is kept at [docs/widen-line-item-quantity-precision.sql](docs/widen-line-item-quantity-precision.sql) — the migration file itself is a placeholder like every other, see Gotcha #2).
 - **Pitfall**: never round `quantity` to 2dp client-side before save, and never "clean up" a
   many-decimal quantity on an imported labor line — those digits are what make the dollars exact.
 
