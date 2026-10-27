@@ -94,7 +94,7 @@ src/
 
 ## Backend: Supabase
 
-**30 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
+**31 Edge Functions** deployed (verify with `mcp list_edge_functions` or `npx supabase functions list --project-ref clsjdxwbsjbhjibvlqbz`). Source lives in `supabase/functions/`.
 
 | Group | Functions |
 |-------|-----------|
@@ -102,7 +102,7 @@ src/
 | Notifications | `send-receipt-notification`, `send-training-notification` |
 | SMS | `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key` |
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
-| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import) |
+| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import), `scan-receipt` (receipt pre-fill — Rule 41; v1, verify_jwt true, deployed via MCP Oct 27 2026) |
 | Contracts | `generate-contract` (template-driven subcontractor project agreement; .docx placeholder substitution via JSZip) |
 | Invoices | `generate-invoice` (template-driven client invoice; mirrors generate-contract pipeline), `generate-invoice-description` (OpenAI gpt-4o-mini ≤150-word work-summary from approved estimate) |
 | QuickBooks (CSV flow, live) | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
@@ -196,7 +196,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**347 sequential migrations** in `supabase/migrations/` (as of Apr 16, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**394 sequential migrations** in `supabase/migrations/` (as of Oct 27, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -263,7 +263,9 @@ Compare to: `ls supabase/migrations/*.sql | wc -l`
 | `crew_dispatch_board` | ❌ **OFF globally** (per-user overrides ON: both Chris accounts + Tom Finn) | Admin Crew Dispatch board at `/dispatch` + its sidebar entry (field-worker redesign PR 2) |
 | `field_worker_v2` | ❌ **OFF globally** (per-user overrides ON: both Chris accounts + Tom Finn) | Field-worker experience v2 (Rule 35): five-tab IA, Today project-first hero (Next Stop → "Your last site" fallback), NextStopChip, FieldTimeLanding, no visible timer. Validated end-to-end 2026-07-15 (docs/testing/FIELD_WORKER_V2_VALIDATION_RUNS.md) |
 
-*(A fourth DB row, `quickbooks_integration`, exists but has zero code consumers — dormant.)*
+| `receipt_scan` | ❌ **OFF globally** (per-user override ON: Tom Finn) | AI pre-fill of amount / vendor / date on Add Receipt (Rule 41). Pre-fill only, never gates Save. |
+
+*(Two more DB rows exist: `quickbooks_integration` has zero code consumers — dormant; `google_drive_import` gates the Drive import.)*
 
 Re-enable with: `UPDATE feature_flags SET enabled = true WHERE flag_name = 'quickbooks_auto_sync';`
 
@@ -1735,6 +1737,53 @@ of bug for rates (`change_order_line_items.quantity` was already unconstrained n
   recreate views → re-grant (see `20260826150000_widen_line_item_quantity_precision.sql`).
 - **Pitfall**: never round `quantity` to 2dp client-side before save, and never "clean up" a
   many-decimal quantity on an imported labor line — those digits are what make the dollars exact.
+
+### 41. Receipt scan pre-fill — amount / vendor / date from the photo (Oct 27 2026, behind `receipt_scan`)
+
+Plan + rationale: [docs/RECEIPT_SCAN_PLAN.md](docs/RECEIPT_SCAN_PLAN.md). **The scan is a PRE-FILL, never a
+gate.** Save never waits on it, nothing auto-saves, no payee is ever auto-created, and every scanned value
+goes through the same validation as a typed one. Flag off (the default) is byte-identical to the pre-feature
+modal.
+
+**Pieces:**
+- [`scan-receipt`](supabase/functions/scan-receipt/index.ts) edge function (`verify_jwt` true AND resolves a real
+  user — the anon JWT alone is rejected). OpenAI vision, `OPENAI_MODEL` pinned in ONE constant (`gpt-4o`),
+  strict `json_schema` output, temperature 0. The isolate **never decodes image bytes** (Gotcha #75): the phone
+  resizes to ≤1600px JPEG via `compressImage` and the function forwards base64 untouched (2M-char cap).
+  Server-side sanity: `is_receipt=false` ⇒ nothing prefills; `subtotal+tax` within $0.02 of `total` floors
+  confidence at 0.95, a mismatch caps it at 0.5 (amber "check the amount"); totals ≤0 or >$50k dropped; dates
+  outside [now−120d, now+1d] dropped.
+- [`vendorMatch.ts`](supabase/functions/scan-receipt/vendorMatch.ts) — a **pure module** (no Deno imports) bundled
+  into the function AND unit-tested from vitest
+  ([receiptVendorMatch.test.ts](src/utils/__tests__/receiptVendorMatch.test.ts)). `normalizeVendor()` must stay in
+  lockstep with the pre-normalized seed rows in `payee_aliases`. Tiers: `alias_exact` → `brand` (model's `brand`
+  field, the franchised-gas-station fix: "TIMMY TOM'S SHELL" → Shell Gas on first visit) → `alias_token`
+  (whole-word token run inside the printed name: "BILLY BOBS BP" ⊃ "BP") → `name` → `fuzzy` (Jaro-Winkler ≥ 0.85)
+  → `none`. The candidate pool is filtered to the payee types the modal's `PayeeSelector` can display
+  (`allowedPayeeTypes` in the request) so the scan never selects a vendor the picker can't show.
+- `payee_aliases` table (`alias` normalized + UNIQUE, `match_mode` exact|token, `source` seed|learned|manual,
+  `hit_count`). **Learned aliases are always `exact`** (RLS enforces it for non-admins) — a bad `token` alias
+  misfires on every receipt containing that word, so token mode is seed/admin only. A worker's correction wins
+  over a token hit from then on. `increment_payee_alias_hit(uuid)` is service-role-only.
+- `receipts.ocr_status` / `receipts.ocr_data` — what the scan said (`extraction`, `vendorMatch`, `normalized`,
+  `meta`) plus `user_kept` (what was actually saved). The weekly accuracy SQL is in the plan doc; run it before
+  widening the flag.
+- Client: [`useReceiptScan`](src/hooks/useReceiptScan.ts) (flag via `useDbFeatureFlag`, 15s client timeout, request
+  id guards retakes, offline ⇒ skipped, no realtime / no `getUser()`), wired into
+  [`AddReceiptModal`](src/components/time-tracker/AddReceiptModal.tsx): `ScanStatusChip` under the photo, green
+  ring on prefilled Amount / Date, "Vendor from scan" line, and — on no match — "Receipt says: X" with **Add as
+  new vendor** (opens the existing `QuickAddPayee` with the name pre-typed via the new `quickAddDefaultName` /
+  `quickAddOpen` props on `PayeeSelector`). A field the worker has typed into is never overwritten by a late
+  result (`touchedRef`). The modal gained a **Date** field (same `captured_at` semantics the Edit dialog already
+  used; back-dated receipts store local noon so the day never shifts across timezones).
+- **Alias learning on Save**: if the scan read a vendor string and the worker saved a different payee than it
+  suggested (or it had none), insert `payee_aliases(alias = normalized.vendor, payee_id = saved, exact, learned)`.
+  Best-effort, 23505 ignored, never blocks the save.
+
+**Pitfalls**: don't add a `token` alias from app code; don't widen `allowedPayeeTypes` without widening the
+modal's `filterPayeeTypes` to match; don't make Save wait on `receiptScan.status`; don't put image decoding in
+the function. No benchmark was run before shipping (no CLI/OpenAI credentials in the build session) — the flag
+is Tom-only precisely so production receipts are the benchmark; read `ocr_data` before flipping it globally.
 
 ---
 
