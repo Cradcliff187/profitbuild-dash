@@ -5,7 +5,7 @@ This document tracks the current state of feature flags in the application.
 ## Field-Worker Redesign (Jul 2026)
 
 **Flag Names**: `crew_dispatch_board`, `field_worker_v2`
-**Status**: ❌ OFF globally — **per-user overrides ON for both flags** for both Chris accounts + Tom Finn (verified against `feature_flag_user_overrides` July 15, 2026)
+**Status**: ✅ **ON globally** for both flags (flipped Oct 27 2026, kept by decision). The older per-user ON overrides (both Chris accounts, Tom Finn, Danny, John, Mike) still exist but are no-ops under a global ON — only an `enabled=false` override would change anything now.
 **Last Updated**: July 15, 2026
 
 | Flag | Controls |
@@ -14,7 +14,7 @@ This document tracks the current state of feature flags in the application.
 | `field_worker_v2` | The field-worker experience: five-tab IA (Today `/` · Time · Receipts · Projects · Notes), `NextStopChip`, `FieldTimeLanding`. Today's hero always resolves to a project — dispatched **Next Stop** card, else **"Your last site"** (most recent time-entry project), else browse. Quick actions: Log time · Receipt · Note · Projects. **No visible timer affordance** (removed Jul 15 2026 per usage data — 355/356 entries in 90 days were manual; `/time-tracker/timer` survives as an unlisted escape hatch, delete after stable rollout). |
 
 ### Per-user overrides
-`feature_flag_user_overrides` (`flag_id`, `user_id`, `enabled`, UNIQUE per pair) — an override row wins over the global `enabled`. Resolution via the `useDbFeatureFlag(flagName)` hook. Admin UI: **`/settings/feature-flags`** (global switches + per-user overrides + audit trail). Every change to a flag or override is auto-logged to `feature_flag_audit` by the `log_feature_flag_change()` trigger.
+`feature_flag_user_overrides` (`flag_id`, `user_id`, `enabled`, UNIQUE per pair) — an override row wins over the global `enabled`. Rule of thumb: global OFF ⇒ overrides are the rollout list; global ON ⇒ ignore individuals, the only meaningful override is a force-OFF. Resolution via the `useDbFeatureFlag(flagName)` hook. Admin UI: **`/settings/feature-flags`** (global switches + per-user overrides + audit trail). Every change to a flag or override is auto-logged to `feature_flag_audit` by the `log_feature_flag_change()` trigger.
 
 ### Rollout plan
 Flags stay OFF globally until dogfooding (Chris + Matt on the board; Tom on the field experience) proves stable in production for a few days. Flip per-user first via `/settings/feature-flags`; global enable is the last step.
@@ -24,7 +24,7 @@ Note: the DB-side pieces (assignment-notification trigger, dispatch auto-allocat
 ## Receipt Scan (Oct 2026)
 
 **Flag Name**: `receipt_scan`
-**Status**: ❌ OFF globally — **per-user override ON for Tom Finn** (`88e6782c-edab-458c-a80b-c18a084ca431`)
+**Status**: ✅ **ON globally** (flipped Oct 27 2026, kept by decision). Per-user ON overrides (Tom Finn, both Chris accounts, Danny, John, Matt, Mike) are no-ops under a global ON.
 **Last Updated**: October 27, 2026
 
 | Flag | Controls |
