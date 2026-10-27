@@ -52,8 +52,10 @@ export interface ReceiptScanResult {
   extraction: ReceiptExtraction | null;
   vendorMatch: ReceiptVendorMatch | null;
   normalized: { vendor: string; brand: string };
-  meta: { model: string; latency_ms: number; dropped?: string[] };
+  meta: { model: string; provider?: 'anthropic' | 'openai'; latency_ms: number; dropped?: string[] };
   error?: string;
+  /** Stable failure class from the function — the chip shows honest copy for credits_exhausted. */
+  error_code?: 'credits_exhausted' | 'timeout' | 'model_error';
 }
 
 interface UseReceiptScanOptions {

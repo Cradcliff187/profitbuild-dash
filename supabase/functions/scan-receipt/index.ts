@@ -13,7 +13,7 @@
  * Response (200):
  *   { status: 'success'|'partial'|'no_receipt'|'failed',
  *     extraction: {...} | null, vendorMatch: {...} | null,
- *     normalized: { vendor, brand }, meta: { model, latency_ms }, error? }
+ *     normalized: { vendor, brand }, meta: { model, provider, latency_ms }, error?, error_code? }
  *
  * The isolate never decodes image bytes (Gotcha #75 — WORKER_LIMIT): the phone
  * resizes to ~1600px JPEG and we forward the base64 untouched.
@@ -21,9 +21,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { matchVendor, normalizeVendor, type AliasRow, type PayeeRow } from './vendorMatch.ts';
 
-// Pinned in ONE place. Change only after re-running the benchmark in the plan doc.
+// Two providers, pinned in ONE place each. Provider selection per request:
+//   SCAN_PROVIDER env = 'anthropic' | 'openai' wins; otherwise Anthropic when
+//   ANTHROPIC_API_KEY is set, else OpenAI. Both return the same Extraction shape,
+//   so everything downstream (sanitize → vendor match → client) is provider-blind.
 const OPENAI_MODEL = 'gpt-4o';
-const OPENAI_TIMEOUT_MS = 20_000;
+const ANTHROPIC_MODEL = 'claude-opus-5-5';
+const ANTHROPIC_VERSION = '2026-10-21';
+const MODEL_TIMEOUT_MS = 20_000;
 const MAX_IMAGE_BASE64_LENGTH = 2_000_000; // ≈1.5 MB of JPEG
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const DEFAULT_PAYEE_TYPES = ['material_supplier', 'equipment_rental', 'management', 'permit_authority', 'other'];
@@ -157,9 +162,123 @@ function clamp01(n: unknown): number {
   return typeof n === 'number' && isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
 }
 
+type ModelErrorCode = 'credits_exhausted' | 'timeout' | 'model_error';
+
+class ModelCallError extends Error {
+  code: ModelErrorCode;
+  constructor(code: ModelErrorCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** Map a provider HTTP failure to a stable code the client can show honestly. */
+function classifyProviderError(status: number, bodyText: string): ModelErrorCode {
+  const t = bodyText.toLowerCase();
+  if (
+    t.includes('insufficient_quota') ||
+    t.includes('credit_balance_exhausted') ||
+    t.includes('no credits remaining') ||
+    t.includes('credit balance is too low') ||
+    t.includes('billing')
+  ) {
+    return 'credits_exhausted';
+  }
+  return status === 408 ? 'timeout' : 'model_error';
+}
+
+// Claude's structured-output schema: same fields as EXTRACTION_SCHEMA, with
+// nullable fields expressed as anyOf (the JSON Schema subset Claude validates).
+const nullable = (type: 'string' | 'number', description?: string) => ({
+  anyOf: [{ type }, { type: 'null' }],
+  ...(description ? { description } : {}),
+});
+const CLAUDE_EXTRACTION_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['is_receipt', 'vendor_name', 'brand', 'total', 'subtotal', 'tax', 'date', 'confidence'],
+  properties: {
+    is_receipt: { type: 'boolean', description: 'true only for a purchase receipt or invoice' },
+    vendor_name: nullable('string', 'Merchant name as printed at the top, not the address or slogan'),
+    brand: nullable(
+      'string',
+      'The chain or fuel brand when this is a franchised/branded location whose printed name differs (e.g. "Shell", "BP", "Marathon"). null when the vendor_name already IS the brand or no brand is visible.',
+    ),
+    total: nullable('number', 'Final amount paid after tax and discounts. Not amount tendered, not change.'),
+    subtotal: nullable('number'),
+    tax: nullable('number'),
+    date: nullable('string', 'Transaction date as printed, YYYY-MM-DD'),
+    confidence: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['vendor_name', 'total', 'date'],
+      properties: {
+        vendor_name: { type: 'number' },
+        total: { type: 'number' },
+        date: { type: 'number' },
+      },
+    },
+  },
+} as const;
+
+async function callClaude(apiKey: string, imageBase64: string, mimeType: string): Promise<Extraction> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': ANTHROPIC_VERSION,
+        'anthropic-beta': 'server-side-fallback-2026-07-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: ANTHROPIC_MODEL,
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        // Extraction is routine work: low effort keeps latency down; thinking stays on (it can't be disabled on this model).
+        output_config: {
+          effort: 'low',
+          format: { type: 'json_schema', schema: CLAUDE_EXTRACTION_SCHEMA },
+        },
+        // Opt into the server-side refusal fallback so a safety false positive is re-run on another model.
+        fallbacks: 'default',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
+              { type: 'text', text: 'Extract the fields from this receipt photo.' },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new ModelCallError(classifyProviderError(res.status, text), `Anthropic ${res.status}: ${text.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    if (data?.stop_reason === 'refusal') {
+      throw new ModelCallError('model_error', `Anthropic refusal: ${data?.stop_details?.category ?? 'unknown'}`);
+    }
+    const textBlock = Array.isArray(data?.content) ? data.content.find((b: { type?: string }) => b?.type === 'text') : null;
+    if (!textBlock || typeof textBlock.text !== 'string') throw new ModelCallError('model_error', 'Anthropic returned no text block');
+    return JSON.parse(textBlock.text) as Extraction;
+  } catch (err) {
+    if (err instanceof ModelCallError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    throw new ModelCallError(message.toLowerCase().includes('abort') ? 'timeout' : 'model_error', message);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callOpenAI(apiKey: string, imageBase64: string, mimeType: string): Promise<Extraction> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -184,12 +303,16 @@ async function callOpenAI(apiKey: string, imageBase64: string, mimeType: string)
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`OpenAI ${res.status}: ${text.slice(0, 300)}`);
+      throw new ModelCallError(classifyProviderError(res.status, text), `OpenAI ${res.status}: ${text.slice(0, 300)}`);
     }
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
-    if (typeof content !== 'string') throw new Error('OpenAI returned no content');
+    if (typeof content !== 'string') throw new ModelCallError('model_error', 'OpenAI returned no content');
     return JSON.parse(content) as Extraction;
+  } catch (err) {
+    if (err instanceof ModelCallError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    throw new ModelCallError(message.toLowerCase().includes('abort') ? 'timeout' : 'model_error', message);
   } finally {
     clearTimeout(timer);
   }
@@ -209,7 +332,13 @@ Deno.serve(async (req: Request) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiKey) return json({ error: 'OPENAI_API_KEY not configured' }, 500);
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const forced = Deno.env.get('SCAN_PROVIDER');
+    const provider: 'anthropic' | 'openai' =
+      forced === 'anthropic' || forced === 'openai' ? forced : anthropicKey ? 'anthropic' : 'openai';
+    const modelName = provider === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL;
+    if (provider === 'anthropic' && !anthropicKey) return json({ error: 'ANTHROPIC_API_KEY not configured' }, 500);
+    if (provider === 'openai' && !openaiKey) return json({ error: 'OPENAI_API_KEY not configured' }, 500);
 
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const { data: userData, error: userError } = await userClient.auth.getUser();
@@ -249,17 +378,27 @@ Deno.serve(async (req: Request) => {
     // --- Model ---
     let raw: Extraction;
     try {
-      raw = await callOpenAI(openaiKey, imageBase64, mimeType);
+      raw =
+        provider === 'anthropic'
+          ? await callClaude(anthropicKey!, imageBase64, mimeType)
+          : await callOpenAI(openaiKey!, imageBase64, mimeType);
     } catch (err) {
+      const code: ModelErrorCode = err instanceof ModelCallError ? err.code : 'model_error';
       const message = err instanceof Error ? err.message : String(err);
-      console.error('[scan-receipt] model error', { user: userData.user.id, message });
+      console.error('[scan-receipt] model error', { user: userData.user.id, provider, code, message });
       return json({
         status: 'failed',
         extraction: null,
         vendorMatch: null,
         normalized: { vendor: '', brand: '' },
-        meta: { model: OPENAI_MODEL, latency_ms: Date.now() - started },
-        error: message.includes('abort') ? 'Model timed out' : 'Model call failed',
+        meta: { model: modelName, provider, latency_ms: Date.now() - started },
+        error:
+          code === 'credits_exhausted'
+            ? 'AI credits exhausted'
+            : code === 'timeout'
+              ? 'Model timed out'
+              : 'Model call failed',
+        error_code: code,
       });
     }
 
@@ -272,7 +411,7 @@ Deno.serve(async (req: Request) => {
         extraction,
         vendorMatch: null,
         normalized: { vendor: normalizeVendor(extraction.vendor_name), brand: normalizeVendor(extraction.brand) },
-        meta: { model: OPENAI_MODEL, latency_ms: Date.now() - started, dropped },
+        meta: { model: modelName, provider, latency_ms: Date.now() - started, dropped },
       });
     }
 
@@ -304,6 +443,7 @@ Deno.serve(async (req: Request) => {
     const latency_ms = Date.now() - started;
     console.log('[scan-receipt] done', {
       user: userData.user.id,
+      provider,
       status,
       tier: vendorMatch.tier,
       total: extraction.total,
@@ -317,7 +457,7 @@ Deno.serve(async (req: Request) => {
       extraction,
       vendorMatch,
       normalized: { vendor: normalizeVendor(extraction.vendor_name), brand: normalizeVendor(extraction.brand) },
-      meta: { model: OPENAI_MODEL, latency_ms, dropped },
+      meta: { model: modelName, provider, latency_ms, dropped },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
