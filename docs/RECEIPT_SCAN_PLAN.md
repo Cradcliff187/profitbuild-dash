@@ -177,7 +177,7 @@ No line items. Not needed, and every field you ask for is a field the model can 
 | `subtotal + tax` within $0.02 of `total` | total confidence floors at 0.95 |
 | subtotal and tax present but don't sum to total | total confidence capped at 0.5, chip shows amber "check amount" |
 | `total <= 0` or `> 50,000` | drop total |
-| `date` in the future or older than 120 days | drop date (worker's today stays) |
+| `date` in the future or older than 120 days | first try the printed month/day under this year or last year (vision models misread "10/19/2026" as 2023 — seen on the first live scan); if that lands in the window keep it at confidence ≤0.6 and log `date_year_repaired`, else drop the date (worker's today stays) |
 
 **Vendor matching**, in order, first hit wins:
 

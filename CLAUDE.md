@@ -102,7 +102,7 @@ src/
 | Notifications | `send-receipt-notification`, `send-training-notification` |
 | SMS | `send-sms`, `check-sms-status`, `check-sms-quota`, `process-scheduled-sms`, `get-textbelt-key` |
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
-| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import), `scan-receipt` (receipt pre-fill — Rule 41; v3, verify_jwt true, deployed via MCP Oct 27 2026; Claude or OpenAI) |
+| AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import), `scan-receipt` (receipt pre-fill — Rule 41; v4, verify_jwt true, deployed via MCP Oct 27 2026; Claude or OpenAI) |
 | Contracts | `generate-contract` (template-driven subcontractor project agreement; .docx placeholder substitution via JSZip) |
 | Invoices | `generate-invoice` (template-driven client invoice; mirrors generate-contract pipeline), `generate-invoice-description` (OpenAI gpt-4o-mini ≤150-word work-summary from approved estimate) |
 | QuickBooks (CSV flow, live) | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
@@ -1758,7 +1758,11 @@ modal.
   resizes to ≤1600px JPEG via `compressImage` and the function forwards base64 untouched (2M-char cap).
   Server-side sanity: `is_receipt=false` ⇒ nothing prefills; `subtotal+tax` within $0.02 of `total` floors
   confidence at 0.95, a mismatch caps it at 0.5 (amber "check the amount"); totals ≤0 or >$50k dropped; dates
-  outside [now−120d, now+1d] dropped.
+  outside [now−120d, now+1d] dropped — EXCEPT a **year repair** (v4, Oct 27 2026): the user turn now carries
+  "Today's date is YYYY-MM-DD" and the prompt says to copy the printed year digit for digit, because gpt-4o read a
+  plainly printed "10/19/2026" as **2023** on the very first live scan (training-era year prior). When the printed
+  month/day land in the window under this year or last year, the date is kept at that year with confidence capped
+  at 0.6 and `dropped` records `date_year_repaired:2023-10-19->2026-10-19`; anything else still drops.
 - [`vendorMatch.ts`](supabase/functions/scan-receipt/vendorMatch.ts) — a **pure module** (no Deno imports) bundled
   into the function AND unit-tested from vitest
   ([receiptVendorMatch.test.ts](src/utils/__tests__/receiptVendorMatch.test.ts)). `normalizeVendor()` must stay in
