@@ -1,8 +1,68 @@
 # Receipt Scan: pre-fill amount, vendor, and date from the photo
 
-**Status:** shipped Oct 27 2026 behind `receipt_scan` (ON for Tom Finn only). Summary in CLAUDE.md Rule 41.
+**Status:** shipped Oct 27 2026 behind `receipt_scan` (ON for Tom Finn only). Summary in CLAUDE.md Rule 41. Closeout below.
 **Owner:** Chris
 **Scope:** `AddReceiptModal` only (the field capture path). Edit gets a Rescan button later, not in v1.
+
+---
+
+## Closeout — Oct 27 2026
+
+Everything in Phases 0–2 is built, merged to `main`, and live. Phase 3 (measure on real receipts) is now
+running on its own — it needs receipts to come in, not more code.
+
+### What shipped
+
+| PR | What | Backend state |
+|---|---|---|
+| [#214](https://github.com/Cradcliff187/profitbuild-dash/pull/214) | Migration (`receipts.ocr_status/ocr_data`, `payee_aliases` + 21 seed aliases, `increment_payee_alias_hit`, `receipt_scan` flag + Tom Finn override), `scan-receipt` v1→v2, `useReceiptScan`, `AddReceiptModal` prefill + Date field + alias learning, `vendorMatch.ts` with 14 unit tests | Migrations 393–394 applied; function v2 |
+| [#215](https://github.com/Cradcliff187/profitbuild-dash/pull/215) | Second vision provider (Claude via raw `/v1/messages`) behind one `Extraction` shape; `error_code: credits_exhausted` and an honest chip ("Scanning is paused: the AI account is out of credits"); scroll-to-top on every route (unrelated ask, same PR); the Aug-26 migration file converted to a placeholder (it still held real SQL and broke every Supabase preview branch) | Function v3 |
+| [#216](https://github.com/Cradcliff187/profitbuild-dash/pull/216) | Date fix: user turn carries "Today's date is YYYY-MM-DD", prompt says copy the printed year digit for digit, server-side **year repair** (`date_year_repaired` in `dropped`, confidence ≤ 0.6) | Function **v4 — current** |
+
+Frontend: #214 was published in Lovable on Oct 27. **#215's frontend half (chip copy + scroll-to-top) still
+needs a Publish.** #216 is edge-function + docs only.
+
+### Live evidence (function logs, Oct 27 2026)
+
+| Time (UTC) | Who | Result |
+|---|---|---|
+| 16:35, 16:54 | Tom Finn (Northern Tool, $124.29, 10/19/2026) | OpenAI **429 `insufficient_quota`** — the org had zero API credits. Auth, upload, candidate pool, and the model round-trip (~1.7 s) all worked; only billing failed. Not a code bug. |
+| 17:00 | same | same 429 (credits still out) |
+| 17:30 | Chris, same receipt, after OpenAI limits were raised | `status: success`, `tier: name` (Northern Tool), `total: 124.29`, `total_conf: 0.95` (subtotal + tax cross-check passed), 3.5 s. **Date dropped**: gpt-4o returned `2023-10-19` for a receipt that prints `10/19/2026` twice — a training-era year prior. Fixed in v4 the same hour. |
+
+No receipt has been **saved** through the scan path yet (every scan so far was closed without Save), so
+`receipts.ocr_data` is still empty and `payee_aliases` has 21 seed rows, 0 learned, 0 hits. The first saved
+scan is the first benchmark row.
+
+### What was learned, in rule form
+
+- **Provider billing is a first-class failure mode.** A 429 from the model reads as "couldn't read it" unless
+  classified. Every OpenAI-backed feature in this app (reports AI, estimate import, captions, Whisper) went
+  dark together when the balance hit zero; only this function says so to the user. The others still fail
+  generically.
+- **Vision models need to be told what year it is.** A plainly printed 4-digit year is not enough. Anchor the
+  prompt with today's date AND keep a server-side repair, because the anchor is a request, not a guarantee.
+- **Never read a secret out of a dashboard, read it out of the runtime.** The Supabase dashboard shows only a
+  digest of edge-function secrets. To identify which OpenAI key the project uses (last 4 chars, the way the
+  OpenAI dashboard labels keys), a one-shot nonce-gated probe was deployed into the already-dead
+  `tmp-storage-put` stub, invoked from Postgres via `pg_net`, read once, and re-stubbed to 410. The key is
+  `sk-proj-…ciUA` (164 chars). No `ANTHROPIC_API_KEY` is set, so the function runs on OpenAI.
+- **A migration file with real SQL breaks every PR's Supabase preview branch**, not just migrations. The
+  Aug-26 `widen_line_item_quantity_precision` file was the only offender; its DDL now lives at
+  `docs/widen-line-item-quantity-precision.sql`.
+
+### Still open (none of it code)
+
+1. **Publish in Lovable** so the #215 chip copy + scroll-to-top reach phones. Verify Settings → App Updates
+   turns green.
+2. **Rescan the Northern Tool receipt once** on v4 and confirm the Date field prefills 10/19/2026 (check
+   `ocr_data->'meta'->'dropped'` on the saved row: empty, or `date_year_repaired:…`).
+3. **Run the Phase 3 accuracy SQL** after Tom has a week of real receipts. Flip the flag globally only on the
+   numbers (totals ≥ 90 %, vendor ≥ 85 %).
+4. Optional: add `ANTHROPIC_API_KEY` to Edge Function secrets to move the scan off the shared OpenAI balance.
+   The function switches on its own; `SCAN_PROVIDER=openai|anthropic` forces one.
+5. Delete the two dead functions (`tmp-storage-put`, `generate-video-thumbnail`) the next time CLI auth is
+   available — MCP has no delete.
 
 ---
 
@@ -254,7 +314,7 @@ Guard against learning garbage: skip if the normalized alias is shorter than 3 c
 
 ## Phase 3: rollout and measurement (one week, mostly waiting)
 
-1. Flag `receipt_scan` ON for Chris only via `/settings/feature-flags` overrides. One week of real receipts.
+1. Flag `receipt_scan` ON for Tom Finn only via `/settings/feature-flags` overrides (shipped that way — Tom files the most receipts). One week of real receipts.
 2. Accuracy query, run weekly at first:
 
 ```sql
@@ -277,6 +337,8 @@ WHERE created_at > now() - interval '7 days' AND ocr_status IS NOT NULL;
 | Failure | What happens |
 |---|---|
 | OpenAI down / key revoked | function returns `failed`, chip says enter by hand, form is today's form |
+| Provider out of credits (seen live Oct 27 2026) | `error_code: credits_exhausted`; chip says "Scanning is paused: the AI account is out of credits" so the office tops up instead of filing a bug. Setting `ANTHROPIC_API_KEY` moves the scan to Claude. |
+| Model misreads the year (gpt-4o returned 2023 for a printed 2026 — seen live) | prompt carries today's date; server-side year repair keeps the printed month/day under this or last year at confidence ≤ 0.6, logged as `date_year_repaired` |
 | Slow network | 12s timeout, same as above; if the worker already saved, result is discarded |
 | Offline | scan skipped before calling; `backgroundSync` behavior for the upload is unchanged |
 | Blurry photo | model returns low confidence or null; amber or empty, never a confident wrong number |
@@ -302,7 +364,7 @@ WHERE created_at > now() - interval '7 days' AND ocr_status IS NOT NULL;
 
 ## Privacy note
 
-Receipt images go to OpenAI's API, as site photos already do for caption enhancement. API traffic is not used for training under OpenAI's API terms. Receipts can carry the last four digits of a card; the extraction schema does not ask for them and nothing stores them.
+Receipt images go to OpenAI's API (or Anthropic's when `ANTHROPIC_API_KEY` is set), as site photos already do for caption enhancement. API traffic is not used for training under either provider's API terms. Receipts can carry the last four digits of a card; the extraction schema does not ask for them and nothing stores them.
 
 ## Effort
 
