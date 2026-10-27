@@ -1,6 +1,6 @@
 # Receipt Scan: pre-fill amount, vendor, and date from the photo
 
-**Status:** plan, not built (Oct 27 2026)
+**Status:** shipped Oct 27 2026 behind `receipt_scan` (ON for Tom Finn only). Summary in CLAUDE.md Rule 41.
 **Owner:** Chris
 **Scope:** `AddReceiptModal` only (the field capture path). Edit gets a Rescan button later, not in v1.
 
@@ -181,14 +181,14 @@ No line items. Not needed, and every field you ask for is a field the model can 
 
 **Vendor matching**, in order, first hit wins:
 
-| Tier | Method | Score |
+| Tier (`vendorMatch.tier`) | Method | Score |
 |---|---|---|
-| 1 | `exact` alias = `normalize(vendor_name)` | 1.0 |
-| 1b | `exact` or `token` alias = `normalize(brand)` (when the model returned a brand) | 0.97 |
-| 2 | `token` alias appears as a whole-word token sequence inside `normalize(vendor_name)`; longest alias wins on a tie | 0.95 |
-| 3 | `normalize(payee_name) = normalize(vendor_name)` or one contains the other (min 4 chars) | 0.9 |
-| 4 | Jaro-Winkler on normalized strings against active non-internal payees, ≥ 0.85 | score |
-| 5 | no match | return raw `vendor_name` (and `brand`) only |
+| `alias_exact` | `exact` alias = `normalize(vendor_name)` | 1.0 |
+| `brand` | `exact` or `token` alias = `normalize(brand)` (when the model returned a brand) | 0.97 |
+| `alias_token` | `token` alias appears as a whole-word token sequence inside `normalize(vendor_name)`; longest alias wins on a tie | 0.95 |
+| `name` | `normalize(payee_name) = normalize(vendor_name)` or one contains the other (min 4 chars) | 0.9 / 0.88 |
+| `fuzzy` | Jaro-Winkler on normalized strings against the candidate pool, ≥ 0.85 | score |
+| `none` | no match | return raw `vendor_name` (and `brand`) only |
 
 Worked examples against the payees on file today:
 
@@ -262,7 +262,7 @@ SELECT
   count(*) FILTER (WHERE ocr_status IN ('success','partial'))                                   AS scanned,
   count(*) FILTER (WHERE (ocr_data->'extraction'->>'total')::numeric = amount)                   AS total_right,
   count(*) FILTER (WHERE (ocr_data->'vendorMatch'->>'payee_id')::uuid = payee_id)                AS vendor_right,
-  count(*) FILTER (WHERE ocr_data->'vendorMatch'->>'tier' = '5')                                 AS vendor_unmatched,
+  count(*) FILTER (WHERE ocr_data->'vendorMatch'->>'tier' = 'none')                              AS vendor_unmatched,
   count(*) FILTER (WHERE ocr_status IN ('failed','timeout'))                                     AS failed,
   round(avg((ocr_data->'meta'->>'latency_ms')::int))                                             AS avg_ms
 FROM receipts

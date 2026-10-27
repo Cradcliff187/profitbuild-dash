@@ -36,6 +36,11 @@ interface PayeeSelectorProps {
   sortByUsage?: boolean;
   usageSource?: 'receipts' | 'expenses' | 'both';
   isMobile?: boolean;
+  /** Pre-typed name for the quick-add sheet (receipt scan hint). */
+  quickAddDefaultName?: string;
+  /** Lets a parent open the quick-add sheet directly (e.g. "Add as new vendor"). */
+  quickAddOpen?: boolean;
+  onQuickAddOpenChange?: (open: boolean) => void;
 }
 
 const formatPayeeType = (type?: PayeeType): string => {
@@ -80,10 +85,19 @@ export function PayeeSelector({
   sortByUsage = false,
   usageSource = 'receipts',
   isMobile = false,
+  quickAddDefaultName,
+  quickAddOpen,
+  onQuickAddOpenChange,
 }: PayeeSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showQuickAddInternal, setShowQuickAddInternal] = useState(false);
+  // Controlled when the parent passes quickAddOpen; uncontrolled otherwise.
+  const showQuickAdd = quickAddOpen ?? showQuickAddInternal;
+  const setShowQuickAdd = (next: boolean) => {
+    setShowQuickAddInternal(next);
+    onQuickAddOpenChange?.(next);
+  };
 
   const { data: payees = [], isLoading } = useQuery({
     queryKey: ['payees', filterInternal, filterLabor, filterPayeeTypes],
@@ -292,6 +306,7 @@ export function PayeeSelector({
         defaultProvidesLabor={defaultProvidesLabor}
         defaultIsInternal={defaultIsInternal}
         isMobile={isMobile}
+        defaultName={quickAddDefaultName}
       />
     </div>
   );
