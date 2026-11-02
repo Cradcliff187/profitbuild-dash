@@ -23,7 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Flag, History, Plus, ShieldAlert, Trash2, Users } from 'lucide-react';
+import { Flag, Globe, History, Plus, ShieldAlert, Trash2, Users } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import {
   useFeatureFlags,
@@ -53,6 +54,7 @@ export default function FeatureFlagsSettings() {
   const setGlobalFlag = useSetGlobalFlag();
   const upsertOverride = useUpsertFlagOverride();
   const removeOverride = useRemoveFlagOverride();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   // Section 2 state — which flag's overrides are shown, and the Add dialog.
   const [selectedFlagId, setSelectedFlagId] = useState<string | null>(null);
@@ -60,9 +62,11 @@ export default function FeatureFlagsSettings() {
   const [newUserId, setNewUserId] = useState<string>('');
   const [newEnabled, setNewEnabled] = useState(true);
 
-  const flags = flagsQuery.data ?? [];
-  const overrides = overridesQuery.data ?? [];
-  const users = usersQuery.data ?? [];
+  // Memoised so the derived useMemo/handlers below have stable deps
+  // (react-hooks/exhaustive-deps flags a bare `?? []` here).
+  const flags = useMemo(() => flagsQuery.data ?? [], [flagsQuery.data]);
+  const overrides = useMemo(() => overridesQuery.data ?? [], [overridesQuery.data]);
+  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
 
   // Derive (no effect needed): explicit selection wins, else first flag.
   const activeFlagId = selectedFlagId ?? flags[0]?.id ?? null;
@@ -77,6 +81,39 @@ export default function FeatureFlagsSettings() {
     users.forEach((u) => map.set(u.id, u));
     return map;
   }, [users]);
+
+  // Active users who have NO override on a flag — i.e. exactly who a global
+  // toggle changes. Surfaced on the switch and in its confirm so the global
+  // row can't be mistaken for a per-user one (Oct 27 2026: all three flags
+  // were flipped ON globally in four seconds while enabling three people).
+  const activeUserIds = useMemo(
+    () => users.filter((u) => u.is_active !== false).map((u) => u.id),
+    [users]
+  );
+  const followersOf = (flagId: string) => {
+    const overridden = new Set(overrides.filter((o) => o.flag_id === flagId).map((o) => o.user_id));
+    return activeUserIds.filter((id) => !overridden.has(id)).length;
+  };
+
+  const handleGlobalToggle = async (flag: (typeof flags)[number], checked: boolean) => {
+    const n = followersOf(flag.id);
+    const ok = await confirm({
+      title: `Turn ${flag.flag_name} ${checked ? 'ON' : 'OFF'} for everyone?`,
+      description: `This is the GLOBAL setting. It changes the feature for every user without a per-user override (${n} active user${n === 1 ? '' : 's'} right now). To enable it for specific people instead, cancel and use "Per-user overrides" below.`,
+      confirmLabel: checked ? 'Turn on for everyone' : 'Turn off for everyone',
+      destructive: !checked,
+    });
+    if (!ok) return;
+    setGlobalFlag.mutate({ flagId: flag.id, flagName: flag.flag_name, enabled: checked });
+  };
+
+  // Overrides that match the global value do nothing — call it out so an
+  // admin can see "everyone already has this" instead of assuming the list
+  // IS the rollout.
+  const redundantOverrideCount = useMemo(() => {
+    if (!activeFlag) return 0;
+    return activeOverrides.filter((o) => o.enabled === !!activeFlag.enabled).length;
+  }, [activeFlag, activeOverrides]);
 
   const nameFor = (userId: string | null) => {
     if (!userId) return 'System';
@@ -156,7 +193,8 @@ export default function FeatureFlagsSettings() {
               <span>Global flags</span>
             </CardTitle>
             <CardDescription>
-              The default state for everyone without a per-user override.
+              The default state for everyone without a per-user override. Flipping a switch here
+              changes the feature for the whole company — you will be asked to confirm.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -183,24 +221,20 @@ export default function FeatureFlagsSettings() {
                       {flag.description && (
                         <p className="text-sm text-muted-foreground">{flag.description}</p>
                       )}
-                      {flag.updated_at && (
-                        <p className="text-xs text-muted-foreground">
-                          Updated {formatDistanceToNow(parseISO(flag.updated_at), { addSuffix: true })}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Globe className="h-3 w-3" aria-hidden="true" />
+                        Everyone without an override follows this
+                        {usersQuery.isLoading ? '' : ` (${followersOf(flag.id)} active users)`}
+                        {flag.updated_at &&
+                          ` · updated ${formatDistanceToNow(parseISO(flag.updated_at), { addSuffix: true })}`}
+                      </p>
                     </div>
                     <Switch
                       className="mt-1 shrink-0"
                       checked={!!flag.enabled}
                       disabled={setGlobalFlag.isPending}
-                      onCheckedChange={(checked) =>
-                        setGlobalFlag.mutate({
-                          flagId: flag.id,
-                          flagName: flag.flag_name,
-                          enabled: checked,
-                        })
-                      }
-                      aria-label={`Toggle ${flag.flag_name} globally`}
+                      onCheckedChange={(checked) => void handleGlobalToggle(flag, checked)}
+                      aria-label={`Toggle ${flag.flag_name} globally for everyone`}
                     />
                   </div>
                 ))}
@@ -267,58 +301,71 @@ export default function FeatureFlagsSettings() {
                     — everyone follows the global setting ({activeFlag?.enabled ? 'On' : 'Off'}).
                   </p>
                 ) : (
-                  <div className="divide-y rounded-md border">
-                    {activeOverrides.map((override) => {
-                      const overrideUser = userById.get(override.user_id);
-                      return (
-                        <div
-                          key={override.id}
-                          className="flex items-center justify-between gap-3 px-3 py-2.5 min-h-[52px]"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {nameFor(override.user_id)}
-                              {overrideUser && overrideUser.is_active === false && (
-                                <span className="text-muted-foreground font-normal"> (inactive)</span>
-                              )}
-                            </p>
-                            {overrideUser?.email && overrideUser.full_name && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {overrideUser.email}
+                  <>
+                    {redundantOverrideCount > 0 && (
+                      <p className="text-xs text-muted-foreground rounded-md border border-dashed px-3 py-2">
+                        Global is <strong>{activeFlag?.enabled ? 'On' : 'Off'}</strong> for{' '}
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">{activeFlag?.flag_name}</code>, so{' '}
+                        {redundantOverrideCount === activeOverrides.length
+                          ? 'every override below'
+                          : `${redundantOverrideCount} of these overrides`}{' '}
+                        currently has no effect — everyone already gets that value. Overrides only
+                        matter when they differ from the global setting.
+                      </p>
+                    )}
+                    <div className="divide-y rounded-md border">
+                      {activeOverrides.map((override) => {
+                        const overrideUser = userById.get(override.user_id);
+                        return (
+                          <div
+                            key={override.id}
+                            className="flex items-center justify-between gap-3 px-3 py-2.5 min-h-[52px]"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {nameFor(override.user_id)}
+                                {overrideUser && overrideUser.is_active === false && (
+                                  <span className="text-muted-foreground font-normal"> (inactive)</span>
+                                )}
                               </p>
-                            )}
+                              {overrideUser?.email && overrideUser.full_name && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {overrideUser.email}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge variant={override.enabled ? 'default' : 'secondary'}>
+                                {override.enabled ? 'On' : 'Off'}
+                              </Badge>
+                              <Switch
+                                checked={override.enabled}
+                                disabled={upsertOverride.isPending}
+                                onCheckedChange={(checked) =>
+                                  upsertOverride.mutate({
+                                    flagId: override.flag_id,
+                                    userId: override.user_id,
+                                    enabled: checked,
+                                  })
+                                }
+                                aria-label={`Toggle override for ${nameFor(override.user_id)}`}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-11 w-11 text-muted-foreground hover:text-destructive"
+                                disabled={removeOverride.isPending}
+                                onClick={() => removeOverride.mutate(override.id)}
+                                aria-label={`Remove override for ${nameFor(override.user_id)}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <Badge variant={override.enabled ? 'default' : 'secondary'}>
-                              {override.enabled ? 'On' : 'Off'}
-                            </Badge>
-                            <Switch
-                              checked={override.enabled}
-                              disabled={upsertOverride.isPending}
-                              onCheckedChange={(checked) =>
-                                upsertOverride.mutate({
-                                  flagId: override.flag_id,
-                                  userId: override.user_id,
-                                  enabled: checked,
-                                })
-                              }
-                              aria-label={`Toggle override for ${nameFor(override.user_id)}`}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-11 w-11 text-muted-foreground hover:text-destructive"
-                              disabled={removeOverride.isPending}
-                              onClick={() => removeOverride.mutate(override.id)}
-                              aria-label={`Remove override for ${nameFor(override.user_id)}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </>
             )}
@@ -437,6 +484,7 @@ export default function FeatureFlagsSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </MobilePageWrapper>
   );
 }

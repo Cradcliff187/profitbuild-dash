@@ -1,3 +1,8 @@
+-- Reference copy of production migration 20260826114754_widen_line_item_quantity_precision
+-- (applied Aug 26 2026, PR #204). Kept under docs/ because supabase/migrations/*.sql must stay
+-- placeholders (CLAUDE.md > Database Migrations > Critical Migration Rules); real SQL there
+-- breaks the Supabase Preview branch replay on every PR. Do NOT re-apply.
+
 -- Widen line-item quantity from numeric(10,2) to numeric(15,5).
 --
 -- Why: dollar-sourced labor imports derive hours by division (e.g. $2,000 / $75 = 26.6667 hr).

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/contexts/RoleContext';
 import { BrandedLoader } from '@/components/ui/branded-loader';
 import { supabase } from '@/integrations/supabase/client';
+import { useScrollToTopOnNavigate } from '@/hooks/useScrollToTopOnNavigate';
 import { getCompanyBranding } from '@/utils/companyBranding';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -109,6 +110,9 @@ export default function AppLayout() {
   const { enabled: fieldHomeEnabled, isLoading: fieldHomeLoading } = useDbFeatureFlag('field_worker_v2');
   const navigate = useNavigate();
   const location = useLocation();
+  // Pages scroll inside <main>, not the document — reset it on every navigation.
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+  useScrollToTopOnNavigate(mainScrollRef);
   const isMobile = useIsMobile();
   const [logoIcon, setLogoIcon] = useState(logoIconDefault);
   const [companyAbbr, setCompanyAbbr] = useState('RCG');
@@ -286,7 +290,7 @@ export default function AppLayout() {
           )}
 
           {/* Main content area - pages render here */}
-          <main className={cn(
+          <main ref={mainScrollRef} className={cn(
             "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
             (location.pathname === '/time-tracker' || location.pathname === '/reports' || location.pathname.startsWith('/reports/')) ? '' : 'p-3 sm:p-4 md:p-6 lg:p-5',
             isMobile && "pt-[67px]",

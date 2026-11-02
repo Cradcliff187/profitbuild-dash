@@ -3,6 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
+ * Pure resolver — the ONE definition of "is this flag on for this user".
+ * Override row present ⇒ its `enabled` wins (true OR false). No override ⇒
+ * the global column, with NULL/missing-row treated as off. Pinned by
+ * `src/hooks/__tests__/featureFlagResolution.test.ts`.
+ */
+export function resolveFeatureFlag(
+  override: { enabled: boolean } | null | undefined,
+  global: { enabled: boolean | null } | null | undefined,
+): boolean {
+  if (override) return override.enabled;
+  return global?.enabled ?? false;
+}
+
+/**
  * Per-user database-backed feature flag resolution.
  *
  * Resolution semantics: a flag is enabled for the current user when their
@@ -43,13 +57,16 @@ export function useDbFeatureFlag(flagName: string): { enabled: boolean; isLoadin
       if (flagRes.error) throw flagRes.error;
       if (overrideRes.error) throw overrideRes.error;
 
-      // Override-wins resolution. override.enabled is NOT NULL when the row
-      // exists; the global column is nullable — treat null as disabled.
-      if (overrideRes.data) return overrideRes.data.enabled;
-      return flagRes.data?.enabled ?? false;
+      return resolveFeatureFlag(overrideRes.data, flagRes.data);
     },
     enabled: !!userId,
     staleTime: 60 * 1000,
+    // AppLayout holds EVERY field-only user on the loader while this resolves
+    // (the bounce decision needs it). The default retry policy (3 tries,
+    // 1s/2s/4s backoff) would pin them there ~7s on a flaky cell connection
+    // before falling back to flag-off; one quick retry is enough.
+    retry: 1,
+    retryDelay: 1000,
   });
 
   return {

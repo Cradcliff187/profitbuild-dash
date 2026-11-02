@@ -1897,6 +1897,47 @@ export type Database = {
           },
         ]
       }
+      payee_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          created_by: string | null
+          hit_count: number
+          id: string
+          match_mode: string
+          payee_id: string
+          source: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          created_by?: string | null
+          hit_count?: number
+          id?: string
+          match_mode?: string
+          payee_id: string
+          source?: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          created_by?: string | null
+          hit_count?: number
+          id?: string
+          match_mode?: string
+          payee_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payee_aliases_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payees: {
         Row: {
           account_number: string | null
@@ -2809,6 +2850,84 @@ export type Database = {
         }
         Relationships: []
       }
+      projects_demographic_backup_20260916: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          contracted_amount: number | null
+          end_date: string | null
+          id: string | null
+          project_name: string | null
+          project_number: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_name?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_name?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      projects_demographic_backup_20261001: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          contracted_amount: number | null
+          end_date: string | null
+          id: string | null
+          project_name: string | null
+          project_number: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_name?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          contracted_amount?: number | null
+          end_date?: string | null
+          id?: string | null
+          project_name?: string | null
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       quickbooks_account_mappings: {
         Row: {
           app_category: Database["public"]["Enums"]["expense_category"]
@@ -3247,6 +3366,8 @@ export type Database = {
           description: string | null
           id: string
           image_url: string
+          ocr_data: Json | null
+          ocr_status: string | null
           payee_id: string | null
           project_id: string | null
           quickbooks_error_message: string | null
@@ -3271,6 +3392,8 @@ export type Database = {
           description?: string | null
           id?: string
           image_url: string
+          ocr_data?: Json | null
+          ocr_status?: string | null
           payee_id?: string | null
           project_id?: string | null
           quickbooks_error_message?: string | null
@@ -3295,6 +3418,8 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string
+          ocr_data?: Json | null
+          ocr_status?: string | null
           payee_id?: string | null
           project_id?: string | null
           quickbooks_error_message?: string | null
@@ -4720,12 +4845,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4749,11 +4874,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4774,11 +4899,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4799,11 +4924,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4816,11 +4941,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

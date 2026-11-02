@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -19,6 +19,8 @@ interface QuickAddPayeeProps {
   defaultProvidesLabor?: boolean;
   defaultIsInternal?: boolean;
   isMobile?: boolean;
+  /** Pre-typed name when the sheet opens (e.g. the vendor text read off a receipt). */
+  defaultName?: string;
 }
 
 const PAYEE_TYPE_LABELS: Record<PayeeType, string> = {
@@ -44,9 +46,16 @@ export function QuickAddPayee({
   defaultProvidesLabor,
   defaultIsInternal = false,
   isMobile = false,
+  defaultName,
 }: QuickAddPayeeProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
+
+  // Seed the name each time the sheet opens so a caller-supplied default
+  // (receipt scan hint) lands in the field without clobbering mid-edit text.
+  useEffect(() => {
+    if (open) setName(defaultName ?? '');
+  }, [open, defaultName]);
   const [payeeType, setPayeeType] = useState<PayeeType>(defaultPayeeType);
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation, useMatch, Outlet, useOutletContext } from "react-router-dom";
+import { useScrollToTopOnNavigate } from "@/hooks/useScrollToTopOnNavigate";
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronsUpDown, Check, ArrowLeftCircle, Building2, ChevronLeft, ChevronRight, Menu, ChevronDown, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,10 @@ export const ProjectDetailView = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  // ProjectDetailView owns its own scroll container (h-full + inner overflow-auto),
+  // so AppLayout's reset can't reach it — reset the inner scroller here too.
+  const innerScrollRef = useRef<HTMLDivElement | null>(null);
+  useScrollToTopOnNavigate(innerScrollRef);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { isFieldWorker, isFieldWorkerOnly } = useRoles();
@@ -604,6 +609,7 @@ export const ProjectDetailView = () => {
            (Aug 2026, index.css). Plain pb-20 left content hidden behind the
            bar on notched iPhones. */}
         <div
+          ref={innerScrollRef}
           className={cn(
             "flex-1 overflow-auto w-full max-w-full box-border min-w-0",
             "pb-[calc(5rem_+_env(safe-area-inset-bottom))]",
@@ -859,7 +865,7 @@ export const ProjectDetailView = () => {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto p-3 space-y-3">
+        <main ref={innerScrollRef as React.RefObject<HTMLElement | null>} className="flex-1 overflow-auto p-3 space-y-3">
           {/* Breadcrumbs — always rendered on desktop when we're inside a
              project (hidden by AppBreadcrumbs itself when fewer than 2 items). */}
           {breadcrumbItems.length >= 2 && (
