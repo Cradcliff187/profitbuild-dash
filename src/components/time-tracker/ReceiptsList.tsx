@@ -270,20 +270,22 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
 
   return (
     <div className="space-y-3 px-4">
-      {/* Search & Filters Bar */}
-      <div className="flex gap-2">
-        <div className="flex-1">
+      {/* Search & Filters Bar — search owns the first row at phone width and
+          the two filters share the second. Three controls in one 375px row left
+          ~150px for search and clipped "Unassigned (N)" inside a 90px select. */}
+      <div className="flex flex-wrap gap-2">
+        <div className="basis-full sm:basis-0 sm:flex-1">
           <Input
             placeholder="Search receipts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-3 h-9 text-sm"
+            className="h-10 pl-3 text-sm"
           />
         </div>
         <NativeSelect
           value={filter}
           onValueChange={(v) => setFilter(v as FilterType)}
-          className="w-auto min-w-[90px] h-9 text-sm"
+          className="h-10 flex-1 text-sm sm:w-auto sm:min-w-[120px] sm:flex-none"
         >
           <option value="all">All ({receipts.length})</option>
           <option value="unassigned">Unassigned ({unassignedCount})</option>
@@ -293,7 +295,7 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
         <NativeSelect
           value={sortBy}
           onValueChange={(v) => setSortBy(v as SortType)}
-          className="w-auto min-w-[80px] h-9 text-sm"
+          className="h-10 flex-1 text-sm sm:w-auto sm:min-w-[100px] sm:flex-none"
         >
           <option value="date-desc">Newest</option>
           <option value="date-asc">Oldest</option>
@@ -314,7 +316,7 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
             setBulkMode(!bulkMode);
             setSelectedIds([]);
           }}
-          className="h-7 text-xs"
+          className="h-9 text-sm"
         >
           {bulkMode ? 'Cancel' : 'Select'}
         </Button>
@@ -334,13 +336,13 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-7 text-xs px-2"
+              className="h-9 text-sm px-3"
               onClick={() => setReassigningReceiptIds(selectedIds)}
             >
               <FolderOpen className="w-3 h-3 mr-1" />
               Assign
             </Button>
-            <Button size="sm" variant="destructive" onClick={handleBulkDelete} className="h-7 text-xs px-2">
+            <Button size="sm" variant="destructive" onClick={handleBulkDelete} className="h-9 text-sm px-3">
               <Trash2 className="w-3 h-3 mr-1" />
               Delete
             </Button>
@@ -423,7 +425,7 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
                     alt="Receipt"
                     loading="lazy"
                     decoding="async"
-                    className="w-full rounded-lg"
+                    className="max-h-[60vh] w-full rounded-lg bg-muted object-contain"
                   />
 
                   {/* Details Grid */}
@@ -458,7 +460,7 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="flex-1 h-8 text-xs"
+                      className="flex-1 h-10 text-sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingReceipt(receipt);
@@ -470,7 +472,7 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="flex-1 h-8 text-xs"
+                      className="flex-1 h-10 text-sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         setReassigningReceiptIds([receipt.id]);
@@ -486,7 +488,8 @@ export const ReceiptsList = ({ hideAddFab = false }: ReceiptsListProps = {}) => 
                         e.stopPropagation();
                         handleDelete(receipt.id);
                       }}
-                      className="h-8 px-3"
+                      className="h-10 px-4"
+                      aria-label="Delete receipt"
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>

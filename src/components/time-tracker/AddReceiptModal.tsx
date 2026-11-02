@@ -305,22 +305,24 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
             <div className="space-y-3">
               {!capturedPhoto ? (
                 <>
+                  {/* `whitespace-normal` and `[&_svg]:size-10` override the base
+                      Button's `whitespace-nowrap` / `[&_svg]:size-4`. Without them the
+                      label ran past both dashed edges at phone width and the camera
+                      icon rendered at 16px. The iOS picker tip is the one-time toast
+                      in openFilePicker — no need to repeat it under the button. */}
                   <Button
                     onClick={openFilePicker}
                     variant="outline"
-                    className="h-48 w-full border-2 border-dashed"
+                    className="h-auto min-h-[11rem] w-full whitespace-normal border-2 border-dashed px-4 py-6 [&_svg]:size-10"
                   >
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <CameraIcon className="w-12 h-12 text-muted-foreground" />
-                      <span className="text-base font-medium md:text-sm">
-                        Upload photo (camera, photo library, or files)
+                    <div className="flex w-full min-w-0 flex-col items-center gap-2 text-center">
+                      <CameraIcon className="text-muted-foreground" />
+                      <span className="text-base font-medium md:text-sm">Add receipt photo</span>
+                      <span className="text-sm font-normal text-muted-foreground md:text-xs">
+                        Take a photo or choose one from your library
                       </span>
                     </div>
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Tapping the button opens the default iPhone/Android prompt so you can take a photo, pick from your
-                    library, or browse files.
-                  </p>
                 </>
               ) : (
                 <>
@@ -328,7 +330,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                     <img
                       src={capturedPhoto}
                       alt="Captured receipt"
-                      className="h-48 w-full object-cover rounded-lg"
+                      className="max-h-72 w-full rounded-lg bg-muted object-contain"
                     />
                     <Button
                       onClick={() => {
@@ -352,7 +354,7 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
                     className="w-full mt-2 min-h-[44px] text-sm md:min-h-0"
                   >
                     <CameraIcon className="w-4 h-4 mr-2" />
-                    Retake photo
+                    Change photo
                   </Button>
                 </>
               )}

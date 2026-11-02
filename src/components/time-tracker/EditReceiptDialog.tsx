@@ -400,7 +400,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
                 <img 
                   src={capturedPhoto} 
                   alt="Receipt" 
-                  className="w-full h-48 object-cover"
+                  className="max-h-64 w-full bg-muted object-contain"
                 />
               </div>
             )}
@@ -408,7 +408,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
               type="button"
               variant="outline"
               size="sm"
-              className="w-full"
+              className={cn("w-full", isMobile && "min-h-[44px] text-sm")}
               onClick={capturePhoto}
               disabled={!canEdit || loading}
             >
@@ -511,6 +511,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
               size="sm"
               onClick={handleDelete}
               disabled={loading}
+              className={cn(isMobile && "min-h-[44px] text-sm")}
             >
               Delete
             </Button>
@@ -521,7 +522,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
             size="sm"
             onClick={() => onOpenChange(false)} 
             disabled={loading}
-            className="flex-1"
+            className={cn("flex-1", isMobile && "min-h-[44px] text-sm")}
           >
             Cancel
           </Button>
@@ -531,7 +532,7 @@ export const EditReceiptDialog = ({ receipt, open, onOpenChange, onSaved }: Edit
               size="sm"
               onClick={handleSave} 
               disabled={loading}
-              className="flex-1"
+              className={cn("flex-1", isMobile && "min-h-[44px] text-sm")}
             >
               {loading ? 'Saving...' : 'Save'}
             </Button>
