@@ -13,6 +13,7 @@ import { Camera } from 'lucide-react';
 import { isIOSPWA } from '@/utils/platform';
 import { getProjectCategoryOrFilter } from '@/utils/sandboxPreferences';
 import { createReceiptSignedUrl } from '@/utils/receiptUrls';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Project {
   id: string;
@@ -44,6 +45,7 @@ interface EditReceiptModalProps {
 
 export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditReceiptModalProps) => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   
   // Form state
   const [amount, setAmount] = useState('0.00');
@@ -149,17 +151,18 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
   const capturePhoto = async () => {
     // Add iOS PWA guidance
     if (isIOSPWA()) {
-      toast.info("iOS Camera Tip", {
-        description: "Your camera will open, or select 'Take Photo or Video' from the menu if you see the photo library",
-        duration: 5000,
+      toast.info('Device upload tip', {
+        description: "Select Take Photo or Video, Photo Library, or Browse from your iPhone's sheet.",
+        duration: 4000,
       });
     }
     
     try {
       const input = document.createElement('input');
       input.type = 'file';
+      // No `capture` attribute — same as AddReceiptModal, so the device sheet
+      // offers camera OR library instead of forcing the camera.
       input.accept = 'image/*';
-      input.capture = 'environment';
 
       input.onchange = async (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
@@ -243,7 +246,7 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
 
       // Upload new photo if changed
       if (photoChanged && capturedPhoto) {
-        const { data: { user } } = await supabase.auth.getUser();
+        // In-memory auth user (Gotcha #63) — no network round-trip on save.
         if (!user) throw new Error('Not authenticated');
 
         const blob = await fetch(capturedPhoto).then(r => r.blob());
@@ -346,19 +349,19 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
               <img 
                 src={capturedPhoto} 
                 alt="Receipt" 
-                className="w-full h-auto"
+                className="max-h-72 w-full bg-muted object-contain"
               />
             </div>
           )}
           <Button
             type="button"
             variant="outline"
-            className="w-full"
+            className="w-full min-h-[44px] text-sm md:min-h-0"
             onClick={capturePhoto}
             disabled={isUploading}
           >
             <Camera className="w-4 h-4 mr-2" />
-            Replace Photo
+            Replace photo
           </Button>
         </div>
 
@@ -371,7 +374,7 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className={cn(isMobile && "h-10")}
+            className={cn(isMobile && "h-12 text-base")}
             style={{ fontSize: isMobile ? '16px' : undefined }}
             disabled={isUploading}
           />
@@ -384,7 +387,7 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
             id="payee"
             value={payeeId}
             onValueChange={setPayeeId}
-            className={cn(isMobile && "h-10 text-base")}
+            className={cn(isMobile && "h-12 text-base")}
             disabled={isUploading}
           >
             <option value="" disabled>Select a payee...</option>
@@ -407,7 +410,7 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
             id="project"
             value={projectId}
             onValueChange={setProjectId}
-            className={cn(isMobile && "h-10 text-base")}
+            className={cn(isMobile && "h-12 text-base")}
             disabled={isUploading}
           >
             <option value="">Select a project...</option>
@@ -440,7 +443,7 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
             variant="outline"
             onClick={handleClose}
             disabled={isUploading}
-            className="flex-1"
+            className="flex-1 min-h-[48px] text-base md:min-h-0 md:text-sm"
           >
             Cancel
           </Button>
@@ -448,7 +451,7 @@ export const EditReceiptModal = ({ open, onClose, onSuccess, receipt }: EditRece
             type="button"
             onClick={handleSave}
             disabled={isUploading}
-            className="flex-1"
+            className="flex-1 min-h-[48px] text-base md:min-h-0 md:text-sm"
           >
             {isUploading ? 'Updating...' : 'Update Receipt'}
           </Button>

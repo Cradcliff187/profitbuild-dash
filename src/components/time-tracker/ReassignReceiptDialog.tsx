@@ -105,7 +105,7 @@ export function ReassignReceiptDialog({
             <Label htmlFor="project">Select Project *</Label>
             <select
               id="project"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-base md:h-9 md:text-sm"
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
             >
@@ -119,12 +119,12 @@ export function ReassignReceiptDialog({
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" onClick={handleClose} className="flex-1" disabled={isReassigning}>
+            <Button variant="outline" onClick={handleClose} className="flex-1 min-h-[44px] md:min-h-0" disabled={isReassigning}>
               Cancel
             </Button>
             <Button
               onClick={handleReassign}
-              className="flex-1"
+              className="flex-1 min-h-[44px] md:min-h-0"
               disabled={!selectedProjectId || isReassigning}
             >
               {isReassigning ? 'Reassigning...' : 'Reassign'}

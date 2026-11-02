@@ -72,7 +72,7 @@ export function RecentEntriesList({
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">
+                <span className="shrink-0 text-sm font-medium">
                   {format(parseDateOnly(entry.expense_date), "EEE, MMM d")}
                 </span>
                 <span className="truncate text-sm text-muted-foreground">
