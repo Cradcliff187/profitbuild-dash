@@ -25,6 +25,11 @@ import { EstimateStatus } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { EstimateConnectionsSummary } from "@/components/estimates/EstimateConnectionsSummary";
+import {
+  fetchEstimateConnectionsSummary,
+  type EstimateConnectionsSummary as ConnectionsSummaryData,
+} from "@/utils/estimateConnections";
 
 interface EstimateStatusSelectorProps {
   estimateId: string;
@@ -50,6 +55,11 @@ export const EstimateStatusSelector = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<EstimateStatus | null>(null);
+  // Connected-records awareness (quotes / allocations / dispatch / contracts /
+  // SOV) shown inside the confirm dialog for approve + un-approve transitions.
+  const [connections, setConnections] = useState<ConnectionsSummaryData | null>(null);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [connectionsSourceLabel, setConnectionsSourceLabel] = useState<string | null>(null);
 
   const getStatusBadge = (status: EstimateStatus) => (
     <EstimateStatusBadge status={status} size="sm" />
@@ -98,6 +108,45 @@ export const EstimateStatusSelector = ({
     return null;
   };
 
+  // Read-only lookup of what hangs off the affected estimate's line items.
+  // Approve: the estimate(s) about to be UN-approved lose their baseline —
+  // their attachments won't follow (status changes never re-point FKs; only
+  // create_estimate_version does, Rule 27). Un-approve: this estimate's own
+  // attachments stop being read by cost tracking.
+  const loadConnections = async (targetStatus: EstimateStatus) => {
+    setConnectionsLoading(true);
+    setConnections(null);
+    setConnectionsSourceLabel(null);
+    try {
+      if (targetStatus === ('approved' as EstimateStatus)) {
+        const { data: others, error } = await supabase
+          .from('estimates')
+          .select('id, estimate_number')
+          .eq('project_id', projectId)
+          .eq('status', 'approved')
+          .neq('id', estimateId);
+        if (error) throw error;
+        if (!others || others.length === 0) {
+          setConnections(null);
+          return;
+        }
+        const summary = await fetchEstimateConnectionsSummary(others.map((o) => o.id));
+        setConnectionsSourceLabel(others.map((o) => o.estimate_number).join(', '));
+        setConnections(summary);
+      } else {
+        const summary = await fetchEstimateConnectionsSummary([estimateId]);
+        setConnectionsSourceLabel(estimateNumber);
+        setConnections(summary);
+      }
+    } catch (error) {
+      // Advisory surface — a failed read never blocks the status change.
+      console.error('Error loading estimate connections:', error);
+      setConnections(null);
+    } finally {
+      setConnectionsLoading(false);
+    }
+  };
+
   const handleStatusSelect = (newStatus: EstimateStatus) => {
     if (newStatus === currentStatus) return;
 
@@ -105,6 +154,7 @@ export const EstimateStatusSelector = ({
     if (warning) {
       setPendingStatus(newStatus);
       setShowConfirmDialog(true);
+      void loadConnections(newStatus);
     } else {
       updateStatus(newStatus);
     }
@@ -286,7 +336,17 @@ export const EstimateStatusSelector = ({
         </Tooltip>
       </div>
 
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={(open) => {
+          setShowConfirmDialog(open);
+          if (!open) {
+            setPendingStatus(null);
+            setConnections(null);
+            setConnectionsSourceLabel(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -308,6 +368,22 @@ export const EstimateStatusSelector = ({
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {/* Sibling of the header (not inside AlertDialogDescription — that
+              renders a <p> and block children inside it are invalid HTML). */}
+          <EstimateConnectionsSummary
+            loading={connectionsLoading}
+            data={connections}
+            title={
+              pendingStatus === ('approved' as EstimateStatus)
+                ? `Attached to ${connectionsSourceLabel ?? 'the currently approved estimate'} (currently approved)`
+                : 'Attached to this estimate'
+            }
+            note={
+              pendingStatus === ('approved' as EstimateStatus)
+                ? "These records will NOT follow automatically — cost tracking reads the newly approved estimate. To carry them, create a New Version from that estimate instead."
+                : "These stay attached to this version, but cost tracking stops reading them once it's no longer the approved baseline."
+            }
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmStatusUpdate}>
