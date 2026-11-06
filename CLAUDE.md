@@ -1853,16 +1853,58 @@ Additive only, every statement idempotent. Backfill: Body Alive → `website_for
 id `7c1f3b2e-…`); The Cathedral (converted to 225-120 in May, job complete) closed as
 `linked_to_job`; everything else keeps the defaults. The two test leads were already soft-deleted.
 
-**Known hazard, deliberately NOT touched here (needs Chris):** `system_settings.project_counter`
-reads `225175` while projects exist through 225-205 — the tracker sync inserts explicit numbers and
-never bumps the counter. The next in-app New Project / Quick Work Order will get `225-176` from the
-RPC, collide on `projects_project_number_key`, and burn one counter value per attempt. Resync the
-counter (one UPDATE) or hide in-app project creation before anyone uses those forms.
+**Counter drift found during this work** (`project_counter` at 225175 while jobs ran to 225-205) was
+fixed the same day at the database level — see Rule 43. Nothing in the Leads area depends on it.
 
 **Common pitfalls:** don't add a Convert/Create button back anywhere under `/leads`; don't write
 `branch_bids.project_id` directly (the trigger owns it); don't put a `token`-style enum in the DB for
 source/stage (they're text + CHECK so a new value is one ALTER); don't surface closed leads by
 default; don't call `auth.getUser()` on a Leads save path.
+
+### 43. Project numbering is self-healing; admins only ever move it FORWARD (Nov 6 2026)
+
+**The failure it closes:** numbers were minted two ways — `get_next_project_number()` (in-app New
+Project / Quick Work Order) and explicit INSERTs from the tracker sync (`rcg-project-sync`, Matt's
+job folders) — and only the first moved `system_settings.project_counter`. The counter sat at
+`225175` while jobs ran to **225-205**; the next in-app create would have been handed `225-176`,
+collided on `projects_project_number_key`, and burned one counter value per attempt. The Settings
+card's old "Sync to highest" button only fixed it when someone remembered to click (and only looked
+at the last 100 rows by `created_at`). Three rows also carried a stale `sequence_number`
+(225-015 → 16, 225-049 → 53, 225-149 → 146): the trigger derived it only when NULL, so a renumber
+never updated it.
+
+**The model now (migration `project_numbering_self_healing`, readable copy in
+[docs/project-numbering-self-healing.sql](docs/project-numbering-self-healing.sql)):**
+`projects.project_number` TEXT is the source of truth; the counter is a floor that can never sit
+below it.
+- `format_project_number(counter)` → `225-NNN`, padded to **at least** 3 digits so it does not wrap
+  at 999 (`225-1000`, not `225-000`). `max_project_sequence()` parses the number text (regex
+  `^225-\d{3,}$`), never the `sequence_number` column.
+- `set_project_sequence_number()` (existing BEFORE INSERT OR UPDATE trigger) now re-derives
+  `sequence_number` on every insert AND renumber when the suffix is numeric; non-numeric suffixes
+  (`001-GAS`, `SYS-TEST`) keep what they have. The three drifted rows were repaired in the migration.
+- **`advance_project_counter`** AFTER INSERT OR UPDATE OF `project_number` — any number assigned by
+  any path (tracker sync, manual SQL, renumber) moves the counter up to it. Forward only.
+- `get_next_project_number()` takes `FOR UPDATE` on the settings row (serializes concurrent
+  creates), starts from `GREATEST(counter, 225000 + max in use) + 1`, and steps past anything already
+  taken. The counter is advanced even if the caller's INSERT then fails — that is a skipped number,
+  which is fine (numbers were never promised to be gap-free).
+- Admin RPCs (both `has_role(auth.uid(),'admin')`-gated, SECURITY DEFINER, `anon` revoked):
+  `get_project_numbering_status()` → `{counter, highest_sequence, highest_in_use, next_number}` and
+  `set_next_project_number(p_next_sequence)` — "start the next project at 225-NNN". It accepts any
+  value **above** the highest in use (skipping ahead to start a new block is allowed) and raises on
+  anything at or below it. The Settings → Project Numbers card ([Settings.tsx](src/pages/Settings.tsx))
+  reads and writes only through these two RPCs; the old direct `system_settings` writes and the
+  Sync button are gone. Client helpers + the forward-only mirror live in
+  [projectNumbering.ts](src/utils/projectNumbering.ts), pinned by `projectNumbering.test.ts`.
+
+**Common pitfalls:**
+- Don't write `system_settings.project_counter` from app code again — go through
+  `set_next_project_number`. Don't add a "sync" button; the trigger is the sync.
+- Don't read `sequence_number` as truth for "highest number"; parse `project_number` (the RPC does).
+- Don't let a UI accept a next number ≤ highest in use "with a warning" — the DB raises anyway.
+- `numberGeneration.ts` used to export a `formatProjectNumber` with a stale `125-` prefix; it is
+  deleted. Use `formatProjectSequence` / `formatProjectCounter` from `projectNumbering.ts`.
 
 ---
 

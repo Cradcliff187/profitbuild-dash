@@ -17,6 +17,12 @@ import { QuickBooksSettings } from "@/components/QuickBooksSettings";
 import { getBudgetAlertThreshold, setBudgetAlertThreshold } from "@/utils/budgetUtils";
 import { getCaptionPreferences, setCaptionPreferences } from "@/utils/userPreferences";
 import { getShowSandboxProject, setShowSandboxProject, SANDBOX_PROJECT_NUMBER } from "@/utils/sandboxPreferences";
+import {
+  formatProjectSequence,
+  parseProjectSequenceInput,
+  validateNextSequence,
+  type ProjectNumberingStatus,
+} from "@/utils/projectNumbering";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,9 +50,10 @@ const Settings = () => {
   const [captionPromptsEnabled, setCaptionPromptsEnabled] = useState<boolean>(true);
   const [showSandbox, setShowSandboxState] = useState<boolean>(getShowSandboxProject());
   
-  // Project counter state (admin only)
-  const [projectCounter, setProjectCounter] = useState<number>(225000);
-  const [projectCounterInput, setProjectCounterInput] = useState<string>("");
+  // Project numbering state (admin only) — Rule 43. The DB owns the sequence;
+  // this card only shows where it stands and lets an admin jump it forward.
+  const [numbering, setNumbering] = useState<ProjectNumberingStatus | null>(null);
+  const [nextNumberInput, setNextNumberInput] = useState<string>("");
   const [loadingCounter, setLoadingCounter] = useState(false);
 
   // App updates state
@@ -78,7 +85,7 @@ const Settings = () => {
     setBudgetThresholdState(getBudgetAlertThreshold());
     getCaptionPreferences().then(prefs => setCaptionPromptsEnabled(prefs.showCaptionPrompts));
     if (isAdmin) {
-      fetchProjectCounter();
+      fetchProjectNumbering();
     }
     // Surface deploy state so users can see at a glance whether the latest
     // merge has actually been published. Failures degrade silently — the
@@ -164,117 +171,55 @@ const Settings = () => {
     }
   };
 
-  // Project counter management functions (admin only)
-  const fetchProjectCounter = async () => {
+  // Project numbering (admin only) — reads/writes go through the two RPCs so
+  // the forward-only guard lives in Postgres, not here (Rule 43).
+  const fetchProjectNumbering = async () => {
+    setLoadingCounter(true);
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'project_counter')
-        .single();
-
-      if (error) {
-        console.error('Error fetching project counter:', error);
-        return;
+      const { data, error } = await supabase.rpc('get_project_numbering_status');
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        setNumbering(row as ProjectNumberingStatus);
+        setNextNumberInput("");
       }
-
-      const counter = parseInt(data?.setting_value || '225000');
-      setProjectCounter(counter);
-      setProjectCounterInput(counter.toString());
     } catch (error) {
-      console.error('Error fetching project counter:', error);
+      console.error('Error fetching project numbering:', error);
+      toast.error('Could not load project numbering');
+    } finally {
+      setLoadingCounter(false);
     }
   };
 
-  const handleUpdateProjectCounter = async () => {
-    const newCounter = parseInt(projectCounterInput);
-    
-    if (isNaN(newCounter) || newCounter < 225000) {
-      toast.error('Please enter a valid counter value (minimum 225000)');
+  const parsedNextSequence = parseProjectSequenceInput(nextNumberInput);
+  const nextSequenceError =
+    nextNumberInput.trim() === ''
+      ? null
+      : validateNextSequence(parsedNextSequence, numbering?.highest_sequence ?? 0);
+
+  const handleSetNextProjectNumber = async () => {
+    if (parsedNextSequence === null || nextSequenceError) {
+      toast.error(nextSequenceError ?? 'Enter a project number');
       return;
     }
-
     setLoadingCounter(true);
     try {
-      const { error } = await supabase
-        .from('system_settings')
-        .update({ 
-          setting_value: newCounter.toString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('setting_key', 'project_counter');
-
+      const { data, error } = await supabase.rpc('set_next_project_number', {
+        p_next_sequence: parsedNextSequence,
+      });
       if (error) throw error;
-
-      setProjectCounter(newCounter);
-      toast.success('Project counter updated successfully');
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) setNumbering(row as ProjectNumberingStatus);
+      setNextNumberInput("");
+      toast.success(`Next project will be ${formatProjectSequence(parsedNextSequence)}`);
     } catch (error) {
-      console.error('Error updating project counter:', error);
-      toast.error('Failed to update project counter');
+      console.error('Error setting next project number:', error);
+      toast.error('Could not change the next project number', {
+        description: error instanceof Error ? error.message : undefined,
+      });
     } finally {
       setLoadingCounter(false);
     }
-  };
-
-  const handleAutoSyncCounter = async () => {
-    setLoadingCounter(true);
-    try {
-      // Get the highest project number from existing projects
-      const { data, error } = await supabase
-        .from('projects')
-        .select('project_number')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
-        toast.info('No projects found. Counter remains at current value.');
-        setLoadingCounter(false);
-        return;
-      }
-
-      // Extract numeric portion from project numbers (e.g., "225-123" -> 225123)
-      const numbers = data
-        .map(p => {
-          const match = p.project_number?.match(/225-(\d+)/);
-          return match ? 225000 + parseInt(match[1]) : 0;
-        })
-        .filter(n => n > 0);
-
-      if (numbers.length === 0) {
-        toast.info('No valid project numbers found. Counter remains at current value.');
-        setLoadingCounter(false);
-        return;
-      }
-
-      const maxNumber = Math.max(...numbers);
-      
-      // Update to the highest number found
-      const { error: updateError } = await supabase
-        .from('system_settings')
-        .update({ 
-          setting_value: maxNumber.toString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('setting_key', 'project_counter');
-
-      if (updateError) throw updateError;
-
-      setProjectCounter(maxNumber);
-      setProjectCounterInput(maxNumber.toString());
-      toast.success(`Counter synced to highest project number (${maxNumber})`);
-    } catch (error) {
-      console.error('Error syncing project counter:', error);
-      toast.error('Failed to sync project counter');
-    } finally {
-      setLoadingCounter(false);
-    }
-  };
-
-  const formatProjectNumber = (counter: number) => {
-    const lastThreeDigits = counter % 1000;
-    return `225-${lastThreeDigits.toString().padStart(3, '0')}`;
   };
 
   // Pulls the deploy-status info shown in the App Updates card:
@@ -667,80 +612,66 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Hash className="h-5 w-5" />
-                <span>Project Number Management</span>
+                <span>Project Numbers</span>
               </CardTitle>
               <CardDescription>
-                Adjust the project numbering sequence (Admin Only)
+                Numbers are tracked automatically from every job in the system, whether it was
+                created here or pushed in from the tracker. Use this only to skip ahead.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <Label className="text-sm font-medium">Current Counter</Label>
-                    <p className="text-xs text-muted-foreground">Internal counter value</p>
-                  </div>
-                  <span className="text-lg font-mono font-bold">{projectCounter}</span>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Next Project Number</Label>
-                    <p className="text-xs text-muted-foreground">Will be assigned to the next project</p>
+                    <Label className="text-sm font-medium">Next project number</Label>
+                    <p className="text-xs text-muted-foreground">What the next New Project / Work Order gets</p>
                   </div>
                   <span className="text-lg font-mono font-bold text-primary">
-                    {formatProjectNumber(projectCounter + 1)}
+                    {numbering?.next_number ?? '—'}
                   </span>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="counterInput">Adjust Counter Manually</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="counterInput"
-                    type="number"
-                    min="225000"
-                    value={projectCounterInput}
-                    onChange={(e) => setProjectCounterInput(e.target.value)}
-                    placeholder="225000"
-                    disabled={loadingCounter}
-                  />
-                  <Button
-                    onClick={handleUpdateProjectCounter}
-                    disabled={loadingCounter || projectCounterInput === projectCounter.toString()}
-                  >
-                    Update
+                <Separator />
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-sm font-medium">Highest number in use</Label>
+                    <p className="text-xs text-muted-foreground">The newest job on the books</p>
+                  </div>
+                  <span className="text-lg font-mono font-bold">
+                    {numbering?.highest_in_use ?? '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-end">
+                  <Button variant="ghost" size="sm" onClick={fetchProjectNumbering} disabled={loadingCounter}>
+                    <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loadingCounter && "animate-spin")} />
+                    Refresh
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter a counter value (minimum 225000). The next project will be 225-XXX where XXX is the last 3 digits.
-                </p>
               </div>
-
-              <Separator />
 
               <div className="space-y-2">
-                <Label>Auto-Sync to Highest Project</Label>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleAutoSyncCounter}
-                  disabled={loadingCounter}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loadingCounter ? 'animate-spin' : ''}`} />
-                  Sync to Highest Existing Project Number
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Automatically adjusts the counter to match the highest project number in the database. 
-                  Use this after deleting projects to prevent number gaps.
-                </p>
-              </div>
-
-              <div className="p-3 bg-warning-bg border border-warning-border rounded-md">
-                <p className="text-xs text-warning-fg">
-                  <strong>Warning:</strong> Changing the counter manually may result in duplicate project numbers
-                  if set to a value already used. The auto-sync feature is recommended for safety.
+                <Label htmlFor="nextNumberInput">Start the next project at</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="nextNumberInput"
+                    inputMode="numeric"
+                    value={nextNumberInput}
+                    onChange={(e) => setNextNumberInput(e.target.value)}
+                    placeholder={numbering ? formatProjectSequence(numbering.highest_sequence + 1) : '225-000'}
+                    disabled={loadingCounter || !numbering}
+                    aria-invalid={!!nextSequenceError}
+                  />
+                  <Button
+                    onClick={handleSetNextProjectNumber}
+                    disabled={loadingCounter || !numbering || parsedNextSequence === null || !!nextSequenceError}
+                  >
+                    Set
+                  </Button>
+                </div>
+                <p className={cn("text-xs", nextSequenceError ? "text-destructive" : "text-muted-foreground")}>
+                  {nextSequenceError
+                    ?? (parsedNextSequence !== null
+                      ? `Next project will be ${formatProjectSequence(parsedNextSequence)}; anything between is skipped.`
+                      : 'You can skip forward (for example to start a new block) but never back onto a number already in use.')}
                 </p>
               </div>
             </CardContent>

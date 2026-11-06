@@ -4615,6 +4615,7 @@ export type Database = {
         }
         Returns: string
       }
+      format_project_number: { Args: { p_counter: number }; Returns: string }
       generate_work_order_number: {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
@@ -4679,6 +4680,15 @@ export type Database = {
         }[]
       }
       get_next_project_number: { Args: never; Returns: string }
+      get_project_numbering_status: {
+        Args: never
+        Returns: {
+          counter: number
+          highest_in_use: string
+          highest_sequence: number
+          next_number: string
+        }[]
+      }
       get_payee_usage_counts: {
         Args: { p_source?: string }
         Returns: {
@@ -4805,6 +4815,7 @@ export type Database = {
         Args: { p_alias_id: string }
         Returns: undefined
       }
+      max_project_sequence: { Args: never; Returns: number }
       is_linked_payee: {
         Args: { _payee_id: string; _user_id: string }
         Returns: boolean
@@ -4836,6 +4847,15 @@ export type Database = {
       safe_cast_to_quote_status: {
         Args: { val: string }
         Returns: Database["public"]["Enums"]["quote_status"]
+      }
+      set_next_project_number: {
+        Args: { p_next_sequence: number }
+        Returns: {
+          counter: number
+          highest_in_use: string
+          highest_sequence: number
+          next_number: string
+        }[]
       }
       set_user_can_be_mentioned: {
         Args: { target_user_id: string; value: boolean }
