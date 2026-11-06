@@ -76,6 +76,13 @@ On **`branch_bids`**: `source` (TEXT NOT NULL default `unknown`, CHECK over 11 v
   (`sync_branch_bid_primary_project`) — never write it from the frontend.
 - A lead **never** receives a project number; nothing in the Leads area inserts into `projects`.
 
+### Project numbering (CLAUDE.md Rule 43)
+`projects.project_number` text is the source of truth. `system_settings.project_counter` (= 225000 +
+sequence) is a floor kept in step by the `advance_project_counter` trigger (AFTER INSERT OR UPDATE OF
+project_number) and by `get_next_project_number()`, which starts from `GREATEST(counter, highest in
+use) + 1` and skips taken numbers. `sequence_number` is re-derived from the number text on insert and
+renumber. Admin RPCs: `get_project_numbering_status()`, `set_next_project_number(int)` (forward only).
+
 ### Invoices (CLAUDE.md Rule 25)
 - **`invoices`** — generated client invoices (mirrors `contracts` shape: `internal_reference` UNIQUE, `version`, `status`, `field_values` jsonb, `docx_url`, `pdf_url`).
 - **`invoice_revenues`** — junction to `project_revenues` (Phase-2-ready aggregation; one row per revenue in Phase 1).

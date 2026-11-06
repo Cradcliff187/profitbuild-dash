@@ -4595,6 +4595,7 @@ export type Database = {
         }
         Returns: Json
       }
+      format_project_number: { Args: { p_counter: number }; Returns: string }
       generate_estimate_number: {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
@@ -4747,6 +4748,15 @@ export type Database = {
           total_quoted: number
         }[]
       }
+      get_project_numbering_status: {
+        Args: never
+        Returns: {
+          counter: number
+          highest_in_use: string
+          highest_sequence: number
+          next_number: string
+        }[]
+      }
       get_project_revenue_total: {
         Args: { p_project_id: string }
         Returns: number
@@ -4821,6 +4831,7 @@ export type Database = {
         }
         Returns: string
       }
+      max_project_sequence: { Args: never; Returns: number }
       refresh_estimate_labor_cushion: {
         Args: { p_estimate_id: string }
         Returns: number
@@ -4836,6 +4847,15 @@ export type Database = {
       safe_cast_to_quote_status: {
         Args: { val: string }
         Returns: Database["public"]["Enums"]["quote_status"]
+      }
+      set_next_project_number: {
+        Args: { p_next_sequence: number }
+        Returns: {
+          counter: number
+          highest_in_use: string
+          highest_sequence: number
+          next_number: string
+        }[]
       }
       set_user_can_be_mentioned: {
         Args: { target_user_id: string; value: boolean }

@@ -51,8 +51,5 @@ export const extractProjectCounter = (projectNumber: string | null | undefined):
   }
   return 0;
 };
-
-export const formatProjectNumber = (counter: number): string => {
-  // Format counter as "125-XXX"
-  return `125-${counter}`;
-};
+// formatProjectNumber lived here with a stale "125-" prefix and no callers.
+// The canonical formatters are in src/utils/projectNumbering.ts (Rule 43).
