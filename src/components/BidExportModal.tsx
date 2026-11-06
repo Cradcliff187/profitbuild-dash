@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Download, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
 import type { BranchBid } from '@/types/bid';
+import { formatLeadClosedReason, formatLeadSource, formatLeadStage } from '@/utils/leadLabels';
 
 interface BidExportModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
 
   const exportToCSV = async (bids: BranchBid[]) => {
     // Build headers based on options
-    const headers: string[] = ["Lead Name"];
+    const headers: string[] = ["Lead Name", "Stage", "Closed Reason", "Source", "Source Detail"];
 
     if (exportOptions.includeDescription) {
       headers.push("Description");
@@ -80,7 +81,7 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
     }
 
     if (exportOptions.includeProjectDetails) {
-      headers.push("Project Type", "Job Type", "Address", "Linked Project");
+      headers.push("Project Type", "Job Type", "Address", "Linked Jobs");
     }
 
     if (exportOptions.includeCreatorDetails) {
@@ -93,7 +94,13 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
 
     // Build rows
     const rows = bids.map((bid) => {
-      const row: string[] = [`"${bid.name || ""}"`];
+      const row: string[] = [
+        `"${bid.name || ""}"`,
+        `"${formatLeadStage(bid.stage)}"`,
+        `"${formatLeadClosedReason(bid.closed_reason) || ""}"`,
+        `"${formatLeadSource(bid.source)}"`,
+        `"${(bid.source_detail || "").replace(/"/g, '""')}"`,
+      ];
 
       if (exportOptions.includeDescription) {
         row.push(`"${bid.description || ""}"`);
@@ -109,7 +116,10 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
         const projectType = bid.project_type ? bid.project_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : "";
         const jobType = bid.job_type || "";
         const address = bid.address || "";
-        const linkedProject = bid.projects ? `${bid.projects.project_number} - ${bid.projects.project_name}` : "";
+        const links = (bid.branch_bid_projects ?? []).filter((l) => l.projects);
+        const linkedProject = links.length > 0
+          ? links.map((l) => `${l.projects!.project_number} - ${l.projects!.project_name}`).join("; ")
+          : bid.projects ? `${bid.projects.project_number} - ${bid.projects.project_name}` : "";
         row.push(`"${projectType}"`, `"${jobType}"`, `"${address}"`, `"${linkedProject}"`);
       }
 

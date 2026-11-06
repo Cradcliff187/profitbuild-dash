@@ -263,10 +263,52 @@ export type Database = {
           },
         ]
       }
+      branch_bid_projects: {
+        Row: {
+          branch_bid_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          project_id: string
+        }
+        Insert: {
+          branch_bid_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          project_id: string
+        }
+        Update: {
+          branch_bid_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_bid_projects_branch_bid_id_fkey"
+            columns: ["branch_bid_id"]
+            isOneToOne: false
+            referencedRelation: "branch_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_bid_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_bids: {
         Row: {
           address: string | null
           client_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_reason: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -277,11 +319,17 @@ export type Database = {
           name: string
           project_id: string | null
           project_type: string | null
+          source: string
+          source_detail: string | null
+          stage: string
           updated_at: string
         }
         Insert: {
           address?: string | null
           client_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -292,11 +340,17 @@ export type Database = {
           name: string
           project_id?: string | null
           project_type?: string | null
+          source?: string
+          source_detail?: string | null
+          stage?: string
           updated_at?: string
         }
         Update: {
           address?: string | null
           client_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -307,6 +361,9 @@ export type Database = {
           name?: string
           project_id?: string | null
           project_type?: string | null
+          source?: string
+          source_detail?: string | null
+          stage?: string
           updated_at?: string
         }
         Relationships: [

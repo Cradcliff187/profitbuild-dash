@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useAudioRecording } from '@/hooks/useAudioRecording';
 import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { useBidNotes } from '@/hooks/useBidNotes';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BidNotesTimelineProps {
   bidId: string;
@@ -28,6 +29,7 @@ interface BidNotesTimelineProps {
 
 export function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimelineProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [noteText, setNoteText] = useState('');
 
   const { notes, isLoading } = useBidNotes(bidId);
@@ -86,7 +88,6 @@ export function BidNotesTimeline({ bidId, hideComposer = false }: BidNotesTimeli
 
   const addNoteMutation = useMutation({
     mutationFn: async (text: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase

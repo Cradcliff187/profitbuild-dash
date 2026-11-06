@@ -161,32 +161,31 @@ export interface ProjectMedia {
   note_text?: string;
 }
 
-// Utility function to generate project numbers using sequential hierarchy
+/**
+ * Generate the next project number via the DB counter (`get_next_project_number`).
+ *
+ * THROWS on any failure. There is deliberately NO client-side fallback: the old
+ * "225-<last 3 digits of the clock>" branch could mint a number that collides
+ * with (or silently skips past) the real sequence. A project number is only
+ * ever issued by the database. Callers catch, show the error, and create nothing.
+ *
+ * Callers (keep this list current — see CLAUDE.md Rule 42):
+ *   - ProjectFormSimple  (/projects/new, ProjectNew page)
+ *   - QuickWorkOrderForm (work-order quick create)
+ * Leads never call this — a lead is LINKED to an existing job, never converted.
+ */
 export const generateProjectNumber = async (): Promise<string> => {
-  try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase.rpc('get_next_project_number');
-    
-    if (error) {
-      console.error('Error generating project number:', error);
-      // Fallback to timestamp-based number if database call fails
-      const timestamp = Date.now().toString().slice(-3);
-      return `225-${timestamp}`;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error generating project number:', error);
-    // Fallback to timestamp-based number if import or database call fails
-    const timestamp = Date.now().toString().slice(-3);
-    return `225-${timestamp}`;
-  }
-};
+  const { supabase } = await import('@/integrations/supabase/client');
+  const { data, error } = await supabase.rpc('get_next_project_number');
 
-// Synchronous fallback for immediate use (will be replaced by async version)
-export const generateProjectNumberSync = (): string => {
-  const timestamp = Date.now().toString().slice(-3);
-  return `225-${timestamp}`;
+  if (error) {
+    console.error('Error generating project number:', error);
+    throw new Error(`Could not get the next project number: ${error.message}`);
+  }
+  if (!data) {
+    throw new Error('Could not get the next project number: the database returned nothing.');
+  }
+  return data;
 };
 
 // ============================================================================

@@ -1,3 +1,82 @@
+// ============================================================================
+// Lead vocabulary (CLAUDE.md Rule 42)
+// Values are CHECK-constrained in the DB (branch_bids.source / stage /
+// closed_reason). Labels are the only thing users ever read.
+// ============================================================================
+
+export const LEAD_SOURCES = [
+  'website_form',
+  'email',
+  'phone_call',
+  'referral',
+  'outreach',
+  'repeat_client',
+  'bid_board',
+  'social',
+  'walk_in',
+  'other',
+  'unknown',
+] as const;
+export type LeadSource = (typeof LEAD_SOURCES)[number];
+
+export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
+  website_form: 'Website form',
+  email: 'Email',
+  phone_call: 'Phone call',
+  referral: 'Referral',
+  outreach: 'Outreach',
+  repeat_client: 'Repeat client',
+  bid_board: 'Bid board',
+  social: 'Social',
+  walk_in: 'Walk-in',
+  other: 'Other',
+  unknown: 'Unknown',
+};
+
+export const LEAD_STAGES = ['new', 'talking', 'site_walk', 'estimate_requested', 'closed'] as const;
+export type LeadStage = (typeof LEAD_STAGES)[number];
+
+export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
+  new: 'New',
+  talking: 'Talking',
+  site_walk: 'Site walk',
+  estimate_requested: 'Estimate requested',
+  closed: 'Closed',
+};
+
+export const LEAD_CLOSED_REASONS = [
+  'linked_to_job',
+  'we_passed',
+  'no_fit',
+  'went_cold',
+  'lost_before_estimate',
+] as const;
+export type LeadClosedReason = (typeof LEAD_CLOSED_REASONS)[number];
+
+export const LEAD_CLOSED_REASON_LABELS: Record<LeadClosedReason, string> = {
+  linked_to_job: 'Linked to a job',
+  we_passed: 'We passed',
+  no_fit: 'Not a fit',
+  went_cold: 'Went cold',
+  lost_before_estimate: 'Lost before estimate',
+};
+
+/** One row of branch_bid_projects with its project embedded (lead → job link). */
+export interface BranchBidProjectLink {
+  id: string;
+  branch_bid_id: string;
+  project_id: string;
+  created_at: string;
+  created_by: string | null;
+  projects?: {
+    id: string;
+    project_number: string;
+    project_name: string;
+    client_name: string | null;
+    status: string;
+  } | null;
+}
+
 export interface BranchBid {
   id: string;
   name: string;
@@ -6,7 +85,14 @@ export interface BranchBid {
   address: string | null;
   project_type: 'construction_project' | 'work_order' | null;
   job_type: string | null;
-  project_id: string | null; // Only set after converting to project
+  /** Mirror of the FIRST linked job (branch_bid_projects, earliest link). Maintained by a DB trigger. */
+  project_id: string | null;
+  source: LeadSource;
+  source_detail: string | null;
+  stage: LeadStage;
+  closed_reason: LeadClosedReason | null;
+  closed_at: string | null;
+  closed_by: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -23,11 +109,14 @@ export interface BranchBid {
     email: string | null;
     phone: string | null;
   };
+  /** First linked job (via project_id). Kept so older screens still render. */
   projects?: {
     project_number: string;
     project_name: string;
     client_name: string;
   };
+  /** Every linked job. Loaded by the list + detail queries via branch_bid_projects. */
+  branch_bid_projects?: BranchBidProjectLink[];
 }
 
 export interface BidNote {
@@ -82,7 +171,8 @@ export interface CreateBranchBidParams {
   address?: string;
   project_type?: 'construction_project' | 'work_order';
   job_type?: string;
-  project_id?: string;
+  source: LeadSource;
+  source_detail?: string;
 }
 
 export interface UpdateBranchBidParams {
@@ -92,7 +182,8 @@ export interface UpdateBranchBidParams {
   address?: string;
   project_type?: 'construction_project' | 'work_order';
   job_type?: string;
-  project_id?: string;
+  source?: LeadSource;
+  source_detail?: string;
 }
 
 export interface CreateBidNoteParams {

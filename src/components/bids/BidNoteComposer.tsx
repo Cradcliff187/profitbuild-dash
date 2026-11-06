@@ -12,6 +12,7 @@ import {
 import { VoiceNoteButton } from '@/components/notes/VoiceNoteButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BidNoteComposerProps {
   bidId: string;
@@ -37,10 +38,10 @@ export function BidNoteComposer({
 }: BidNoteComposerProps) {
   const [text, setText] = useState('');
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const mutation = useMutation({
     mutationFn: async (noteText: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase.from('bid_notes').insert({
