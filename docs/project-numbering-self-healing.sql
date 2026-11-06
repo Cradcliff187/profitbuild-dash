@@ -1,8 +1,11 @@
 -- ============================================================================
 -- Project numbering: self-healing counter + admin "start next project at"
--- Applied to production (clsjdxwbsjbhjibvlqbz) via MCP apply_migration.
--- Local migration file is a PLACEHOLDER per CLAUDE.md "Critical Migration
--- Rules"; this file is the readable copy of what was applied. See Rule 43.
+-- Applied to production (clsjdxwbsjbhjibvlqbz) on 2026-11-06 as migration
+-- 20261106231618_project_numbering_self_healing. The MCP apply_migration
+-- approval card timed out four times, so the SQL was run via execute_sql and
+-- the ledger row inserted by hand with the same name. Local migration file is
+-- a PLACEHOLDER per CLAUDE.md "Critical Migration Rules"; this file is the
+-- readable copy of what was applied. See Rule 43.
 --
 -- Problem this closes: numbers are minted two ways — get_next_project_number()
 -- (in-app New Project / Quick Work Order) and explicit INSERTs from the tracker
@@ -27,7 +30,10 @@ LANGUAGE sql
 IMMUTABLE
 SET search_path = public
 AS $$
-  SELECT '225-' || lpad((p_counter - 225000)::text, 3, '0');
+  -- lpad TRUNCATES past its length argument ('1000' → '100'), so the width
+  -- grows with the number: 225-005, 225-206, 225-1000.
+  SELECT '225-' || lpad((p_counter - 225000)::text,
+                        GREATEST(3, length((p_counter - 225000)::text)), '0');
 $$;
 
 -- 1. Highest job number actually in use — parsed from project_number text,
@@ -94,8 +100,7 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS advance_project_counter ON public.projects;
-CREATE TRIGGER advance_project_counter
+CREATE OR REPLACE TRIGGER advance_project_counter
   AFTER INSERT OR UPDATE OF project_number ON public.projects
   FOR EACH ROW EXECUTE FUNCTION public.advance_project_counter();
 

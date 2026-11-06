@@ -196,7 +196,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**395 sequential migrations** in `supabase/migrations/` (as of Nov 6, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**396 sequential migrations** in `supabase/migrations/` (as of Nov 6, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 

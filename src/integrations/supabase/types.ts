@@ -4595,6 +4595,7 @@ export type Database = {
         }
         Returns: Json
       }
+      format_project_number: { Args: { p_counter: number }; Returns: string }
       generate_estimate_number: {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
@@ -4615,7 +4616,6 @@ export type Database = {
         }
         Returns: string
       }
-      format_project_number: { Args: { p_counter: number }; Returns: string }
       generate_work_order_number: {
         Args: { project_id_param: string; project_number_param: string }
         Returns: string
@@ -4680,15 +4680,6 @@ export type Database = {
         }[]
       }
       get_next_project_number: { Args: never; Returns: string }
-      get_project_numbering_status: {
-        Args: never
-        Returns: {
-          counter: number
-          highest_in_use: string
-          highest_sequence: number
-          next_number: string
-        }[]
-      }
       get_payee_usage_counts: {
         Args: { p_source?: string }
         Returns: {
@@ -4757,6 +4748,15 @@ export type Database = {
           total_quoted: number
         }[]
       }
+      get_project_numbering_status: {
+        Args: never
+        Returns: {
+          counter: number
+          highest_in_use: string
+          highest_sequence: number
+          next_number: string
+        }[]
+      }
       get_project_revenue_total: {
         Args: { p_project_id: string }
         Returns: number
@@ -4815,7 +4815,6 @@ export type Database = {
         Args: { p_alias_id: string }
         Returns: undefined
       }
-      max_project_sequence: { Args: never; Returns: number }
       is_linked_payee: {
         Args: { _payee_id: string; _user_id: string }
         Returns: boolean
@@ -4832,6 +4831,7 @@ export type Database = {
         }
         Returns: string
       }
+      max_project_sequence: { Args: never; Returns: number }
       refresh_estimate_labor_cushion: {
         Args: { p_estimate_id: string }
         Returns: number
