@@ -4801,6 +4801,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_payee_alias_hit: {
+        Args: { p_alias_id: string }
+        Returns: undefined
+      }
       is_linked_payee: {
         Args: { _payee_id: string; _user_id: string }
         Returns: boolean

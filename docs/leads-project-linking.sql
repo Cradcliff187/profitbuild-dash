@@ -1,6 +1,7 @@
 -- ============================================================================
 -- Leads: source · stage · close reason · many-to-many job links
--- Applied to production (clsjdxwbsjbhjibvlqbz) via MCP apply_migration.
+-- Applied to production (clsjdxwbsjbhjibvlqbz) via MCP apply_migration on 2026-11-06 as
+-- migration 20261106225220_leads_source_stage_project_links.
 -- Local migration file is a PLACEHOLDER per CLAUDE.md "Critical Migration
 -- Rules"; this file is the readable copy of what was applied.
 --
