@@ -23,6 +23,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { usePagination } from "@/hooks/usePagination";
 import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
+import { parseDateOnly } from "@/utils/dateUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -170,8 +171,8 @@ const Projects = () => {
         project_id: estimate.project_id,
         estimate_number: estimate.estimate_number,
         revision_number: estimate.revision_number,
-        date_created: new Date(estimate.date_created),
-        valid_until: estimate.valid_until ? new Date(estimate.valid_until) : undefined,
+        date_created: parseDateOnly(estimate.date_created),
+        valid_until: estimate.valid_until ? parseDateOnly(estimate.valid_until) : undefined,
         status: estimate.status,
         total_amount: estimate.total_amount,
         total_cost: estimate.total_cost || 0,
@@ -203,8 +204,8 @@ const Projects = () => {
         payee_id: quote.payee_id,
         quoteNumber: quote.quote_number, // Map to correct property name
         total: quote.total_amount,
-        date_received: new Date(quote.date_received),
-        date_expires: quote.date_expires ? new Date(quote.date_expires) : undefined,
+        date_received: parseDateOnly(quote.date_received),
+        date_expires: quote.date_expires ? parseDateOnly(quote.date_expires) : undefined,
         status: quote.status,
         notes: quote.notes,
         attachment_url: quote.attachment_url,
@@ -214,7 +215,7 @@ const Projects = () => {
         projectName: formattedProjects.find(p => p.id === quote.project_id)?.project_name || '',
         client: formattedProjects.find(p => p.id === quote.project_id)?.client_name || '',
         quotedBy: 'Unknown', // Default value
-        dateReceived: new Date(quote.date_received),
+        dateReceived: parseDateOnly(quote.date_received),
         includes_materials: quote.includes_materials ?? true,
         includes_labor: quote.includes_labor ?? true,
         lineItems: [], // Empty array for line items

@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 interface ReceiptDownloadData {
   id: string;
@@ -94,7 +95,7 @@ export const downloadReceiptsAsZip = async (
         const blob = await response.blob();
         
         // Generate filename
-        const dateStr = format(new Date(receipt.expense_date), 'yyyy-MM-dd');
+        const dateStr = format(parseDateOnly(receipt.expense_date), 'yyyy-MM-dd');
         const sanitizedName = receipt.worker_name.replace(/[^a-zA-Z0-9]/g, '_');
         const extension = receipt.attachment_url.split('.').pop()?.split('?')[0] || 'jpg';
         const filename = `receipt_${sanitizedName}_${dateStr}.${extension}`;

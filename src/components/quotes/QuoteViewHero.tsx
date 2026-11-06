@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FileText, GitCompare, Pencil, TrendingDown, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/utils/dateUtils";
 import { cn, formatCurrency } from "@/lib/utils";
 import { QuoteStatusSelector } from "@/components/QuoteStatusSelector";
 import { QuoteStatus, type Quote } from "@/types/quote";
@@ -109,11 +110,11 @@ export function QuoteViewHero({
                 {quote.quotedBy}
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Received {format(new Date(quote.dateReceived), "MMM d, yyyy")}
+                Received {format(parseDateOnly(quote.dateReceived), "MMM d, yyyy")}
                 {quote.valid_until && (
                   <>
                     {" · Valid until "}
-                    {format(new Date(quote.valid_until), "MMM d, yyyy")}
+                    {format(parseDateOnly(quote.valid_until), "MMM d, yyyy")}
                   </>
                 )}
               </p>

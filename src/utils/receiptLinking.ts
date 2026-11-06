@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { parseDateOnly } from '@/utils/dateUtils';
 
 export interface ReceiptForLinking {
   id: string;
@@ -108,7 +109,7 @@ export function calculateMatchScore(
 
   // Date match (within 7 days)
   const receiptDate = new Date(receipt.captured_at);
-  const expenseDate = new Date(expense.expense_date);
+  const expenseDate = parseDateOnly(expense.expense_date);
   const daysDiff = Math.abs((receiptDate.getTime() - expenseDate.getTime()) / (1000 * 60 * 60 * 24));
   if (daysDiff <= 1) {
     score += 30;
