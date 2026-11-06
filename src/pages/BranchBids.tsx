@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FolderOpen, Plus, Download, FileText, Users, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package } from 'lucide-react';
+import { Plus, Download, FileText, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package, Inbox, Flag } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,25 +19,29 @@ import { ClientSelector } from '@/components/ClientSelector';
 import { BidExportModal } from '@/components/BidExportModal';
 import { BidFilters, BidSearchFilters } from '@/components/BidFilters';
 import { BidsTableView } from '@/components/BidsTableView';
+import { BID_COLUMN_DEFINITIONS, DEFAULT_BID_FILTERS } from '@/components/bids/leadListConfig';
+import { LeadSourceFields } from '@/components/bids/LeadSourceFields';
+import { useAuth } from '@/contexts/AuthContext';
+import type { LeadSource } from '@/types/bid';
+import { formatLeadStage } from '@/utils/leadLabels';
 import { BidBulkActions } from '@/components/BidBulkActions';
 import { ColumnSelector } from '@/components/ui/column-selector';
 import { usePagination } from '@/hooks/usePagination';
 import type { BranchBid } from '@/types/bid';
 
-// Define column metadata for selector
-const columnDefinitions = [
-  { key: "name", label: "Lead Name", required: true, sortable: true },
-  { key: "client_name", label: "Client", required: false, sortable: true },
-  { key: "created_at", label: "Created", required: false, sortable: true },
-  { key: "project", label: "Linked Project", required: false, sortable: false },
-  { key: "created_by", label: "Created By", required: false, sortable: true },
-  { key: "actions", label: "Actions", required: true },
-];
+// Column metadata lives in BidsTableView (single copy — Gotcha #50).
+const columnDefinitions = [...BID_COLUMN_DEFINITIONS];
+// v2: Stage + Source columns were added (Nov 2026). A saved v1 visibility list
+// can't tell "user hid it" from "never existed", so the key is bumped once.
+const VISIBLE_COLUMNS_KEY = "bids-visible-columns-v2";
+const COLUMN_ORDER_KEY = "bids-column-order-v2";
+const DEFAULT_VISIBLE_COLUMNS = ["name", "stage", "source", "client_name", "created_at", "project", "actions"];
 
 export default function BranchBids() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -50,19 +54,23 @@ export default function BranchBids() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [clientId, setClientId] = useState('');
+  const [address, setAddress] = useState('');
+  const [source, setSource] = useState<LeadSource | ''>('');
+  const [sourceDetail, setSourceDetail] = useState('');
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("bids-visible-columns");
+    const saved = localStorage.getItem(VISIBLE_COLUMNS_KEY);
     if (saved) {
       return JSON.parse(saved);
     }
-    return ["name", "client_name", "created_at", "project", "created_by", "actions"];
+    return DEFAULT_VISIBLE_COLUMNS;
   });
 
   // Column order state with localStorage persistence
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem("bids-column-order");
+    const saved = localStorage.getItem(COLUMN_ORDER_KEY);
     if (saved) {
       const savedOrder = JSON.parse(saved);
       const validOrder = savedOrder.filter((key: string) => columnDefinitions.some((col) => col.key === key));
@@ -74,20 +82,15 @@ export default function BranchBids() {
 
   // Save visibility to localStorage
   useEffect(() => {
-    localStorage.setItem("bids-visible-columns", JSON.stringify(visibleColumns));
+    localStorage.setItem(VISIBLE_COLUMNS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
   // Save column order to localStorage
   useEffect(() => {
-    localStorage.setItem("bids-column-order", JSON.stringify(columnOrder));
+    localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder));
   }, [columnOrder]);
 
-  const [filters, setFilters] = useState<BidSearchFilters>({
-    searchText: "",
-    clientName: [],
-    hasProject: null,
-    dateRange: { start: null, end: null },
-  });
+  const [filters, setFilters] = useState<BidSearchFilters>({ ...DEFAULT_BID_FILTERS });
 
   // Fetch all bids
   const { data: bids, isLoading } = useQuery({
@@ -98,10 +101,12 @@ export default function BranchBids() {
         .select(`
           *,
           clients:client_id (id, client_name, company_name),
-          projects:project_id (project_number, project_name, client_name)
+          projects:project_id (project_number, project_name, client_name),
+          branch_bid_projects (id, branch_bid_id, project_id, created_at, created_by, projects:project_id (id, project_number, project_name, client_name, status))
         `)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, 999);
 
       if (error) throw error;
       
@@ -113,15 +118,13 @@ export default function BranchBids() {
           .select('id, full_name, email')
           .in('id', userIds);
         
-        return data.map(bid => ({
-          ...bid as any,
+        return (data as unknown as BranchBid[]).map(bid => ({
+          ...bid,
           profiles: profiles?.find(p => p.id === bid.created_by),
-        })) as BranchBid[];
+        }));
       }
-      
-      return (data || []).map(bid => ({
-        ...bid as any,
-      })) as BranchBid[];
+
+      return (data || []) as unknown as BranchBid[];
     },
   });
 
@@ -140,18 +143,21 @@ export default function BranchBids() {
     },
   });
 
-  // Create mutation
+  // Create mutation — a lead, never a project (Rule 42).
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
+      if (!source) throw new Error('Pick how the lead came in');
 
       const { data, error } = await supabase
         .from('branch_bids')
         .insert({
-          name,
-          description: description || null,
+          name: name.trim(),
+          description: description.trim() || null,
           client_id: clientId || null,
+          address: address.trim() || null,
+          source,
+          source_detail: sourceDetail.trim() || null,
           created_by: user.id,
         })
         .select('*')
@@ -169,19 +175,27 @@ export default function BranchBids() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
-      toast.success('Lead created successfully');
+      toast.success('Lead created');
       setShowCreateDialog(false);
-      setName('');
-      setDescription('');
-      setClientId('');
+      resetCreateForm();
       navigate(`/leads/${data.id}`);
     },
     onError: (error: Error) => {
-      toast.error('Failed to create bid', {
+      toast.error('Could not create the lead', {
         description: error.message,
       });
     },
   });
+
+  const resetCreateForm = () => {
+    setName('');
+    setDescription('');
+    setClientId('');
+    setAddress('');
+    setSource('');
+    setSourceDetail('');
+    setSourceError(null);
+  };
 
   // Delete mutation (soft delete)
   const deleteMutation = useMutation({
@@ -195,33 +209,26 @@ export default function BranchBids() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
-      toast.success('Lead deleted successfully');
+      toast.success('Lead deleted');
     },
     onError: (error: Error) => {
-      toast.error('Failed to delete bid', {
+      toast.error('Could not delete the lead', {
         description: error.message,
       });
     },
   });
 
-  // Calculate statistics
+  // Pipeline at a glance — stage counts, not vanity totals.
   const statistics = useMemo(() => {
+    const all = bids ?? [];
+    const open = all.filter((b) => b.stage !== 'closed');
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const totalBids = bids?.length || 0;
-    const pendingBids = bids?.filter(bid => !bid.project_id).length || 0;
-    const withClients = bids?.filter(bid => bid.client_id).length || 0;
-    const thisMonth = bids?.filter(bid => {
-      const createdAt = new Date(bid.created_at);
-      return createdAt >= monthStart;
-    }).length || 0;
-
     return {
-      totalBids,
-      pendingBids,
-      withClients,
-      thisMonth,
+      open: open.length,
+      needsFirstTouch: open.filter((b) => b.stage === 'new').length,
+      estimateRequested: open.filter((b) => b.stage === 'estimate_requested').length,
+      closedThisMonth: all.filter((b) => b.stage === 'closed' && b.closed_at && new Date(b.closed_at) >= monthStart).length,
     };
   }, [bids]);
 
@@ -241,6 +248,14 @@ export default function BranchBids() {
         if (!matchesSearch) return false;
       }
 
+      // Open / closed (closed hidden by default)
+      if (filters.openState === 'open' && bid.stage === 'closed') return false;
+      if (filters.openState === 'closed' && bid.stage !== 'closed') return false;
+
+      // Stage / source facets
+      if (filters.stage.length > 0 && !filters.stage.includes(bid.stage)) return false;
+      if (filters.source.length > 0 && !filters.source.includes(bid.source)) return false;
+
       // Client name filter
       if (filters.clientName.length > 0 && bid.clients) {
         if (!filters.clientName.includes(bid.clients.client_name)) {
@@ -248,10 +263,11 @@ export default function BranchBids() {
         }
       }
 
-      // Has project filter
+      // Has job filter (any link counts)
       if (filters.hasProject !== null) {
-        if (filters.hasProject && !bid.project_id) return false;
-        if (!filters.hasProject && bid.project_id) return false;
+        const linked = !!bid.project_id || (bid.branch_bid_projects?.length ?? 0) > 0;
+        if (filters.hasProject && !linked) return false;
+        if (!filters.hasProject && linked) return false;
       }
 
       // Date range filter
@@ -270,12 +286,20 @@ export default function BranchBids() {
     if (!sortColumn) return filteredBids;
 
     return [...filteredBids].sort((a, b) => {
-      let aVal: any, bVal: any;
+      let aVal: string | number, bVal: string | number;
 
       switch (sortColumn) {
         case 'name':
           aVal = a.name;
           bVal = b.name;
+          break;
+        case 'stage':
+          aVal = formatLeadStage(a.stage);
+          bVal = formatLeadStage(b.stage);
+          break;
+        case 'source':
+          aVal = a.source;
+          bVal = b.source;
           break;
         case 'client_name':
           aVal = a.clients?.client_name || '';
@@ -361,21 +385,26 @@ export default function BranchBids() {
 
       if (error) throw error;
 
-      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'bid' : 'bids'} deleted successfully`);
+      toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'lead' : 'leads'} deleted`);
       setSelectedIds([]);
       setBulkDeleteDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['branch-bids'] });
-    } catch (error: any) {
-      console.error('Error deleting bids:', error);
-      toast.error(error.message || "Failed to delete bids");
+    } catch (error) {
+      console.error('Error deleting leads:', error);
+      toast.error(error instanceof Error ? error.message : "Could not delete the leads");
     }
   };
 
   const handleCreateBid = () => {
     if (!name.trim()) {
-      toast.error('Please enter a name for the bid');
+      toast.error('Give the lead a name');
       return;
     }
+    if (!source) {
+      setSourceError('Required — pick how this lead came in');
+      return;
+    }
+    setSourceError(null);
     createMutation.mutate();
   };
 
@@ -388,37 +417,40 @@ export default function BranchBids() {
       <PageHeader
         icon={Package}
         title="Leads"
-        description="Track and manage project leads"
+        description="Who we're talking to, before a job exists"
         actions={
           <>
-            <Button 
-              onClick={() => setShowExportModal(true)} 
-              variant="ghost" 
+            <Button
+              onClick={() => setShowExportModal(true)}
+              variant="ghost"
               size="sm"
               disabled={!bids || bids.length === 0}
-              className="hidden sm:flex"
             >
               <Download className="h-3 w-3 mr-1" />
               Export
             </Button>
-            <Button onClick={() => setShowCreateDialog(true)} size="sm" className="hidden sm:flex">
+            <Button onClick={() => setShowCreateDialog(true)} size="sm">
               <Plus className="h-3 w-3 mr-1" />
               New Lead
             </Button>
           </>
         }
+        // Rule 23: secondary actions in the mobile kebab; New Lead stays on the FAB.
+        mobileActions={[
+          { label: 'Export CSV', icon: Download, onClick: () => setShowExportModal(true), disabled: !bids || bids.length === 0 },
+        ]}
       />
 
       <div className="space-y-2">
-        {/* Statistics Cards */}
+        {/* Pipeline at a glance */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-primary" />
+                <Inbox className="h-4 w-4 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Leads</p>
-                  <p className="text-xl font-bold">{statistics.totalBids}</p>
+                  <p className="text-xs text-muted-foreground">Open leads</p>
+                  <p className="text-xl font-bold">{statistics.open}</p>
                 </div>
               </div>
             </CardContent>
@@ -426,12 +458,12 @@ export default function BranchBids() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <ExternalLink className="h-4 w-4 text-warning" />
+                <Flag className="h-4 w-4 text-warning" />
                 <div>
-                  <p className="text-xs text-muted-foreground" title="Leads not yet converted to a project">
-                    Unconverted
+                  <p className="text-xs text-muted-foreground" title="Still at New — nobody has talked to them yet">
+                    Needs first touch
                   </p>
-                  <p className="text-xl font-bold">{statistics.pendingBids}</p>
+                  <p className="text-xl font-bold">{statistics.needsFirstTouch}</p>
                 </div>
               </div>
             </CardContent>
@@ -439,10 +471,10 @@ export default function BranchBids() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <Users className="h-4 w-4 text-info" />
+                <FileText className="h-4 w-4 text-info" />
                 <div>
-                  <p className="text-xs text-muted-foreground">With Clients</p>
-                  <p className="text-xl font-bold">{statistics.withClients}</p>
+                  <p className="text-xs text-muted-foreground">Estimate requested</p>
+                  <p className="text-xl font-bold">{statistics.estimateRequested}</p>
                 </div>
               </div>
             </CardContent>
@@ -450,10 +482,10 @@ export default function BranchBids() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-success" />
+                <ExternalLink className="h-4 w-4 text-success" />
                 <div>
-                  <p className="text-xs text-muted-foreground">This Month</p>
-                  <p className="text-xl font-bold">{statistics.thisMonth}</p>
+                  <p className="text-xs text-muted-foreground">Closed this month</p>
+                  <p className="text-xl font-bold">{statistics.closedThisMonth}</p>
                 </div>
               </div>
             </CardContent>
@@ -472,7 +504,7 @@ export default function BranchBids() {
         {!isMobile && (
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              {sortedBids.length} {sortedBids.length === 1 ? 'bid' : 'bids'}
+              {sortedBids.length} {sortedBids.length === 1 ? 'lead' : 'leads'}
             </div>
             <div className="flex items-center gap-2">
               <ColumnSelector 
@@ -533,50 +565,68 @@ export default function BranchBids() {
         </Button>
       )}
 
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+      {/* Create Dialog — makes a LEAD. Never a project, never a project number. */}
+      <Dialog open={showCreateDialog} onOpenChange={(o) => { setShowCreateDialog(o); if (!o) resetCreateForm(); }}>
+        <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create New Lead</DialogTitle>
+            <DialogTitle>New lead</DialogTitle>
             <DialogDescription>
-              Start gathering information for a new project estimate
+              Someone we're talking to. When it becomes a job, link the job from the lead page.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 space-y-4 overflow-y-auto py-2">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
-                placeholder="e.g., Smith Residence Renovation"
+                placeholder="e.g. Body Alive — studio buildouts"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
+            <LeadSourceFields
+              idPrefix="lead-new"
+              required
+              source={source}
+              sourceDetail={sourceDetail}
+              onSourceChange={(s) => { setSource(s); setSourceError(null); }}
+              onSourceDetailChange={setSourceDetail}
+              error={sourceError}
+            />
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Add any notes or details about this bid..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="client">Client (Optional)</Label>
+              <Label htmlFor="client">Client (optional)</Label>
               <ClientSelector
                 value={clientId}
                 onValueChange={setClientId}
                 placeholder="Select a client..."
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead-new-address">Address</Label>
+              <Input
+                id="lead-new-address"
+                placeholder="e.g. 123 Main St, Cincinnati, OH 45202"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Scope in a line or two, who decides, timing…"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Cancel
             </Button>
             <Button onClick={handleCreateBid} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Creating...' : 'Create Lead'}
+              {createMutation.isPending ? 'Creating...' : 'Create lead'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -588,7 +638,7 @@ export default function BranchBids() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {selectedIds.length} {selectedIds.length === 1 ? 'Lead' : 'Leads'}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedIds.length} selected {selectedIds.length === 1 ? 'bid' : 'bids'}? This action cannot be undone.
+              Are you sure you want to delete {selectedIds.length} selected {selectedIds.length === 1 ? 'lead' : 'leads'}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

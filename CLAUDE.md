@@ -196,7 +196,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**394 sequential migrations** in `supabase/migrations/` (as of Oct 27, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**395 sequential migrations** in `supabase/migrations/` (as of Nov 6, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -1796,6 +1796,73 @@ modal.
 modal's `filterPayeeTypes` to match; don't make Save wait on `receiptScan.status`; don't put image decoding in
 the function. No benchmark was run before shipping (no CLI/OpenAI credentials in the build session) — the flag
 is Tom-only precisely so production receipts are the benchmark; read `ocr_data` before flipping it globally.
+
+---
+
+### 42. Leads never take a project number — they LINK to jobs (Nov 6 2026)
+
+**The rule (Chris, control-tower addendum 2026-11-05):** a lead (`branch_bids` row) never gets a
+project number. Numbers are minted only the way they are today — when Matt creates the job
+folder and the tracker sync pushes the row into `projects`. A lead is **linked** to one or more
+existing jobs. Estimates with no lead keep working exactly as before (nothing links estimates to
+leads today; `branch_bids.estimate_id` is a dormant column with zero rows set — leave it).
+
+**What shipped:**
+- **`branch_bid_projects`** — the link table (`branch_bid_id`, `project_id`, `created_at`,
+  `created_by`; UNIQUE pair; both FKs `ON DELETE CASCADE`; RLS identical to `branch_bids` =
+  admin/manager on all four commands). One lead ↔ many jobs (Body Alive → 225-193 **and** 225-194).
+- **`branch_bids.project_id` is a MIRROR of the earliest link**, maintained by the
+  `sync_branch_bid_primary_project` AFTER INSERT/DELETE trigger on the link table. Unlinking the
+  first job promotes the next; unlinking the last clears it. Never write `project_id` from app code.
+- **`branch_bids.source`** (NOT NULL, default `unknown`; CHECK over the 11 values in
+  [`LEAD_SOURCES`](src/types/bid.ts)) + **`source_detail`** (free text). Required in the New Lead
+  dialog; a column + facet on the list; plain words everywhere via
+  [`formatLeadSource`](src/utils/leadLabels.ts) ("Website form", never `website_form`).
+- **`branch_bids.stage`** (NOT NULL, default `new`; `new → talking → site_walk →
+  estimate_requested → closed`) + **`closed_reason`** / **`closed_at`** / **`closed_by`**. The DB CHECK
+  `(stage = 'closed') = (closed_reason IS NOT NULL)` is the invariant; `buildStageUpdate()` mirrors
+  it client-side and [`LeadStageControl`](src/components/bids/LeadStageControl.tsx) forces a reason
+  dialog on close. **Closed leads are hidden from the list by default** (`openState: 'open'` is the
+  resting filter — the bar shows no chip for it; `closed` / `all` show one).
+- **"Link to job" replaces "Convert to Project"** on the lead page.
+  [`LinkProjectDialog`](src/components/bids/LinkProjectDialog.tsx) searches EXISTING projects by
+  number/name (candidates filtered by `isProjectVisibleByCategory` — construction + work orders only)
+  and links one or more via [`useLeadProjectLinks`](src/hooks/useLeadProjectLinks.ts). There is no
+  create path in the dialog and none anywhere in the Leads area.
+- **`generateProjectNumber()` THROWS on error** — the "225-<last 3 digits of the clock>" fallback and
+  the dead `generateProjectNumberSync` are deleted. Callers: `ProjectFormSimple` (`/projects/new`)
+  and `QuickWorkOrderForm`; both already catch + toast and create nothing. `get_next_project_number`
+  is called from nowhere else in `src/`, `supabase/functions/`, or `scripts/`.
+- **Lead detail page** is now hero + edit sheet, not disabled inputs:
+  [`LeadHero`](src/components/bids/LeadHero.tsx) (stage pill · source · client · type · address via
+  `ProjectAddressLocator` · linked-job chips with unlink) + [`LeadEditSheet`](src/components/bids/LeadEditSheet.tsx)
+  (form state seeded on open, NOT inside the query fn — the old page re-seeded on every focus refetch
+  and wiped half-typed edits). `PageHeader` uses `mobileActions` (Rule 23) on both Leads pages; the
+  list's Export was unreachable on mobile before.
+- Leads list: Stage + Source columns (storage keys bumped to `bids-visible-columns-v2` /
+  `bids-column-order-v2` so existing users see them), "Linked Jobs" shows every link, pipeline stat
+  cards (Open · Needs first touch · Estimate requested · Closed this month), CSV export carries
+  Stage / Closed Reason / Source / Source Detail / all linked jobs. Column metadata + filter defaults
+  live once in [`leadListConfig.ts`](src/components/bids/leadListConfig.ts).
+- All five `auth.getUser()` calls in the Leads area now read `useAuth()` (Gotcha #63).
+
+**Migration:** readable SQL in [docs/leads-project-linking.sql](docs/leads-project-linking.sql)
+(applied via MCP `apply_migration`; the file under `supabase/migrations/` is the usual placeholder).
+Additive only, every statement idempotent. Backfill: Body Alive → `website_form` /
+`estimate_requested` / links 225-193 + 225-194; Ant Fitness inserted closed (`we_passed`, 10/22, fixed
+id `7c1f3b2e-…`); The Cathedral (converted to 225-120 in May, job complete) closed as
+`linked_to_job`; everything else keeps the defaults. The two test leads were already soft-deleted.
+
+**Known hazard, deliberately NOT touched here (needs Chris):** `system_settings.project_counter`
+reads `225175` while projects exist through 225-205 — the tracker sync inserts explicit numbers and
+never bumps the counter. The next in-app New Project / Quick Work Order will get `225-176` from the
+RPC, collide on `projects_project_number_key`, and burn one counter value per attempt. Resync the
+counter (one UPDATE) or hide in-app project creation before anyone uses those forms.
+
+**Common pitfalls:** don't add a Convert/Create button back anywhere under `/leads`; don't write
+`branch_bids.project_id` directly (the trigger owns it); don't put a `token`-style enum in the DB for
+source/stage (they're text + CHECK so a new value is one ALTER); don't surface closed leads by
+default; don't call `auth.getUser()` on a Leads save path.
 
 ---
 

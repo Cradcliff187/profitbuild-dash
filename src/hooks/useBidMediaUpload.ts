@@ -4,6 +4,7 @@ import type { BidMedia, UploadBidMediaParams } from '@/types/bid';
 import { toast } from 'sonner';
 import { compressImage } from '@/utils/imageCompression';
 import { validateMediaFile, generateStoragePath } from '@/utils/mediaMetadata';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseBidMediaUploadResult {
   upload: (params: UploadBidMediaParams) => Promise<BidMedia | null>;
@@ -16,6 +17,7 @@ interface UseBidMediaUploadResult {
  * Hook for uploading bid media with progress tracking, validation, and error rollback
  */
 export function useBidMediaUpload(): UseBidMediaUploadResult {
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
@@ -26,8 +28,7 @@ export function useBidMediaUpload(): UseBidMediaUploadResult {
     setError(null);
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Current user from AuthContext — no auth round-trip on the upload path (Gotcha #63)
       if (!user) throw new Error('No user found');
 
       let fileToUpload = params.file;

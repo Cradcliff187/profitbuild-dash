@@ -1,16 +1,16 @@
 import React from "react";
 import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
 import type { FilterFieldDef, FilterValues } from "@/components/filters/filterTypes";
+import {
+  LEAD_SOURCES,
+  LEAD_SOURCE_LABELS,
+  LEAD_STAGES,
+  LEAD_STAGE_LABELS,
+} from "@/types/bid";
 
-export interface BidSearchFilters {
-  searchText: string;
-  clientName: string[];
-  hasProject: boolean | null; // null = all, true = linked to project, false = no project
-  dateRange: {
-    start: Date | null;
-    end: Date | null;
-  };
-}
+import { DEFAULT_BID_FILTERS, type BidSearchFilters } from "@/components/bids/leadListConfig";
+
+export type { BidSearchFilters, LeadOpenFilter } from "@/components/bids/leadListConfig";
 
 interface BidFiltersProps {
   filters: BidSearchFilters;
@@ -45,19 +45,44 @@ export const BidFilters = ({
     },
     {
       kind: "select",
+      key: "openState",
+      label: "Open / closed",
+      allLabel: "Open leads",
+      options: [
+        { value: "closed", label: "Closed leads" },
+        { value: "all", label: "Open + closed" },
+      ],
+    },
+    {
+      kind: "multiSelect",
+      key: "stage",
+      label: "Stage",
+      options: LEAD_STAGES.map((s) => ({ value: s, label: LEAD_STAGE_LABELS[s] })),
+    },
+    {
+      kind: "multiSelect",
+      key: "source",
+      label: "Source",
+      options: LEAD_SOURCES.map((s) => ({ value: s, label: LEAD_SOURCE_LABELS[s] })),
+    },
+    {
+      kind: "select",
       key: "hasProject",
-      label: "Project Link",
+      label: "Job link",
       allLabel: "All",
       options: [
-        { value: "true", label: "Linked to Project" },
-        { value: "false", label: "No Project" },
+        { value: "true", label: "Linked to a job" },
+        { value: "false", label: "No job yet" },
       ],
     },
     { kind: "dateRange", key: "dateRange", label: "Date" },
   ];
 
+  // The bar treats null as "unset / All". Our resting state is "open", so map
+  // open → null (no chip) and closed/all → the explicit value (chip shown).
   const valuesForBar: FilterValues = {
     ...filters,
+    openState: filters.openState === "open" ? null : filters.openState,
     hasProject: filters.hasProject === null ? null : String(filters.hasProject),
   };
 
@@ -69,16 +94,15 @@ export const BidFilters = ({
           ? null
           : next.hasProject === "true";
     }
+    if ("openState" in next) {
+      next.openState =
+        next.openState === "closed" || next.openState === "all" ? next.openState : "open";
+    }
     onFiltersChange({ ...filters, ...next } as BidSearchFilters);
   };
 
   const handleClearAll = () => {
-    onFiltersChange({
-      searchText: "",
-      clientName: [],
-      hasProject: null,
-      dateRange: { start: null, end: null },
-    });
+    onFiltersChange({ ...DEFAULT_BID_FILTERS });
   };
 
   return (

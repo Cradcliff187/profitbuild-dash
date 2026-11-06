@@ -66,6 +66,16 @@ procurement table): `procurement_status` (`not_ordered`/`ordered`/`in_production
 **`GENERATED ALWAYS`** column (`labor_hours × (billing_rate − actual_cost_rate)` for
 `labor_internal` lines). Set the three inputs; never write `labor_cushion_amount`.
 
+### Leads: source · stage · job links (CLAUDE.md Rule 42)
+On **`branch_bids`**: `source` (TEXT NOT NULL default `unknown`, CHECK over 11 values), `source_detail`
+(TEXT), `stage` (TEXT NOT NULL default `new`; `new`/`talking`/`site_walk`/`estimate_requested`/`closed`),
+`closed_reason` (CHECK; `(stage='closed') = (closed_reason IS NOT NULL)`), `closed_at`, `closed_by`.
+- **`branch_bid_projects`** — lead ↔ job link table (`branch_bid_id`, `project_id`, `created_at`,
+  `created_by`; UNIQUE pair; CASCADE both ways; RLS = admin/manager). A lead links MANY jobs.
+- `branch_bids.project_id` is a **trigger-maintained mirror of the earliest link**
+  (`sync_branch_bid_primary_project`) — never write it from the frontend.
+- A lead **never** receives a project number; nothing in the Leads area inserts into `projects`.
+
 ### Invoices (CLAUDE.md Rule 25)
 - **`invoices`** — generated client invoices (mirrors `contracts` shape: `internal_reference` UNIQUE, `version`, `status`, `field_values` jsonb, `docx_url`, `pdf_url`).
 - **`invoice_revenues`** — junction to `project_revenues` (Phase-2-ready aggregation; one row per revenue in Phase 1).

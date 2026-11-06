@@ -57,11 +57,12 @@ Estimating → Approved → In Progress → Complete
 - **Quote Acceptance**: Accept quotes that update project cost projections
 - **Quote-to-Estimate Linking**: Connect vendor quotes to estimate line items
 
-### Bid Management
+### Leads (table `branch_bids`)
 
-- **Branch Bids**: Capture incoming bid requests
-- **Client Association**: Link bids to existing or new clients
-- **Bid-to-Project Conversion**: Convert accepted bids into active projects
+- **Leads**: Who we're talking to before a job exists — name, client, address, notes, photos, docs
+- **Source**: How every lead came in (website form, email, phone call, referral, outreach, repeat client, bid board, social, walk-in, other, unknown) plus a free-text detail; required on creation
+- **Stage**: New → Talking → Site walk → Estimate requested → Closed (closing requires a reason: linked to a job, we passed, not a fit, went cold, lost before estimate); closed leads are hidden from the list by default
+- **Link to job**: A lead never takes a project number. When the job exists in RCG Work it is linked (one lead can link several jobs). "Convert to Project" was removed Nov 2026 — see CLAUDE.md Rule 42
 
 ### Change Order Management
 

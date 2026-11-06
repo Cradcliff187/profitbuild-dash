@@ -29,6 +29,20 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CompletePagination } from "@/components/ui/complete-pagination";
 import type { BranchBid } from "@/types/bid";
+import { formatLeadSource, formatLeadStage, leadStageBadgeClass } from "@/utils/leadLabels";
+import { BID_COLUMN_DEFINITIONS } from "@/components/bids/leadListConfig";
+
+/** Every job linked to a lead, falling back to the legacy single project_id mirror. */
+const linkedJobs = (bid: BranchBid) => {
+  const links = (bid.branch_bid_projects ?? [])
+    .filter((l) => l.projects)
+    .map((l) => ({ id: l.project_id, number: l.projects!.project_number, name: l.projects!.project_name }));
+  if (links.length > 0) return links;
+  if (bid.project_id && bid.projects) {
+    return [{ id: bid.project_id, number: bid.projects.project_number, name: bid.projects.project_name }];
+  }
+  return [];
+};
 
 interface BidsTableViewProps {
   bids: BranchBid[];
@@ -78,23 +92,18 @@ export const BidsTableView = ({
     bid: null
   });
 
-  const columnDefinitions = [
-    { key: "name", label: "Lead Name", required: true, sortable: true },
-    { key: "client_name", label: "Client", required: false, sortable: true },
-    { key: "created_at", label: "Created", required: false, sortable: true },
-    { key: "project", label: "Linked Project", required: false, sortable: false },
-    { key: "created_by", label: "Created By", required: false, sortable: true },
-    { key: "actions", label: "Actions", required: true },
-  ];
+  const columnDefinitions = BID_COLUMN_DEFINITIONS;
 
   // min-w-[...] lets the browser distribute remaining space instead of forcing
   // horizontal scroll at tablet widths. Pairs with `truncate` on name/client
   // cells (below) so long strings ellipsize.
   const widths: Record<string, string> = {
     name: "min-w-[200px]",
+    stage: "min-w-[130px]",
+    source: "min-w-[120px]",
     client_name: "min-w-[160px]",
     created_at: "min-w-[110px]",
-    project: "min-w-[120px]",
+    project: "min-w-[140px]",
     created_by: "min-w-[130px]",
     actions: "w-12",
   };
@@ -104,14 +113,9 @@ export const BidsTableView = ({
     actions: "text-right",
   };
   
-  const labels: Record<string, string> = {
-    name: "Lead Name",
-    client_name: "Client",
-    created_at: "Created",
-    project: "Linked Project",
-    created_by: "Created By",
-    actions: "Actions",
-  };
+  const labels: Record<string, string> = Object.fromEntries(
+    BID_COLUMN_DEFINITIONS.map((c) => [c.key, c.label])
+  );
 
   const handleViewDetails = (bid: BranchBid) => {
     navigate(`/leads/${bid.id}`);
@@ -164,7 +168,7 @@ export const BidsTableView = ({
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="flex items-center justify-center py-12">
-            <div className="text-xs text-muted-foreground">Loading bids...</div>
+            <div className="text-xs text-muted-foreground">Loading leads...</div>
           </div>
         </CardContent>
       </Card>
@@ -176,9 +180,9 @@ export const BidsTableView = ({
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="text-center py-12">
-            <p className="text-xs text-muted-foreground mb-2">No bids found</p>
+            <p className="text-xs text-muted-foreground mb-2">No leads match</p>
             <p className="text-xs text-muted-foreground">
-              Create your first bid to get started
+              Closed leads are hidden by default — switch the Open / closed filter to see them.
             </p>
           </div>
         </CardContent>
@@ -191,26 +195,27 @@ export const BidsTableView = ({
     return (
       <>
         <div className="space-y-2">
-          {bids.map((bid) => (
+          {bids.map((bid) => {
+            const jobs = linkedJobs(bid);
+            return (
             <MobileListCard
               key={bid.id}
               title={bid.name}
               subtitle={(bid as BranchBid & { client_name?: string }).client_name || bid.clients?.client_name || 'No client'}
-              badge={bid.project_id ? {
-                label: 'LINKED',
-                // Uses semantic --success token (via Tailwind alpha) so the
-                // badge follows the design system + dark-mode automatically
-                // instead of hard-coded green-100/green-700/green-900.
-                className: 'bg-success/15 text-success border border-success/30',
-              } : undefined}
+              badge={{
+                label: formatLeadStage(bid.stage).toUpperCase(),
+                // Semantic tokens (dark-mode safe) — same map the detail pill uses.
+                className: cn('border', leadStageBadgeClass(bid.stage)),
+              }}
+              secondaryBadge={{ label: formatLeadSource(bid.source), className: '' }}
               metrics={[
                 {
                   label: 'Created',
                   value: format(new Date(bid.created_at), 'MMM dd, yyyy'),
                 },
                 {
-                  label: 'Project',
-                  value: bid.projects?.project_number || '—',
+                  label: jobs.length > 1 ? 'Jobs' : 'Job',
+                  value: jobs.length === 0 ? '—' : jobs.map((j) => j.number).join(', '),
                 },
               ]}
               onTap={() => handleViewDetails(bid)}
@@ -231,7 +236,8 @@ export const BidsTableView = ({
                 },
               ]}
             />
-          ))}
+            );
+          })}
         </div>
 
         {paginationFooter && (
@@ -337,6 +343,30 @@ export const BidsTableView = ({
                               </div>
                             </TableCell>
                           );
+                        case "stage":
+                          return (
+                            <TableCell key={colKey} className="p-1.5">
+                              <Badge
+                                variant="outline"
+                                className={cn("h-5 border px-1.5 text-[10px] font-medium", leadStageBadgeClass(bid.stage))}
+                              >
+                                {formatLeadStage(bid.stage)}
+                              </Badge>
+                            </TableCell>
+                          );
+                        case "source":
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              <div className="min-w-0">
+                                <div className="truncate">{formatLeadSource(bid.source)}</div>
+                                {bid.source_detail && (
+                                  <div className="truncate text-[11px] text-muted-foreground" title={bid.source_detail}>
+                                    {bid.source_detail}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          );
                         case "client_name":
                           return (
                             <TableCell key={colKey} className="p-1.5 text-xs">
@@ -358,19 +388,30 @@ export const BidsTableView = ({
                               {format(new Date(bid.created_at), 'MMM d, yyyy')}
                             </TableCell>
                           );
-                        case "project":
+                        case "project": {
+                          const jobs = linkedJobs(bid);
                           return (
                             <TableCell key={colKey} className="p-1.5">
-                              {bid.projects ? (
-                                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                                  <ExternalLink className="h-2.5 w-2.5 mr-1" />
-                                  {bid.projects.project_number}
-                                </Badge>
+                              {jobs.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {jobs.map((j) => (
+                                    <Badge
+                                      key={j.id}
+                                      variant="secondary"
+                                      className="h-4 px-1.5 text-[10px]"
+                                      title={`${j.number} ${j.name}`}
+                                    >
+                                      <ExternalLink className="mr-1 h-2.5 w-2.5" />
+                                      {j.number}
+                                    </Badge>
+                                  ))}
+                                </div>
                               ) : (
                                 <span className="text-xs text-muted-foreground">—</span>
                               )}
                             </TableCell>
                           );
+                        }
                         case "created_by":
                           return (
                             <TableCell key={colKey} className="p-1.5 text-xs">
