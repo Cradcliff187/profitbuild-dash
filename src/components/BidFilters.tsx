@@ -8,7 +8,7 @@ import {
   LEAD_STAGE_LABELS,
 } from "@/types/bid";
 
-import { DEFAULT_BID_FILTERS, type BidSearchFilters } from "@/components/bids/leadListConfig";
+import { DEFAULT_BID_FILTERS, LEAD_ATTENTION_FILTER_OPTIONS, type BidSearchFilters } from "@/components/bids/leadListConfig";
 
 export type { BidSearchFilters, LeadOpenFilter } from "@/components/bids/leadListConfig";
 
@@ -19,6 +19,7 @@ interface BidFiltersProps {
   leftActions?: React.ReactNode;
   actions?: React.ReactNode;
   clients: Array<{ id: string; client_name: string; }>;
+  owners?: Array<{ user_id: string; display_name: string }>;
 }
 
 export const BidFilters = ({
@@ -27,7 +28,8 @@ export const BidFilters = ({
   resultCount,
   leftActions,
   actions,
-  clients
+  clients,
+  owners = [],
 }: BidFiltersProps) => {
   const fields: FilterFieldDef[] = [
     {
@@ -55,9 +57,21 @@ export const BidFilters = ({
     },
     {
       kind: "multiSelect",
+      key: "attention",
+      label: "Needs",
+      options: LEAD_ATTENTION_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+    },
+    {
+      kind: "multiSelect",
       key: "stage",
       label: "Stage",
       options: LEAD_STAGES.map((s) => ({ value: s, label: LEAD_STAGE_LABELS[s] })),
+    },
+    {
+      kind: "multiSelect",
+      key: "owner",
+      label: "Owner",
+      options: owners.map((o) => ({ value: o.user_id, label: o.display_name })),
     },
     {
       kind: "multiSelect",

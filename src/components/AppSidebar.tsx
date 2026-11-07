@@ -21,7 +21,6 @@ import {
   Clock,
   Calculator,
   FileText,
-  Package,
   Wrench,
   ClipboardCheck,
   Receipt,
@@ -40,6 +39,7 @@ import {
   AtSign,
   CalendarRange,
   Sun,
+  Handshake,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/contexts/RoleContext";
@@ -166,7 +166,15 @@ export function AppSidebar() {
       items: [
         { title: "Estimates", url: "/estimates", icon: Calculator, show: hasFinancialAccess },
         { title: "Quotes", url: "/quotes", icon: FileText, show: hasFinancialAccess },
-        { title: "Leads", url: "/leads", icon: Package, show: isAdmin || isManager },
+      ],
+    },
+    {
+      // A lead is a conversation; an estimate is a number (sales design
+      // vocabulary). Leads used to sit under ESTIMATING with a box icon.
+      label: "SALES",
+      abbrev: "S",
+      items: [
+        { title: "Leads", url: "/leads", icon: Handshake, show: isAdmin || isManager },
       ],
     },
     {

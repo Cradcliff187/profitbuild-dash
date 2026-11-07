@@ -17,6 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { HubRow } from "@/components/ui/hub-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectContext } from "@/components/ProjectDetailView";
@@ -134,52 +135,6 @@ const SUB_PAGES: {
 /** `?tab=tasks` was the pre-hub default. Tasks now live on the schedule sub-page. */
 const LEGACY_TAB_ALIASES: Record<string, SubPage> = { tasks: "schedule" };
 
-/**
- * One drill-down row — the hub's single row shape, shared by the field
- * ("On this job") and admin ("Manage") sections so the two lists can never
- * drift visually. Count is context on the row, not a nav badge; hidden at 0.
- */
-function HubRow({
-  icon: Icon,
-  label,
-  blurb,
-  count,
-  withDivider,
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  blurb: string;
-  count?: number;
-  withDivider: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left",
-        "hover:bg-accent/50 active:bg-accent transition-colors",
-        withDivider && "border-t border-border",
-      )}
-    >
-      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-base font-medium truncate">{label}</div>
-        <div className="text-xs text-muted-foreground truncate">{blurb}</div>
-      </div>
-      {count !== undefined && count > 0 && (
-        <span className="text-sm font-semibold text-muted-foreground tabular-nums shrink-0">
-          {count}
-        </span>
-      )}
-      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-    </button>
-  );
-}
 
 interface MobileScheduleViewProps {
   projectId: string;

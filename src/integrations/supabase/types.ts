@@ -309,6 +309,7 @@ export type Database = {
           closed_at: string | null
           closed_by: string | null
           closed_reason: string | null
+          contact_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -316,9 +317,14 @@ export type Database = {
           estimate_id: string | null
           id: string
           job_type: string | null
+          last_contact_at: string | null
           name: string
+          next_step: string | null
+          next_step_due: string | null
+          owner_user_id: string | null
           project_id: string | null
           project_type: string | null
+          size_band: string | null
           source: string
           source_detail: string | null
           stage: string
@@ -330,6 +336,7 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           closed_reason?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -337,9 +344,14 @@ export type Database = {
           estimate_id?: string | null
           id?: string
           job_type?: string | null
+          last_contact_at?: string | null
           name: string
+          next_step?: string | null
+          next_step_due?: string | null
+          owner_user_id?: string | null
           project_id?: string | null
           project_type?: string | null
+          size_band?: string | null
           source?: string
           source_detail?: string | null
           stage?: string
@@ -351,6 +363,7 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           closed_reason?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -358,9 +371,14 @@ export type Database = {
           estimate_id?: string | null
           id?: string
           job_type?: string | null
+          last_contact_at?: string | null
           name?: string
+          next_step?: string | null
+          next_step_due?: string | null
+          owner_user_id?: string | null
           project_id?: string | null
           project_type?: string | null
+          size_band?: string | null
           source?: string
           source_detail?: string | null
           stage?: string
@@ -372,6 +390,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_bids_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
@@ -1882,6 +1907,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_timeline: {
+        Row: {
+          agent_key: string | null
+          attachments: Json
+          awaiting_ok: boolean
+          body: string | null
+          created_at: string
+          gmail_message_id: string | null
+          id: string
+          kind: string
+          metadata: Json
+          occurred_at: string
+          summary: string | null
+          target_id: string
+          target_type: string
+          updated_at: string
+          user_id: string | null
+          written_by: string | null
+        }
+        Insert: {
+          agent_key?: string | null
+          attachments?: Json
+          awaiting_ok?: boolean
+          body?: string | null
+          created_at?: string
+          gmail_message_id?: string | null
+          id?: string
+          kind: string
+          metadata?: Json
+          occurred_at?: string
+          summary?: string | null
+          target_id: string
+          target_type: string
+          updated_at?: string
+          user_id?: string | null
+          written_by?: string | null
+        }
+        Update: {
+          agent_key?: string | null
+          attachments?: Json
+          awaiting_ok?: boolean
+          body?: string | null
+          created_at?: string
+          gmail_message_id?: string | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          occurred_at?: string
+          summary?: string | null
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+          user_id?: string | null
+          written_by?: string | null
+        }
+        Relationships: []
       }
       media_comments: {
         Row: {
