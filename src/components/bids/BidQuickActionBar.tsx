@@ -1,73 +1,58 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { StickyNote, Camera, Paperclip, Loader2 } from 'lucide-react';
+import { MessageSquarePlus, Camera, Paperclip, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useBidMediaUpload } from '@/hooks/useBidMediaUpload';
 import { createUploadProgressToast } from '@/utils/uploadProgressToast';
-import { BidNoteComposer } from './BidNoteComposer';
+import { leadTimelineKey } from '@/hooks/useLeadTimeline';
+import { TouchComposer } from './TouchComposer';
 
 interface BidQuickActionBarProps {
   bidId: string;
-  onNavigateToTab?: (tab: 'notes' | 'media' | 'documents') => void;
-  onUploaded?: () => void;
+  currentNextStep?: { text: string | null; due: string | null };
+  /** Called after an upload lands so the hub can open the matching drill-down. */
+  onUploaded?: (kind: 'media' | 'documents') => void;
 }
 
-// Mobile quick-action bar for Lead detail pages. Sibling of FieldQuickActionBar
-// so users don't relearn the affordance per area.
-//   Note    → switches to Notes tab (parent owns tab state)
-//   Camera  → navigates to /leads/:id/capture (GPS-aware full capture flow)
-//   Attach  → hidden file input; useBidMediaUpload auto-routes by MIME into
-//             bid_media with file_type image|video|document
-export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQuickActionBarProps) {
+// Mobile bottom bar for the lead hub. Same three-slot shape as the project
+// hub's FieldQuickActionBar so nobody relearns the affordance per area —
+// but the slots are a salesperson's, not a crew's:
+//   Log touch → TouchComposer sheet (kind · words · attachments · next step)
+//   Camera    → /leads/:id/capture (GPS-aware capture page; Rule 22 divergence)
+//   Attach    → capture-and-forget upload, routed by MIME into bid_media; it
+//               shows on the timeline as a file entry (read-side union)
+export function BidQuickActionBar({ bidId, currentNextStep, onUploaded }: BidQuickActionBarProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { upload, isUploading } = useBidMediaUpload();
   const attachInputRef = useRef<HTMLInputElement>(null);
-  const [noteSheetOpen, setNoteSheetOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const handleAttachFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
 
-    // Sequential upload — parallel would race the useBidMediaUpload hook's
-    // single-slot progress/state. The hook used to fire its own per-file
-    // toast; that produced one toast per file plus one aggregate toast here,
-    // so the hook is now silent and we own the user-facing notifications.
-    // One persistent loading toast for the whole batch, updated per file and
-    // resolved in place — big batches used to go silent mid-upload.
+    // Sequential — parallel would race the hook's single-slot progress state.
     const progress = createUploadProgressToast(files.length);
     const results = [];
     let failures = 0;
     for (const [index, file] of files.entries()) {
       progress.progress(index + 1);
-      const result = await upload({
-        bid_id: bidId,
-        file,
-        upload_source: 'web',
-      });
+      const result = await upload({ bid_id: bidId, file, upload_source: 'web' });
       if (result) results.push(result);
       else failures++;
     }
 
     if (results.length) {
       queryClient.invalidateQueries({ queryKey: ['bid-media', bidId] });
-      onUploaded?.();
+      queryClient.invalidateQueries({ queryKey: leadTimelineKey(bidId) });
       const allDocs = results.every((r) => r.file_type === 'document');
-      const target = allDocs ? 'Documents' : 'Media';
-      progress.success(
-        files.length > 1
-          ? `Uploaded ${results.length} to ${target}`
-          : `Added to ${target}`
-      );
-      if (failures) {
-        toast.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
-      }
-      // Land on the tab that matches the upload batch. Mixed batches prefer
-      // Media (images/video outnumber docs in most mobile-capture sessions).
-      onNavigateToTab?.(allDocs ? 'documents' : 'media');
+      progress.success(files.length > 1 ? `Uploaded ${results.length}` : 'Uploaded');
+      if (failures) toast.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
+      onUploaded?.(allDocs ? 'documents' : 'media');
     } else {
       progress.error(`${failures} file${failures > 1 ? 's' : ''} failed to upload`);
     }
@@ -75,62 +60,56 @@ export function BidQuickActionBar({ bidId, onNavigateToTab, onUploaded }: BidQui
 
   return (
     <>
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t shadow-lg pb-safe">
-      <div className="flex items-center justify-center gap-3 px-4 py-2.5">
-        <Button
-          variant="outline"
-          onClick={() => setNoteSheetOpen(true)}
-          className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
-        >
-          <StickyNote className="h-5 w-5 text-primary" />
-          <span className="text-sm font-medium">Note</span>
-        </Button>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 pb-safe shadow-lg backdrop-blur-sm">
+        <div className="flex items-center justify-center gap-3 px-4 py-2.5">
+          <Button
+            variant="outline"
+            onClick={() => setComposerOpen(true)}
+            className="h-14 flex-1 gap-2 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10"
+          >
+            <MessageSquarePlus className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium">Log touch</span>
+          </Button>
 
-        <Button
-          variant="outline"
-          onClick={() => navigate(`/leads/${bidId}/capture`)}
-          disabled={isUploading}
-          className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
-        >
-          <Camera className="h-5 w-5 text-primary" />
-          <span className="text-sm font-medium">Camera</span>
-        </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/leads/${bidId}/capture`)}
+            disabled={isUploading}
+            className="h-14 flex-1 gap-2 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10"
+          >
+            <Camera className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium">Camera</span>
+          </Button>
 
-        <Button
-          variant="outline"
-          onClick={() => attachInputRef.current?.click()}
-          disabled={isUploading}
-          className="flex-1 h-14 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10 gap-2"
-        >
-          {isUploading ? (
-            <Loader2 className="h-5 w-5 text-primary animate-spin" />
-          ) : (
-            <Paperclip className="h-5 w-5 text-primary" />
-          )}
-          <span className="text-sm font-medium">Attach</span>
-        </Button>
+          <Button
+            variant="outline"
+            onClick={() => attachInputRef.current?.click()}
+            disabled={isUploading}
+            className="h-14 flex-1 gap-2 rounded-xl border-primary/20 hover:bg-primary/5 active:bg-primary/10"
+          >
+            {isUploading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Paperclip className="h-5 w-5 text-primary" />}
+            <span className="text-sm font-medium">Attach</span>
+          </Button>
 
-        <input
-          ref={attachInputRef}
-          type="file"
-          className="hidden"
-          onChange={handleAttachFile}
-          multiple
-          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-        />
+          <input
+            ref={attachInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleAttachFile}
+            multiple
+            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          />
+        </div>
       </div>
-    </div>
 
-    <BidNoteComposer
-      bidId={bidId}
-      presentation="sheet"
-      open={noteSheetOpen}
-      onOpenChange={setNoteSheetOpen}
-      onSubmitted={() => {
-        onNavigateToTab?.('notes');
-      }}
-      placeholder="What's happening with this lead..."
-    />
+      <TouchComposer
+        bidId={bidId}
+        presentation="sheet"
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        currentNextStep={currentNextStep}
+        autoFocus
+      />
     </>
   );
 }

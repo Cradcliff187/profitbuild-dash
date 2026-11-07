@@ -2,12 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Download, FileText, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Package, Inbox, Flag } from 'lucide-react';
+import { Plus, Download, ChevronUp, ChevronDown, ChevronsUpDown, Handshake, Flag, CalendarClock, AlertTriangle, Clock } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { MobilePageWrapper } from '@/components/ui/mobile-page-wrapper';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,9 +20,20 @@ import { BidFilters, BidSearchFilters } from '@/components/BidFilters';
 import { BidsTableView } from '@/components/BidsTableView';
 import { BID_COLUMN_DEFINITIONS, DEFAULT_BID_FILTERS } from '@/components/bids/leadListConfig';
 import { LeadSourceFields } from '@/components/bids/LeadSourceFields';
+import { ContactPicker } from '@/components/bids/ContactPicker';
+import { NativeSelect } from '@/components/ui/native-select';
 import { useAuth } from '@/contexts/AuthContext';
-import type { LeadSource } from '@/types/bid';
+import { useMentionableUsers } from '@/hooks/useMentionableUsers';
+import { LEAD_SIZE_BANDS, LEAD_SIZE_BAND_LABELS, type LeadContact, type LeadSizeBand, type LeadSource } from '@/types/bid';
 import { formatLeadStage } from '@/utils/leadLabels';
+import {
+  compareLeadsByAttention,
+  getLeadAttention,
+  nextBusinessDay,
+  summarizeLeadPipeline,
+  toDueDateString,
+} from '@/utils/leadAttention';
+import { cn } from '@/lib/utils';
 import { BidBulkActions } from '@/components/BidBulkActions';
 import { ColumnSelector } from '@/components/ui/column-selector';
 import { usePagination } from '@/hooks/usePagination';
@@ -31,11 +41,12 @@ import type { BranchBid } from '@/types/bid';
 
 // Column metadata lives in BidsTableView (single copy — Gotcha #50).
 const columnDefinitions = [...BID_COLUMN_DEFINITIONS];
-// v2: Stage + Source columns were added (Nov 2026). A saved v1 visibility list
-// can't tell "user hid it" from "never existed", so the key is bumped once.
-const VISIBLE_COLUMNS_KEY = "bids-visible-columns-v2";
-const COLUMN_ORDER_KEY = "bids-column-order-v2";
-const DEFAULT_VISIBLE_COLUMNS = ["name", "stage", "source", "client_name", "created_at", "project", "actions"];
+// v3 (Nov 7 2026): Next step / Last contact / Owner / Person columns. A saved
+// older visibility list can't tell "user hid it" from "never existed", so the
+// key is bumped (v2 added Stage + Source the same way).
+const VISIBLE_COLUMNS_KEY = "bids-visible-columns-v3";
+const COLUMN_ORDER_KEY = "bids-column-order-v3";
+const DEFAULT_VISIBLE_COLUMNS = ["name", "stage", "next_step", "last_contact", "owner", "contact", "client_name", "project", "actions"];
 
 export default function BranchBids() {
   const navigate = useNavigate();
@@ -58,6 +69,13 @@ export default function BranchBids() {
   const [source, setSource] = useState<LeadSource | ''>('');
   const [sourceDetail, setSourceDetail] = useState('');
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [contact, setContact] = useState<LeadContact | null>(null);
+  const [sizeBand, setSizeBand] = useState<LeadSizeBand | ''>('');
+  // Default first step: reply, by the next business day (the New-stage clock).
+  // A default in a form a person submits is not automation — they can change it.
+  const [nextStep, setNextStep] = useState('Reply and set up a call');
+  const [nextStepDue, setNextStepDue] = useState(() => toDueDateString(nextBusinessDay(new Date())));
+  const { data: people = [] } = useMentionableUsers();
 
   // Column visibility state with localStorage persistence
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -100,8 +118,9 @@ export default function BranchBids() {
         .from('branch_bids')
         .select(`
           *,
-          clients:client_id (id, client_name, company_name),
+          clients:client_id (id, client_name, company_name, email, phone),
           projects:project_id (project_number, project_name, client_name),
+          contacts:contact_id (id, name, title, email, phone, client_id),
           branch_bid_projects (id, branch_bid_id, project_id, created_at, created_by, projects:project_id (id, project_number, project_name, client_name, status))
         `)
         .is('deleted_at', null)
@@ -110,18 +129,22 @@ export default function BranchBids() {
 
       if (error) throw error;
       
-      // Fetch user profiles separately
+      // Fetch user profiles separately (creators + owners in one read)
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(bid => bid.created_by))];
+        const userIds = [...new Set(data.flatMap(bid => [bid.created_by, bid.owner_user_id]).filter(Boolean))] as string[];
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', userIds);
         
-        return (data as unknown as BranchBid[]).map(bid => ({
-          ...bid,
-          profiles: profiles?.find(p => p.id === bid.created_by),
-        }));
+        return (data as unknown as BranchBid[]).map(bid => {
+          const owner = bid.owner_user_id ? profiles?.find(p => p.id === bid.owner_user_id) : undefined;
+          return {
+            ...bid,
+            profiles: profiles?.find(p => p.id === bid.created_by),
+            owner_name: owner ? owner.full_name || owner.email : null,
+          };
+        });
       }
 
       return (data || []) as unknown as BranchBid[];
@@ -159,6 +182,11 @@ export default function BranchBids() {
           source,
           source_detail: sourceDetail.trim() || null,
           created_by: user.id,
+          contact_id: contact?.id ?? null,
+          size_band: sizeBand || null,
+          owner_user_id: user.id,
+          next_step: nextStep.trim() || null,
+          next_step_due: nextStepDue || null,
         })
         .select('*')
         .single();
@@ -195,6 +223,10 @@ export default function BranchBids() {
     setSource('');
     setSourceDetail('');
     setSourceError(null);
+    setContact(null);
+    setSizeBand('');
+    setNextStep('Reply and set up a call');
+    setNextStepDue(toDueDateString(nextBusinessDay(new Date())));
   };
 
   // Delete mutation (soft delete)
@@ -218,19 +250,9 @@ export default function BranchBids() {
     },
   });
 
-  // Pipeline at a glance — stage counts, not vanity totals.
-  const statistics = useMemo(() => {
-    const all = bids ?? [];
-    const open = all.filter((b) => b.stage !== 'closed');
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return {
-      open: open.length,
-      needsFirstTouch: open.filter((b) => b.stage === 'new').length,
-      estimateRequested: open.filter((b) => b.stage === 'estimate_requested').length,
-      closedThisMonth: all.filter((b) => b.stage === 'closed' && b.closed_at && new Date(b.closed_at) >= monthStart).length,
-    };
-  }, [bids]);
+  // Pipeline at a glance — what needs eyes, not vanity totals. Derived flags
+  // only (leadAttention.ts); nothing here changes a stage.
+  const statistics = useMemo(() => summarizeLeadPipeline(bids ?? []), [bids]);
 
   // Filter bids based on search criteria
   const filteredBids = useMemo(() => {
@@ -243,6 +265,10 @@ export default function BranchBids() {
           bid.description?.toLowerCase().includes(searchLower) ||
           bid.clients?.client_name?.toLowerCase().includes(searchLower) ||
           bid.clients?.company_name?.toLowerCase().includes(searchLower) ||
+          bid.contacts?.name?.toLowerCase().includes(searchLower) ||
+          bid.contacts?.email?.toLowerCase().includes(searchLower) ||
+          bid.contacts?.phone?.toLowerCase().includes(searchLower) ||
+          bid.next_step?.toLowerCase().includes(searchLower) ||
           bid.projects?.project_name?.toLowerCase().includes(searchLower);
         
         if (!matchesSearch) return false;
@@ -255,6 +281,8 @@ export default function BranchBids() {
       // Stage / source facets
       if (filters.stage.length > 0 && !filters.stage.includes(bid.stage)) return false;
       if (filters.source.length > 0 && !filters.source.includes(bid.source)) return false;
+      if (filters.attention.length > 0 && !filters.attention.includes(getLeadAttention(bid))) return false;
+      if (filters.owner.length > 0 && !filters.owner.includes(bid.owner_user_id ?? '')) return false;
 
       // Client name filter
       if (filters.clientName.length > 0 && bid.clients) {
@@ -283,7 +311,9 @@ export default function BranchBids() {
 
   // Sort bids
   const sortedBids = useMemo(() => {
-    if (!sortColumn) return filteredBids;
+    // No explicit column = attention order: overdue → due today → new
+    // unanswered → stale → no next step → the rest, newest first.
+    if (!sortColumn) return [...filteredBids].sort((a, b) => compareLeadsByAttention(a, b));
 
     return [...filteredBids].sort((a, b) => {
       let aVal: string | number, bVal: string | number;
@@ -312,6 +342,22 @@ export default function BranchBids() {
         case 'created_by':
           aVal = a.profiles?.full_name || '';
           bVal = b.profiles?.full_name || '';
+          break;
+        case 'next_step':
+          aVal = a.next_step_due ?? '9999-99-99';
+          bVal = b.next_step_due ?? '9999-99-99';
+          break;
+        case 'last_contact':
+          aVal = a.last_contact_at ? new Date(a.last_contact_at).getTime() : 0;
+          bVal = b.last_contact_at ? new Date(b.last_contact_at).getTime() : 0;
+          break;
+        case 'owner':
+          aVal = a.owner_name || '';
+          bVal = b.owner_name || '';
+          break;
+        case 'contact':
+          aVal = a.contacts?.name || '';
+          bVal = b.contacts?.name || '';
           break;
         default:
           return 0;
@@ -415,9 +461,9 @@ export default function BranchBids() {
   return (
     <MobilePageWrapper>
       <PageHeader
-        icon={Package}
+        icon={Handshake}
         title="Leads"
-        description="Who we're talking to, before a job exists"
+        description={`Who we're talking to, before a job exists · ${statistics.open} open`}
         actions={
           <>
             <Button
@@ -442,54 +488,38 @@ export default function BranchBids() {
       />
 
       <div className="space-y-2">
-        {/* Pipeline at a glance */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center space-x-2">
-                <Inbox className="h-4 w-4 text-primary" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Open leads</p>
-                  <p className="text-xl font-bold">{statistics.open}</p>
+        {/* What needs eyes — tap a tile to filter to it. Counts, never dollars. */}
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:grid-cols-4">
+          {[
+            { key: 'overdue', label: 'Overdue follow-ups', value: statistics.overdue, icon: AlertTriangle, tone: 'text-destructive' },
+            { key: 'due_today', label: 'Due today', value: statistics.dueToday, icon: CalendarClock, tone: 'text-primary' },
+            { key: 'new_unanswered', label: 'New, unanswered', value: statistics.newUnanswered, icon: Flag, tone: 'text-warning', title: 'At New for more than a business day with nothing logged' },
+            { key: 'stale', label: 'Stale 14 days', value: statistics.stale, icon: Clock, tone: 'text-warning', title: 'Open, no human contact for 14 days' },
+          ].map((t) => {
+            const Icon = t.icon;
+            const active = filters.attention.length === 1 && filters.attention[0] === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                title={t.title}
+                aria-pressed={active}
+                onClick={() => setFilters({ ...filters, attention: active ? [] : [t.key], openState: 'open' })}
+                className={cn(
+                  'rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50 min-h-[56px]',
+                  active && 'border-primary ring-1 ring-primary/40',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className={cn('h-4 w-4 shrink-0', t.value > 0 ? t.tone : 'text-muted-foreground')} />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-muted-foreground">{t.label}</p>
+                    <p className="text-xl font-bold tabular-nums">{t.value}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center space-x-2">
-                <Flag className="h-4 w-4 text-warning" />
-                <div>
-                  <p className="text-xs text-muted-foreground" title="Still at New — nobody has talked to them yet">
-                    Needs first touch
-                  </p>
-                  <p className="text-xl font-bold">{statistics.needsFirstTouch}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-info" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Estimate requested</p>
-                  <p className="text-xl font-bold">{statistics.estimateRequested}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center space-x-2">
-                <ExternalLink className="h-4 w-4 text-success" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Closed this month</p>
-                  <p className="text-xl font-bold">{statistics.closedThisMonth}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filters */}
@@ -498,6 +528,7 @@ export default function BranchBids() {
           onFiltersChange={setFilters}
           resultCount={filteredBids.length}
           clients={clients}
+          owners={people}
         />
 
         {/* Count and Column Selector (desktop only; hidden on mobile) */}
@@ -594,12 +625,25 @@ export default function BranchBids() {
               error={sourceError}
             />
             <div className="space-y-2">
+              <Label>Person you're talking to</Label>
+              <ContactPicker value={contact} onChange={setContact} clientId={clientId || null} idPrefix="lead-new-contact" />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="client">Client (optional)</Label>
               <ClientSelector
                 value={clientId}
                 onValueChange={setClientId}
                 placeholder="Select a client..."
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead-new-size">Rough size</Label>
+              <NativeSelect id="lead-new-size" value={sizeBand} onValueChange={(v) => setSizeBand(v as LeadSizeBand | '')} className="h-10 text-sm">
+                <option value="">Not sized yet</option>
+                {LEAD_SIZE_BANDS.map((b) => (
+                  <option key={b} value={b}>{LEAD_SIZE_BAND_LABELS[b]}</option>
+                ))}
+              </NativeSelect>
             </div>
             <div className="space-y-2">
               <Label htmlFor="lead-new-address">Address</Label>
@@ -611,7 +655,7 @@ export default function BranchBids() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Scope</Label>
               <Textarea
                 id="description"
                 placeholder="Scope in a line or two, who decides, timing…"
@@ -619,6 +663,17 @@ export default function BranchBids() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
               />
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+                <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+                First step
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                <Input aria-label="First step" value={nextStep} onChange={(e) => setNextStep(e.target.value)} placeholder="e.g. Reply and set up a call" />
+                <Input aria-label="Due" type="date" className="sm:w-[160px]" value={nextStepDue} onChange={(e) => setNextStepDue(e.target.value)} />
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">You own it until you hand it off. Change anything here later from the lead.</p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Leads → CRM record (2026-11-07). Readable copy of migration
--- `leads_crm_record` (NOT YET APPLIED — awaiting approval in the Supabase MCP prompt; the file
+-- `leads_crm_record` (applied to production 2026-11-07 via MCP apply_migration as 20261107164112; the file
 -- under supabase/migrations/ is the usual placeholder). Additive only; every
 -- statement is idempotent. Design: docs/LEADS_CRM_PLAN.md §4.1 and the Oct 23
 -- sales design. NO automated decisions live here — stage/status is only ever

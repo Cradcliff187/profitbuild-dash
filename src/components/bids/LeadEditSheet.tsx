@@ -10,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ClientSelector } from '@/components/ClientSelector';
 import { LeadSourceFields } from '@/components/bids/LeadSourceFields';
-import type { BranchBid, LeadSource } from '@/types/bid';
+import { ContactPicker } from '@/components/bids/ContactPicker';
+import { NativeSelect } from '@/components/ui/native-select';
+import { useMentionableUsers } from '@/hooks/useMentionableUsers';
+import { LEAD_SIZE_BANDS, LEAD_SIZE_BAND_LABELS, type BranchBid, type LeadContact, type LeadSizeBand, type LeadSource } from '@/types/bid';
 
 interface LeadEditSheetProps {
   bid: BranchBid | null;
@@ -36,6 +39,10 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
   const [jobType, setJobType] = useState('');
   const [source, setSource] = useState<LeadSource | ''>('');
   const [sourceDetail, setSourceDetail] = useState('');
+  const [contact, setContact] = useState<LeadContact | null>(null);
+  const [sizeBand, setSizeBand] = useState<LeadSizeBand | ''>('');
+  const [ownerId, setOwnerId] = useState('');
+  const { data: people = [] } = useMentionableUsers();
 
   useEffect(() => {
     if (!open || !bid) return;
@@ -47,6 +54,9 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
     setJobType(bid.job_type ?? '');
     setSource(bid.source ?? 'unknown');
     setSourceDetail(bid.source_detail ?? '');
+    setContact(bid.contacts ?? null);
+    setSizeBand(bid.size_band ?? '');
+    setOwnerId(bid.owner_user_id ?? '');
   }, [open, bid]);
 
   const mutation = useMutation({
@@ -63,6 +73,9 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
           job_type: jobType.trim() || null,
           source: source || 'unknown',
           source_detail: sourceDetail.trim() || null,
+          contact_id: contact?.id ?? null,
+          size_band: sizeBand || null,
+          owner_user_id: ownerId || null,
         })
         .eq('id', bid.id);
       if (error) throw error;
@@ -91,7 +104,7 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
       <SheetContent side="right" className="flex w-full flex-col overflow-hidden p-0 sm:max-w-[520px]">
         <SheetHeader className="shrink-0 space-y-1 border-b px-6 pb-4 pt-6">
           <SheetTitle>Edit lead</SheetTitle>
-          <SheetDescription>Who it is, where it is, and how it came in.</SheetDescription>
+          <SheetDescription>Who you're talking to, where it is, and how it came in. Stage changes live on the pill; the next step on its own card.</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
@@ -103,6 +116,11 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Body Alive — studio buildouts"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Person you're talking to</Label>
+            <ContactPicker value={contact} onChange={setContact} clientId={clientId || null} idPrefix="lead-edit-contact" />
           </div>
 
           <div className="space-y-2">
@@ -157,8 +175,29 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="lead-edit-size">Rough size</Label>
+              <NativeSelect id="lead-edit-size" value={sizeBand} onValueChange={(v) => setSizeBand(v as LeadSizeBand | '')} className="h-10 text-sm">
+                <option value="">Not sized yet</option>
+                {LEAD_SIZE_BANDS.map((b) => (
+                  <option key={b} value={b}>{LEAD_SIZE_BAND_LABELS[b]}</option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead-edit-owner">Owner</Label>
+              <NativeSelect id="lead-edit-owner" value={ownerId} onValueChange={setOwnerId} className="h-10 text-sm">
+                <option value="">Unassigned</option>
+                {people.map((p) => (
+                  <option key={p.user_id} value={p.user_id}>{p.display_name}</option>
+                ))}
+              </NativeSelect>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="lead-edit-description">Description</Label>
+            <Label htmlFor="lead-edit-description">Scope</Label>
             <Textarea
               id="lead-edit-description"
               value={description}

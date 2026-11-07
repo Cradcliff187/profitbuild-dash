@@ -1,6 +1,14 @@
 # Leads → CRM: what is wrong, what is missing, what to build (2026-11-07)
 
-Status: **recommendations, nothing built.** This is the RCG Work build plan the sales design
+Status (Nov 7 2026): **PR A + PR B shipped** on `claude/epic-thompson-ga92ym` (schema applied to
+production as `20261107164112_leads_crm_record`; see CLAUDE.md Rule 44). Chris's addendum, Nov 7:
+**no automated decision-making** — every stage/status/next-step value is written by a person; code
+only derives flags and logs history. So the chase cadence, "went quiet", `sales_*` agent door, mail
+logger and SMS (PR C's automation half and all of PR E) are **not** built and would need to propose,
+never act. Decision 2 landed as "keep the bar, change its slots" (Log touch · Camera · Attach), not
+removal — it matches the project hub and breaks nothing. Original text follows.
+
+This is the RCG Work build plan the sales design
 (`sales-design-2026-10-23.md`, RCG Operations › Sales › `_system`) said would live here. Read that
 design first; where this plan and the design disagree, the design wins unless Chris changes it.
 
