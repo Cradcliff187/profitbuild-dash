@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import React, { useState } from "react";
 import { Edit, Eye, Trash2, MoreHorizontal, FileText, Plus, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -260,6 +261,7 @@ export const WorkOrdersTableView = ({
       }
 
       toast.success("Work order marked as complete");
+      refreshProjectDependentData();
       if (onUpdate) onUpdate();
     } catch (error) {
       toast.error("An unexpected error occurred");
