@@ -300,7 +300,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
 
           {/* Address */}
           <div className="space-y-2">
-            <Label htmlFor="address">Project Address</Label>
+            <Label htmlFor="address">Job site address</Label>
             <Textarea
               id="address"
               value={address}

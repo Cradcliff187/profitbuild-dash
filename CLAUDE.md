@@ -1906,6 +1906,48 @@ below it.
 - `numberGeneration.ts` used to export a `formatProjectNumber` with a stale `125-` prefix; it is
   deleted. Use `formatProjectSequence` / `formatProjectCounter` from `projectNumbering.ts`.
 
+### 45. A project carries its own source and main contact (Nov 11 2026)
+
+*(Numbered 45 because open PR #222 — the Leads CRM record — already uses 44.)*
+
+**Why:** only 3 of 205 construction projects had a linked lead, and nothing on a project could say
+where the job came from or who the person was. Requiring a lead record to hold a source would mean
+fabricating closed leads for old jobs and polluting the lead pipeline numbers. So — the way
+Salesforce / HubSpot / Jobber model it — **source is a field on the job**, and a lead only fills it in.
+
+**Schema** (readable SQL in [docs/project-source-and-contact.sql](docs/project-source-and-contact.sql);
+**check that file's STATUS header — the migration needs Chris's approval prompt and was still
+pending when this was written**): four nullable columns on `projects` — `source` (lead-source
+vocabulary, CHECK-constrained; **NULL = not set**), `source_detail` (free text: a campaign, or a
+person who is not a contact), `source_contact_id` and `primary_contact_id` (both → `contacts`,
+`ON DELETE SET NULL`). The `inherit_lead_facts_to_project` AFTER INSERT trigger on
+`branch_bid_projects` copies a lead's source / detail / `contact_id` onto the job **only where the
+job's field is empty** — it never overwrites, and a lead whose source is `unknown` contributes none.
+
+**UI:**
+- [`ProjectPeopleCard`](src/components/projects/ProjectPeopleCard.tsx) — two quiet rows (Contact with
+  tap-to-call / email, Source with a chip per linked lead) + one Edit/Add button. Mounted in the
+  desktop Overview key-facts card under the address, and on the mobile hub under the money pulse.
+  **Admin/manager only** — `contacts` and `branch_bids` are admin/manager by RLS, so it returns null
+  for field-only users (they keep Call owner on the assignment screen; don't widen the RLS).
+- [`ProjectPeopleSheet`](src/components/projects/ProjectPeopleSheet.tsx) — the one editor. `mode="single"`
+  edits contact + source (contact picked from the client's people, "Add a new person" inline, "Same as
+  contact" one-tap for the referrer). `mode="bulk"` sets **source only** on many projects and refuses to
+  save without one. The mode is explicit, never inferred from the id count — a bulk action with one row
+  selected must not clear that project's contact.
+- Projects list: **Source** facet with "Not set" (`matchesSourceFilter`) and a **Set source** bulk
+  action, both hidden from field-only users.
+- Pure helpers + tests: [`projectSource.ts`](src/utils/projectSource.ts) (`PROJECT_SOURCES` excludes
+  `unknown`; `buildProjectPeoplePatch` never writes `unknown`).
+- The job-site field is labelled **"Job site address"** on the new-project, edit-project and
+  quick-work-order forms. The client's billing address stays on the client and the invoice only.
+
+**Pitfalls:** don't route a project's source through a fabricated lead; don't bulk-set contacts
+(they differ per client); don't show the client's billing address on the project page; nothing here
+is required — a job may have a source with no person, a person with no source, or neither. The lead
+screens were deliberately not touched: PR #222 rewrites them (and already added
+`branch_bids.contact_id` in production). Relabel the lead address field there, not here.
+
 ---
 
 ## TypeScript Configuration

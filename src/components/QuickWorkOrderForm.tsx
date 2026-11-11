@@ -249,7 +249,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Job site address</FormLabel>
               <FormControl>
                 <Textarea 
                   placeholder="Enter project address" 
