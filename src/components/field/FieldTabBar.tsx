@@ -49,7 +49,7 @@ export function FieldTabBar() {
       aria-label="Field navigation"
       className={cn(
         "fixed bottom-0 left-0 right-0 z-40",
-        "bg-background/95 backdrop-blur-sm border-t shadow-lg",
+        "bg-background/95 backdrop-blur-sm border-t shadow-[0_-1px_3px_rgba(0,0,0,0.08)]",
         "pb-[env(safe-area-inset-bottom)]"
       )}
     >
