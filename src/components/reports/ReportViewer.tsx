@@ -19,12 +19,22 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { computeColumnTotals, resolveTotalsLabelIndex, type ColumnTotals } from '@/utils/reportTotals';
 
 interface ReportViewerProps {
   data: any[];
   fields: ReportField[];
   isLoading?: boolean;
   pageSize?: number;
+  /**
+   * Authoritative per-column totals computed server-side over the FULL result
+   * set. When present these win over client-side computation, because `data`
+   * may be capped at 500 rows by execute_ai_query — summing it would understate
+   * the truth while looking authoritative.
+   */
+  totals?: ColumnTotals;
+  /** True when the server capped `data`; suppresses any client-computed total. */
+  truncated?: boolean;
 }
 
 function formatValue(value: any, type?: string): string {
@@ -64,7 +74,7 @@ function formatValue(value: any, type?: string): string {
   }
 }
 
-export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSize = 50 }: ReportViewerProps) {
+export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSize = 50, totals: serverTotals, truncated }: ReportViewerProps) {
   const isMobile = useIsMobile();
   // Page size state
   const [pageSize, setPageSize] = useState(initialPageSize);
@@ -183,27 +193,18 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
     });
   }, [data, sortColumn, sortDirection, fields]);
 
-  // Calculate totals for numeric fields (using original data, not sorted)
-  const totals = useMemo(() => {
-    const totalsMap: Record<string, number> = {};
-    fields.forEach(field => {
-      if (field.type === 'currency' || field.type === 'number') {
-        totalsMap[field.key] = data.reduce((sum, row) => {
-          const value = Number(row[field.key]) || 0;
-          return sum + value;
-        }, 0);
-      } else if (field.type === 'percent') {
-        // For percentages, calculate average
-        const validValues = data
-          .map(row => Number(row[field.key]))
-          .filter(val => !isNaN(val) && val !== null && val !== undefined);
-        if (validValues.length > 0) {
-          totalsMap[field.key] = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-        }
-      }
-    });
-    return totalsMap;
-  }, [data, fields]);
+  // Totals: server-computed values win (they cover the full result set, not the
+  // 500-row cap). Fall back to client computation for non-AI reports, which pass
+  // complete data and no server totals. If the server truncated and gave us no
+  // totals, show none rather than a confidently understated number.
+  const totals = useMemo<ColumnTotals>(() => {
+    if (serverTotals) return serverTotals;
+    if (truncated) return {};
+    return computeColumnTotals(data, fields);
+  }, [serverTotals, truncated, data, fields]);
+
+  const totalsLabelIndex = useMemo(() => resolveTotalsLabelIndex(fields), [fields]);
+  const hasAnyTotal = useMemo(() => Object.keys(totals).length > 0, [totals]);
 
   // Pagination (on sorted data)
   const {
@@ -247,15 +248,11 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
   }, [paginatedData, fields]);
 
   const formattedTotals = useMemo(() => {
-    const formatted: any = {};
+    const formatted: Record<string, string> = {};
     fields.forEach(field => {
-      if (field.type === 'currency' || field.type === 'number') {
-        formatted[field.key] = formatValue(totals[field.key], field.type);
-      } else if (field.type === 'percent') {
-        formatted[field.key] = totals[field.key] !== undefined ? formatValue(totals[field.key], field.type) : '-';
-      } else {
-        formatted[field.key] = '';
-      }
+      formatted[field.key] = totals[field.key] !== undefined
+        ? formatValue(totals[field.key], field.type)
+        : '';
     });
     return formatted;
   }, [totals, fields]);
@@ -465,15 +462,19 @@ export function ReportViewer({ data, fields, isLoading, pageSize: initialPageSiz
                 </TableRow>
               ))}
             </TableBody>
-            <TableFooter className="sticky bottom-0 bg-muted/50 border-t z-10">
-              <TableRow className="font-semibold">
-                {fields.map((field, index) => (
-                  <TableCell key={field.key} className="whitespace-nowrap">
-                    {index === 0 ? 'Total' : (formattedTotals[field.key] || '')}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableFooter>
+            {hasAnyTotal && (
+              <TableFooter className="sticky bottom-0 bg-muted/50 border-t z-10">
+                <TableRow className="font-semibold" aria-label="Totals">
+                  {fields.map((field, index) => (
+                    <TableCell key={field.key} className="whitespace-nowrap">
+                      {formattedTotals[field.key] !== ''
+                        ? formattedTotals[field.key]
+                        : (index === totalsLabelIndex ? 'Total' : '')}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableFooter>
+            )}
           </Table>
         </div>
       </div>
