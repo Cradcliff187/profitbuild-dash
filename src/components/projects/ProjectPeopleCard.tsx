@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useRoles } from '@/contexts/RoleContext';
 import { useProjectPeople } from '@/hooks/useProjectPeople';
 import { firstUsablePhone } from '@/components/today/todayData';
-import { formatProjectSourceLine } from '@/utils/projectSource';
+import { formatProjectSourceLine, hasProjectPeopleColumns } from '@/utils/projectSource';
 import { ProjectPeopleSheet } from '@/components/projects/ProjectPeopleSheet';
 import type { Project } from '@/types/project';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,8 @@ interface ProjectPeopleCardProps {
 export function ProjectPeopleCard({ project, className }: ProjectPeopleCardProps) {
   const navigate = useNavigate();
   const { isAdmin, isManager } = useRoles();
-  const canManage = isAdmin || isManager;
+  // Dormant until the migration adds the columns (see hasProjectPeopleColumns).
+  const canManage = (isAdmin || isManager) && hasProjectPeopleColumns(project);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { personById, linkedLeads } = useProjectPeople(

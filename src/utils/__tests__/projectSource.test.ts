@@ -5,6 +5,7 @@ import {
   buildProjectPeoplePatch,
   formatProjectSource,
   formatProjectSourceLine,
+  hasProjectPeopleColumns,
   isSourceSet,
   matchesSourceFilter,
 } from '@/utils/projectSource';
@@ -75,5 +76,17 @@ describe('matchesSourceFilter', () => {
   it('matches a chosen channel', () => {
     expect(matchesSourceFilter('referral', ['referral', 'email'])).toBe(true);
     expect(matchesSourceFilter('social', ['referral', 'email'])).toBe(false);
+  });
+});
+
+describe('hasProjectPeopleColumns', () => {
+  it('is false before the migration (keys absent from select *)', () => {
+    expect(hasProjectPeopleColumns({ id: 'p1', project_name: 'X' })).toBe(false);
+    expect(hasProjectPeopleColumns(undefined)).toBe(false);
+    expect(hasProjectPeopleColumns(null)).toBe(false);
+  });
+
+  it('is true once the columns exist, even when empty', () => {
+    expect(hasProjectPeopleColumns({ id: 'p1', source: null, primary_contact_id: null })).toBe(true);
   });
 });

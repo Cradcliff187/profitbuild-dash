@@ -1942,6 +1942,11 @@ job's field is empty** — it never overwrites, and a lead whose source is `unkn
 - The job-site field is labelled **"Job site address"** on the new-project, edit-project and
   quick-work-order forms. The client's billing address stays on the client and the invoice only.
 
+**Ships ahead of its migration.** `hasProjectPeopleColumns(project)` checks whether the columns are
+present on a `select('*')` row; the card, the Source facet and the bulk action all gate on it, so
+before the SQL is applied they render nothing and after it they appear with no further deploy.
+Once the migration is confirmed live everywhere, the guard is harmless and can stay.
+
 **Pitfalls:** don't route a project's source through a fabricated lead; don't bulk-set contacts
 (they differ per client); don't show the client's billing address on the project page; nothing here
 is required — a job may have a source with no person, a person with no source, or neither. The lead

@@ -24,7 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { usePagination } from "@/hooks/usePagination";
 import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
-import { matchesSourceFilter } from "@/utils/projectSource";
+import { hasProjectPeopleColumns, matchesSourceFilter } from "@/utils/projectSource";
 import { ProjectPeopleSheet } from "@/components/projects/ProjectPeopleSheet";
 import {
   AlertDialog,
@@ -386,6 +386,10 @@ const Projects = () => {
     }
   };
 
+  // Source facet + bulk action: office-only, and dormant until the project
+  // source columns exist in the database (Rule 45).
+  const sourceEnabled = !isFieldWorkerOnly && hasProjectPeopleColumns(projects[0]);
+
   // Filter and sort projects based on search criteria
   const filteredAndSortedProjects = useMemo(() => {
     const filtered = projects.filter(project => {
@@ -515,14 +519,14 @@ const Projects = () => {
                 onFiltersChange={setFilters}
                 resultCount={filteredAndSortedProjects.length}
                 clients={clients}
-                showSource={!isFieldWorkerOnly}
+                showSource={sourceEnabled}
               />
 
               {/* Bulk Actions */}
               <ProjectBulkActions
                 selectedCount={selectedIds.length}
                 onStatusUpdate={(status) => handleBulkStatusUpdate(status)}
-                onSetSource={isFieldWorkerOnly ? undefined : () => setBulkSourceOpen(true)}
+                onSetSource={sourceEnabled ? () => setBulkSourceOpen(true) : undefined}
                 onDelete={() => setBulkDeleteDialogOpen(true)}
                 onCancel={() => setSelectedIds([])}
               />

@@ -68,3 +68,13 @@ export const matchesSourceFilter = (
   if (!isSourceSet(projectSource)) return selected.includes(SOURCE_NOT_SET);
   return selected.includes(projectSource!);
 };
+
+/**
+ * Are the Rule 45 columns live in the database yet? Project rows are read with
+ * `select('*')`, so before the migration the keys are simply absent
+ * (`undefined`); after it they are present (`null` when empty). Every surface
+ * that reads or writes these fields gates on this, so the app is safe to ship
+ * ahead of the migration and lights up by itself once it is applied.
+ */
+export const hasProjectPeopleColumns = (project: object | null | undefined): boolean =>
+  !!project && 'primary_contact_id' in project && 'source' in project;
