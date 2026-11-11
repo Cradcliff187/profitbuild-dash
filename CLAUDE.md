@@ -196,7 +196,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**396 sequential migrations** in `supabase/migrations/` (as of Nov 6, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**398 sequential migrations** in `supabase/migrations/` (as of Nov 11, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -1916,8 +1916,8 @@ fabricating closed leads for old jobs and polluting the lead pipeline numbers. S
 Salesforce / HubSpot / Jobber model it — **source is a field on the job**, and a lead only fills it in.
 
 **Schema** (readable SQL in [docs/project-source-and-contact.sql](docs/project-source-and-contact.sql);
-**check that file's STATUS header — the migration needs Chris's approval prompt and was still
-pending when this was written**): four nullable columns on `projects` — `source` (lead-source
+applied to production Nov 11 2026 as `20261111215035_project_source_and_contact`; trigger verified on
+SYS-TEST in a rolled-back block — an empty job inherits, a job with its own source is kept): four nullable columns on `projects` — `source` (lead-source
 vocabulary, CHECK-constrained; **NULL = not set**), `source_detail` (free text: a campaign, or a
 person who is not a contact), `source_contact_id` and `primary_contact_id` (both → `contacts`,
 `ON DELETE SET NULL`). The `inherit_lead_facts_to_project` AFTER INSERT trigger on
@@ -1942,7 +1942,7 @@ job's field is empty** — it never overwrites, and a lead whose source is `unkn
 - The job-site field is labelled **"Job site address"** on the new-project, edit-project and
   quick-work-order forms. The client's billing address stays on the client and the invoice only.
 
-**Ships ahead of its migration.** `hasProjectPeopleColumns(project)` checks whether the columns are
+**Shipped ahead of its migration (now applied).** `hasProjectPeopleColumns(project)` checks whether the columns are
 present on a `select('*')` row; the card, the Source facet and the bulk action all gate on it, so
 before the SQL is applied they render nothing and after it they appear with no further deploy.
 Once the migration is confirmed live everywhere, the guard is harmless and can stay.
