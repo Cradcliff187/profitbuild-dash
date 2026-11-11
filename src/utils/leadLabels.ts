@@ -1,10 +1,14 @@
 import {
   LEAD_CLOSED_REASON_LABELS,
+  LEAD_SIZE_BAND_LABELS,
   LEAD_SOURCE_LABELS,
   LEAD_STAGE_LABELS,
+  TIMELINE_KIND_LABELS,
   type LeadClosedReason,
+  type LeadSizeBand,
   type LeadSource,
   type LeadStage,
+  type TimelineKind,
 } from '@/types/bid';
 
 /** "Website form", never "website_form". Unknown DB values fall back to a readable form. */
@@ -82,3 +86,14 @@ export const leadStageBadgeClass = (stage: string | null | undefined): string =>
 
 const humanize = (value: string): string =>
   value.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+/** "$25K – $100K", never "25k_100k". */
+export const formatLeadSizeBand = (band: string | null | undefined): string | null => {
+  if (!band) return null;
+  return LEAD_SIZE_BAND_LABELS[band as LeadSizeBand] ?? humanize(band);
+};
+
+export const formatTimelineKind = (kind: string | null | undefined): string => {
+  if (!kind) return TIMELINE_KIND_LABELS.note;
+  return TIMELINE_KIND_LABELS[kind as TimelineKind] ?? humanize(kind);
+};

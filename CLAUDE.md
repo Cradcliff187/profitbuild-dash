@@ -196,7 +196,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**396 sequential migrations** in `supabase/migrations/` (as of Nov 6, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**397 sequential migrations** in `supabase/migrations/` (as of Nov 7, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -1856,6 +1856,9 @@ id `7c1f3b2e-…`); The Cathedral (converted to 225-120 in May, job complete) cl
 **Counter drift found during this work** (`project_counter` at 225175 while jobs ran to 225-205) was
 fixed the same day at the database level — see Rule 43. Nothing in the Leads area depends on it.
 
+**Superseded in part by Rule 44 (Nov 7 2026):** the `LeadHero` + Notes/Media/Docs tabs are gone; the
+record/hub layout, the person, owner, next step and timeline live there.
+
 **Common pitfalls:** don't add a Convert/Create button back anywhere under `/leads`; don't write
 `branch_bids.project_id` directly (the trigger owns it); don't put a `token`-style enum in the DB for
 source/stage (they're text + CHECK so a new value is one ALTER); don't surface closed leads by
@@ -1905,6 +1908,68 @@ below it.
 - Don't let a UI accept a next number ≤ highest in use "with a warning" — the DB raises anyway.
 - `numberGeneration.ts` used to export a `formatProjectNumber` with a stale `125-` prefix; it is
   deleted. Use `formatProjectSequence` / `formatProjectCounter` from `projectNumbering.ts`.
+
+### 44. Leads are a CRM record: person · owner · next step · ONE timeline (Nov 7 2026)
+
+Plan + evidence: [docs/LEADS_CRM_PLAN.md](docs/LEADS_CRM_PLAN.md); readable SQL:
+[docs/leads-crm-record.sql](docs/leads-crm-record.sql) (migration `20261107164112_leads_crm_record`).
+Supersedes the Notes / Media / Docs tab layout and the `LeadHero` card from Rule 42's PR #220.
+
+**Chris's standing rule for this area (Nov 7 2026): no automated decision-making.** Stage, close
+reason, next step, owner — a person writes every one. Code may DERIVE and LOG (attention flags,
+`last_contact_at`, a history row when someone changes a stage) but never move a lead, close it,
+or schedule a chase on its own. The 10/23 sales design's chase cadence / "went quiet" / mail logger
+are therefore NOT built; if they ever are, they must propose, not act.
+
+**Schema (additive):**
+- `branch_bids` + `contact_id → contacts` (the person; a prospect may have no client — the contacts
+  CHECK is now `num_nonnulls(client_id, payee_id) <= 1`), `owner_user_id`, `next_step`,
+  `next_step_due` (DATE), `size_band` (CHECK over `LEAD_SIZE_BANDS`), `last_contact_at`.
+- **`lead_timeline`** — one row per touch. `target_type` (lead · job · client; only `lead` is written
+  today, the others are reserved) + `target_id` (no FK: leads soft-delete and the row is history),
+  `kind` (note · call · email_in · email_out · text · meeting · site_walk · stage_change · link ·
+  file · draft), `occurred_at`, `body`, `user_id`, `written_by`, `attachments` jsonb
+  (`{media_id, file_type, file_name}` refs into `bid_media`), `metadata` jsonb, unique partial
+  indexes on `gmail_message_id` / `agent_key` for a future idempotent logger. RLS admin/manager.
+- Triggers (all SECURITY DEFINER, all LOG-only): `sync_lead_last_contact` (newest human-kind touch →
+  `branch_bids.last_contact_at`, recomputed on delete), `log_lead_stage_change` (AFTER UPDATE OF
+  stage/closed_reason → a `stage_change` row with `{from,to,closed_reason}`),
+  `log_lead_project_link` (link/unlink → a `link` row). `bid_notes` was backfilled into the timeline
+  and is **no longer read by anything** — leave the table, don't write to it.
+
+**Read model** — [`useLeadTimeline`](src/hooks/useLeadTimeline.ts) UNIONs `lead_timeline` rows with
+`bid_media` uploads that no touch references (Rule 20's read-side pattern — no dual-write; media
+attached to a touch resolves its URL from the `bid_media` row). Zero realtime. `addTouch` is the
+only write path for touches and ALSO writes the lead's next step when the composer changed it.
+
+**Surfaces:**
+- Desktop `/leads/:id` = a record, not tabs: left [`LeadFactsCard`](src/components/bids/LeadFactsCard.tsx)
+  (person first · stage pill · source · client · type · size · address · ONE pencil → `LeadEditSheet`),
+  center [`TouchComposer`](src/components/bids/TouchComposer.tsx) (kind chips · words · voice ·
+  paperclip · **next step asked on every save**) over [`LeadTimeline`](src/components/bids/LeadTimeline.tsx)
+  (filter chips replace the tabs), right [`NextStepCard`](src/components/bids/NextStepCard.tsx) ·
+  [`LinkedJobsCard`](src/components/bids/LinkedJobsCard.tsx) (the ONLY home of "Link to job") ·
+  [`LeadEstimatesCard`](src/components/bids/LeadEstimatesCard.tsx).
+- Mobile `/leads/:id` = hub + drill-downs (Rule 37) via `?tab=activity|media|documents|jobs`
+  (`notes`/`docs` alias): compact facts hero with **Call · Text · Directions**, the Next-step card,
+  peer rows through the shared [`HubRow`](src/components/ui/hub-row.tsx) (extracted from the project
+  hub), and the bottom bar **Log touch · Camera · Attach** ([`BidQuickActionBar`](src/components/bids/BidQuickActionBar.tsx)).
+  The tab strip, the kebab duplicates, the Docs-tab dropzone (`BidDocumentUpload hideUploader`) and
+  the duplicate "View Details" card action are gone. The header carries NO actions on either viewport.
+- `/leads` list: tiles are **Overdue · Due today · New, unanswered · Stale 14 days** (tap = filter);
+  default order is attention ([`compareLeadsByAttention`](src/utils/leadAttention.ts), pinned by
+  `leadAttention.test.ts`); columns Next step / Last contact / Owner / Person (storage keys bumped to
+  `-v3`); facets Needs + Owner; intake asks for the **person** ([`ContactPicker`](src/components/bids/ContactPicker.tsx)
+  matches email → phone → name before it creates), size band, and a first step that defaults to
+  "Reply" by the next business day — a prefilled field the person can change, not automation.
+- Sidebar: Leads moved from ESTIMATING to a **SALES** group (`Handshake` icon).
+
+**Retired:** `BidNotesTimeline`, `BidNoteComposer`, `useBidNotes`, `LeadHero`.
+
+**Common pitfalls:** don't add a `chase`/auto-close/auto-stage trigger (see the standing rule); don't
+re-add tabs or a second composer; don't write `last_contact_at`; don't query `bid_notes`; when a
+lead needs a person, use `ContactPicker` (prospects allowed) — never a free-text name field; keep
+`TOUCH_KINDS` in lockstep with the DB CHECK on `lead_timeline.kind`.
 
 ---
 

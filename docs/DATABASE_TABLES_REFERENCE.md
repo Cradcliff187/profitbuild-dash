@@ -75,6 +75,12 @@ On **`branch_bids`**: `source` (TEXT NOT NULL default `unknown`, CHECK over 11 v
 - `branch_bids.project_id` is a **trigger-maintained mirror of the earliest link**
   (`sync_branch_bid_primary_project`) — never write it from the frontend.
 - A lead **never** receives a project number; nothing in the Leads area inserts into `projects`.
+- **Nov 7 2026 (CLAUDE.md Rule 44)**: `branch_bids` + `contact_id → contacts` (prospects allowed;
+  the contacts CHECK is now `num_nonnulls(client_id, payee_id) <= 1`), `owner_user_id`, `next_step`,
+  `next_step_due` DATE, `size_band` (CHECK), `last_contact_at` (trigger-derived). New table
+  **`lead_timeline`** (one row per touch; `target_type`/`target_id`, `kind`, `occurred_at`, `body`,
+  `attachments` jsonb → `bid_media`, `metadata` jsonb; RLS admin/manager). Triggers log stage changes
+  and job links as history rows; none of them changes a stage. `bid_notes` is backfilled and dormant.
 
 ### Project numbering (CLAUDE.md Rule 43)
 `projects.project_number` text is the source of truth. `system_settings.project_counter` (= 225000 +
