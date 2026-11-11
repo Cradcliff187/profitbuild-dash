@@ -191,7 +191,8 @@ export const AddReceiptModal: React.FC<AddReceiptModalProps> = ({
 
   const { data: projectData } = useQuery({
     queryKey: ['receipt-modal-projects', getProjectCategoryOrFilter()],
-    staleTime: 1000 * 60 * 10,
+    // 60s, not 10 min: a project approved a moment ago must be pickable here.
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const [sysRes, overheadRes, constructionRes] = await Promise.all([
         supabase.from('projects').select('id').eq('project_number', 'SYS-000').maybeSingle(),

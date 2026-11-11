@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Building2, Plus, Download } from "lucide-react";
@@ -349,6 +350,7 @@ const Projects = () => {
       toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'project' : 'projects'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`);
 
       setSelectedIds([]);
+      refreshProjectDependentData();
       loadProjects();
     } catch (error: any) {
       console.error('Error updating project status:', error);
@@ -372,6 +374,7 @@ const Projects = () => {
 
       setSelectedIds([]);
       setBulkDeleteDialogOpen(false);
+      refreshProjectDependentData();
       loadProjects();
     } catch (error: any) {
       console.error('Error deleting projects:', error);

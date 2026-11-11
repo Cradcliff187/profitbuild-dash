@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { Building2, Save, Mail, Phone, MapPin, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -177,6 +178,7 @@ export const ProjectEditForm = ({ project, onSave, onCancel }: ProjectEditFormPr
         end_date: updatedProject.end_date ? new Date(updatedProject.end_date) : undefined,
       };
 
+      refreshProjectDependentData();
       onSave(formattedProject);
       
       toast.success("Project Updated", { description: `Project "${projectName}" has been updated successfully.` });
