@@ -210,7 +210,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Job site address</FormLabel>
               <FormControl>
                 <Textarea 
                   placeholder="Enter project address" 

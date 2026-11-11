@@ -24,6 +24,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { usePagination } from "@/hooks/usePagination";
 import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
+import { hasProjectPeopleColumns, matchesSourceFilter } from "@/utils/projectSource";
+import { ProjectPeopleSheet } from "@/components/projects/ProjectPeopleSheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +60,7 @@ const Projects = () => {
     status: isFieldWorkerOnly ? ['in_progress', 'approved'] : [],
     jobType: [],
     clientName: [],
+    source: [],
     dateRange: { start: null, end: null },
     budgetRange: { min: null, max: null },
     sortBy: 'date',
@@ -65,6 +68,7 @@ const Projects = () => {
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkSourceOpen, setBulkSourceOpen] = useState(false);
   const [pageSize, setPageSize] = useState(50);
 
   // Apply URL parameters to filters on mount
@@ -382,6 +386,10 @@ const Projects = () => {
     }
   };
 
+  // Source facet + bulk action: office-only, and dormant until the project
+  // source columns exist in the database (Rule 45).
+  const sourceEnabled = !isFieldWorkerOnly && hasProjectPeopleColumns(projects[0]);
+
   // Filter and sort projects based on search criteria
   const filteredAndSortedProjects = useMemo(() => {
     const filtered = projects.filter(project => {
@@ -395,6 +403,9 @@ const Projects = () => {
           project.project_number.toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
+
+      // Source filter ("Not set" matches projects with no source recorded)
+      if (!matchesSourceFilter(project.source, filters.source)) return false;
 
       // Status filter
       if (filters.status.length > 0 && !filters.status.includes(project.status)) {
@@ -508,12 +519,14 @@ const Projects = () => {
                 onFiltersChange={setFilters}
                 resultCount={filteredAndSortedProjects.length}
                 clients={clients}
+                showSource={sourceEnabled}
               />
 
               {/* Bulk Actions */}
               <ProjectBulkActions
                 selectedCount={selectedIds.length}
                 onStatusUpdate={(status) => handleBulkStatusUpdate(status)}
+                onSetSource={sourceEnabled ? () => setBulkSourceOpen(true) : undefined}
                 onDelete={() => setBulkDeleteDialogOpen(true)}
                 onCancel={() => setSelectedIds([])}
               />
@@ -569,6 +582,18 @@ const Projects = () => {
           )}
         </>
       )}
+
+      {/* Bulk "Set source" — source only; each project keeps its own contact. */}
+      <ProjectPeopleSheet
+        open={bulkSourceOpen}
+        onOpenChange={setBulkSourceOpen}
+        projectIds={selectedIds}
+        mode="bulk"
+        onSaved={() => {
+          setSelectedIds([]);
+          loadProjects();
+        }}
+      />
 
       {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>

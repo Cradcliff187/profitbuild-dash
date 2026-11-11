@@ -41,6 +41,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ProjectPeopleCard } from "@/components/projects/ProjectPeopleCard";
+import { hasProjectPeopleColumns } from "@/utils/projectSource";
 
 /**
  * Project field view — the "what am I doing here?" screen (`/projects/:id/schedule`
@@ -719,6 +721,14 @@ export function MobileScheduleView({
               </div>
             )}
           </div>
+        </section>
+      )}
+
+      {/* Contact + source (Rule 45) — admin/manager only, same gate as the
+          money pulse above. */}
+      {showManage && project && hasProjectPeopleColumns(project) && (
+        <section aria-label="Contact and source" className="rounded-xl border bg-card shadow-sm p-4">
+          <ProjectPeopleCard project={project} />
         </section>
       )}
 

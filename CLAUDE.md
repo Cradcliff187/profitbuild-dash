@@ -1906,6 +1906,53 @@ below it.
 - `numberGeneration.ts` used to export a `formatProjectNumber` with a stale `125-` prefix; it is
   deleted. Use `formatProjectSequence` / `formatProjectCounter` from `projectNumbering.ts`.
 
+### 45. A project carries its own source and main contact (Nov 11 2026)
+
+*(Numbered 45 because open PR #222 — the Leads CRM record — already uses 44.)*
+
+**Why:** only 3 of 205 construction projects had a linked lead, and nothing on a project could say
+where the job came from or who the person was. Requiring a lead record to hold a source would mean
+fabricating closed leads for old jobs and polluting the lead pipeline numbers. So — the way
+Salesforce / HubSpot / Jobber model it — **source is a field on the job**, and a lead only fills it in.
+
+**Schema** (readable SQL in [docs/project-source-and-contact.sql](docs/project-source-and-contact.sql);
+**check that file's STATUS header — the migration needs Chris's approval prompt and was still
+pending when this was written**): four nullable columns on `projects` — `source` (lead-source
+vocabulary, CHECK-constrained; **NULL = not set**), `source_detail` (free text: a campaign, or a
+person who is not a contact), `source_contact_id` and `primary_contact_id` (both → `contacts`,
+`ON DELETE SET NULL`). The `inherit_lead_facts_to_project` AFTER INSERT trigger on
+`branch_bid_projects` copies a lead's source / detail / `contact_id` onto the job **only where the
+job's field is empty** — it never overwrites, and a lead whose source is `unknown` contributes none.
+
+**UI:**
+- [`ProjectPeopleCard`](src/components/projects/ProjectPeopleCard.tsx) — two quiet rows (Contact with
+  tap-to-call / email, Source with a chip per linked lead) + one Edit/Add button. Mounted in the
+  desktop Overview key-facts card under the address, and on the mobile hub under the money pulse.
+  **Admin/manager only** — `contacts` and `branch_bids` are admin/manager by RLS, so it returns null
+  for field-only users (they keep Call owner on the assignment screen; don't widen the RLS).
+- [`ProjectPeopleSheet`](src/components/projects/ProjectPeopleSheet.tsx) — the one editor. `mode="single"`
+  edits contact + source (contact picked from the client's people, "Add a new person" inline, "Same as
+  contact" one-tap for the referrer). `mode="bulk"` sets **source only** on many projects and refuses to
+  save without one. The mode is explicit, never inferred from the id count — a bulk action with one row
+  selected must not clear that project's contact.
+- Projects list: **Source** facet with "Not set" (`matchesSourceFilter`) and a **Set source** bulk
+  action, both hidden from field-only users.
+- Pure helpers + tests: [`projectSource.ts`](src/utils/projectSource.ts) (`PROJECT_SOURCES` excludes
+  `unknown`; `buildProjectPeoplePatch` never writes `unknown`).
+- The job-site field is labelled **"Job site address"** on the new-project, edit-project and
+  quick-work-order forms. The client's billing address stays on the client and the invoice only.
+
+**Ships ahead of its migration.** `hasProjectPeopleColumns(project)` checks whether the columns are
+present on a `select('*')` row; the card, the Source facet and the bulk action all gate on it, so
+before the SQL is applied they render nothing and after it they appear with no further deploy.
+Once the migration is confirmed live everywhere, the guard is harmless and can stay.
+
+**Pitfalls:** don't route a project's source through a fabricated lead; don't bulk-set contacts
+(they differ per client); don't show the client's billing address on the project page; nothing here
+is required — a job may have a source with no person, a person with no source, or neither. The lead
+screens were deliberately not touched: PR #222 rewrites them (and already added
+`branch_bids.contact_id` in production). Relabel the lead address field there, not here.
+
 ---
 
 ## TypeScript Configuration
@@ -2252,6 +2299,8 @@ Use this list when doing periodic documentation reviews:
 81. **The base `Button` carries `whitespace-nowrap` and `[&_svg]:size-4` — a long label or a big icon inside a Button needs an explicit override (Nov 2 2026)** — Chris reported the Add Receipt photo button "jumbled and over the edges" on his phone. Two root causes, both in [button.tsx](src/components/ui/button.tsx)'s base class string and neither visible in the call site: (1) `whitespace-nowrap` kept the 45-character label "Upload photo (camera, photo library, or files)" from wrapping, so at 375px it measured 328px inside a 297px button and spilled past both dashed edges; (2) `[&_svg]:size-4` is an arbitrary-variant rule with higher specificity than the icon's own `w-12 h-12`, so the camera rendered at 16px and the 192px box was mostly empty. Fix in [AddReceiptModal](src/components/time-tracker/AddReceiptModal.tsx): `whitespace-normal` + `[&_svg]:size-10` on the Button, a short headline plus muted subline instead of one long label. **Rules**: any Button whose label can exceed ~25 characters at phone width (or that holds multi-line content) must set `whitespace-normal`; any icon larger than 16px inside a Button must be sized via `[&_svg]:size-N` on the Button, not `w-N h-N` on the icon. Same session (PR `fix/receipt-mobile-cleanup-2026-11-02`): receipt previews in `AddReceiptModal` / `EditReceiptModal` / `EditReceiptDialog` / `ReceiptsList` switched `object-cover` → `object-contain` with a max-height (receipts are portrait — Rule 21 cover→contain, relearned); `ReceiptsList`'s 28–32px buttons went to 36–40px and its three-up filter row wraps (search full-width, filters below); `EditReceiptModal` lost its mount-path `auth.getUser()` (Gotcha #63) and its forced-camera `capture` attribute so it matches the Add flow. Repro technique when the preview isn't signed in: drop a static HTML page under an untracked `public/__harness/` with `<link href="/src/index.css?direct">` and the exact class strings — Vite serves it unauthenticated with the real compiled Tailwind, and `getBoundingClientRect` gives numbers, not opinions. Delete the folder before committing.
 
 82. **A project create / status change must call `refreshProjectDependentData()`; project pickers must be TanStack queries (Nov 11 2026)** — Chris reported approving a project and not finding it in a project list until he closed and reopened the app. Three causes, none of them realtime: (1) no project-status write invalidated anything outside its own page — pickers cached under their own keys (`receipt-modal-projects` held data for **10 minutes**) kept serving the pre-approval list (Gotcha #27, project edition); (2) the time-entry [`ProjectPicker`](src/components/time-entry-form/fields/ProjectPicker.tsx) was a fetch-once-on-mount `useEffect`, invisible to both invalidation and focus refetch; (3) a phone PWA is resumed, not reopened, so anything that only fetches on mount stays stale until the app is killed. Fix: the QueryClient moved to [src/lib/queryClient.ts](src/lib/queryClient.ts), which exports `refreshProjectDependentData()` (invalidates ALL queries — project status changes are rare admin actions, and a key list would rot the first time someone adds a picker) and registers a resume listener that invalidates everything when the app returns after 2+ minutes in the background. The helper is called from every project create/status write: `ProjectStatusSelector`, `EstimateStatusSelector`, `approveEstimateSideEffects`, `ProjectEditForm`, `ProjectFormSimple`, `QuickWorkOrderForm`, bulk status + delete on `Projects.tsx`, bulk status on `WorkOrders.tsx`, and both work-order Mark Complete handlers. `ProjectPicker` is now `useQuery(['time-entry-projects', …])`; `receipt-modal-projects` staleTime is 60s. **Rules**: a new write to `projects.status` (or a project insert/delete) calls the helper; a new project picker is a `useQuery`, never a mount-time `useEffect`. **Still open**: ~80 files fetch in `useEffect` (e.g. `Projects.tsx`, `WorkOrders.tsx`, `MobileTimeTracker`'s lists) and get neither invalidation nor resume refresh until migrated; the tracker sync (`rcg-project-sync`) writes from outside the app, so those changes land on focus/resume, not instantly; and the service worker's `NetworkFirst` rule serves a cached Supabase response (up to 24h old) when a request takes over 10s — on a weak job-site signal that reads as stale data. Realtime stays off the table for this (Gotchas #53/#55).
+
+83. **Touch has no hover: `hoverOnlyWhenSupported` is ON, the tap flash is off, and the focus rule no longer squares corners (Nov 11 2026)** — Three app-wide causes of "weird highlights" on phones, all global, none in any one screen. (1) **Sticky hover.** Tailwind emitted `hover:` rules unconditionally, so on a touch screen a tapped row or button kept its hover colour until something else was tapped. `future.hoverOnlyWhenSupported` in [tailwind.config.ts](tailwind.config.ts) now wraps every `hover:` / `group-hover:` rule in `@media (hover: hover) and (pointer: fine)`. **Consequence you must design for: anything revealed only on hover is invisible on touch.** Use `[@media(hover:hover)]:opacity-0 group-hover:opacity-100` (visible by default, hidden only where hover exists), never bare `opacity-0 group-hover:opacity-100` on a control. Fixed at ship time: `NoteCard` menu button, `ReportActionsMenu` (its `sm:opacity-0` hid it on touch tablets), and `BidMediaGallery`'s download/delete overlay (on touch the two buttons sit top-right, always visible, tile still opens the photo). Decorative reveals (`ProjectMediaGallery` metadata gradient, `ProjectAddressLocator` external-link icon, `ExpenseAllocationSheet` check, `TimesheetGridCell` tooltip) were left hover-only on purpose. (2) **Tap flash.** `html { -webkit-tap-highlight-color: transparent }` in [index.css](src/index.css) removes the browser's grey/blue flash; the replacement is one consistent press state, `opacity: 0.8` on `button` / `a[href]` / `[role=button]` while pressed, inside `@media (hover: none)`. Components may still add their own `active:` colour on top. (3) **Focus squared the corners.** The global `button:focus-visible, a:focus-visible` rule carried `border-radius: 4px`, and being unlayered it beat `.rounded-full` / `.rounded-xl` — a focused pill or card snapped to 4px corners. The radius line is removed; the outline follows the element. Also: the two field bottom bars (`FieldTabBar`, `FieldQuickActionBar`) used `shadow-lg`, which casts DOWN and off-screen on a bottom-pinned bar; they now use a light upward shadow. **Not verified on a real phone** — these were checked in the built CSS, not by hand on iOS/Android.
 
 ---
 

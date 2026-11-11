@@ -2,12 +2,16 @@ import React from "react";
 import { ProjectStatus, PROJECT_STATUSES, JOB_TYPES } from "@/types/project";
 import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
 import type { FilterFieldDef, FilterValues } from "@/components/filters/filterTypes";
+import { LEAD_SOURCE_LABELS } from "@/types/bid";
+import { PROJECT_SOURCES, SOURCE_NOT_SET } from "@/utils/projectSource";
 
 export interface ProjectSearchFilters {
   searchText: string;
   status: ProjectStatus[];
   jobType: string[];
   clientName: string[];
+  /** Lead-source keys, plus SOURCE_NOT_SET for projects with none recorded. */
+  source: string[];
   dateRange: {
     start: Date | null;
     end: Date | null;
@@ -27,6 +31,8 @@ interface ProjectFiltersProps {
   leftActions?: React.ReactNode;
   actions?: React.ReactNode;
   clients: Array<{ id: string; client_name: string; }>;
+  /** Source is office information — only admins/managers get the facet. */
+  showSource?: boolean;
 }
 
 export const ProjectFilters = ({
@@ -35,7 +41,8 @@ export const ProjectFilters = ({
   resultCount,
   leftActions,
   actions,
-  clients
+  clients,
+  showSource = false,
 }: ProjectFiltersProps) => {
   const fields: FilterFieldDef[] = [
     {
@@ -63,6 +70,19 @@ export const ProjectFilters = ({
       searchPlaceholder: "Search clients...",
       options: clients.map((c) => ({ value: c.client_name, label: c.client_name })),
     },
+    ...(showSource
+      ? [
+          {
+            kind: "multiSelect",
+            key: "source",
+            label: "Source",
+            options: [
+              { value: SOURCE_NOT_SET, label: "Not set" },
+              ...PROJECT_SOURCES.map((s) => ({ value: s, label: LEAD_SOURCE_LABELS[s] })),
+            ],
+          } as FilterFieldDef,
+        ]
+      : []),
     { kind: "dateRange", key: "dateRange", label: "Date" },
     { kind: "numberRange", key: "budgetRange", label: "Budget", prefix: "$" },
   ];
@@ -77,6 +97,7 @@ export const ProjectFilters = ({
       status: [],
       jobType: [],
       clientName: [],
+      source: [],
       dateRange: { start: null, end: null },
       budgetRange: { min: null, max: null },
       sortBy: filters.sortBy,
