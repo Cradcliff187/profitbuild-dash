@@ -1,9 +1,9 @@
 -- ============================================================================
 -- Projects: where the job came from + who our person is
--- STATUS: PROPOSED — NOT YET APPLIED to production (clsjdxwbsjbhjibvlqbz).
--- Intended migration name: project_source_and_contact. Once applied, a
--- PLACEHOLDER file goes under supabase/migrations/ per CLAUDE.md "Critical
--- Migration Rules" and this header is updated with the applied version.
+-- STATUS: APPLIED to production (clsjdxwbsjbhjibvlqbz) on 2026-11-11 as migration
+-- 20261111215035_project_source_and_contact. The file under supabase/migrations/
+-- is a PLACEHOLDER per CLAUDE.md "Critical Migration Rules"; this is the
+-- readable copy.
 --
 -- Additive only: four nullable columns on projects, one trigger on the
 -- lead↔job link table, a guarded backfill. Safe to re-run.
