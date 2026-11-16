@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -155,6 +156,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
       } else {
         toast.success("Work order created successfully");
       }
+      refreshProjectDependentData();
       onSuccess();
     } catch (error) {
       console.error('Error creating work order:', error);
@@ -247,7 +249,7 @@ const QuickWorkOrderForm = ({ onSuccess, onCancel }: QuickWorkOrderFormProps) =>
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Job site address</FormLabel>
               <FormControl>
                 <Textarea 
                   placeholder="Enter project address" 

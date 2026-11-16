@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import React, { useState } from "react";
 import { Check, AlertTriangle, ChevronDown, Send, CheckCircle, XCircle, Clock, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -202,6 +203,8 @@ export const EstimateStatusSelector = ({
         toast.success(`${estimateNumber} status changed to ${newStatus}`);
       }
 
+      // Approving / un-approving an estimate moves the PROJECT's status too.
+      refreshProjectDependentData();
       onStatusChange?.(newStatus);
       
     } catch (error) {

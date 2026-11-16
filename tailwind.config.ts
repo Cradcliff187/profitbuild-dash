@@ -5,6 +5,12 @@ export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  // Touch screens have no hover. Without this, a tapped row or button keeps its
+  // hover colour until something else is tapped ("sticky hover"). With it, every
+  // `hover:` / `group-hover:` style applies only on devices that can hover.
+  // Anything REVEALED on hover must therefore be visible by default on touch —
+  // see CLAUDE.md Gotcha #83.
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     container: {
       center: true,

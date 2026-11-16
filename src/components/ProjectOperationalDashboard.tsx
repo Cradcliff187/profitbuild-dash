@@ -25,6 +25,7 @@ import type { Expense } from '@/types/expense';
 import type { ChangeOrder } from '@/types/changeOrder';
 import { ProjectNotesTimeline } from './ProjectNotesTimeline';
 import { ProjectAddressLocator } from '@/components/projects/ProjectAddressLocator';
+import { ProjectPeopleCard } from '@/components/projects/ProjectPeopleCard';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectOperationalDashboardProps {
@@ -407,6 +408,10 @@ export function ProjectOperationalDashboard({
           variant="card"
           className="mb-3 pb-3 border-b"
         />
+
+        {/* Who our person is + how the job came in (Rule 45). Renders nothing
+            for field-only users. */}
+        <ProjectPeopleCard project={project} className="mb-3 pb-3 border-b" />
 
         {isMobile ? (
           <div className="space-y-1.5">

@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, AlertTriangle, ChevronDown, ArrowRight } from "lucide-react";
@@ -115,6 +116,7 @@ export const ProjectStatusSelector = ({
       // ever reintroduces window.location.reload() or similar unload-initiating behavior.
       toast.success("Status Updated", { description: `Project "${projectName}" is now ${newStatus.replace(/_/g, ' ')}.` });
 
+      refreshProjectDependentData();
       onStatusChange?.(newStatus);
     } catch (error) {
       console.error('Error updating project status:', error);

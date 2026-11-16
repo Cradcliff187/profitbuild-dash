@@ -142,7 +142,7 @@ export function LeadEditSheet({ bid, open, onOpenChange }: LeadEditSheetProps) {
           />
 
           <div className="space-y-2">
-            <Label htmlFor="lead-edit-address">Address</Label>
+            <Label htmlFor="lead-edit-address">Job site address</Label>
             <Input
               id="lead-edit-address"
               value={address}

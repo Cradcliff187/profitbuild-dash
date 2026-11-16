@@ -2,7 +2,8 @@ import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ui/error-boundary";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
@@ -95,8 +96,6 @@ const QuoteViewRoute = lazy(() => import("./components/project-routes/QuoteViewR
 const QuoteEditRoute = lazy(() => import("./components/project-routes/QuoteEditRoute").then(m => ({ default: m.QuoteEditRoute })));
 const QuoteNewRoute = lazy(() => import("./components/project-routes/QuoteNewRoute").then(m => ({ default: m.QuoteNewRoute })));
 const QuoteComparePeerRoute = lazy(() => import("./components/project-routes/QuoteComparePeerRoute").then(m => ({ default: m.QuoteComparePeerRoute })));
-const queryClient = new QueryClient();
-
 const LazyRoute = ({ component: Component }: { component: React.ComponentType }) => (
   <Suspense fallback={<BrandedLoader message="Loading..." />}>
     <Component />

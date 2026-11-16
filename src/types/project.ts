@@ -36,6 +36,13 @@ export interface Project {
   customer_po_number?: string | null;
   do_not_exceed?: number | null;
   owner_id?: string | null;
+  /** How the job came in (lead source vocabulary). NULL = not recorded. Rule 45. */
+  source?: string | null;
+  source_detail?: string | null;
+  /** The person who brought the job in, when they are a contact. */
+  source_contact_id?: string | null;
+  /** Our main person on this job. */
+  primary_contact_id?: string | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MapPin, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -38,40 +39,46 @@ export function ProjectPicker({
 }: ProjectPickerProps) {
   const { isAdmin, isManager } = useRoles();
   const isAllProjects = isAdmin || isManager;
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    let query = supabase
-      .from('projects')
-      .select('id, project_name, project_number, category');
+  // TanStack-owned (was a fetch-once-on-mount useEffect) so the list refetches
+  // when the app is resumed and is invalidated by refreshProjectDependentData()
+  // the moment a project is created or changes status — a just-approved project
+  // has to be pickable here without closing the app.
+  const { data: projects = [] } = useQuery({
+    queryKey: ['time-entry-projects', isAllProjects, getShowSandboxProject()],
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<ProjectOption[]> => {
+      let query = supabase
+        .from('projects')
+        .select('id, project_name, project_number, category');
 
-    if (isAllProjects) {
-      // Admin / manager filing entries on behalf of any worker need every
-      // legitimate project available — no status or category restriction.
-      // SYS-TEST sandbox stays hidden unless the per-device toggle is on,
-      // matching every other project surface in the app (Rule per
-      // sandboxPreferences.ts).
-      if (!getShowSandboxProject()) {
-        query = query.neq('project_number', SANDBOX_PROJECT_NUMBER);
+      if (isAllProjects) {
+        // Admin / manager filing entries on behalf of any worker need every
+        // legitimate project available — no status or category restriction.
+        // SYS-TEST sandbox stays hidden unless the per-device toggle is on,
+        // matching every other project surface in the app (Rule per
+        // sandboxPreferences.ts).
+        if (!getShowSandboxProject()) {
+          query = query.neq('project_number', SANDBOX_PROJECT_NUMBER);
+        }
+      } else {
+        // Field workers / subs clocking time on themselves see only their
+        // construction work + the three PTO buckets (sick / vacation / holiday).
+        // getProjectCategoryOrFilter() widens to SYS-TEST only when the
+        // per-device sandbox toggle is on — same rule as MobileTimeTracker
+        // and fieldProjects.ts.
+        query = query
+          .in('status', ['approved', 'in_progress'])
+          .or(`${getProjectCategoryOrFilter()},project_number.in.(${PTO_PROJECT_NUMBERS.join(',')})`);
       }
-    } else {
-      // Field workers / subs clocking time on themselves see only their
-      // construction work + the three PTO buckets (sick / vacation / holiday).
-      // getProjectCategoryOrFilter() widens to SYS-TEST only when the
-      // per-device sandbox toggle is on — same rule as MobileTimeTracker
-      // and fieldProjects.ts.
-      query = query
-        .in('status', ['approved', 'in_progress'])
-        .or(`${getProjectCategoryOrFilter()},project_number.in.(${PTO_PROJECT_NUMBERS.join(',')})`);
-    }
 
-    query
-      .order('project_number', { ascending: true })
-      .then(({ data }) => {
-        if (data) setProjects(data);
-      });
-  }, [isAllProjects]);
+      const { data, error } = await query.order('project_number', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const selected = projects.find((p) => p.id === value);
 

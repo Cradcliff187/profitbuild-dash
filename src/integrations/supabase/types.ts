@@ -2835,6 +2835,7 @@ export type Database = {
           original_margin: number | null
           owner_id: string | null
           payment_terms: string | null
+          primary_contact_id: string | null
           project_name: string
           project_number: string
           project_type: Database["public"]["Enums"]["project_type"] | null
@@ -2842,6 +2843,9 @@ export type Database = {
           qb_formatted_number: string | null
           quickbooks_job_id: string | null
           sequence_number: number | null
+          source: string | null
+          source_contact_id: string | null
+          source_detail: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"] | null
           sync_status: Database["public"]["Enums"]["sync_status"] | null
@@ -2881,6 +2885,7 @@ export type Database = {
           original_margin?: number | null
           owner_id?: string | null
           payment_terms?: string | null
+          primary_contact_id?: string | null
           project_name: string
           project_number: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -2888,6 +2893,9 @@ export type Database = {
           qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
           sequence_number?: number | null
+          source?: string | null
+          source_contact_id?: string | null
+          source_detail?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null
@@ -2927,6 +2935,7 @@ export type Database = {
           original_margin?: number | null
           owner_id?: string | null
           payment_terms?: string | null
+          primary_contact_id?: string | null
           project_name?: string
           project_number?: string
           project_type?: Database["public"]["Enums"]["project_type"] | null
@@ -2934,6 +2943,9 @@ export type Database = {
           qb_formatted_number?: string | null
           quickbooks_job_id?: string | null
           sequence_number?: number | null
+          source?: string | null
+          source_contact_id?: string | null
+          source_detail?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           sync_status?: Database["public"]["Enums"]["sync_status"] | null

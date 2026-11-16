@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +62,7 @@ const WorkOrderCard = ({ workOrder, onUpdate }: WorkOrderCardProps) => {
       }
 
       toast.success("Work order marked as complete");
+      refreshProjectDependentData();
       onUpdate();
     } catch (error) {
       toast.error("An unexpected error occurred");

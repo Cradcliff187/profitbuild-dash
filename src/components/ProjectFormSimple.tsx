@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -129,6 +130,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
       if (error) throw error;
 
       toast.success("Project created successfully");
+      refreshProjectDependentData();
       onSave(project);
 
       // Navigate based on project type (only if not disabled)
@@ -208,7 +210,7 @@ export function ProjectFormSimple({ onSave, onCancel, disableNavigate = false, d
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Job site address</FormLabel>
               <FormControl>
                 <Textarea 
                   placeholder="Enter project address" 

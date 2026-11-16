@@ -154,7 +154,7 @@ export function LeadFactsCard({ bid, hasLinkedJobs, canEdit, onEdit, compact = f
             {sizeLabel ?? <span className="text-muted-foreground">—</span>}
           </Fact>
           <div className={cn('min-w-0', !compact && 'sm:col-span-2')}>
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Address</dt>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Job site address</dt>
             <dd className="mt-0.5">
               <ProjectAddressLocator address={bid.address} variant="header-inline" onAddAddress={canEdit ? onEdit : undefined} />
             </dd>

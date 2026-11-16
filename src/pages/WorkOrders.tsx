@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Download, Wrench, Clock, CheckCircle, XCircle, FileText, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -404,6 +405,7 @@ const WorkOrders = () => {
       toast.success(`${selectedIds.length} ${selectedIds.length === 1 ? 'work order' : 'work orders'} updated to ${PROJECT_STATUSES.find(s => s.value === status)?.label || status}`);
 
       setSelectedIds([]);
+      refreshProjectDependentData();
       loadWorkOrders();
     } catch (error: any) {
       console.error('Error updating work order status:', error);

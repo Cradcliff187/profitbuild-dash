@@ -209,10 +209,14 @@ export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
                     )}
                   </div>
                 )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                {/* Hover devices: dim overlay with centered actions. Touch (no hover):
+                    the actions sit in the top-right corner, always visible, and the
+                    rest of the tile stays tappable to open the photo. */}
+                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:pointer-events-none [@media(hover:none)]:items-start [@media(hover:none)]:justify-end [@media(hover:none)]:bg-transparent [@media(hover:none)]:p-1.5 [@media(hover:none)]:opacity-100">
                   <Button
                     size="icon"
                     variant="secondary"
+                    className="[@media(hover:none)]:pointer-events-auto"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload(media);
@@ -223,6 +227,7 @@ export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
                   <Button
                     size="icon"
                     variant="destructive"
+                    className="[@media(hover:none)]:pointer-events-auto"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteClick(media);

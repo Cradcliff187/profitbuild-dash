@@ -240,7 +240,23 @@ button:focus-visible,
 a:focus-visible {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
-  border-radius: 4px;
+  /* No border-radius here: it used to force 4px corners onto every focused
+     button and link, so a pill or a rounded card snapped square on focus. The
+     outline follows the element's own radius. */
+}
+
+/* Touch feedback (Gotcha #83). The browser's grey/blue tap flash is replaced by
+   one consistent press state: the control dims while a finger is on it. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) {
+  button:not(:disabled):active,
+  a[href]:active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    opacity: 0.8;
+  }
 }
 
 /* Input elements use shadow-based focus (handled in component classes) */

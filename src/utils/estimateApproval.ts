@@ -1,3 +1,4 @@
+import { refreshProjectDependentData } from "@/lib/queryClient";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -60,5 +61,7 @@ export async function approveEstimateSideEffects(
     .eq("id", projectId);
 
   if (updateError) throw updateError;
+
+  refreshProjectDependentData();
 }
 
