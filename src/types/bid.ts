@@ -61,6 +61,84 @@ export const LEAD_CLOSED_REASON_LABELS: Record<LeadClosedReason, string> = {
   lost_before_estimate: 'Lost before estimate',
 };
 
+export const LEAD_SIZE_BANDS = ['under_25k', '25k_100k', '100k_500k', '500k_1m', 'over_1m'] as const;
+export type LeadSizeBand = (typeof LEAD_SIZE_BANDS)[number];
+
+export const LEAD_SIZE_BAND_LABELS: Record<LeadSizeBand, string> = {
+  under_25k: 'Under $25K',
+  '25k_100k': '$25K – $100K',
+  '100k_500k': '$100K – $500K',
+  '500k_1m': '$500K – $1M',
+  over_1m: 'Over $1M',
+};
+
+/**
+ * One row of lead_timeline = one touch. The kinds a PERSON logs come first;
+ * stage_change / link / file are written by triggers or uploads and render as
+ * system events; draft is reserved for the (deferred) mail logger.
+ */
+export const TOUCH_KINDS = ['note', 'call', 'email_in', 'email_out', 'text', 'meeting', 'site_walk'] as const;
+export type TouchKind = (typeof TOUCH_KINDS)[number];
+
+export const TIMELINE_KINDS = [...TOUCH_KINDS, 'stage_change', 'link', 'file', 'draft'] as const;
+export type TimelineKind = (typeof TIMELINE_KINDS)[number];
+
+export const TIMELINE_KIND_LABELS: Record<TimelineKind, string> = {
+  note: 'Note',
+  call: 'Call',
+  email_in: 'Email received',
+  email_out: 'Email sent',
+  text: 'Text',
+  meeting: 'Meeting',
+  site_walk: 'Site walk',
+  stage_change: 'Stage changed',
+  link: 'Job link',
+  file: 'File',
+  draft: 'Draft',
+};
+
+export interface LeadTimelineAttachment {
+  /** bid_media.id when the file was uploaded through the composer. */
+  media_id?: string;
+  file_type: 'image' | 'video' | 'document';
+  file_name: string;
+  /** Resolved at read time (signed URL or public URL). */
+  url?: string;
+  thumbnail_url?: string | null;
+}
+
+export interface LeadTimelineEntry {
+  id: string;
+  target_type: 'lead' | 'job' | 'client';
+  target_id: string;
+  kind: TimelineKind;
+  occurred_at: string;
+  summary: string | null;
+  body: string | null;
+  user_id: string | null;
+  written_by: string | null;
+  attachments: LeadTimelineAttachment[];
+  metadata: Record<string, unknown>;
+  created_at: string;
+  /** Resolved client-side from profiles. */
+  author_name?: string | null;
+  /**
+   * 'media' rows are NOT lead_timeline rows — they are bid_media uploads merged
+   * at read time (Rule 20's read-side union) so a bar-captured photo shows on
+   * the same timeline as the words typed about it. Their id is `media:<uuid>`.
+   */
+  source: 'timeline' | 'media';
+}
+
+export interface LeadContact {
+  id: string;
+  name: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  client_id: string | null;
+}
+
 /** One row of branch_bid_projects with its project embedded (lead → job link). */
 export interface BranchBidProjectLink {
   id: string;
@@ -93,6 +171,16 @@ export interface BranchBid {
   closed_reason: LeadClosedReason | null;
   closed_at: string | null;
   closed_by: string | null;
+  /** The person we are talking to (contacts row; a prospect may have no client). */
+  contact_id: string | null;
+  /** Who owns the follow-up. Defaults to the creator; reassigned from the record. */
+  owner_user_id: string | null;
+  /** The ONE field that drives the follow-up list (sales design rule 3). */
+  next_step: string | null;
+  next_step_due: string | null;
+  size_band: LeadSizeBand | null;
+  /** Newest human touch on the timeline. Trigger-maintained — never write it. */
+  last_contact_at: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -102,6 +190,9 @@ export interface BranchBid {
     full_name: string | null;
     email: string | null;
   };
+  contacts?: LeadContact | null;
+  /** Resolved client-side (profiles) for the list + record. */
+  owner_name?: string | null;
   clients?: {
     id: string;
     client_name: string;
@@ -173,6 +264,11 @@ export interface CreateBranchBidParams {
   job_type?: string;
   source: LeadSource;
   source_detail?: string;
+  contact_id?: string | null;
+  owner_user_id?: string | null;
+  next_step?: string | null;
+  next_step_due?: string | null;
+  size_band?: LeadSizeBand | null;
 }
 
 export interface UpdateBranchBidParams {

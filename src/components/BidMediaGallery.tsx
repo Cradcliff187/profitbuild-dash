@@ -183,7 +183,7 @@ export function BidMediaGallery({ bidId }: BidMediaGalleryProps) {
           </div>
           <h3 className="text-lg font-semibold mb-2">No media found</h3>
           <p className="text-sm text-muted-foreground">
-            {activeTab === 'all' && 'Use the buttons above to capture photos or videos'}
+            {activeTab === 'all' && 'Nothing captured yet'}
             {activeTab === 'photos' && 'No photos captured yet'}
             {activeTab === 'videos' && 'No videos captured yet'}
           </p>

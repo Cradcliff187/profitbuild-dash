@@ -14,6 +14,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { BidMedia } from '@/types/bid';
 
 interface BidDocumentUploadProps {
+  /**
+   * Hide the drag-and-drop uploader. The mobile lead hub passes this because
+   * the bottom bar's Attach already uploads documents — two upload affordances
+   * on one screen was one of the Nov 2026 cleanup items.
+   */
+  hideUploader?: boolean;
   bidId: string;
 }
 
@@ -28,7 +34,7 @@ const ALLOWED_DOCUMENT_TYPES = [
 
 const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
 
-export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
+export function BidDocumentUpload({ bidId, hideUploader = false }: BidDocumentUploadProps) {
   const queryClient = useQueryClient();
   const { media: documents, isLoading } = useBidMedia(bidId, { fileType: 'document' });
   const { upload, isUploading, progress } = useBidMediaUpload();
@@ -196,6 +202,7 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
   return (
     <div className="space-y-4">
       {/* Upload Area */}
+      {!hideUploader && (
       <Card
         className={`p-6 border-2 border-dashed transition-colors ${
           dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
@@ -253,6 +260,7 @@ export function BidDocumentUpload({ bidId }: BidDocumentUploadProps) {
           )}
         </div>
       </Card>
+      )}
 
       {/* Documents List */}
       {documents.length > 0 && (

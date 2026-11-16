@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Download, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
 import type { BranchBid } from '@/types/bid';
-import { formatLeadClosedReason, formatLeadSource, formatLeadStage } from '@/utils/leadLabels';
+import { formatLeadClosedReason, formatLeadSizeBand, formatLeadSource, formatLeadStage } from '@/utils/leadLabels';
 
 interface BidExportModalProps {
   isOpen: boolean;
@@ -70,7 +70,10 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
 
   const exportToCSV = async (bids: BranchBid[]) => {
     // Build headers based on options
-    const headers: string[] = ["Lead Name", "Stage", "Closed Reason", "Source", "Source Detail"];
+    const headers: string[] = [
+      "Lead Name", "Stage", "Closed Reason", "Source", "Source Detail",
+      "Person", "Person Phone", "Person Email", "Next Step", "Next Step Due", "Owner", "Last Contact", "Size",
+    ];
 
     if (exportOptions.includeDescription) {
       headers.push("Description");
@@ -100,6 +103,14 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
         `"${formatLeadClosedReason(bid.closed_reason) || ""}"`,
         `"${formatLeadSource(bid.source)}"`,
         `"${(bid.source_detail || "").replace(/"/g, '""')}"`,
+        `"${(bid.contacts?.name || "").replace(/"/g, '""')}"`,
+        `"${bid.contacts?.phone || ""}"`,
+        `"${bid.contacts?.email || ""}"`,
+        `"${(bid.next_step || "").replace(/"/g, '""')}"`,
+        `"${bid.next_step_due || ""}"`,
+        `"${(bid.owner_name || "").replace(/"/g, '""')}"`,
+        `"${bid.last_contact_at ? format(new Date(bid.last_contact_at), 'yyyy-MM-dd') : ""}"`,
+        `"${formatLeadSizeBand(bid.size_band) || ""}"`,
       ];
 
       if (exportOptions.includeDescription) {
@@ -189,7 +200,7 @@ export const BidExportModal: React.FC<BidExportModalProps> = ({
             {/* Export Format */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Export Format</label>
-              <Select value={exportOptions.format} onValueChange={(value) => updateOptions({ format: value as any })}>
+              <Select value={exportOptions.format} onValueChange={(value) => updateOptions({ format: value as ExportOptions['format'] })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
