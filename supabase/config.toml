@@ -74,3 +74,7 @@ verify_jwt = true
 
 [functions.ai-report-assistant]
 verify_jwt = true
+
+# Website lead alert: called by pg_cron every minute; checks its own key (x-lead-alert-key).
+[functions.lead-alert]
+verify_jwt = false
