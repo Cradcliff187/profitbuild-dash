@@ -6,7 +6,7 @@
  *   OR user_id via `ownTimeEntriesOrFilter` (ownership is the payee, not the
  *   entering account; `is_time_entry = true` — Gotcha #68, not category).
  * - 7 day-dots Mon..Sun, states defined once in `field-time/weekDayState.ts`
- *   and shared with the Time tab's `WeeklySummary`: filled = time logged;
+ *   and shared with the timesheet's `WeekSummaryCard`: filled = time logged;
  *   amber outline = a FINISHED day with nothing logged (weekday, or any day
  *   with an assignment via `crew_day_assignments_field_view`, Rule 34); muted
  *   otherwise. Today is never amber — it's still in progress. Today gets a

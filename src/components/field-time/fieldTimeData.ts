@@ -32,7 +32,7 @@ import {
   ownTimeEntriesOrFilter,
 } from "@/utils/ownTimeEntries";
 
-const STALE_TIME = 60 * 1000;
+export const STALE_TIME = 60 * 1000;
 
 /**
  * Own time-entry row as this page reads it — a superset of the `TimeEntry`
@@ -65,7 +65,7 @@ export interface FieldTimeEntry {
   project: { project_number: string; project_name: string } | null;
 }
 
-const ENTRY_SELECT = `
+export const ENTRY_SELECT = `
   id,
   payee_id,
   project_id,

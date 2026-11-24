@@ -8,7 +8,7 @@
  * router — not here.
  *
  * DAY SELECTION (`?date=YYYY-MM-DD`): the week strip's dots are tap targets.
- * Selecting a day swaps "Recent entries" for that day's entries and retargets
+ * Selecting a day swaps the week's day-by-day list for that day's entries and retargets
  * the primary button to "Add entry for Tue, Jul 21" (pre-filling the date).
  * The strip stays put, so day → add → next day never needs a back gesture —
  * which is the point: 46% of time entries are filed after the work date and
@@ -72,7 +72,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatDateForDB, parseDateOnly } from "@/utils/dateUtils";
 import { CreateTimeEntryDialog } from "@/components/time-tracker/CreateTimeEntryDialog";
 import { EditTimeEntryDialog } from "@/components/time-tracker/EditTimeEntryDialog";
-import { WeeklySummary } from "@/components/field-time/WeeklySummary";
+import { WeekDayList, WeekSummaryCard } from "@/components/timesheet/WeekSheet";
+import { buildWeekSheet, toEditTimeEntry } from "@/components/timesheet/timesheetModel";
+import { useMyWorkerKind } from "@/components/timesheet/timesheetData";
 import { RecentEntriesList } from "@/components/field-time/RecentEntriesList";
 import { CopyDayEntriesSheet } from "@/components/field-time/CopyDayEntriesSheet";
 import {
@@ -80,7 +82,6 @@ import {
   invalidateFieldTimeQueries,
   sumPaidHours,
   useMyDayTimeEntries,
-  useMyRecentTimeEntries,
   useMyWeekAssignmentDates,
   useMyWeekTimeEntries,
 } from "@/components/field-time/fieldTimeData";
@@ -194,7 +195,7 @@ export default function FieldTimeLanding() {
     weekStartISO,
     weekEndISO
   );
-  const recentQuery = useMyRecentTimeEntries(user?.id);
+  const kindQuery = useMyWorkerKind(user?.id);
   const yesterdayQuery = useMyDayTimeEntries(user?.id, yesterdayISO);
   // On Saturdays yesterday IS last Friday — the shared query key means only
   // one fetch fires for both buttons.
@@ -232,25 +233,27 @@ export default function FieldTimeLanding() {
   };
 
   // Map to the exact `TimeEntry` shape EditTimeEntryDialog accepts.
-  const editEntry = editingEntry
-    ? {
-        id: editingEntry.id,
-        payee_id: editingEntry.payee_id,
-        project_id: editingEntry.project_id,
-        expense_date: editingEntry.expense_date,
-        amount: editingEntry.amount,
-        description: editingEntry.description ?? "",
-        user_id: editingEntry.user_id ?? undefined,
-        start_time: editingEntry.start_time ?? undefined,
-        end_time: editingEntry.end_time ?? undefined,
-        attachment_url: editingEntry.attachment_url ?? undefined,
-        approval_status: editingEntry.approval_status ?? undefined,
-        is_locked: editingEntry.is_locked ?? undefined,
-        rejection_reason: editingEntry.rejection_reason ?? undefined,
-        lunch_taken: editingEntry.lunch_taken ?? undefined,
-        lunch_duration_minutes: editingEntry.lunch_duration_minutes,
-      }
-    : null;
+  const editEntry = editingEntry ? toEditTimeEntry(editingEntry) : null;
+
+  // The browsed week as a timesheet: per-day hours, the 40-hour split for
+  // employees, and the "to check" list. Cheap to rebuild per render.
+  const weekLoading =
+    weekEntriesQuery.isPending ||
+    weekAssignmentsQuery.isPending ||
+    kindQuery.isPending;
+  const sheet = buildWeekSheet({
+    weekDays,
+    todayISO,
+    entries: weekEntriesQuery.data ?? [],
+    assignmentDates: weekAssignmentsQuery.data ?? [],
+    kind: kindQuery.data ?? "employee",
+  });
+
+  /** "Add" on a day row: open that day and the form pre-filled for it. */
+  const addForDay = (day: string) => {
+    if (day !== selectedDate) handleSelectDate(day);
+    openCreate();
+  };
 
   const copyLabel = copySource === "yesterday" ? "yesterday" : "last Friday";
   const copyDateISO = copySource === "yesterday" ? yesterdayISO : lastFridayISO;
@@ -260,10 +263,8 @@ export default function FieldTimeLanding() {
       : fridayQuery.data ?? [];
 
   const friendlyDate = format(now, "EEEE, MMM d");
-  const weekLabel =
-    weeksBack === 0
-      ? "This week"
-      : `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d")}`;
+  const weekRange = `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d")}`;
+  const weekLabel = weeksBack === 0 ? `This week · ${weekRange}` : weekRange;
   const selectedLabel = selectedDate
     ? format(parseDateOnly(selectedDate), "EEE, MMM d")
     : null;
@@ -287,18 +288,17 @@ export default function FieldTimeLanding() {
           {/* Weekly summary — internally responsive (halves side-by-side at
               md+). Doubles as the week browser: chevrons step back through
               payroll history. */}
-          <WeeklySummary
-            weekDays={weekDays}
+          <WeekSummaryCard
+            sheet={sheet}
+            loading={weekLoading}
             todayISO={todayISO}
-            entries={weekEntriesQuery.data ?? []}
-            assignmentDates={weekAssignmentsQuery.data ?? []}
-            loading={weekEntriesQuery.isPending || weekAssignmentsQuery.isPending}
-            selectedDate={selectedDate}
-            onSelectDate={handleSelectDate}
             weekLabel={weekLabel}
             onPrevWeek={() => setWeeksBack((w) => w + 1)}
             onNextWeek={() => setWeeksBack((w) => Math.max(0, w - 1))}
             nextWeekDisabled={weeksBack === 0}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+            projectEntries={weekEntriesQuery.data}
           />
 
           {/* Actions — 390px: Add full-width with copy buttons paired below;
@@ -347,7 +347,7 @@ export default function FieldTimeLanding() {
                   className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-3.5 w-3.5" />
-                  Show recent
+                  Show week
                 </button>
               </div>
               <RecentEntriesList
@@ -359,14 +359,13 @@ export default function FieldTimeLanding() {
               />
             </section>
           ) : (
-            <section aria-label="Recent time entries" className="space-y-2">
-              <h2 className="text-sm font-semibold text-muted-foreground">
-                Recent entries
-              </h2>
-              <RecentEntriesList
-                entries={recentQuery.data ?? []}
-                loading={recentQuery.isPending}
-                onSelect={openEdit}
+            <section aria-label="This week, day by day">
+              <WeekDayList
+                sheet={sheet}
+                loading={weekLoading}
+                todayISO={todayISO}
+                onSelectEntry={openEdit}
+                onAddForDay={addForDay}
               />
             </section>
           )}

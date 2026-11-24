@@ -8,7 +8,10 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BrandedLoader } from '@/components/ui/branded-loader';
-import { WeekView } from './WeekView';
+import { TimesheetWeek } from '@/components/timesheet/TimesheetWeek';
+import { toEditTimeEntry } from '@/components/timesheet/timesheetModel';
+import { invalidateFieldTimeQueries } from '@/components/field-time/fieldTimeData';
+import { useQueryClient } from '@tanstack/react-query';
 import { EditTimeEntryDialog } from './EditTimeEntryDialog';
 import { CreateTimeEntryDialog } from './CreateTimeEntryDialog';
 import { BulkActionsBar } from './BulkActionsBar';
@@ -85,6 +88,9 @@ export const MobileTimeTracker: React.FC = () => {
   const [entriesDateRange, setEntriesDateRange] = useState<'today' | 'week'>('today');
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  // Day the create form opens on when started from a timesheet day row.
+  const [manualEntryDate, setManualEntryDate] = useState<string | undefined>(undefined);
+  const queryClient = useQueryClient();
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showScheduleSelector, setShowScheduleSelector] = useState(false);
@@ -421,7 +427,7 @@ export const MobileTimeTracker: React.FC = () => {
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                This Week
+                Timesheet
               </button>
             </div>
           </div>
@@ -563,10 +569,13 @@ export const MobileTimeTracker: React.FC = () => {
               
             </div>
           ) : (
-            <div className="p-4">
-              <WeekView
-                onEditEntry={(entry) => setEditingEntry(entry)}
-                onCreateEntry={() => setShowManualEntry(true)}
+            <div className="p-4 pb-24">
+              <TimesheetWeek
+                onEditEntry={(entry) => setEditingEntry(toEditTimeEntry(entry))}
+                onAddForDay={(day) => {
+                  setManualEntryDate(day);
+                  setShowManualEntry(true);
+                }}
               />
             </div>
           )}
@@ -587,6 +596,7 @@ export const MobileTimeTracker: React.FC = () => {
         onOpenChange={(open) => !open && setEditingEntry(null)}
         onSaved={() => {
           loadTodayEntries();
+          invalidateFieldTimeQueries(queryClient);
           setEditingEntry(null);
         }}
       />
@@ -594,10 +604,16 @@ export const MobileTimeTracker: React.FC = () => {
       {/* Create Time Entry Dialog */}
       <CreateTimeEntryDialog
         open={showManualEntry}
-        onOpenChange={setShowManualEntry}
+        onOpenChange={(open) => {
+          setShowManualEntry(open);
+          if (!open) setManualEntryDate(undefined);
+        }}
+        defaultDate={manualEntryDate}
         onSaved={() => {
           loadTodayEntries();
+          invalidateFieldTimeQueries(queryClient);
           setShowManualEntry(false);
+          setManualEntryDate(undefined);
         }}
       />
 
