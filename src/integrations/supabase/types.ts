@@ -1908,6 +1908,251 @@ export type Database = {
           },
         ]
       }
+      lead_alert_forms: {
+        Row: {
+          attempts: number
+          claimed_at: string
+          created_at: string
+          email: string | null
+          emailed_at: string | null
+          gmail_message_id: string | null
+          gmail_thread_id: string | null
+          in_spam: boolean
+          industry: string | null
+          is_test: boolean
+          message: string | null
+          name: string | null
+          organization: string | null
+          phone: string | null
+          preferred_contact: string | null
+          project_scope: string | null
+          project_timeline: string | null
+          reason: string | null
+          referral_source: string | null
+          ruling: string | null
+          ruling_at: string | null
+          ruling_by: string | null
+          ruling_note: string | null
+          sent_to: string | null
+          source: string
+          status: string
+          subject: string | null
+          submission_id: string
+          submitted_at: string
+          summary: string | null
+          text_results: Json
+          texted_at: string | null
+          updated_at: string
+          verdict: string | null
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string
+          created_at?: string
+          email?: string | null
+          emailed_at?: string | null
+          gmail_message_id?: string | null
+          gmail_thread_id?: string | null
+          in_spam?: boolean
+          industry?: string | null
+          is_test?: boolean
+          message?: string | null
+          name?: string | null
+          organization?: string | null
+          phone?: string | null
+          preferred_contact?: string | null
+          project_scope?: string | null
+          project_timeline?: string | null
+          reason?: string | null
+          referral_source?: string | null
+          ruling?: string | null
+          ruling_at?: string | null
+          ruling_by?: string | null
+          ruling_note?: string | null
+          sent_to?: string | null
+          source?: string
+          status?: string
+          subject?: string | null
+          submission_id: string
+          submitted_at: string
+          summary?: string | null
+          text_results?: Json
+          texted_at?: string | null
+          updated_at?: string
+          verdict?: string | null
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string
+          created_at?: string
+          email?: string | null
+          emailed_at?: string | null
+          gmail_message_id?: string | null
+          gmail_thread_id?: string | null
+          in_spam?: boolean
+          industry?: string | null
+          is_test?: boolean
+          message?: string | null
+          name?: string | null
+          organization?: string | null
+          phone?: string | null
+          preferred_contact?: string | null
+          project_scope?: string | null
+          project_timeline?: string | null
+          reason?: string | null
+          referral_source?: string | null
+          ruling?: string | null
+          ruling_at?: string | null
+          ruling_by?: string | null
+          ruling_note?: string | null
+          sent_to?: string | null
+          source?: string
+          status?: string
+          subject?: string | null
+          submission_id?: string
+          submitted_at?: string
+          summary?: string | null
+          text_results?: Json
+          texted_at?: string | null
+          updated_at?: string
+          verdict?: string | null
+        }
+        Relationships: []
+      }
+      lead_alert_settings: {
+        Row: {
+          cap_alerted_at: string | null
+          consecutive_failures: number
+          email_consecutive_failures: number
+          email_enabled: boolean
+          email_internal_domains: string[]
+          email_last_error: string | null
+          email_last_ok_at: string | null
+          email_live_since: string | null
+          email_mailbox: string
+          email_match_addresses: string[]
+          email_match_list_ids: string[]
+          email_outage_alerted: boolean
+          email_skip_senders: string[]
+          email_skip_subject_prefixes: string[]
+          email_status: string
+          email_to: string[]
+          enabled: boolean
+          fail_alert_after: number
+          health_email_to: string[]
+          health_profile_ids: string[]
+          id: boolean
+          last_error: string | null
+          last_ok_at: string | null
+          live_since: string | null
+          low_credit_alerted_at: string | null
+          low_credit_threshold: number
+          max_texts_per_hour: number
+          outage_alerted: boolean
+          poll_key: string
+          screen_instructions: string | null
+          status: string
+          system_sender_id: string | null
+          text_profile_ids: string[]
+          textbelt_quota: number | null
+          updated_at: string
+          website_anon_key: string | null
+          website_token: string | null
+          website_token_expires_at: string | null
+          website_url: string | null
+        }
+        Insert: {
+          cap_alerted_at?: string | null
+          consecutive_failures?: number
+          email_consecutive_failures?: number
+          email_enabled?: boolean
+          email_internal_domains?: string[]
+          email_last_error?: string | null
+          email_last_ok_at?: string | null
+          email_live_since?: string | null
+          email_mailbox?: string
+          email_match_addresses?: string[]
+          email_match_list_ids?: string[]
+          email_outage_alerted?: boolean
+          email_skip_senders?: string[]
+          email_skip_subject_prefixes?: string[]
+          email_status?: string
+          email_to?: string[]
+          enabled?: boolean
+          fail_alert_after?: number
+          health_email_to?: string[]
+          health_profile_ids?: string[]
+          id?: boolean
+          last_error?: string | null
+          last_ok_at?: string | null
+          live_since?: string | null
+          low_credit_alerted_at?: string | null
+          low_credit_threshold?: number
+          max_texts_per_hour?: number
+          outage_alerted?: boolean
+          poll_key?: string
+          screen_instructions?: string | null
+          status?: string
+          system_sender_id?: string | null
+          text_profile_ids?: string[]
+          textbelt_quota?: number | null
+          updated_at?: string
+          website_anon_key?: string | null
+          website_token?: string | null
+          website_token_expires_at?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          cap_alerted_at?: string | null
+          consecutive_failures?: number
+          email_consecutive_failures?: number
+          email_enabled?: boolean
+          email_internal_domains?: string[]
+          email_last_error?: string | null
+          email_last_ok_at?: string | null
+          email_live_since?: string | null
+          email_mailbox?: string
+          email_match_addresses?: string[]
+          email_match_list_ids?: string[]
+          email_outage_alerted?: boolean
+          email_skip_senders?: string[]
+          email_skip_subject_prefixes?: string[]
+          email_status?: string
+          email_to?: string[]
+          enabled?: boolean
+          fail_alert_after?: number
+          health_email_to?: string[]
+          health_profile_ids?: string[]
+          id?: boolean
+          last_error?: string | null
+          last_ok_at?: string | null
+          live_since?: string | null
+          low_credit_alerted_at?: string | null
+          low_credit_threshold?: number
+          max_texts_per_hour?: number
+          outage_alerted?: boolean
+          poll_key?: string
+          screen_instructions?: string | null
+          status?: string
+          system_sender_id?: string | null
+          text_profile_ids?: string[]
+          textbelt_quota?: number | null
+          updated_at?: string
+          website_anon_key?: string | null
+          website_token?: string | null
+          website_token_expires_at?: string | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_alert_settings_system_sender_id_fkey"
+            columns: ["system_sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_timeline: {
         Row: {
           agent_key: string | null
@@ -1962,6 +2207,42 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           written_by?: string | null
+        }
+        Relationships: []
+      }
+      mail_sync_state: {
+        Row: {
+          consumer: string
+          created_at: string
+          history_id: string | null
+          last_error: string | null
+          last_ok_at: string | null
+          last_run_at: string | null
+          mailbox: string
+          seen_ids: Json
+          updated_at: string
+        }
+        Insert: {
+          consumer: string
+          created_at?: string
+          history_id?: string | null
+          last_error?: string | null
+          last_ok_at?: string | null
+          last_run_at?: string | null
+          mailbox: string
+          seen_ids?: Json
+          updated_at?: string
+        }
+        Update: {
+          consumer?: string
+          created_at?: string
+          history_id?: string | null
+          last_error?: string | null
+          last_ok_at?: string | null
+          last_run_at?: string | null
+          mailbox?: string
+          seen_ids?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2967,6 +3248,20 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "payees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_source_contact_id_fkey"
+            columns: ["source_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -4942,6 +5237,140 @@ export type Database = {
         Args: { val: string }
         Returns: Database["public"]["Enums"]["quote_status"]
       }
+      sales_assert_caller: {
+        Args: { p_written_by: string }
+        Returns: undefined
+      }
+      sales_business_days_between: {
+        Args: { d1: string; d2: string }
+        Returns: number
+      }
+      sales_create_job: {
+        Args: {
+          p_address?: string
+          p_client_id?: string
+          p_client_name?: string
+          p_job_name?: string
+          p_lead_id: string
+          p_project_type?: string
+          p_written_by?: string
+        }
+        Returns: {
+          job_id: string
+          job_number: string
+        }[]
+      }
+      sales_create_lead: {
+        Args: {
+          p_address?: string
+          p_client_id?: string
+          p_contact_id?: string
+          p_description?: string
+          p_job_type?: string
+          p_name: string
+          p_owner_user_id?: string
+          p_project_type?: string
+          p_size_band?: string
+          p_source: string
+          p_source_detail?: string
+          p_written_by?: string
+        }
+        Returns: string
+      }
+      sales_find_or_add_contact: {
+        Args: {
+          p_client_id?: string
+          p_email?: string
+          p_name: string
+          p_notes?: string
+          p_phone?: string
+          p_title?: string
+          p_written_by?: string
+        }
+        Returns: string
+      }
+      sales_list_due: {
+        Args: { p_since?: string }
+        Returns: {
+          address: string
+          attention: string
+          client_name: string
+          contact_email: string
+          contact_id: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          days_since_contact: number
+          last_contact_at: string
+          lead_id: string
+          linked_jobs: string
+          name: string
+          next_step: string
+          next_step_due: string
+          owner_name: string
+          owner_user_id: string
+          size_band: string
+          source: string
+          stage: string
+          touches_since: number
+        }[]
+      }
+      sales_log_touch: {
+        Args: {
+          p_agent_key?: string
+          p_attachments?: Json
+          p_body?: string
+          p_gmail_message_id?: string
+          p_kind: string
+          p_metadata?: Json
+          p_occurred_at?: string
+          p_summary?: string
+          p_target_id: string
+          p_target_type: string
+          p_written_by?: string
+        }
+        Returns: string
+      }
+      sales_norm_phone: { Args: { p: string }; Returns: string }
+      sales_pipeline: { Args: never; Returns: Json }
+      sales_request_estimate: {
+        Args: {
+          p_address?: string
+          p_client_id?: string
+          p_job_name?: string
+          p_lead_id: string
+          p_project_type?: string
+          p_written_by?: string
+        }
+        Returns: {
+          job_id: string
+          job_number: string
+        }[]
+      }
+      sales_set_next_step: {
+        Args: {
+          p_due_date: string
+          p_lead_id: string
+          p_owner_user_id?: string
+          p_text: string
+          p_written_by?: string
+        }
+        Returns: undefined
+      }
+      sales_set_stage: {
+        Args: {
+          p_lead_id: string
+          p_reason?: string
+          p_stage: string
+          p_written_by?: string
+        }
+        Returns: undefined
+      }
+      sales_update_lead: {
+        Args: { p_lead_id: string; p_patch: Json; p_written_by?: string }
+        Returns: undefined
+      }
+      sales_written_by: { Args: never; Returns: string }
       set_next_project_number: {
         Args: { p_next_sequence: number }
         Returns: {
@@ -4959,6 +5388,7 @@ export type Database = {
         Args: { target_co_id: string }
         Returns: undefined
       }
+      timesheet_audit_text: { Args: { p_as_of?: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "manager" | "field_worker"

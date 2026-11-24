@@ -18,6 +18,7 @@ import { LeadFactsCard } from '@/components/bids/LeadFactsCard';
 import { LeadEditSheet } from '@/components/bids/LeadEditSheet';
 import { LinkProjectDialog } from '@/components/bids/LinkProjectDialog';
 import { LinkedJobsCard } from '@/components/bids/LinkedJobsCard';
+import { CreateJobDialog } from '@/components/bids/CreateJobDialog';
 import { LeadEstimatesCard } from '@/components/bids/LeadEstimatesCard';
 import { NextStepCard } from '@/components/bids/NextStepCard';
 import { TouchComposer } from '@/components/bids/TouchComposer';
@@ -61,9 +62,10 @@ export default function BranchBidDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [createJobOpen, setCreateJobOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
 
-  const { links, linkProjects, isLinking, unlinkProject, isUnlinking } = useLeadProjectLinks(id);
+  const { links, linkProjects, isLinking, unlinkProject, isUnlinking, createJob, isCreatingJob } = useLeadProjectLinks(id);
   const { entries, isLoading: timelineLoading, deleteEntry } = useLeadTimeline(id);
 
   const { data: bid, isLoading } = useQuery({
@@ -145,6 +147,16 @@ export default function BranchBidDetail() {
         isLinking={isLinking}
         leadName={bid.name}
       />
+      <CreateJobDialog
+        open={createJobOpen}
+        onOpenChange={setCreateJobOpen}
+        bid={bid}
+        isCreating={isCreatingJob}
+        onCreate={async (input) => {
+          await createJob(input);
+          setCreateJobOpen(false);
+        }}
+      />
     </>
   );
 
@@ -169,7 +181,7 @@ export default function BranchBidDetail() {
               {subPage === 'documents' && <BidDocumentUpload bidId={bid.id} hideUploader />}
               {subPage === 'jobs' && (
                 <div className="space-y-4">
-                  <LinkedJobsCard links={links} canEdit={canEdit} onLinkJob={() => setLinkOpen(true)} onUnlink={(linkId) => unlinkProject(linkId)} isUnlinking={isUnlinking} />
+                  <LinkedJobsCard links={links} canEdit={canEdit} onLinkJob={() => setLinkOpen(true)} onCreateJob={bid.stage === 'closed' ? undefined : () => setCreateJobOpen(true)} onUnlink={(linkId) => unlinkProject(linkId)} isUnlinking={isUnlinking} />
                   <LeadEstimatesCard links={links} />
                 </div>
               )}
@@ -235,7 +247,7 @@ export default function BranchBidDetail() {
         {/* Right — what's next */}
         <div className="order-2 space-y-4 lg:order-none lg:sticky lg:top-4 lg:self-start">
           <NextStepCard bid={bid} canEdit={canEdit} />
-          <LinkedJobsCard links={links} canEdit={canEdit} onLinkJob={() => setLinkOpen(true)} onUnlink={(linkId) => unlinkProject(linkId)} isUnlinking={isUnlinking} />
+          <LinkedJobsCard links={links} canEdit={canEdit} onLinkJob={() => setLinkOpen(true)} onCreateJob={bid.stage === 'closed' ? undefined : () => setCreateJobOpen(true)} onUnlink={(linkId) => unlinkProject(linkId)} isUnlinking={isUnlinking} />
           <LeadEstimatesCard links={links} />
           {links.length > 0 && (
             <p className="px-1 text-[11px] text-muted-foreground">

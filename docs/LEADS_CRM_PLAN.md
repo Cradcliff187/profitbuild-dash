@@ -17,6 +17,13 @@ Rule 37 (hub + drill-downs on mobile, one navigation layer per screen), Rule 15 
 
 ---
 
+
+> **Nov 24 2026 addendum (Rule 46).** Decided by Chris after the Buckeye Home Health lead: the hand-off
+> mints the job number in the app (`sales_create_job`, "Create job" on the lead), Matt's tracker sheet
+> stays the source of truth for numbers and statuses, the `sales_*` functions the rcg-sales skill named
+> now exist as log-only wrappers (`docs/sales-desk-functions.sql`), estimates are not a system of record
+> (no chase, no dates, no auto-close), and `lead-alert` lives in the repo. See CLAUDE.md Rule 46.
+
 ## 1. Where the pipeline actually is (live numbers, 2026-11-07)
 
 | What | Count |

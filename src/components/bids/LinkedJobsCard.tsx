@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Link as LinkIcon, Plus, X } from 'lucide-react';
+import { Briefcase, Link as LinkIcon, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,8 @@ interface LinkedJobsCardProps {
   links: BranchBidProjectLink[];
   canEdit: boolean;
   onLinkJob: () => void;
+  /** The hand-off: mint the next number and link it (Rule 42 amended Nov 24 2026). */
+  onCreateJob?: () => void;
   onUnlink: (linkId: string) => void;
   isUnlinking?: boolean;
   /** Render without the Card chrome (inside a mobile drill-down). */
@@ -18,11 +20,12 @@ interface LinkedJobsCardProps {
 }
 
 /**
- * The jobs a lead is LINKED to. This is the ONLY home of "Link to job" on the
- * lead page (Rule 42: a lead never takes a number — the job does). One verb,
- * one place; the header kebab no longer duplicates it.
+ * The jobs a lead is LINKED to. This is the ONLY home of "Create job" and
+ * "Link existing" on the lead page (Rule 42: a lead never takes a number — the
+ * job does; since Nov 24 2026 the hand-off mints that number here). One place;
+ * the header kebab does not duplicate it.
  */
-export function LinkedJobsCard({ links, canEdit, onLinkJob, onUnlink, isUnlinking, bare = false }: LinkedJobsCardProps) {
+export function LinkedJobsCard({ links, canEdit, onLinkJob, onCreateJob, onUnlink, isUnlinking, bare = false }: LinkedJobsCardProps) {
   const navigate = useNavigate();
   const body = (
     <>
@@ -35,16 +38,24 @@ export function LinkedJobsCard({ links, canEdit, onLinkJob, onUnlink, isUnlinkin
           )}
         </div>
         {canEdit && (
-          <Button size="sm" variant={links.length === 0 ? 'default' : 'outline'} onClick={onLinkJob} className="h-8 gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Link to job
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {onCreateJob && (
+              <Button size="sm" variant={links.length === 0 ? 'default' : 'outline'} onClick={onCreateJob} className="h-8 gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" />
+                Create job
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={onLinkJob} className="h-8 gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              Link existing
+            </Button>
+          </div>
         )}
       </div>
       {links.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          No job yet. When the job folder is created and the job exists, link it here — the lead keeps
-          its history, the job keeps the number.
+          No job yet. Create one to take the next number, or link a job that already exists. The lead keeps
+          the conversation; the job keeps the number, and Matt&apos;s sheet is the final word on it.
         </p>
       ) : (
         <ul className="mt-2 space-y-1.5">
