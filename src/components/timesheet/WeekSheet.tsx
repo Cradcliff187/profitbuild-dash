@@ -368,9 +368,11 @@ function DaySection({
               missing ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"
             )}
           >
-            {missing ? "No time logged" : isToday ? "Nothing logged yet" : "Off"}
+            {/* Never "Off": the app only knows nothing was logged, not why.
+                Amber = a day we expected time on; muted = no expectation. */}
+            {isToday ? "Nothing logged yet" : "No time logged"}
           </span>
-          {onAddForDay && (missing || isToday) && (
+          {onAddForDay && (
             <Button
               variant="outline"
               size="sm"

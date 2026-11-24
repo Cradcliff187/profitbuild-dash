@@ -2107,6 +2107,10 @@ one mixed total on a Sunday–Saturday week, and `WeeklySummary` (deleted; dots,
 - Worker kind = `payees.is_internal` (`false` ⇒ sub). Team reads are admin/manager by RLS; field workers never
   get the Team tab. All query keys start `field-time-` so `invalidateFieldTimeQueries` covers them. No
   realtime, no `getUser()` (Rule 35).
+- **An empty day never reads "Off"** (fixed same day, after Chris asked whether a time-off entry had produced
+  it — none had). The app knows only that nothing was logged, not why; every empty past day says "No time
+  logged" (amber when time was expected, muted when not) and carries an Add button. Rule 37's
+  fabricated-information class.
 - **Not built**: worker sign-off, GPS, admin "add entry for someone else" from the roster (use Time Entries).
 
 ---
