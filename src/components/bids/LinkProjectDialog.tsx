@@ -41,11 +41,11 @@ interface LinkProjectDialogProps {
 const RENDER_CAP = 60;
 
 /**
- * "Link to job": search EXISTING projects by number or name and link one or
- * more to this lead. There is deliberately no create path here — a lead never
- * gets a project number; Matt mints numbers when the job folder is created
- * (CLAUDE.md Rule 42). Candidates are construction jobs + work orders only
- * (overhead/system projects are filtered by isProjectVisibleByCategory).
+ * "Link existing": search EXISTING projects by number or name and link one or
+ * more to this lead. Creating a job lives next door in CreateJobDialog (the
+ * hand-off, Rule 42 as amended Nov 24 2026); this dialog only links. Candidates
+ * are construction jobs + work orders only (overhead/system projects are
+ * filtered by isProjectVisibleByCategory).
  */
 export function LinkProjectDialog({
   open,

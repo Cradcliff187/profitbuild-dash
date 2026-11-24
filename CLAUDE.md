@@ -104,6 +104,7 @@ src/
 | Media/AI | `enhance-caption`, `transcribe-audio`, `generate-media-report`, `generate-video-thumbnail` |
 | AI (live) | `ai-report-assistant` (heavily used — Reports AI), `enrich-estimate-items` (live estimate import), `scan-receipt` (receipt pre-fill — Rule 41; v4, verify_jwt true, deployed via MCP Oct 27 2026; Claude or OpenAI) |
 | Contracts | `generate-contract` (template-driven subcontractor project agreement; .docx placeholder substitution via JSZip) |
+| Sales | `lead-alert` (website contact-form screen → text + e-mail; `verify_jwt` false, gated by `x-lead-alert-key`; pg_cron `lead-alert-poll` every minute; v6 deployed direct-to-Supabase Nov 12 2026, source brought into the repo Nov 24 — Rule 46) |
 | Invoices | `generate-invoice` (template-driven client invoice; mirrors generate-contract pipeline), `generate-invoice-description` (OpenAI gpt-4o-mini ≤150-word work-summary from approved estimate) |
 | QuickBooks (CSV flow, live) | `quickbooks-connect`, `quickbooks-callback`, `quickbooks-sync-customer`, `quickbooks-sync-project`, `quickbooks-bulk-sync-customers`, `quickbooks-bulk-sync-projects`, `quickbooks-backfill-ids` |
 | QuickBooks API (**in-dev — not production**) | `quickbooks-sync-receipt`, `quickbooks-sync-transactions` |
@@ -196,7 +197,7 @@ Always read full file contents (no truncation) before deploying via MCP. See `.c
 
 ## Database Migrations
 
-**398 sequential migrations** in `supabase/migrations/` (as of Nov 11, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
+**406 sequential migrations** in `supabase/migrations/` (as of Nov 24, 2026). File naming: `{UTC_timestamp}_{name}.sql`.
 
 ### Critical Migration Rules
 
@@ -1827,8 +1828,12 @@ leads today; `branch_bids.estimate_id` is a dormant column with zero rows set �
 - **"Link to job" replaces "Convert to Project"** on the lead page.
   [`LinkProjectDialog`](src/components/bids/LinkProjectDialog.tsx) searches EXISTING projects by
   number/name (candidates filtered by `isProjectVisibleByCategory` — construction + work orders only)
-  and links one or more via [`useLeadProjectLinks`](src/hooks/useLeadProjectLinks.ts). There is no
-  create path in the dialog and none anywhere in the Leads area.
+  and links one or more via [`useLeadProjectLinks`](src/hooks/useLeadProjectLinks.ts). The dialog
+  itself only links. **Amended Nov 24 2026 (Rule 46):** the hand-off now mints a number — the
+  **Create job** button on `LinkedJobsCard` opens [`CreateJobDialog`](src/components/bids/CreateJobDialog.tsx),
+  which calls the `sales_create_job` RPC: next number via `get_next_project_number()`, project row
+  at `estimating`, link, lead → `estimate_requested`. Matt's tracker stays the source of truth for
+  the number; a disagreement is settled by renumbering the app row to match the sheet.
 - **`generateProjectNumber()` THROWS on error** — the "225-<last 3 digits of the clock>" fallback and
   the dead `generateProjectNumberSync` are deleted. Callers: `ProjectFormSimple` (`/projects/new`)
   and `QuickWorkOrderForm`; both already catch + toast and create nothing. `get_next_project_number`
@@ -1856,7 +1861,11 @@ id `7c1f3b2e-…`); The Cathedral (converted to 225-120 in May, job complete) cl
 **Counter drift found during this work** (`project_counter` at 225175 while jobs ran to 225-205) was
 fixed the same day at the database level — see Rule 43. Nothing in the Leads area depends on it.
 
-**Common pitfalls:** don't add a Convert/Create button back anywhere under `/leads`; don't write
+**Superseded in part by Rule 44 (Nov 7 2026):** the `LeadHero` + Notes/Media/Docs tabs are gone; the
+record/hub layout, the person, owner, next step and timeline live there.
+
+**Common pitfalls:** the ONLY create path under `/leads` is `CreateJobDialog` → `sales_create_job`
+(never a second button, never a direct `projects` INSERT, never from the sales chat by raw SQL); don't write
 `branch_bids.project_id` directly (the trigger owns it); don't put a `token`-style enum in the DB for
 source/stage (they're text + CHECK so a new value is one ALTER); don't surface closed leads by
 default; don't call `auth.getUser()` on a Leads save path.
@@ -1906,6 +1915,67 @@ below it.
 - `numberGeneration.ts` used to export a `formatProjectNumber` with a stale `125-` prefix; it is
   deleted. Use `formatProjectSequence` / `formatProjectCounter` from `projectNumbering.ts`.
 
+### 44. Leads are a CRM record: person · owner · next step · ONE timeline (Nov 7 2026)
+
+Plan + evidence: [docs/LEADS_CRM_PLAN.md](docs/LEADS_CRM_PLAN.md); readable SQL:
+[docs/leads-crm-record.sql](docs/leads-crm-record.sql) (migration `20261107164112_leads_crm_record`).
+Supersedes the Notes / Media / Docs tab layout and the `LeadHero` card from Rule 42's PR #220.
+
+**Chris's standing rule for this area (Nov 7 2026): no automated decision-making.** Stage, close
+reason, next step, owner — a person writes every one. Code may DERIVE and LOG (attention flags,
+`last_contact_at`, a history row when someone changes a stage) but never move a lead, close it,
+or schedule a chase on its own. The 10/23 sales design's chase cadence / "went quiet" / mail logger
+are therefore NOT built; if they ever are, they must propose, not act.
+
+**Schema (additive):**
+- `branch_bids` + `contact_id → contacts` (the person; a prospect may have no client — the contacts
+  CHECK is now `num_nonnulls(client_id, payee_id) <= 1`), `owner_user_id`, `next_step`,
+  `next_step_due` (DATE), `size_band` (CHECK over `LEAD_SIZE_BANDS`), `last_contact_at`.
+- **`lead_timeline`** — one row per touch. `target_type` (lead · job · client; only `lead` is written
+  today, the others are reserved) + `target_id` (no FK: leads soft-delete and the row is history),
+  `kind` (note · call · email_in · email_out · text · meeting · site_walk · stage_change · link ·
+  file · draft), `occurred_at`, `body`, `user_id`, `written_by`, `attachments` jsonb
+  (`{media_id, file_type, file_name}` refs into `bid_media`), `metadata` jsonb, unique partial
+  indexes on `gmail_message_id` / `agent_key` for a future idempotent logger. RLS admin/manager.
+- Triggers (all SECURITY DEFINER, all LOG-only): `sync_lead_last_contact` (newest human-kind touch →
+  `branch_bids.last_contact_at`, recomputed on delete), `log_lead_stage_change` (AFTER UPDATE OF
+  stage/closed_reason → a `stage_change` row with `{from,to,closed_reason}`),
+  `log_lead_project_link` (link/unlink → a `link` row). `bid_notes` was backfilled into the timeline
+  and is **no longer read by anything** — leave the table, don't write to it.
+
+**Read model** — [`useLeadTimeline`](src/hooks/useLeadTimeline.ts) UNIONs `lead_timeline` rows with
+`bid_media` uploads that no touch references (Rule 20's read-side pattern — no dual-write; media
+attached to a touch resolves its URL from the `bid_media` row). Zero realtime. `addTouch` is the
+only write path for touches and ALSO writes the lead's next step when the composer changed it.
+
+**Surfaces:**
+- Desktop `/leads/:id` = a record, not tabs: left [`LeadFactsCard`](src/components/bids/LeadFactsCard.tsx)
+  (person first · stage pill · source · client · type · size · address · ONE pencil → `LeadEditSheet`),
+  center [`TouchComposer`](src/components/bids/TouchComposer.tsx) (kind chips · words · voice ·
+  paperclip · **next step asked on every save**) over [`LeadTimeline`](src/components/bids/LeadTimeline.tsx)
+  (filter chips replace the tabs), right [`NextStepCard`](src/components/bids/NextStepCard.tsx) ·
+  [`LinkedJobsCard`](src/components/bids/LinkedJobsCard.tsx) (the ONLY home of "Link to job") ·
+  [`LeadEstimatesCard`](src/components/bids/LeadEstimatesCard.tsx).
+- Mobile `/leads/:id` = hub + drill-downs (Rule 37) via `?tab=activity|media|documents|jobs`
+  (`notes`/`docs` alias): compact facts hero with **Call · Text · Directions**, the Next-step card,
+  peer rows through the shared [`HubRow`](src/components/ui/hub-row.tsx) (extracted from the project
+  hub), and the bottom bar **Log touch · Camera · Attach** ([`BidQuickActionBar`](src/components/bids/BidQuickActionBar.tsx)).
+  The tab strip, the kebab duplicates, the Docs-tab dropzone (`BidDocumentUpload hideUploader`) and
+  the duplicate "View Details" card action are gone. The header carries NO actions on either viewport.
+- `/leads` list: tiles are **Overdue · Due today · New, unanswered · Stale 14 days** (tap = filter);
+  default order is attention ([`compareLeadsByAttention`](src/utils/leadAttention.ts), pinned by
+  `leadAttention.test.ts`); columns Next step / Last contact / Owner / Person (storage keys bumped to
+  `-v3`); facets Needs + Owner; intake asks for the **person** ([`ContactPicker`](src/components/bids/ContactPicker.tsx)
+  matches email → phone → name before it creates), size band, and a first step that defaults to
+  "Reply" by the next business day — a prefilled field the person can change, not automation.
+- Sidebar: Leads moved from ESTIMATING to a **SALES** group (`Handshake` icon).
+
+**Retired:** `BidNotesTimeline`, `BidNoteComposer`, `useBidNotes`, `LeadHero`.
+
+**Common pitfalls:** don't add a `chase`/auto-close/auto-stage trigger (see the standing rule); don't
+re-add tabs or a second composer; don't write `last_contact_at`; don't query `bid_notes`; when a
+lead needs a person, use `ContactPicker` (prospects allowed) — never a free-text name field; keep
+`TOUCH_KINDS` in lockstep with the DB CHECK on `lead_timeline.kind`.
 ### 45. A project carries its own source and main contact (Nov 11 2026)
 
 *(Numbered 45 because open PR #222 — the Leads CRM record — already uses 44.)*
@@ -1952,6 +2022,66 @@ Once the migration is confirmed live everywhere, the guard is harmless and can s
 is required — a job may have a source with no person, a person with no source, or neither. The lead
 screens were deliberately not touched: PR #222 rewrites them (and already added
 `branch_bids.contact_id` in production). Relabel the lead address field there, not here.
+
+---
+
+### 46. Sales desk functions · numbering truth · estimates are not a system of record (Nov 24 2026)
+
+Decided by Chris, Nov 24 2026, after the Buckeye Home Health lead showed the gaps. Readable SQL:
+[docs/sales-desk-functions.sql](docs/sales-desk-functions.sql) (migration `20261124144250_sales_desk_functions`).
+
+**One write path, shared by the app and the RCG Sales chat.** The `rcg-sales` skill had promised eleven
+`sales_*` Postgres functions that were never built, so the chat fell back to raw SQL (and wrote to
+`bid_notes`, which PR #222 stopped reading). They exist now, as SECURITY DEFINER wrappers over the existing
+tables. **They record what a person said; none decides anything** — no stage moves on a clock, no close on
+silence, no chase (Rule 44's standing rule).
+
+| Function | Does |
+|---|---|
+| `sales_find_or_add_contact(name, email, phone, client_id, title, notes, written_by)` | match e-mail → phone (digits) → name+company; fills blanks on a match; prospects allowed |
+| `sales_log_touch(target_type, target_id, kind, occurred_at, summary, body, gmail_message_id, agent_key, written_by, attachments, metadata)` | one `lead_timeline` row; idempotent on `gmail_message_id` / `agent_key`; kinds note·call·email_in·email_out·text·meeting·site_walk·file·draft (stage_change/link are trigger-only) |
+| `sales_create_lead(name, source, contact_id, client_id, address, project_type, job_type, size_band, owner_user_id, source_detail, description, written_by)` | stage `new`; same open name+contact twice is one lead; `owner_user_id` required when no user is signed in (becomes `created_by`) |
+| `sales_update_lead(lead_id, patch jsonb, written_by)` | facts only (name, description, address, project_type, job_type, size_band, source, source_detail, client_id, contact_id, owner_user_id); rejects stage/next-step keys |
+| `sales_set_stage(lead_id, stage, reason, written_by)` | a person moved it; `closed` needs a reason (DB CHECK) |
+| `sales_set_next_step(lead_id, text, due_date, owner_user_id, written_by)` | the one field that drives the list; leads only (jobs/clients have no next_step column) |
+| `sales_create_job(lead_id, job_name, client_id, client_name, address, project_type, written_by)` → `(job_id, job_number)` | **the hand-off**: `get_next_project_number()`, project at `estimating`, `branch_bid_projects` link (triggers: primary mirror, Rule 45 inherit, `link` row), lead's prospect contact attached to the client, lead → `estimate_requested` if earlier. Needs a client (`client_id`, or `client_name` to find-or-create). **Creates NO estimate row.** |
+| `sales_request_estimate(...)` | the skill's name for the same thing; alias of `sales_create_job` |
+| `sales_list_due(since)` | every open lead with `attention` (overdue → due_today → new_unanswered → stale → no_next_step → none, mirroring `leadAttention.ts`), person, owner, linked jobs |
+| `sales_pipeline()` | jsonb: open by stage, open leads, closes last 30 days, touches last 7 days. **Leads only** — no project/estimate statuses |
+
+Caller gate `sales_assert_caller`: a signed-in user must be admin/manager; a caller with no `auth.uid()`
+(service role, the chat on a direct connection) is allowed; EXECUTE revoked from `anon`. Attribution: the
+transaction setting `sales.written_by` is read by the log-only triggers (`log_lead_stage_change`,
+`log_lead_project_link`) so trigger rows name the writer, not just `app`. Output columns of the hand-off are
+`job_id`/`job_number` on purpose (PL/pgSQL would read `project_id` as its own OUT variable inside the
+`ON CONFLICT` clause). Smoke-tested in a rolled-back transaction on production before apply.
+
+**Numbering (Rule 42/43, restated):** the app mints at the hand-off; **Matt's tracker sheet is the source
+of truth** for the number and for every project status. If the sheet and the app disagree, the app row is
+renumbered to match (`advance_project_counter` keeps the counter ahead either way; the tracker sync's
+"In App" flag follows). Nothing in the Leads area and nothing the sales chat does may INSERT a `projects`
+row directly.
+
+**Estimates are NOT a system of record (decided by Chris).** No estimate has been created in the app since
+Sep 24 2026; pricing happens in the `rcg-bid` workbook and PDF in Drive. So: no `sent_at`, no promised-by
+column, no chase cadence, no auto-close of the 85 `sent` rows (they may be closed by hand, never by code).
+Project and estimate statuses follow Matt's sheet via the tracker sync. Don't build anything that reads
+`estimates.status` as a sales signal.
+
+**`lead-alert` lives in the repo now** ([supabase/functions/lead-alert/index.ts](supabase/functions/lead-alert/index.ts),
+transcribed from deployed v6; deploy from here next time). It reads ONLY the website's `contact_submissions`
+table; a direct e-mail to info@ is invisible to it. The `20261120141617_lead_alert_email_source` migration
+(applied outside this repo) added `email_*` settings columns and `lead_alert_forms.source` for a mailbox
+source — **off and not deployed** as of Nov 24 (`email_enabled=false`, 0 email forms). If that source is
+finished, it must only LOG and propose, per Rule 44.
+
+**The `rcg-sales` skill must be updated to match** — see [docs/rcg-sales-skill-update.md](docs/rcg-sales-skill-update.md)
+for the function table to paste into `C:\Dev\rcg-skills\skills\rcg-sales\SKILL.md` (the repo for that skill
+is not reachable from the app's cloud sessions).
+
+**Common pitfalls:** don't add a `sales_*` function that changes stage or next step on its own schedule;
+don't let the chat write tables directly again; don't create estimates from the hand-off; don't widen the
+caller gate to field workers; keep `sales_list_due`'s attention CASE in lockstep with `getLeadAttention()`.
 
 ---
 

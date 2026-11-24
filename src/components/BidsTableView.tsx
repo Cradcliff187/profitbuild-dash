@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, Trash2, MoreHorizontal, ExternalLink } from "lucide-react";
+import { Eye, Trash2, MoreHorizontal, ExternalLink, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,6 +31,13 @@ import { CompletePagination } from "@/components/ui/complete-pagination";
 import type { BranchBid } from "@/types/bid";
 import { formatLeadSource, formatLeadStage, leadStageBadgeClass } from "@/utils/leadLabels";
 import { BID_COLUMN_DEFINITIONS } from "@/components/bids/leadListConfig";
+import {
+  ATTENTION_LABELS,
+  attentionBadgeClass,
+  describeDue,
+  describeLastContact,
+  getLeadAttention,
+} from "@/utils/leadAttention";
 
 /** Every job linked to a lead, falling back to the legacy single project_id mirror. */
 const linkedJobs = (bid: BranchBid) => {
@@ -100,6 +107,10 @@ export const BidsTableView = ({
   const widths: Record<string, string> = {
     name: "min-w-[200px]",
     stage: "min-w-[130px]",
+    next_step: "min-w-[220px]",
+    last_contact: "min-w-[110px]",
+    owner: "min-w-[120px]",
+    contact: "min-w-[160px]",
     source: "min-w-[120px]",
     client_name: "min-w-[160px]",
     created_at: "min-w-[110px]",
@@ -197,21 +208,33 @@ export const BidsTableView = ({
         <div className="space-y-2">
           {bids.map((bid) => {
             const jobs = linkedJobs(bid);
+            const attention = getLeadAttention(bid);
+            const dueLabel = describeDue(bid.next_step_due);
             return (
             <MobileListCard
               key={bid.id}
               title={bid.name}
-              subtitle={(bid as BranchBid & { client_name?: string }).client_name || bid.clients?.client_name || 'No client'}
+              subtitle={[bid.contacts?.name, bid.clients?.client_name].filter(Boolean).join(' · ') || 'No person yet'}
               badge={{
                 label: formatLeadStage(bid.stage).toUpperCase(),
                 // Semantic tokens (dark-mode safe) — same map the detail pill uses.
                 className: cn('border', leadStageBadgeClass(bid.stage)),
               }}
-              secondaryBadge={{ label: formatLeadSource(bid.source), className: '' }}
+              secondaryBadge={attention !== 'none' ? { label: ATTENTION_LABELS[attention], className: cn('border', attentionBadgeClass(attention)) } : undefined}
               metrics={[
                 {
-                  label: 'Created',
-                  value: format(new Date(bid.created_at), 'MMM dd, yyyy'),
+                  label: 'Next step',
+                  value: bid.next_step || bid.next_step_due
+                    ? <span className="line-clamp-2">{bid.next_step || 'Follow up'}{dueLabel ? <span className="text-muted-foreground"> · {dueLabel}</span> : null}</span>
+                    : <span className="text-muted-foreground">None</span>,
+                },
+                {
+                  label: 'Last contact',
+                  value: describeLastContact(bid.last_contact_at),
+                },
+                {
+                  label: 'Owner',
+                  value: bid.owner_name || <span className="text-muted-foreground">—</span>,
                 },
                 {
                   label: jobs.length > 1 ? 'Jobs' : 'Job',
@@ -220,14 +243,6 @@ export const BidsTableView = ({
               ]}
               onTap={() => handleViewDetails(bid)}
               actions={[
-                {
-                  icon: Eye,
-                  label: 'View Details',
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    handleViewDetails(bid);
-                  },
-                },
                 {
                   icon: Trash2,
                   label: 'Delete',
@@ -354,6 +369,60 @@ export const BidsTableView = ({
                               </Badge>
                             </TableCell>
                           );
+                        case "next_step": {
+                          const attention = getLeadAttention(bid);
+                          const dueLabel = describeDue(bid.next_step_due);
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {bid.next_step || bid.next_step_due ? (
+                                <div className="min-w-0">
+                                  <div className="truncate" title={bid.next_step ?? undefined}>{bid.next_step || 'Follow up'}</div>
+                                  {dueLabel && (
+                                    <Badge variant="outline" className={cn("mt-0.5 h-4 border px-1.5 text-[10px] font-medium", attentionBadgeClass(attention) || "border-border text-muted-foreground")}>
+                                      {dueLabel}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : attention !== 'none' ? (
+                                <Badge variant="outline" className={cn("h-4 border px-1.5 text-[10px] font-medium", attentionBadgeClass(attention))}>
+                                  {ATTENTION_LABELS[attention]}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          );
+                        }
+                        case "last_contact":
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {describeLastContact(bid.last_contact_at)}
+                            </TableCell>
+                          );
+                        case "owner":
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {bid.owner_name || <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                          );
+                        case "contact":
+                          return (
+                            <TableCell key={colKey} className="p-1.5 text-xs">
+                              {bid.contacts ? (
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  <UserRound className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                  <div className="min-w-0">
+                                    <div className="truncate font-medium">{bid.contacts.name}</div>
+                                    {(bid.contacts.phone || bid.contacts.email) && (
+                                      <div className="truncate text-[11px] text-muted-foreground">{bid.contacts.phone || bid.contacts.email}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          );
                         case "source":
                           return (
                             <TableCell key={colKey} className="p-1.5 text-xs">
@@ -430,7 +499,7 @@ export const BidsTableView = ({
                                 <DropdownMenuContent align="end" className="w-40">
                                   <DropdownMenuItem onClick={() => handleViewDetails(bid)}>
                                     <Eye className="h-3 w-3 mr-2" />
-                                    View Details
+                                    Open
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
