@@ -1,6 +1,6 @@
 /**
  * Day-dot state for the week strips — ONE definition, used by both
- * `WeeklySummary` (Time tab) and `ThisWeekStrip` (Today).
+ * `WeekSummaryCard` (timesheet, via timesheetModel) and `ThisWeekStrip` (Today).
  *
  * Those two files each carried their own copy of the state map, which
  * CLAUDE.md flagged as "keep in visual lockstep". This is that lockstep,

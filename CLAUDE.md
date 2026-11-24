@@ -2083,6 +2083,32 @@ is not reachable from the app's cloud sessions).
 don't let the chat write tables directly again; don't create estimates from the hand-off; don't widen the
 caller gate to field workers; keep `sales_list_due`'s attention CASE in lockstep with `getLeadAttention()`.
 
+### 47. Weekly timesheet — one person per week, Team roster for admins (Nov 24 2026)
+
+Decided by Chris, Nov 24 2026: the **payroll week is Monday–Sunday**; **40 hours is the weekly target for
+employees**; labor-providing subcontractors get a plain total (no target, no overtime split, no "missing
+weekday"). Replaces the old `WeekView` (deleted), which listed every worker's entries in one mixed feed under
+one mixed total on a Sunday–Saturday week, and `WeeklySummary` (deleted; dots, no target).
+
+- **One model**: [`buildWeekSheet`](src/components/timesheet/timesheetModel.ts) (pure, unit-tested) derives
+  per-day Paid Hours, day state, regular / overtime / time-off against 40, pending ids and the "to check" list
+  from a week of entries. Every surface renders it, so My week and Team → person cannot disagree. Hours are the
+  DB values (Gotcha #17); day "needs time" still comes from `getWeekDayState` (Rule 39 — never today).
+- **Checks were sized on 90 days of real entries (338 rows)**: start before 5 AM (2 rows), one entry over
+  12 hrs (1 row), overlap, rejected ⇒ critical (red). Missing weekday, overtime ⇒ warn (amber). "Over 6 hrs, no
+  lunch" is 13% of rows, so it is a per-row hint only and never a check — don't promote it.
+- **Surfaces**: [`WeekSummaryCard` + `WeekDayList`](src/components/timesheet/WeekSheet.tsx) (presentational).
+  `FieldTimeLanding` (field-only, v2) uses them in place of `WeeklySummary` + "Recent entries"; the strip is
+  still the `?date=` day selector (Rule 39). [`TimesheetWeek`](src/components/timesheet/TimesheetWeek.tsx)
+  mounts under the tabbed tracker's **Timesheet** toggle: **My week** (anyone with `field_worker`) and **Team**
+  (admin/manager only — roster from `provides_labor` payees so a person with zero hours still shows, problems
+  first, tap → that person's sheet → **Approve week**, same write as Time Approvals, confirm when critical
+  checks exist).
+- Worker kind = `payees.is_internal` (`false` ⇒ sub). Team reads are admin/manager by RLS; field workers never
+  get the Team tab. All query keys start `field-time-` so `invalidateFieldTimeQueries` covers them. No
+  realtime, no `getUser()` (Rule 35).
+- **Not built**: worker sign-off, GPS, admin "add entry for someone else" from the roster (use Time Entries).
+
 ---
 
 ## TypeScript Configuration
