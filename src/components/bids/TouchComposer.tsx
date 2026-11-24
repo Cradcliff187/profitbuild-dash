@@ -12,7 +12,7 @@ import { useLeadTimeline } from '@/hooks/useLeadTimeline';
 import { createUploadProgressToast } from '@/utils/uploadProgressToast';
 import { TOUCH_KIND_ICONS } from '@/components/bids/touchKindIcons';
 import { nextBusinessDay, toDueDateString } from '@/utils/leadAttention';
-import { TIMELINE_KIND_LABELS, type LeadTimelineAttachment, type TouchKind } from '@/types/bid';
+import { TIMELINE_KIND_LABELS, attachmentLabel, type LeadTimelineAttachment, type TouchKind } from '@/types/bid';
 import { cn } from '@/lib/utils';
 
 
@@ -140,7 +140,7 @@ export function TouchComposer({
 
   const handleSubmit = async () => {
     if (!canSend) return;
-    const body = text.trim() || attachments.map((a) => a.file_name).join(', ');
+    const body = text.trim() || attachments.map((a) => attachmentLabel(a)).join(', ');
     let nextStep: { text: string; due: string | null } | null | undefined;
     if (stepTouched) {
       nextStep = stepText.trim() || stepDue ? { text: stepText.trim(), due: stepDue || null } : null;
@@ -211,16 +211,16 @@ export function TouchComposer({
         {attachments.length > 0 && (
           <ul className="flex flex-wrap gap-2">
             {attachments.map((a) => (
-              <li key={a.media_id ?? a.file_name} className="flex items-center gap-1 rounded-md border bg-muted/40 pl-1 pr-1 text-xs">
+              <li key={a.media_id ?? attachmentLabel(a)} className="flex items-center gap-1 rounded-md border bg-muted/40 pl-1 pr-1 text-xs">
                 {a.file_type === 'image' && a.url ? (
                   <img src={a.thumbnail_url || a.url} alt="" className="h-8 w-8 rounded object-cover" />
                 ) : (
                   <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />
                 )}
-                <span className="max-w-[140px] truncate">{a.file_name}</span>
+                <span className="max-w-[140px] truncate">{attachmentLabel(a)}</span>
                 <button
                   type="button"
-                  aria-label={`Detach ${a.file_name}`}
+                  aria-label={`Detach ${attachmentLabel(a)}`}
                   className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-destructive"
                   onClick={() => setAttachments((prev) => prev.filter((x) => x !== a))}
                 >

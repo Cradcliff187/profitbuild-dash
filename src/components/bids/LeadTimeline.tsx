@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ArrowRight, FileText, Link as LinkIcon, Play, Trash2 } from 'lucide-react';
+import { ArrowRight, ExternalLink, FileText, Link as LinkIcon, Play, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TOUCH_KIND_ICONS } from '@/components/bids/touchKindIcons';
 import { formatLeadClosedReason, formatLeadStage, formatTimelineKind } from '@/utils/leadLabels';
-import { TOUCH_KINDS, type LeadTimelineEntry, type TouchKind } from '@/types/bid';
+import { TOUCH_KINDS, attachmentLabel, type LeadTimelineEntry, type TouchKind } from '@/types/bid';
 import { cn } from '@/lib/utils';
 
 type Filter = 'all' | 'touches' | 'email' | 'files' | 'system';
@@ -203,13 +203,13 @@ function TimelineRow({ entry, canDelete, onDelete }: { entry: LeadTimelineEntry;
         {entry.attachments.length > 0 && (
           <ul className="flex flex-wrap gap-2 pt-1">
             {entry.attachments.map((a, i) => (
-              <li key={a.media_id ?? `${a.file_name}-${i}`}>
+              <li key={a.media_id ?? `${attachmentLabel(a)}-${i}`}>
                 {a.file_type === 'image' && a.url ? (
-                  <a href={a.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border" title={a.file_name}>
-                    <img src={a.thumbnail_url || a.url} alt={a.file_name} className="h-24 w-24 object-cover sm:h-28 sm:w-28" loading="lazy" />
+                  <a href={a.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border" title={attachmentLabel(a)}>
+                    <img src={a.thumbnail_url || a.url} alt={attachmentLabel(a)} className="h-24 w-24 object-cover sm:h-28 sm:w-28" loading="lazy" />
                   </a>
                 ) : a.file_type === 'video' && a.url ? (
-                  <a href={a.url} target="_blank" rel="noreferrer" className="relative block h-24 w-24 overflow-hidden rounded-md border bg-muted sm:h-28 sm:w-28" title={a.file_name}>
+                  <a href={a.url} target="_blank" rel="noreferrer" className="relative block h-24 w-24 overflow-hidden rounded-md border bg-muted sm:h-28 sm:w-28" title={attachmentLabel(a)}>
                     {a.thumbnail_url ? <img src={a.thumbnail_url} alt="" className="h-full w-full object-cover" /> : null}
                     <Play className="absolute inset-0 m-auto h-8 w-8 text-foreground/70" aria-hidden />
                   </a>
@@ -220,8 +220,12 @@ function TimelineRow({ entry, canDelete, onDelete }: { entry: LeadTimelineEntry;
                     rel="noreferrer"
                     className="inline-flex max-w-[240px] items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs hover:bg-accent"
                   >
-                    <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="truncate">{a.file_name}</span>
+                    {a.url && !a.media_id ? (
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    )}
+                    <span className="truncate">{attachmentLabel(a)}</span>
                   </a>
                 )}
               </li>

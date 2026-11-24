@@ -100,11 +100,28 @@ export const TIMELINE_KIND_LABELS: Record<TimelineKind, string> = {
 export interface LeadTimelineAttachment {
   /** bid_media.id when the file was uploaded through the composer. */
   media_id?: string;
-  file_type: 'image' | 'video' | 'document';
-  file_name: string;
-  /** Resolved at read time (signed URL or public URL). */
+  /** Absent on a bare link written by an agent (`{ url, title }`); treated as a document. */
+  file_type?: 'image' | 'video' | 'document';
+  file_name?: string;
+  /** Agent-written links carry `title` instead of `file_name`. */
+  title?: string;
+  /** Resolved at read time (signed URL or public URL), or the link itself. */
   url?: string;
   thumbnail_url?: string | null;
+}
+
+/** Display name for an attachment, whichever shape wrote it. */
+export function attachmentLabel(a: LeadTimelineAttachment): string {
+  if (a.file_name) return a.file_name;
+  if (a.title) return a.title;
+  if (a.url) {
+    try {
+      return new URL(a.url).hostname;
+    } catch {
+      return a.url;
+    }
+  }
+  return 'Attachment';
 }
 
 export interface LeadTimelineEntry {
