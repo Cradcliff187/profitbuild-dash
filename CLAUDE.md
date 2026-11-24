@@ -2107,10 +2107,12 @@ one mixed total on a Sunday–Saturday week, and `WeeklySummary` (deleted; dots,
 - Worker kind = `payees.is_internal` (`false` ⇒ sub). Team reads are admin/manager by RLS; field workers never
   get the Team tab. All query keys start `field-time-` so `invalidateFieldTimeQueries` covers them. No
   realtime, no `getUser()` (Rule 35).
-- **An empty day never reads "Off"** (fixed same day, after Chris asked whether a time-off entry had produced
-  it — none had). The app knows only that nothing was logged, not why; every empty past day says "No time
-  logged" (amber when time was expected, muted when not) and carries an Add button. Rule 37's
-  fabricated-information class.
+- **Empty-day wording (decided by Chris, Nov 24 2026)**: an empty **Saturday or Sunday reads "Off"**; an empty
+  **Monday–Friday never does** — a weekday should carry a project, sick, vacation or holiday entry, so it reads
+  "No time logged" (amber + in the check list when time was expected: an employee's weekday or a dispatched
+  day; muted for a subcontractor). A dispatched weekend day with nothing logged also reads "No time logged".
+  Every empty day carries an Add button. The first build printed "Off" on a sub's empty Monday, which read as
+  if a time-off entry existed — don't put "Off" back on a weekday.
 - **Not built**: worker sign-off, GPS, admin "add entry for someone else" from the roster (use Time Entries).
 
 ---
