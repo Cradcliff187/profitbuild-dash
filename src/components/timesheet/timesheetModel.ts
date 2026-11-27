@@ -9,7 +9,9 @@
  * Decisions (Chris, Nov 24 2026):
  * - The payroll week is Monday–Sunday.
  * - 40 hours is the weekly target for EMPLOYEES. Subcontractors who log time
- *   get a plain total: no target, no overtime split, no "missing weekday".
+ *   get a plain total: no target, no overtime split.
+ * - An empty finished weekday is flagged for EVERYONE, subcontractors included
+ *   (Chris, Nov 27 2026): anyone with access to log time is expected to.
  *
  * Hours are always the DB values (`hours` = Paid, `gross_hours` = shift —
  * Gotcha #17); nothing here recomputes them from clock times.
@@ -192,17 +194,13 @@ export function buildWeekSheet({
     });
 
     // Same rule as the Today / Time week strips (weekDayState.ts) — a day is
-    // never "needs time" until it is over. Subs have no expected weekdays; for
-    // them only a day they were dispatched to counts as missing.
+    // never "needs time" until it is over. Applies to subcontractors too.
     let state: SheetDayState = getWeekDayState({
       day,
       todayISO,
       hasEntry: dayEntries.length > 0,
       hasAssignment: assigned.has(day),
     });
-    if (state === "needs-time" && kind === "sub" && !assigned.has(day)) {
-      state = "idle";
-    }
     if (dayFlagged) state = "flagged";
     if (state === "needs-time") {
       checks.push({

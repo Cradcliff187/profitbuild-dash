@@ -81,21 +81,37 @@ describe("buildWeekSheet", () => {
     expect(sheet.checks.map((c) => c.key)).toContain("overtime");
   });
 
-  it("gives a subcontractor a plain total: no overtime, no missing weekdays", () => {
+  it("gives a subcontractor a plain total: no target, no overtime", () => {
     const sheet = build(
-      [1, 2, 3, 4, 5].map((i) => entry(WEEK[i], 9)),
+      [0, 1, 2, 3, 4].map((i) => entry(WEEK[i], 9)),
       "sub"
     );
     expect(sheet.totalPaid).toBe(45);
     expect(sheet.overtimeHours).toBe(0);
     expect(sheet.checks).toEqual([]);
-    expect(sheet.days[0].state).toBe("idle");
   });
 
-  it("still flags a day a subcontractor was dispatched to and did not log", () => {
-    const sheet = build([], "sub", NEXT_MONDAY, [WEEK[2]]);
-    expect(sheet.days[2].state).toBe("needs-time");
-    expect(sheet.days[1].state).toBe("idle");
+  it("flags a subcontractor's empty weekday the same as an employee's", () => {
+    const sheet = build(
+      [1, 2, 3, 4].map((i) => entry(WEEK[i], 8)),
+      "sub"
+    );
+    expect(sheet.days[0].state).toBe("needs-time");
+    expect(sheet.checks).toHaveLength(1);
+    expect(sheet.checks[0]).toMatchObject({ severity: "warn", day: WEEK[0] });
+    // An empty weekend is still nothing to check.
+    expect(sheet.days[5].state).toBe("idle");
+  });
+
+  it("flags a weekend day a subcontractor was dispatched to and did not log", () => {
+    const sheet = build(
+      [0, 1, 2, 3, 4].map((i) => entry(WEEK[i], 8)),
+      "sub",
+      NEXT_MONDAY,
+      [WEEK[5]]
+    );
+    expect(sheet.days[5].state).toBe("needs-time");
+    expect(sheet.days[6].state).toBe("idle");
   });
 
   it("flags a finished weekday with no time, but never today or a weekend", () => {

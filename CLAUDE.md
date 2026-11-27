@@ -2086,8 +2086,9 @@ caller gate to field workers; keep `sales_list_due`'s attention CASE in lockstep
 ### 47. Weekly timesheet — one person per week, Team roster for admins (Nov 24 2026)
 
 Decided by Chris, Nov 24 2026: the **payroll week is Monday–Sunday**; **40 hours is the weekly target for
-employees**; labor-providing subcontractors get a plain total (no target, no overtime split, no "missing
-weekday"). Replaces the old `WeekView` (deleted), which listed every worker's entries in one mixed feed under
+employees**; labor-providing subcontractors get a plain total (no target, no overtime split). **Nov 27 2026:
+an empty finished weekday is flagged for subcontractors too** — anyone with access to log time is expected to.
+Replaces the old `WeekView` (deleted), which listed every worker's entries in one mixed feed under
 one mixed total on a Sunday–Saturday week, and `WeeklySummary` (deleted; dots, no target).
 
 - **One model**: [`buildWeekSheet`](src/components/timesheet/timesheetModel.ts) (pure, unit-tested) derives
@@ -2109,8 +2110,9 @@ one mixed total on a Sunday–Saturday week, and `WeeklySummary` (deleted; dots,
   realtime, no `getUser()` (Rule 35).
 - **Empty-day wording (decided by Chris, Nov 24 2026)**: an empty **Saturday or Sunday reads "Off"**; an empty
   **Monday–Friday never does** — a weekday should carry a project, sick, vacation or holiday entry, so it reads
-  "No time logged" (amber + in the check list when time was expected: an employee's weekday or a dispatched
-  day; muted for a subcontractor). A dispatched weekend day with nothing logged also reads "No time logged".
+  "No time logged" — amber + in the check list once the day is over, for employees AND subcontractors (the
+  first build muted it for subs; Chris reversed that Nov 27 2026 — don't re-add a `kind === "sub"` exemption in
+  `buildWeekSheet`). A dispatched weekend day with nothing logged also reads "No time logged".
   Every empty day carries an Add button. The first build printed "Off" on a sub's empty Monday, which read as
   if a time-off entry existed — don't put "Off" back on a weekday.
 - **Not built**: worker sign-off, GPS, admin "add entry for someone else" from the roster (use Time Entries).

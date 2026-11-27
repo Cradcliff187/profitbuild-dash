@@ -373,8 +373,9 @@ function DaySection({
             {/* Chris, Nov 24 2026: an empty Saturday or Sunday reads "Off";
                 an empty Monday–Friday never does — a weekday should carry a
                 project, sick, vacation or holiday entry, so it reads "No time
-                logged". Amber = time was expected (employee weekday, or a
-                dispatched day); muted = no expectation (a subcontractor). */}
+                logged". Amber once the day is over — for employees and
+                subcontractors alike (Nov 27 2026); muted only while a future
+                weekday has not happened yet. */}
             {isToday
               ? "Nothing logged yet"
               : missing || !isWeekend
