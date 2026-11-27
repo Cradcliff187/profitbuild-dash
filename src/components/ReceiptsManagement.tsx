@@ -78,7 +78,6 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
   const [receiptToReject, setReceiptToReject] = useState<string | null>(null);
   const [bulkRejectDialogOpen, setBulkRejectDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   
   // Edit modal state
   const [editingReceipt, setEditingReceipt] = useState<UnifiedReceipt | null>(null);
@@ -227,18 +226,6 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
     });
   };
 
-  const toggleCard = (receiptId: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(receiptId)) {
-        next.delete(receiptId);
-      } else {
-        next.add(receiptId);
-      }
-      return next;
-    });
-  };
-
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     exportToCSV: () => {
@@ -305,8 +292,6 @@ export const ReceiptsManagement = forwardRef<ReceiptsManagementRef>((props, ref)
           onReject={handleReject}
           onEdit={setEditingReceipt}
           onDelete={actions.handleDeleteReceipt}
-          expandedCards={expandedCards}
-          onToggleCard={toggleCard}
           loading={receiptsData.loading}
           pageSize={pageSize}
           setPageSize={setPageSize}

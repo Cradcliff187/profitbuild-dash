@@ -1264,6 +1264,8 @@ Receipts tab (`useReceiptFiltering.submittedBy`, matches `receipts.user_id`).
   source of truth; the bar only reads the value bag and emits patches.
 - `multiSelect` popovers use the proper `<CommandList>` shell — keep Gotcha #48's wheel-isolation
   invariant if you touch them.
+- The MOBILE sheet was rebuilt Nov 27 2026 (Rule 48): chips for short sets, a full-height picker for
+  long ones, fixed header/footer. Don't nest a capped scroll box inside the sheet again (Gotcha #40).
 
 ### 34. `crew_day_assignments` — the per-day dispatch store (Jul 13, 2026, field-worker redesign PR 1)
 
@@ -2116,6 +2118,35 @@ one mixed total on a Sunday–Saturday week, and `WeeklySummary` (deleted; dots,
   Every empty day carries an Add button. The first build printed "Off" on a sub's empty Monday, which read as
   if a time-off entry existed — don't put "Off" back on a weekday.
 - **Not built**: worker sign-off, GPS, admin "add entry for someone else" from the roster (use Time Entries).
+- **Admin is the primary view (decided by Chris, Nov 27 2026)**: anyone with admin or manager — including
+  admin + field_worker — lands on **Team**, with My week one tap away. `TeamTimesheet` (same file) is the Team
+  roster on its own, mounted on `/time-entries` (Rule 48).
+
+### 48. Admin mobile review: Team week first, dense rows, one filter sheet (Nov 27 2026)
+
+Chris's report: the admin Time Entries / Receipts tabs on a phone were a flat feed of tall cards (two per screen,
+date and times hidden behind a tap, Approve only inside an expanded card) and the shared filter sheet was "wonky".
+
+- **`/time-entries` on mobile opens on Team week** (`TeamTimesheet` from
+  [TimesheetWeek.tsx](src/components/timesheet/TimesheetWeek.tsx) — roster, problems first, tap a person, Approve
+  week). A two-button toggle switches to **All entries** (`?view=all`). Desktop is unchanged (table). Field-only
+  users cannot reach this page (Gotcha #44). Edits from the Team week go through `AdminEditTimeEntrySheet` via the
+  `toListItem` mapper in [TimeEntries.tsx](src/pages/TimeEntries.tsx); every write on the page refreshes BOTH caches
+  (`useTimeEntries` + `invalidateFieldTimeQueries`) because the two views read the same rows (Gotcha #27).
+- **All entries / Receipts are dense rows under a date header**
+  ([TimeEntriesCardView](src/components/TimeEntriesCardView.tsx),
+  [ReceiptsCardView](src/components/receipts/ReceiptsCardView.tsx)): everything an approver needs is on the row
+  (date, start–end, lunch, note / thumbnail, vendor, submitter), pending rows carry Approve + Reject inline, row tap
+  opens edit (time) or the photo (receipt). No expand/collapse — don't bring the tall cards back. No sticky date
+  headers: `MobilePageWrapper`'s `overflow-x-hidden` makes it the sticky scrollport, so `sticky` would not stick.
+- **Mobile filter sheet** ([EntityFilterBar](src/components/filters/EntityFilterBar.tsx), all Rule 33 consumers):
+  fixed header (title · Reset · close) and fixed footer ("Show N results") around ONE scrolling body
+  (`touch-pan-y` — the bottom-sheet variant is `touch-none`, so the scroller must opt back in). Short option sets
+  (≤ `CHIP_OPTION_LIMIT`, not searchable) are tap chips; long/searchable ones are a summary row that opens a
+  full-height `MobilePicker` inside the same sheet. The picker is a plain list with substring search, **not cmdk**:
+  cmdk's keyboard highlight painted the first row solid orange, which read as "selected" on a touch screen.
+  Optional `quickFilters` prop renders one-tap chips beside the Filters button on mobile (Pending / This week on
+  Time Entries, Pending on Receipts). Desktop popovers are untouched.
 
 ---
 

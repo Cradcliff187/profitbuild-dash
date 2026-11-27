@@ -1,5 +1,5 @@
 import React from 'react';
-import { format } from "date-fns";
+import { addDays, format, startOfWeek } from "date-fns";
 import { TimeEntryFilters } from "@/types/timeEntry";
 import { EntityFilterBar } from "@/components/filters/EntityFilterBar";
 import type { FilterFieldDef, FilterValues, DateRangeValue } from "@/components/filters/filterTypes";
@@ -66,6 +66,32 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
     onFiltersChange({ ...filters, ...next } as TimeEntryFilters);
   };
 
+  // One-tap shortcuts beside the Filters button on a phone.
+  const monday = startOfWeek(new Date(), { weekStartsOn: 1 }); // Mon–Sun payroll week
+  const weekFrom = format(monday, "yyyy-MM-dd");
+  const weekTo = format(addDays(monday, 6), "yyyy-MM-dd");
+  const pendingOnly = filters.status.length === 1 && filters.status[0] === "pending";
+  const thisWeek = filters.dateFrom === weekFrom && filters.dateTo === weekTo;
+  const quickFilters = [
+    {
+      id: "pending",
+      label: "Pending",
+      active: pendingOnly,
+      onToggle: () => onFiltersChange({ ...filters, status: pendingOnly ? [] : ["pending"] }),
+    },
+    {
+      id: "this-week",
+      label: "This week",
+      active: thisWeek,
+      onToggle: () =>
+        onFiltersChange({
+          ...filters,
+          dateFrom: thisWeek ? null : weekFrom,
+          dateTo: thisWeek ? null : weekTo,
+        }),
+    },
+  ];
+
   return (
     <EntityFilterBar
       entityName="Time Entries"
@@ -74,6 +100,7 @@ export const TimeEntrySearchFilters: React.FC<TimeEntrySearchFiltersProps> = ({
       onChange={handleChange}
       onClearAll={onReset}
       resultCount={resultCount}
+      quickFilters={quickFilters}
     />
   );
 };
