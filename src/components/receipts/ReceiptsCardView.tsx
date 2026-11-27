@@ -196,24 +196,24 @@ const ReceiptsCardViewComponent: React.FC<ReceiptsCardViewProps> = ({
                               ? 'Unassigned'
                               : `${receipt.project_number} · ${receipt.project_name}`}
                           </span>
-                          <span className="mt-0.5 flex items-center gap-2">
-                            <span
-                              className={cn(
-                                'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                                STATUS_STYLE[status].className
-                              )}
-                            >
-                              {STATUS_STYLE[status].label}
+                          {receipt.submitted_by_name && (
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {receipt.submitted_by_name}
                             </span>
-                            {receipt.submitted_by_name && (
-                              <span className="truncate text-xs text-muted-foreground">
-                                {receipt.submitted_by_name}
-                              </span>
-                            )}
-                          </span>
+                          )}
                         </span>
-                        <span className="shrink-0 self-start pt-0.5 text-base font-bold tabular-nums leading-tight">
-                          {formatCurrency(receipt.amount)}
+                        <span className="shrink-0 self-start pt-0.5 text-right">
+                          <span className="block text-base font-bold tabular-nums leading-tight">
+                            {formatCurrency(receipt.amount)}
+                          </span>
+                          <span
+                            className={cn(
+                              'mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                              STATUS_STYLE[status].className
+                            )}
+                          >
+                            {STATUS_STYLE[status].label}
+                          </span>
                         </span>
                       </button>
                       {selectable ? (
