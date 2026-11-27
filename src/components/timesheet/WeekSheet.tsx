@@ -342,6 +342,8 @@ function DaySection({
   onAddForDay?: (day: string) => void;
 }) {
   const missing = day.state === "needs-time";
+  const dow = parseDateOnly(day.day).getDay();
+  const isWeekend = dow === 0 || dow === 6;
   return (
     <section
       id={dayAnchorId(day.day)}
@@ -368,9 +370,19 @@ function DaySection({
               missing ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"
             )}
           >
-            {missing ? "No time logged" : isToday ? "Nothing logged yet" : "Off"}
+            {/* Chris, Nov 24 2026: an empty Saturday or Sunday reads "Off";
+                an empty Monday–Friday never does — a weekday should carry a
+                project, sick, vacation or holiday entry, so it reads "No time
+                logged". Amber once the day is over — for employees and
+                subcontractors alike (Nov 27 2026); muted only while a future
+                weekday has not happened yet. */}
+            {isToday
+              ? "Nothing logged yet"
+              : missing || !isWeekend
+                ? "No time logged"
+                : "Off"}
           </span>
-          {onAddForDay && (missing || isToday) && (
+          {onAddForDay && (
             <Button
               variant="outline"
               size="sm"
