@@ -92,9 +92,19 @@ export const ReceiptSearchFilters: React.FC<ReceiptSearchFiltersProps> = ({
     onFiltersChange({ ...filters, ...next } as ReceiptFilters);
   };
 
+  const pendingOnly = filters.status.length === 1 && filters.status[0] === "pending";
+
   return (
     <EntityFilterBar
       entityName="Receipts"
+      quickFilters={[
+        {
+          id: "pending",
+          label: "Pending",
+          active: pendingOnly,
+          onToggle: () => onFiltersChange({ ...filters, status: pendingOnly ? [] : ["pending"] }),
+        },
+      ]}
       fields={fields}
       values={valuesForBar}
       onChange={handleChange}

@@ -47,6 +47,27 @@ import { useTimeEntrySorting } from "@/hooks/useTimeEntrySorting";
 import { useTimeEntryActions } from "@/hooks/useTimeEntryActions";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { getProjectCategoryOrFilter } from "@/utils/sandboxPreferences";
+import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
+import { TeamTimesheet } from "@/components/timesheet/TimesheetWeek";
+import { invalidateFieldTimeQueries, type FieldTimeEntry } from "@/components/field-time/fieldTimeData";
+
+/**
+ * The Team week hands back a lean week-row; the admin edit sheet reads only
+ * the ids, date, times, hours, lunch, note and lock, all of which it carries.
+ */
+const toListItem = (entry: FieldTimeEntry): TimeEntryListItem =>
+  ({
+    ...entry,
+    description: entry.description ?? "",
+    note: entry.description ?? "",
+    hours: entry.hours ?? 0,
+    gross_hours: entry.gross_hours ?? 0,
+    lunch_taken: entry.lunch_taken ?? false,
+    is_locked: entry.is_locked ?? false,
+    project_number: entry.project?.project_number ?? "",
+    project_name: entry.project?.project_name ?? "",
+  }) as unknown as TimeEntryListItem;
 
 const TimeEntriesPage = () => {
   const isMobile = useIsMobile();
@@ -57,6 +78,11 @@ const TimeEntriesPage = () => {
   
   // Tab state
   const tabFromUrl = searchParams.get("tab") === "receipts" ? "receipts" : "entries";
+  // Phone only: the Time Entries tab opens on the Team week (who worked what,
+  // problems first, approve a person's week); `?view=all` is the flat list.
+  const mobileView: "team" | "all" = searchParams.get("view") === "all" ? "all" : "team";
+  const showTeamWeek = isMobile && mobileView === "team";
+  const queryClient = useQueryClient();
   const projectFromUrl = searchParams.get("project");
   const [activeTab, setActiveTab] = useState(tabFromUrl);
   
@@ -184,7 +210,11 @@ const TimeEntriesPage = () => {
   const sorting = useTimeEntrySorting(timeEntries);
   const actions = useTimeEntryActions({
     user,
-    refreshTimeEntries,
+    // The Team week reads these rows through its own cache — refresh both.
+    refreshTimeEntries: () => {
+      refreshTimeEntries();
+      invalidateFieldTimeQueries(queryClient);
+    },
     setSelectedIds: selection.setSelectedIds,
     setRejectDialogOpen,
     setDeleteDialogOpen,
@@ -481,6 +511,18 @@ const TimeEntriesPage = () => {
     navigate(`/time-entries${value === "receipts" ? "?tab=receipts" : ""}`);
   };
 
+  const setMobileView = (view: "team" | "all") => {
+    const next = new URLSearchParams(searchParams);
+    if (view === "all") next.set("view", "all");
+    else next.delete("view");
+    setSearchParams(next, { replace: true });
+  };
+
+  /** Both mobile views read the same rows through different caches — refresh both. */
+  const refreshEverything = async () => {
+    await Promise.all([refreshTimeEntries(), invalidateFieldTimeQueries(queryClient)]);
+  };
+
   const handleResetFilters = () => {
     setFilters({
       dateFrom: null,
@@ -492,7 +534,7 @@ const TimeEntriesPage = () => {
   };
 
   return (
-    <MobilePageWrapper onRefresh={refreshTimeEntries} enablePullToRefresh>
+    <MobilePageWrapper onRefresh={refreshEverything} enablePullToRefresh>
       <PageHeader
         icon={ClipboardCheck}
         title="Time Entries"
@@ -600,14 +642,45 @@ const TimeEntriesPage = () => {
         </div>
 
         <TabsContent value="entries" className="space-y-4 min-h-[600px]">
+          {isMobile && (
+            <div className="flex gap-2" role="tablist" aria-label="Time entries view">
+              {(["team", "all"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileView === v}
+                  onClick={() => setMobileView(v)}
+                  className={cn(
+                    "min-h-[44px] flex-1 rounded-lg border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    mobileView === v
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-muted text-muted-foreground"
+                  )}
+                >
+                  {v === "team" ? "Team week" : "All entries"}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {showTeamWeek && (
+            <TeamTimesheet
+              onEditEntry={(entry) => setEditingEntry(toListItem(entry))}
+              onChanged={refreshTimeEntries}
+            />
+          )}
+
+          {!showTeamWeek && (
           <TimeEntrySearchFilters
             filters={filters}
             onFiltersChange={setFilters}
             onReset={handleResetFilters}
-            resultCount={timeEntries.length}
+            resultCount={totalCount}
             workers={workers}
             projects={projects}
           />
+          )}
           
           {/* Bulk Actions for Desktop - Right above table like Receipts */}
           {!isMobile && selection.selectedIds.length > 0 && (
@@ -620,16 +693,17 @@ const TimeEntriesPage = () => {
             />
           )}
           
-          {isMobile ? (
+          {showTeamWeek ? null : isMobile ? (
             <TimeEntriesCardView
               timeEntries={timeEntries || []}
               selectedIds={selection.selectedIds}
               onSelectOne={selection.handleSelectOne}
               onEdit={(entry) => setEditingEntry(entry as TimeEntryListItem)}
+              onApprove={(entryId) => actions.handleApprove([entryId])}
               onReject={(entry) => setRejectDialogEntry(entry as TimeEntryListItem)}
-              onRefresh={refreshTimeEntries}
               canApprove={canApproveTimeEntries}
               canReject={canRejectTimeEntries}
+              loading={loading}
               totalCount={totalCount}
               pagination={paginationProps}
               pageSize={pageSize}
@@ -732,7 +806,7 @@ const TimeEntriesPage = () => {
       <AdminCreateTimeEntrySheet
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSuccess={refreshTimeEntries}
+        onSuccess={refreshEverything}
       />
       
       {editingEntry && (
@@ -742,7 +816,7 @@ const TimeEntriesPage = () => {
           onOpenChange={(open) => !open && setEditingEntry(null)}
           onSuccess={() => {
             setEditingEntry(null);
-            refreshTimeEntries();
+            refreshEverything();
           }}
         />
       )}

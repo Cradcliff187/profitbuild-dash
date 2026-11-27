@@ -1,16 +1,19 @@
-import { useState } from "react";
-import { Clock, ChevronDown, Edit, XCircle, Eye, CheckCircle, Trash2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { CompletePagination } from "@/components/ui/complete-pagination";
+/**
+ * "All entries" on a phone (admin / manager, /time-entries).
+ *
+ * Dense rows under a date header instead of one tall card per entry: the date,
+ * start–end time and lunch are visible without a tap, a pending row carries its
+ * own Approve button, and tapping a row opens the edit sheet. Roughly six
+ * entries per screen where the old cards showed two.
+ */
+import { useMemo } from "react";
+import { Clock, CheckCircle, XCircle, Trash2, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { formatCurrency } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CompletePagination } from "@/components/ui/complete-pagination";
+import { cn, formatCurrency } from "@/lib/utils";
 import { parseDateOnly } from "@/utils/dateUtils";
-import { toast } from "sonner";
 
 interface TimeEntry {
   id: string;
@@ -28,6 +31,7 @@ interface TimeEntry {
   end_time?: string;
   hours: number;
   lunch_duration_minutes?: number;
+  lunch_taken?: boolean;
   amount: number;
   approval_status: string;
   created_at: string;
@@ -41,12 +45,13 @@ interface TimeEntriesCardViewProps {
   selectedIds: string[];
   onSelectOne: (id: string, checked: boolean) => void;
   onEdit: (entry: TimeEntry) => void;
+  onApprove: (entryId: string) => void;
   onReject: (entry: TimeEntry) => void;
-  onRefresh: () => void;
   canApprove: boolean;
   canReject: boolean;
+  loading?: boolean;
   totalCount: number;
-  pagination: any;
+  pagination: { currentPage: number; goToPage: (page: number) => void };
   pageSize: number;
   setPageSize: (size: number) => void;
   onBulkApprove: () => void;
@@ -55,15 +60,47 @@ interface TimeEntriesCardViewProps {
   onClearSelection: () => void;
 }
 
+/** Auto-generated "7:00 AM - 3:30 PM" descriptions are not notes. */
+const TIME_RANGE_PATTERN = /^\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M$/i;
+
+const noteOf = (entry: TimeEntry): string => {
+  const raw = (entry.note || entry.description || "").trim();
+  return TIME_RANGE_PATTERN.test(raw) ? "" : raw;
+};
+
+const statusOf = (entry: TimeEntry): "pending" | "approved" | "rejected" => {
+  const s = entry.approval_status?.toLowerCase();
+  return s === "approved" || s === "rejected" ? s : "pending";
+};
+
+const STATUS_STYLE = {
+  pending: { label: "Pending", className: "bg-warning-bg text-warning-fg" },
+  approved: { label: "Approved", className: "bg-success/10 text-success" },
+  rejected: { label: "Rejected", className: "bg-destructive/10 text-destructive" },
+} as const;
+
+const formatHours = (h: number) => `${Number.isInteger(h) ? h : h.toFixed(2).replace(/0$/, "")}h`;
+
+const timeRange = (entry: TimeEntry): string => {
+  if (!entry.start_time || !entry.end_time) return "";
+  const range = `${format(new Date(entry.start_time), "h:mm a")} – ${format(new Date(entry.end_time), "h:mm a")}`;
+  const lunch =
+    entry.lunch_taken !== false && entry.lunch_duration_minutes && entry.lunch_duration_minutes > 0
+      ? ` · ${entry.lunch_duration_minutes}m lunch`
+      : "";
+  return range + lunch;
+};
+
 export const TimeEntriesCardView = ({
   timeEntries,
   selectedIds,
   onSelectOne,
   onEdit,
+  onApprove,
   onReject,
-  onRefresh,
   canApprove,
   canReject,
+  loading,
   totalCount,
   pagination,
   pageSize,
@@ -73,296 +110,179 @@ export const TimeEntriesCardView = ({
   onBulkDelete,
   onClearSelection,
 }: TimeEntriesCardViewProps) => {
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-
-  const handleApprove = async (entry: TimeEntry) => {
-    try {
-      const { error } = await supabase
-        .from("expenses")
-        .update({ approval_status: "approved" })
-        .eq("id", entry.id);
-
-      if (error) throw error;
-
-      toast.success("Time entry has been approved successfully.");
-      onRefresh();
-    } catch (error) {
-      console.error("Error approving entry:", error);
-      toast.error("Failed to approve time entry.");
+  // Entries arrive newest-first; group consecutive rows that share a date.
+  const groups = useMemo(() => {
+    const out: { date: string; entries: TimeEntry[]; hours: number }[] = [];
+    for (const entry of timeEntries) {
+      const last = out[out.length - 1];
+      if (last && last.date === entry.expense_date) {
+        last.entries.push(entry);
+        last.hours += entry.hours || 0;
+      } else {
+        out.push({ date: entry.expense_date, entries: [entry], hours: entry.hours || 0 });
+      }
     }
-  };
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "approved":
-        return "border-success text-success bg-success/10";
-      case "rejected":
-        return "border-destructive text-destructive bg-destructive/10";
-      case "pending":
-        return "border-warning text-warning bg-warning/10";
-      default:
-        return "border-primary text-primary bg-primary/10";
-    }
-  };
+    return out;
+  }, [timeEntries]);
 
   if (timeEntries.length === 0) {
     return (
-      <Card className="compact-card">
-        <CardContent className="p-6 text-center">
-          <div className="text-muted-foreground mb-4">
-            <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium">No time entries found</p>
-            <p className="text-xs mt-1">
-              Time entries will appear here once they are submitted
-            </p>
-          </div>
+      <Card>
+        <CardContent className="p-6 text-center text-muted-foreground">
+          <Clock className="mx-auto mb-2 h-10 w-10 opacity-50" />
+          <p className="text-sm font-medium">{loading ? "Loading time entries…" : "No time entries found"}</p>
+          {!loading && <p className="mt-1 text-xs">Try clearing a filter.</p>}
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="dense-spacing">
-      <div className="space-y-2">
-        {/* Bulk Actions Bar - Mobile */}
-        {selectedIds.length > 0 && (
-          <div className="flex flex-col items-stretch gap-2 p-2 bg-muted border rounded-md">
-            <span className="text-xs font-medium">
-              {selectedIds.length} {selectedIds.length === 1 ? 'entry' : 'entries'} selected
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {canApprove && (
-                <Button size="sm" variant="default" onClick={onBulkApprove} className="flex-1">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Approve
-                </Button>
-              )}
-              {canReject && (
-                <Button size="sm" variant="destructive" onClick={onBulkReject} className="flex-1">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Reject
-                </Button>
-              )}
-              <Button size="sm" variant="outline" onClick={onBulkDelete} className="flex-1">
-                <Trash2 className="h-3 w-3 mr-1" />
-                Delete
-              </Button>
-              <Button size="sm" variant="ghost" onClick={onClearSelection} className="w-full">
-                Cancel
-              </Button>
-            </div>
+    <div className="space-y-4">
+      {selectedIds.length > 0 && (
+        <div className="space-y-2 rounded-lg border bg-muted p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{selectedIds.length} selected</span>
+            <Button size="sm" variant="ghost" className="h-9" onClick={onClearSelection}>
+              Cancel
+            </Button>
           </div>
-        )}
-        {timeEntries.map((entry) => {
-          const isExpanded = expandedCards.has(entry.id);
-          
-          return (
-            <Card key={entry.id} className="compact-card border border-primary/10 hover:bg-muted/50 transition-colors">
-              <CardHeader className="p-3 pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="space-y-2 overflow-hidden">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center gap-2 mb-1 min-w-0 overflow-hidden">
-                        <CardTitle className="text-sm font-medium flex-1 min-w-0 truncate">
-                          {entry.worker_name}
-                          {entry.payee?.employee_number && ` (#${entry.payee.employee_number})`}
-                        </CardTitle>
-                        <Badge
-                          variant="outline"
-                          className={`compact-badge capitalize flex-shrink-0 ${getStatusBadgeClass(entry.approval_status)}`}
-                        >
-                          {entry.approval_status || "pending"}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {entry.project_number ? `${entry.project_number} - ${entry.project_name}` : entry.project_name}
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <Checkbox
-                        checked={selectedIds.includes(entry.id)}
-                        onCheckedChange={(checked) => onSelectOne(entry.id, checked as boolean)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-3 space-y-2">
-                {/* Always visible row with key info and chevron */}
-                <div className="flex items-center justify-between px-3 py-2 border-t">
-                  <span className="text-sm font-medium">
-                    {entry.hours}h • {formatCurrency(entry.amount)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExpandedCards((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(entry.id)) {
-                          next.delete(entry.id);
-                        } else {
-                          next.add(entry.id);
-                        }
-                        return next;
-                      });
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </Button>
-                </div>
-
-                {/* Collapsible content */}
-                <Collapsible open={isExpanded}>
-                  <CollapsibleContent className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                    <div className="compact-card-section border border-primary/20">
-                      <div className="space-y-2">
-                        {/* Date and Time Info */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <div className="text-muted-foreground">Date</div>
-                            <div className="font-medium">
-                              {format(parseDateOnly(entry.expense_date), "MMM dd, yyyy")}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Hours</div>
-                            <div className="font-medium">{entry.hours}h</div>
-                          </div>
-                          {entry.start_time && (
-                            <div>
-                              <div className="text-muted-foreground">Start</div>
-                              <div className="font-medium">{format(new Date(entry.start_time), "HH:mm")}</div>
-                            </div>
-                          )}
-                          {entry.end_time && (
-                            <div>
-                              <div className="text-muted-foreground">End</div>
-                              <div className="font-medium">{format(new Date(entry.end_time), "HH:mm")}</div>
-                            </div>
-                          )}
-                          {entry.lunch_duration_minutes && entry.lunch_duration_minutes > 0 && (
-                            <div>
-                              <div className="text-muted-foreground">Lunch</div>
-                              <div className="font-medium">{entry.lunch_duration_minutes}min</div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Amount */}
-                        <div className="pt-2 border-t border-primary/20">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Amount</span>
-                            <span className="text-lg font-bold font-mono">
-                              {formatCurrency(entry.amount)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Notes */}
-                        {(() => {
-                          const TIME_RANGE_PATTERN = /^\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M$/i;
-                          const rawNote = entry.note || entry.description || '';
-                          const displayNote = TIME_RANGE_PATTERN.test(rawNote.trim()) ? '' : rawNote.trim();
-                          if (!displayNote) return null;
-                          return (
-                            <div className="pt-2 border-t border-primary/20">
-                              <div className="text-xs text-muted-foreground mb-0.5">Notes</div>
-                              <p className="text-xs leading-relaxed">{displayNote}</p>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Submitted Info */}
-                        {entry.created_at && (
-                          <div className="text-xs text-muted-foreground">
-                            Submitted {format(new Date(entry.created_at), "MMM dd, yyyy 'at' h:mm a")}
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-1 pt-2">
-                          {entry.approval_status === "pending" && canApprove && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleApprove(entry)}
-                              className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Approve
-                            </Button>
-                          )}
-                          {entry.approval_status === "pending" && canReject && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onReject(entry)}
-                              className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Reject
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onEdit(entry)}
-                            className="flex-1 h-btn-compact text-xs border-primary/20 hover:bg-primary/5"
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {/* Mobile Pagination */}
-        {totalCount > 0 && (
-          <div className="p-3 border-t flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Rows per page:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  pagination.goToPage(1);
-                }}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="200">200</option>
-              </select>
-            </div>
-
-            {totalCount > pageSize && (
-              <div className="w-full sm:w-auto flex justify-center sm:justify-end overflow-x-auto">
-                <CompletePagination
-                  currentPage={pagination.currentPage}
-                  totalPages={Math.ceil(totalCount / pageSize)}
-                  onPageChange={pagination.goToPage}
-                />
-              </div>
+          <div className="flex gap-2">
+            {canApprove && (
+              <Button onClick={onBulkApprove} className="h-11 flex-1">
+                <CheckCircle className="mr-1.5 h-4 w-4" />
+                Approve
+              </Button>
             )}
+            {canReject && (
+              <Button variant="outline" onClick={onBulkReject} className="h-11 flex-1">
+                <XCircle className="mr-1.5 h-4 w-4" />
+                Reject
+              </Button>
+            )}
+            <Button variant="outline" onClick={onBulkDelete} className="h-11 px-3" aria-label="Delete selected">
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {groups.map((group) => (
+        <section key={group.date} aria-label={format(parseDateOnly(group.date), "EEEE, MMM d")}>
+          <div className="mb-1.5 flex items-baseline justify-between px-1">
+            <h3 className="text-sm font-semibold">{format(parseDateOnly(group.date), "EEE, MMM d")}</h3>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {group.entries.length} {group.entries.length === 1 ? "entry" : "entries"} · {formatHours(group.hours)}
+            </span>
+          </div>
+          <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+            {group.entries.map((entry) => {
+              const status = statusOf(entry);
+              const selected = selectedIds.includes(entry.id);
+              const times = timeRange(entry);
+              const note = noteOf(entry);
+              return (
+                <li key={entry.id} className={cn(selected && "bg-primary/5")}>
+                  <div className="flex items-stretch">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={selected}
+                      aria-label={`Select ${entry.worker_name}`}
+                      onClick={() => onSelectOne(entry.id, !selected)}
+                      className="flex w-11 shrink-0 items-start justify-center pt-3.5 focus-visible:outline-none focus-visible:bg-muted"
+                    >
+                      <span
+                        className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded border-2",
+                          selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                        )}
+                      >
+                        {selected && <CheckCircle className="h-3.5 w-3.5" />}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onEdit(entry)}
+                      className="flex min-w-0 flex-1 items-center gap-2 py-2.5 pr-2 text-left focus-visible:outline-none focus-visible:bg-muted"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold">{entry.worker_name}</span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              STATUS_STYLE[status].className
+                            )}
+                          >
+                            {STATUS_STYLE[status].label}
+                          </span>
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {entry.project_number ? `${entry.project_number} · ${entry.project_name}` : entry.project_name}
+                        </span>
+                        {times && <span className="block truncate text-xs text-muted-foreground">{times}</span>}
+                        {note && <span className="mt-0.5 block line-clamp-2 text-xs italic text-muted-foreground">{note}</span>}
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-base font-bold tabular-nums leading-tight">{formatHours(entry.hours)}</span>
+                        <span className="block text-xs tabular-nums text-muted-foreground">{formatCurrency(entry.amount)}</span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                    </button>
+                  </div>
+                  {status === "pending" && (canApprove || canReject) && (
+                    <div className="flex gap-2 pb-2.5 pl-11 pr-3">
+                      {canApprove && (
+                        <Button size="sm" className="h-10 flex-1" onClick={() => onApprove(entry.id)}>
+                          <CheckCircle className="mr-1.5 h-4 w-4" />
+                          Approve
+                        </Button>
+                      )}
+                      {canReject && (
+                        <Button size="sm" variant="outline" className="h-10 flex-1" onClick={() => onReject(entry)}>
+                          <XCircle className="mr-1.5 h-4 w-4" />
+                          Reject
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+
+      {totalCount > 0 && (
+        <div className="flex flex-col items-stretch gap-3 border-t pt-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">Rows per page</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                pagination.goToPage(1);
+              }}
+              className="h-10 rounded-md border bg-background px-2"
+            >
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+          </div>
+          {totalCount > pageSize && (
+            <div className="flex w-full justify-center overflow-x-auto">
+              <CompletePagination
+                currentPage={pagination.currentPage}
+                totalPages={Math.ceil(totalCount / pageSize)}
+                onPageChange={pagination.goToPage}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

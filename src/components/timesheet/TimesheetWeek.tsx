@@ -10,7 +10,8 @@
  *   pending count and problems, sorted problems-first; tap a person to open
  *   the same timesheet for them and approve the week.
  *
- * Who sees what: Team needs admin or manager. My week shows for anyone with
+ * Who sees what: Team needs admin or manager, and is the DEFAULT view for
+ * them even when they also hold field_worker. My week shows for anyone with
  * the field_worker role (and for a flag-off field-only user, it is the only
  * view). RLS is the real boundary — a field worker's team query would return
  * only their own rows anyway.
@@ -70,20 +71,16 @@ function scrollToDay(day: string) {
     ?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function TimesheetWeek({ onEditEntry, onAddForDay }: TimesheetWeekProps) {
-  const { isAdmin, isManager, isFieldWorker } = useRoles();
-  const canSeeTeam = isAdmin || isManager;
-  const showMine = isFieldWorker || !canSeeTeam;
-  const [tab, setTab] = useState<"me" | "team">(showMine ? "me" : "team");
+/** The browsable Mon–Sun payroll week shared by every timesheet view. */
+function useWeekWindow(): WeekWindow {
   const [weeksBack, setWeeksBack] = useState(0);
-
   const now = new Date();
   const weekStart = startOfWeek(subWeeks(now, weeksBack), { weekStartsOn: 1 }); // Mon–Sun payroll week
   const weekDays = Array.from({ length: 7 }, (_, i) =>
     formatDateForDB(addDays(weekStart, i))
   );
   const range = `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d")}`;
-  const week: WeekWindow = {
+  return {
     weekDays,
     todayISO: formatDateForDB(now),
     weekLabel: weeksBack === 0 ? `This week · ${range}` : range,
@@ -91,12 +88,22 @@ export function TimesheetWeek({ onEditEntry, onAddForDay }: TimesheetWeekProps) 
     onNextWeek: () => setWeeksBack((w) => Math.max(0, w - 1)),
     nextWeekDisabled: weeksBack === 0,
   };
+}
+
+export function TimesheetWeek({ onEditEntry, onAddForDay }: TimesheetWeekProps) {
+  const { isAdmin, isManager, isFieldWorker } = useRoles();
+  const canSeeTeam = isAdmin || isManager;
+  const showMine = isFieldWorker || !canSeeTeam;
+  // Admin is the primary view for anyone who holds it, including admin +
+  // field_worker (decided by Chris, Nov 27 2026). My week stays one tap away.
+  const [tab, setTab] = useState<"me" | "team">(canSeeTeam ? "team" : "me");
+  const week = useWeekWindow();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       {canSeeTeam && showMine && (
         <div className="flex gap-2" role="tablist" aria-label="Timesheet view">
-          {(["me", "team"] as const).map((t) => (
+          {(["team", "me"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -121,6 +128,28 @@ export function TimesheetWeek({ onEditEntry, onAddForDay }: TimesheetWeekProps) 
       ) : (
         <TeamWeek week={week} onEditEntry={onEditEntry} />
       )}
+    </div>
+  );
+}
+
+/**
+ * The Team roster on its own — the admin/manager review surface mounted on
+ * `/time-entries` (mobile default). Same component and same approve write as
+ * the Time Tracker's Team tab; there is no "My week" here because logging your
+ * own time lives on the Time Tracker.
+ */
+export function TeamTimesheet({
+  onEditEntry,
+  onChanged,
+}: {
+  onEditEntry: (entry: FieldTimeEntry) => void;
+  /** Called after a week is approved, so a host page can refresh its own lists. */
+  onChanged?: () => void;
+}) {
+  const week = useWeekWindow();
+  return (
+    <div className="mx-auto max-w-2xl space-y-4">
+      <TeamWeek week={week} onEditEntry={onEditEntry} onChanged={onChanged} />
     </div>
   );
 }
@@ -187,9 +216,11 @@ interface RosterRow {
 function TeamWeek({
   week,
   onEditEntry,
+  onChanged,
 }: {
   week: WeekWindow;
   onEditEntry: (entry: FieldTimeEntry) => void;
+  onChanged?: () => void;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -245,6 +276,7 @@ function TeamWeek({
       );
       await invalidateFieldTimeQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ["expenses-unapproved-count"] });
+      onChanged?.();
     } catch (error) {
       console.error("Failed to approve week:", error);
       toast.error("Couldn't approve these entries. Nothing was changed.");
